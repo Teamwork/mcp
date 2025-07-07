@@ -1,0 +1,61 @@
+name: Test
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+env:
+  GO_VERSION: "1.24.x"
+
+  concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+jobs:
+  build:
+    runs-on: [self-hosted, staging, default]
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Build
+        run: make build
+
+  lint:
+    runs-on: [self-hosted, staging, default]
+    needs: build
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+
+      - name: Lint
+        uses: golangci/golangci-lint-action@v8
+        with:
+          version: v2.2
+
+  test:
+    runs-on: [self-hosted, staging, default]
+    needs: build
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+
+      - name: Test
+        run: go test -v  ./...

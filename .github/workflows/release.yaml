@@ -1,0 +1,61 @@
+name: Release
+
+on:
+  push:
+    branches:
+      - staging
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+env:
+  GO_VERSION: "1.24.x"
+
+jobs:
+  release:
+    runs-on: [self-hosted, staging, default]
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Login to ECR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ vars.AWS_ECR_MASTER_ACCOUNT }}.dkr.ecr.${{ vars.AWS_ECR_MASTER_REGION }}.amazonaws.com
+          username: ${{ secrets.AWS_ECR_MASTER_ACCESS_KEY }}
+          password: ${{ secrets.AWS_ECR_MASTER_SECRET_ACCESS_KEY }}
+
+      - run: docker context create builders
+      - uses: docker/setup-buildx-action@v3
+        with:
+          version: latest
+          endpoint: builders
+          driver-opts: |
+            image=${{ vars.AWS_ECR_MASTER_ACCOUNT }}.dkr.ecr.${{ vars.AWS_ECR_MASTER_REGION }}.amazonaws.com/proxy/moby/buildkit:buildx-stable-1
+
+      - name: Checkout Teamwork Central Build Actions
+        uses: actions/checkout@v4
+        with:
+          repository: Teamwork/gha-builds
+          ref: main
+          token: ${{ secrets.GH_ADMIN_TOKEN }}
+          path: .github/actions/build
+          persist-credentials: false
+
+      - name: Default Go Build - Production
+        uses: ./.github/actions/build/go/default
+        with:
+          GITHUB_TOKEN: ${{ secrets.GH_ADMIN_TOKEN }}
+          ECR_ACCOUNT: ${{ vars.AWS_ECR_MASTER_ACCOUNT }}
+          ECR_REGION: ${{ vars.AWS_ECR_MASTER_REGION }}
+          ECR_ACCESS_KEY: ${{ secrets.AWS_ECR_MASTER_ACCESS_KEY }}
+          ECR_SECRET_ACCESS_KEY: ${{ secrets.AWS_ECR_MASTER_SECRET_ACCESS_KEY }}
+          IMAGE_REPO_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+          IMAGE_REPO_PASSWORD: ${{ secrets.DOCKERHUB_TOKEN }}
+          IMAGE_NAME: "mcp"
+          HELM_CHART_PATH: "chart"
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          PUSH_PROD: true
+          PUSH_DEV_ENV: false
+          UPDATE_HELM_CHART: true

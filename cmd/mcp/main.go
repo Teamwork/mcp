@@ -73,7 +73,7 @@ func main() {
 
 	httpServer := &http.Server{
 		Addr:    resources.Info.ServerAddress,
-		Handler: logMiddleware(resources, authMiddleware(resources, mux)),
+		Handler: authMiddleware(resources, mux),
 	}
 
 	resources.Logger().Info("starting http server",
@@ -108,20 +108,6 @@ func main() {
 	resources.Logger().Info("server stopped")
 }
 
-func logMiddleware(resources config.Resources, next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		next.ServeHTTP(w, r)
-
-		if resources.IsDev() {
-			resources.Logger().Info("incoming request",
-				slog.String("method", r.Method),
-				slog.String("path", r.URL.Path),
-				slog.String("query", r.URL.RawQuery),
-			)
-		}
-	})
-}
-
 func authMiddleware(resources config.Resources, next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// some endpoints don't require auth
@@ -129,6 +115,12 @@ func authMiddleware(resources config.Resources, next http.Handler) http.Handler 
 			next.ServeHTTP(w, r)
 			return
 		}
+
+		requestLogger := resources.Logger().With(
+			slog.String("method", r.Method),
+			slog.String("path", r.URL.Path),
+			slog.String("query", r.URL.RawQuery),
+		)
 
 		server := "https://www.teamwork.com"
 		if resources.IsDev() && resources.Info.DevEnvInstallation != "" {
@@ -138,7 +130,7 @@ func authMiddleware(resources config.Resources, next http.Handler) http.Handler 
 
 		authRequest, err := http.NewRequest(http.MethodGet, url, nil)
 		if err != nil {
-			resources.Logger().Error("failed to create auth request",
+			requestLogger.Error("failed to create auth request",
 				slog.String("error", err.Error()),
 			)
 			http.Error(w, "Failed to create auth request", http.StatusInternalServerError)
@@ -148,13 +140,19 @@ func authMiddleware(resources config.Resources, next http.Handler) http.Handler 
 
 		response, err := resources.TeamworkHTTPClient().Do(authRequest)
 		if err != nil {
-			resources.Logger().Error("failed to perform auth request",
+			requestLogger.Error("failed to perform auth request",
 				slog.String("error", err.Error()),
 			)
 			http.Error(w, "Failed to perform auth request", http.StatusInternalServerError)
 			return
 		}
-		defer response.Body.Close()
+		defer func() {
+			if err := response.Body.Close(); err != nil {
+				requestLogger.Error("failed to close auth response body",
+					slog.String("error", err.Error()),
+				)
+			}
+		}()
 
 		if response.StatusCode != http.StatusOK {
 			http.Error(w, "Unauthorized", http.StatusUnauthorized)
@@ -165,14 +163,14 @@ func authMiddleware(resources config.Resources, next http.Handler) http.Handler 
 
 		decoder := json.NewDecoder(response.Body)
 		if err := decoder.Decode(&info); err != nil {
-			resources.Logger().Error("failed to decode auth response",
+			requestLogger.Error("failed to decode auth response",
 				slog.String("error", err.Error()),
 			)
 			http.Error(w, "Failed to decode auth response", http.StatusInternalServerError)
 			return
 		}
 
-		resources.Logger().Info("authenticated request",
+		requestLogger.Info("authenticated request",
 			slog.Int64("user_id", info.UserID),
 			slog.Int64("installation_id", info.InstallationID),
 			slog.String("url", info.URL),
