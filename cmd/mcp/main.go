@@ -27,53 +27,18 @@ func main() {
 	done := make(chan os.Signal, 1)
 	signal.Notify(done, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
 
-	mcpServer := server.NewMCPServer(mcpName, mcpVersion,
-		server.WithRecovery(),
-		server.WithToolCapabilities(true),
-		server.WithLogging(),
-	)
-
-	mux := http.NewServeMux()
-	mux.HandleFunc("/.well-known/oauth-protected-resource", func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodGet && r.Method != http.MethodOptions {
-			http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
-			return
-		}
-
-		w.Header().Set("Content-Type", "application/json")
-		w.Header().Set("Access-Control-Allow-Origin", "*")
-		w.Header().Set("Access-Control-Allow-Methods", "GET, OPTIONS")
-		w.Header().Set("Access-Control-Allow-Headers", "*")
-		w.WriteHeader(http.StatusOK)
-
-		if r.Method == http.MethodOptions {
-			return
-		}
-
-		resourceAddress := "https://mcp.teamwork.com"
-		authorizationAddress := "https://www.teamwork.com"
-		if resources.IsDev() && resources.Info.DevEnvInstallation != "" {
-			resourceAddress = fmt.Sprintf("https://mcp.%s", resources.Info.DevEnvInstallation)
-			authorizationAddress = fmt.Sprintf("https://%s", resources.Info.DevEnvInstallation)
-		}
-
-		_, _ = w.Write([]byte(`{
-  "resource": "` + resourceAddress + `",
-  "authorization_servers": ["` + authorizationAddress + `"],
-  "bearer_methods_supported": ["header"],
-  "resource_documentation": "https://apidocs.teamwork.com/guides/teamwork/app-login-flow"
-}`))
-	})
-
+	mcpServer := newMCPServer()
 	mcpHTTPServer := server.NewStreamableHTTPServer(mcpServer,
 		server.WithEndpointPath("/"),
 		server.WithStateLess(true),
 	)
+
+	mux := newRouter(resources)
 	mux.Handle("/", mcpHTTPServer)
 
 	httpServer := &http.Server{
 		Addr:    resources.Info.ServerAddress,
-		Handler: authMiddleware(resources, mux),
+		Handler: addRouterMiddlewares(resources, mux),
 	}
 
 	resources.Logger().Info("starting http server",
@@ -108,10 +73,65 @@ func main() {
 	resources.Logger().Info("server stopped")
 }
 
+func newMCPServer() *server.MCPServer {
+	return server.NewMCPServer(mcpName, mcpVersion,
+		server.WithRecovery(),
+		server.WithToolCapabilities(true),
+		server.WithLogging(),
+	)
+}
+
+func newRouter(resources config.Resources) *http.ServeMux {
+	mux := http.NewServeMux()
+	mux.HandleFunc("/api/health", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet && r.Method != http.MethodOptions {
+			http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
+			return
+		}
+		w.WriteHeader(http.StatusNoContent)
+	})
+	mux.HandleFunc("/.well-known/oauth-protected-resource", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet && r.Method != http.MethodOptions {
+			http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Access-Control-Allow-Methods", "GET, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Headers", "*")
+		w.WriteHeader(http.StatusOK)
+
+		if r.Method == http.MethodOptions {
+			return
+		}
+
+		resourceAddress := "https://mcp.teamwork.com"
+		authorizationAddress := "https://www.teamwork.com"
+		if resources.IsDev() && resources.Info.DevEnvInstallation != "" {
+			resourceAddress = fmt.Sprintf("https://mcp.%s", resources.Info.DevEnvInstallation)
+			authorizationAddress = fmt.Sprintf("https://%s", resources.Info.DevEnvInstallation)
+		}
+
+		_, _ = w.Write([]byte(`{
+  "resource": "` + resourceAddress + `",
+  "authorization_servers": ["` + authorizationAddress + `"],
+  "bearer_methods_supported": ["header"],
+  "resource_documentation": "https://apidocs.teamwork.com/guides/teamwork/app-login-flow"
+}`))
+	})
+	return mux
+}
+
+func addRouterMiddlewares(resources config.Resources, mux *http.ServeMux) http.Handler {
+	return authMiddleware(resources, mux)
+}
+
 func authMiddleware(resources config.Resources, next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// some endpoints don't require auth
-		if strings.HasPrefix(r.URL.Path, "/.well-known") && (r.Method == http.MethodGet || r.Method == http.MethodOptions) {
+		if (r.URL.Path == "/api/health" || strings.HasPrefix(r.URL.Path, "/.well-known")) &&
+			(r.Method == http.MethodGet || r.Method == http.MethodOptions) {
 			next.ServeHTTP(w, r)
 			return
 		}
