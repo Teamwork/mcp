@@ -15,6 +15,25 @@ FROM golang:1.24-alpine AS builder
 
 WORKDIR /usr/src/mcp
 COPY --chown=root:root . /usr/src/mcp
+
+ARG GOPRIVATE=github.com/teamwork
+
+RUN apk add openssh-client git
+
+# Force fetching modules over SSH
+RUN git config --system url."ssh://git@github.com/".insteadOf "https://github.com/"
+
+# Fetch github's SSH host keys and compare them to the published
+# ones at:
+#
+# https://help.github.com/en/articles/githubs-ssh-key-fingerprints
+RUN set -eu && \
+    mkdir -p -m 0600 ~/.ssh && \
+    ssh-keyscan -t rsa github.com >> ~/.ssh/known_hosts && \
+    ssh-keygen -F github.com -l -E sha256 \
+        | grep -q "SHA256:uNiVztksCsDhcc0u9e8BujQXVUpKZIDTMczCvj3tD2s"
+
+RUN --mount=type=ssh go mod download
 RUN go build -o /app/tw-mcp ./cmd/mcp
 
 

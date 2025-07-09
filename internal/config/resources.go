@@ -5,11 +5,14 @@ import (
 	"net/http"
 	"os"
 	"strings"
+
+	twapi "github.com/teamwork/twapi-go-sdk"
 )
 
 // Resources stores all the resources loaded in the startup.
 type Resources struct {
 	teamworkHTTPClient *http.Client
+	teamworkEngine     *twapi.Engine
 	logger             *slog.Logger
 
 	// Info stores environment variables mappings.
@@ -41,10 +44,21 @@ func (r *Resources) IsDev() bool {
 	return strings.EqualFold(r.Info.Environment, "dev")
 }
 
+// IsStaging returns true if the app is running in staging environment.
+func (r *Resources) IsStaging() bool {
+	return strings.EqualFold(r.Info.Environment, "staging")
+}
+
 // TeamworkHTTPClient returns the HTTP client to be used to make requests to
 // Teamwork API.
 func (r *Resources) TeamworkHTTPClient() *http.Client {
 	return r.teamworkHTTPClient
+}
+
+// TeamworkEngine returns the Teamwork Engine instance to be used to make
+// requests to Teamwork API.
+func (r *Resources) TeamworkEngine() *twapi.Engine {
+	return r.teamworkEngine
 }
 
 func getEnv(key, fallback string) string {

@@ -8,12 +8,16 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"regexp"
 	"strings"
 	"syscall"
 	"time"
 
 	"github.com/mark3labs/mcp-go/server"
 	"github.com/teamwork/mcp/internal/config"
+	"github.com/teamwork/mcp/internal/toolsets"
+	"github.com/teamwork/mcp/internal/twprojects"
+	"github.com/teamwork/twapi-go-sdk/session"
 )
 
 const (
@@ -21,13 +25,22 @@ const (
 	mcpVersion = "1.0.0"
 )
 
+var reBearerToken = regexp.MustCompile(`^Bearer (.+)$`)
+
 func main() {
+	defer handleExit()
 	resources := config.Load()
 
 	done := make(chan os.Signal, 1)
 	signal.Notify(done, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
 
-	mcpServer := newMCPServer()
+	mcpServer, err := newMCPServer(resources)
+	if err != nil {
+		resources.Logger().Error("failed to create MCP server",
+			slog.String("error", err.Error()),
+		)
+		exit(exitCodeSetupFailure)
+	}
 	mcpHTTPServer := server.NewStreamableHTTPServer(mcpServer,
 		server.WithEndpointPath("/"),
 		server.WithStateLess(true),
@@ -73,12 +86,20 @@ func main() {
 	resources.Logger().Info("server stopped")
 }
 
-func newMCPServer() *server.MCPServer {
-	return server.NewMCPServer(mcpName, mcpVersion,
+func newMCPServer(resources config.Resources) (*server.MCPServer, error) {
+	mcpServer := server.NewMCPServer(mcpName, mcpVersion,
 		server.WithRecovery(),
 		server.WithToolCapabilities(true),
 		server.WithLogging(),
 	)
+
+	group := twprojects.DefaultToolsetGroup(false, resources.TeamworkEngine())
+	if err := group.EnableToolsets(toolsets.MethodAll); err != nil {
+		return nil, fmt.Errorf("failed to enable toolsets: %w", err)
+	}
+	group.RegisterAll(mcpServer)
+
+	return mcpServer, nil
 }
 
 func newRouter(resources config.Resources) *http.ServeMux {
@@ -108,7 +129,12 @@ func newRouter(resources config.Resources) *http.ServeMux {
 
 		resourceAddress := "https://mcp.teamwork.com"
 		authorizationAddress := "https://www.teamwork.com"
-		if resources.IsDev() && resources.Info.DevEnvInstallation != "" {
+
+		switch {
+		case resources.IsStaging():
+			resourceAddress = "https://mcp.eks.stg.teamworkops.com"
+			authorizationAddress = "https://www.staging.teamwork.com"
+		case resources.IsDev() && resources.Info.DevEnvInstallation != "":
 			resourceAddress = fmt.Sprintf("https://mcp.%s", resources.Info.DevEnvInstallation)
 			authorizationAddress = fmt.Sprintf("https://%s", resources.Info.DevEnvInstallation)
 		}
@@ -148,6 +174,13 @@ func authMiddleware(resources config.Resources, next http.Handler) http.Handler 
 		}
 		url := fmt.Sprintf("%s/launchpad/v1/userinfo.json", server)
 
+		matches := reBearerToken.FindStringSubmatch(r.Header.Get("Authorization"))
+		if len(matches) < 2 {
+			http.Error(w, "Unauthorized", http.StatusUnauthorized)
+			return
+		}
+		bearerToken := matches[1]
+
 		authRequest, err := http.NewRequest(http.MethodGet, url, nil)
 		if err != nil {
 			requestLogger.Error("failed to create auth request",
@@ -156,7 +189,7 @@ func authMiddleware(resources config.Resources, next http.Handler) http.Handler 
 			http.Error(w, "Failed to create auth request", http.StatusInternalServerError)
 			return
 		}
-		authRequest.Header.Set("Authorization", r.Header.Get("Authorization"))
+		authRequest.Header.Set("Authorization", "Bearer "+bearerToken)
 
 		response, err := resources.TeamworkHTTPClient().Do(authRequest)
 		if err != nil {
@@ -190,13 +223,13 @@ func authMiddleware(resources config.Resources, next http.Handler) http.Handler 
 			return
 		}
 
-		requestLogger.Info("authenticated request",
+		requestLogger.Debug("authenticated request",
 			slog.Int64("user_id", info.UserID),
 			slog.Int64("installation_id", info.InstallationID),
 			slog.String("url", info.URL),
 		)
 
-		// TODO: inject auth info into context for use in tools
+		r = r.WithContext(session.WithBearerTokenContext(r.Context(), session.NewBearerToken(bearerToken, info.URL)))
 
 		next.ServeHTTP(w, r)
 	})
@@ -206,4 +239,30 @@ type authInfo struct {
 	UserID         int64  `json:"user_id"`
 	InstallationID int64  `json:"installation_id"`
 	URL            string `json:"url"`
+}
+
+type exitCode int
+
+const (
+	exitCodeOK exitCode = iota
+	exitCodeSetupFailure
+)
+
+type exitData struct {
+	code exitCode
+}
+
+// exit allows to abort the program while still executing all defer statements.
+func exit(code exitCode) {
+	panic(exitData{code: code})
+}
+
+// handleExit exit code handler.
+func handleExit() {
+	if e := recover(); e != nil {
+		if exit, ok := e.(exitData); ok {
+			os.Exit(int(exit.code))
+		}
+		panic(e)
+	}
 }
