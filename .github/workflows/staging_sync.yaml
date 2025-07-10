@@ -1,0 +1,37 @@
+name: Staging sync
+on:
+  push:
+    branches:
+      - main
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  sync:
+    runs-on: [self-hosted, staging, default]
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Need full history to compare branches and check ancestry
+          token: ${{ secrets.GH_ADMIN_TOKEN }}
+
+      - name: Configure Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Sync staging branch
+        run: |
+          git fetch origin
+          if git show-ref --verify --quiet refs/remotes/origin/staging; then
+            git checkout staging
+            git reset --hard origin/main
+            git checkout origin/staging -- chart/Chart.yaml
+            git commit -m "Keep the pods running, please" chart/Chart.yaml
+          else
+            git checkout -b staging origin/main
+          fi
+          git push origin staging
