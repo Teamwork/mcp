@@ -3,8 +3,8 @@ module github.com/teamwork/mcp
 go 1.24.2
 
 require (
-	github.com/mark3labs/mcp-go v0.32.1-0.20250704180325-656a7b4cab77
-	github.com/teamwork/twapi-go-sdk v0.0.2
+	github.com/mark3labs/mcp-go v0.33.1-0.20250709070339-2d479bb4995a
+	github.com/teamwork/twapi-go-sdk v0.0.6
 )
 
 require (
