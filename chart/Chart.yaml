@@ -3,4 +3,4 @@ type: application
 name: mcp
 description: A Helm chart for Kubernetes
 version: 1.9.0
-appVersion: "vd25f999"
+appVersion: "v47e88da"
