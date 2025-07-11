@@ -1,6 +1,6 @@
 # Function to get the effective branch (default branch if current is a tag)
 define get_effective_branch
-$(if $(shell echo $(1) | grep -E '^refs/tags/v[0-9]+\.[0-9]+\.[0-9]+$$'),$(shell git remote show origin | awk '/HEAD branch/ { print $$NF }'),$(1))
+$(if $(shell echo $(1) | grep -E '^refs/tags/v[0-9]+\.[0-9]+\.[0-9]+$$'),"main",$(1))
 endef
 
 AUTHOR_EMAIL     = sysops@teamwork.com
