@@ -13,6 +13,8 @@ import (
 	"syscall"
 	"time"
 
+	httptrace "github.com/DataDog/dd-trace-go/contrib/net/http/v2"
+	"github.com/DataDog/dd-trace-go/v2/ddtrace/tracer"
 	"github.com/mark3labs/mcp-go/server"
 	"github.com/teamwork/mcp/internal/config"
 	"github.com/teamwork/mcp/internal/toolsets"
@@ -150,7 +152,24 @@ func newRouter(resources config.Resources) *http.ServeMux {
 }
 
 func addRouterMiddlewares(resources config.Resources, mux *http.ServeMux) http.Handler {
-	return authMiddleware(resources, mux)
+	return tracerMiddleware(resources, authMiddleware(resources, mux))
+}
+
+func tracerMiddleware(resources config.Resources, next http.Handler) http.Handler {
+	return httptrace.WrapHandler(next, resources.Info.DatadogAPMService, "http.request",
+		httptrace.WithResourceNamer(func(req *http.Request) string {
+			return fmt.Sprintf("%s_%s", req.Method, req.URL.Path)
+		}),
+		httptrace.WithIgnoreRequest(func(req *http.Request) bool {
+			if req.URL.Path == "/api/health" {
+				return true
+			}
+			if strings.HasPrefix(req.URL.Path, "/.well-known") {
+				return true
+			}
+			return false
+		}),
+	)
 }
 
 func authMiddleware(resources config.Resources, next http.Handler) http.Handler {
@@ -228,6 +247,11 @@ func authMiddleware(resources config.Resources, next http.Handler) http.Handler 
 			slog.Int64("installation_id", info.InstallationID),
 			slog.String("url", info.URL),
 		)
+		if span, ok := tracer.SpanFromContext(r.Context()); ok {
+			span.SetTag("user.id", info.UserID)
+			span.SetTag("installation.id", info.InstallationID)
+			span.SetTag("installation.url", info.URL)
+		}
 
 		r = r.WithContext(session.WithBearerTokenContext(r.Context(), session.NewBearerToken(bearerToken, info.URL)))
 

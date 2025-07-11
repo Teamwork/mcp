@@ -6,6 +6,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/DataDog/dd-trace-go/v2/ddtrace/tracer"
 	twapi "github.com/teamwork/twapi-go-sdk"
 )
 
@@ -23,6 +24,8 @@ type Resources struct {
 		Environment string
 		// DevEnvInstallation is the Teamwork DevEnv installation URL.
 		DevEnvInstallation string
+		// DatadogAPMService is the Datadog APM service name.
+		DatadogAPMService string
 	}
 }
 
@@ -31,6 +34,26 @@ func newResources() Resources {
 	resources.Info.ServerAddress = getEnv("SERVER_ADDRESS", "localhost:8012")
 	resources.Info.Environment = getEnv("ENV", "dev")
 	resources.Info.DevEnvInstallation = getEnv("DEVENV_INSTALLATION", "")
+	resources.Info.DatadogAPMService = getEnv("DD_SERVICE", "mcp-server")
+
+	if getEnv("DD_APM_TRACING_ENABLED", "false") == "true" {
+		err := tracer.Start(
+			tracer.WithAgentAddr(getEnv("DD_AGENT_HOST", "localhost")+":"+getEnv("DD_TRACE_AGENT_PORT", "8126")),
+			tracer.WithDogstatsdAddr(getEnv("DD_AGENT_HOST", "localhost")+":"+getEnv("DD_DOGSTATSD_PORT", "8125")),
+			tracer.WithEnv(getEnv("DD_ENV", resources.Info.Environment)),
+			tracer.WithService(resources.Info.DatadogAPMService),
+			tracer.WithServiceVersion(getEnv("DD_VERSION", "unknown")),
+			tracer.WithGlobalTag("awsregion", getEnv("AWS_REGION", "unknown")),
+			tracer.WithRuntimeMetrics(),
+		)
+		if err != nil {
+			// the logger is not initialized yet, so we use the default logger
+			slog.Default().Error("failed to start datadog tracer",
+				slog.String("error", err.Error()),
+			)
+		}
+	}
+
 	return resources
 }
 
