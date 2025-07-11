@@ -34,4 +34,4 @@ jobs:
           else
             git checkout -b staging origin/main
           fi
-          git push origin staging
+          git push -f origin staging
