@@ -43,7 +43,7 @@ jobs:
           path: .github/actions/build
           persist-credentials: false
 
-      - name: Default Go Build - Production
+      - name: Go Build
         uses: ./.github/actions/build/go/default
         with:
           GITHUB_TOKEN: ${{ secrets.GH_ADMIN_TOKEN }}
