@@ -59,3 +59,4 @@ jobs:
           PUSH_PROD: true
           PUSH_DEV_ENV: false
           UPDATE_HELM_CHART: true
+          NPM_TOKEN: false

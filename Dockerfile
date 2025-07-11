@@ -11,7 +11,7 @@
 #  ░         ░      ░      ░  ░   ░       ░  ░   ░     
 #       ░                       ░                      
 #
-FROM golang:1.24-alpine AS builder
+FROM 343218184206.dkr.ecr.us-east-1.amazonaws.com/proxy/library/golang:1.24-alpine AS builder
 
 WORKDIR /usr/src/mcp
 COPY --chown=root:root . /usr/src/mcp
@@ -47,7 +47,7 @@ RUN go build -o /app/tw-mcp ./cmd/mcp
 #   ░░   ░  ░░░ ░ ░    ░   ░ ░    ░   ░ ░    ░     ░░   ░ 
 #    ░        ░              ░          ░    ░  ░   ░     
 #
-FROM alpine:3 AS runner
+FROM 343218184206.dkr.ecr.us-east-1.amazonaws.com/proxy/library/alpine:3 AS runner
 
 COPY --from=builder /app/tw-mcp /bin/tw-mcp
 
