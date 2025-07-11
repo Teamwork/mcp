@@ -21,6 +21,11 @@ type Method string
 // rather a convenience to enable all Toolsets in a ToolsetGroup at once.
 const MethodAll Method = "all"
 
+// String returns the string representation of the Method.
+func (m Method) String() string {
+	return string(m)
+}
+
 // ToolsetDoesNotExistError is an error type that indicates a requested toolset
 // does not exist in the toolset group.
 type ToolsetDoesNotExistError struct {

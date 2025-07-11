@@ -4,7 +4,7 @@ go 1.24.2
 
 require (
 	github.com/mark3labs/mcp-go v0.33.1-0.20250709070339-2d479bb4995a
-	github.com/teamwork/twapi-go-sdk v0.0.6
+	github.com/teamwork/twapi-go-sdk v0.0.8
 )
 
 require (
