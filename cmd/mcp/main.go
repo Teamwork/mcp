@@ -24,8 +24,7 @@ import (
 )
 
 const (
-	mcpName    = "Teamwork.com"
-	mcpVersion = "1.0.0"
+	mcpName = "Teamwork.com"
 )
 
 var reBearerToken = regexp.MustCompile(`^Bearer (.+)$`)
@@ -90,7 +89,7 @@ func main() {
 }
 
 func newMCPServer(resources config.Resources) (*server.MCPServer, error) {
-	mcpServer := server.NewMCPServer(mcpName, mcpVersion,
+	mcpServer := server.NewMCPServer(mcpName, strings.TrimPrefix(resources.Info.Version, "v"),
 		server.WithRecovery(),
 		server.WithToolCapabilities(true),
 		server.WithLogging(),

@@ -18,6 +18,8 @@ type Resources struct {
 
 	// Info stores environment variables mappings.
 	Info struct {
+		// Version is the current version of the MCP server.
+		Version string
 		// ServerAddress is the address of the server.
 		ServerAddress string
 		// Environment is the environment this app is running in.
@@ -33,6 +35,7 @@ type Resources struct {
 
 func newResources() Resources {
 	var resources Resources
+	resources.Info.Version = getEnv("VERSION", "dev")
 	resources.Info.ServerAddress = getEnv("SERVER_ADDRESS", "localhost:8012")
 	resources.Info.Environment = getEnv("ENV", "dev")
 	resources.Info.DevEnvInstallation = getEnv("DEVENV_INSTALLATION", "")
