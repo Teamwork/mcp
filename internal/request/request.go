@@ -50,6 +50,7 @@ func SetProxyHeaders(r *http.Request) {
 	// when hitting the backend API. For consistency, we will also skip
 	// "X-Forwarded-Proto" and "X-Forwarded-Port".
 
+	r.Header.Set("Sent-By", "tw-mcp-server")
 	r.Header.Set("X-Forwarded-For", info.RemoteIP)
 
 	if r.Header != nil {
@@ -65,6 +66,9 @@ func SetProxyHeaders(r *http.Request) {
 		}
 		if headerValue := r.Header.Get("X-Request-ID"); headerValue != "" {
 			r.Header.Set("X-Request-ID", headerValue)
+		}
+		if headerValue := r.Header.Get("X-Amzn-Trace-ID"); headerValue != "" {
+			r.Header.Set("X-Amzn-Trace-ID", headerValue)
 		}
 
 		// https://www.w3.org/TR/trace-context/
