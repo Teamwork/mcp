@@ -17,6 +17,7 @@ import (
 	"github.com/DataDog/dd-trace-go/v2/ddtrace/tracer"
 	"github.com/mark3labs/mcp-go/server"
 	"github.com/teamwork/mcp/internal/config"
+	"github.com/teamwork/mcp/internal/request"
 	"github.com/teamwork/mcp/internal/toolsets"
 	"github.com/teamwork/mcp/internal/twprojects"
 	"github.com/teamwork/twapi-go-sdk/session"
@@ -152,7 +153,13 @@ func newRouter(resources config.Resources) *http.ServeMux {
 }
 
 func addRouterMiddlewares(resources config.Resources, mux *http.ServeMux) http.Handler {
-	return tracerMiddleware(resources, authMiddleware(resources, mux))
+	return requestInfoMiddleware(tracerMiddleware(resources, authMiddleware(resources, mux)))
+}
+
+func requestInfoMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		next.ServeHTTP(w, r.WithContext(request.WithInfo(r.Context(), request.NewInfo(r))))
+	})
 }
 
 func tracerMiddleware(resources config.Resources, next http.Handler) http.Handler {

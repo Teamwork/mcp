@@ -26,6 +26,8 @@ type Resources struct {
 		DevEnvInstallation string
 		// DatadogAPMService is the Datadog APM service name.
 		DatadogAPMService string
+		// HAProxyURL is the URL of the HAProxy instance.
+		HAProxyURL string
 	}
 }
 
@@ -35,6 +37,7 @@ func newResources() Resources {
 	resources.Info.Environment = getEnv("ENV", "dev")
 	resources.Info.DevEnvInstallation = getEnv("DEVENV_INSTALLATION", "")
 	resources.Info.DatadogAPMService = getEnv("DD_SERVICE", "mcp-server")
+	resources.Info.HAProxyURL = getEnv("HAPROXY_URL", "")
 
 	if getEnv("DD_APM_TRACING_ENABLED", "false") == "true" {
 		err := tracer.Start(
