@@ -5,6 +5,8 @@ go 1.24.2
 require (
 	github.com/DataDog/dd-trace-go/contrib/net/http/v2 v2.1.0
 	github.com/DataDog/dd-trace-go/v2 v2.1.0
+	github.com/getsentry/sentry-go v0.34.1
+	github.com/getsentry/sentry-go/slog v0.34.1
 	github.com/mark3labs/mcp-go v0.33.1-0.20250709070339-2d479bb4995a
 	github.com/teamwork/twapi-go-sdk v0.0.8
 )

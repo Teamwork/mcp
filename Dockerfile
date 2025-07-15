@@ -16,6 +16,7 @@ FROM 343218184206.dkr.ecr.us-east-1.amazonaws.com/proxy/library/golang:1.24-alpi
 WORKDIR /usr/src/mcp
 COPY --chown=root:root . /usr/src/mcp
 
+ARG BUILD_VERSION=dev
 ARG GOPRIVATE=github.com/teamwork
 
 RUN apk add openssh-client git
@@ -34,7 +35,8 @@ RUN set -eu && \
         | grep -q "SHA256:uNiVztksCsDhcc0u9e8BujQXVUpKZIDTMczCvj3tD2s"
 
 RUN --mount=type=ssh go mod download
-RUN go build -o /app/tw-mcp ./cmd/mcp
+RUN go build -ldflags="-X 'github.com/teamwork/mcp/internal/config.Version=$BUILD_VERSION'" -o /app/tw-mcp-http ./cmd/mcp-http
+RUN go build -ldflags="-X 'github.com/teamwork/mcp/internal/config.Version=$BUILD_VERSION'" -o /app/tw-mcp-stdio ./cmd/mcp-stdio
 
 
 # ██▀███   █    ██  ███▄    █  ███▄    █ ▓█████  ██▀███  
@@ -49,13 +51,14 @@ RUN go build -o /app/tw-mcp ./cmd/mcp
 #
 FROM 343218184206.dkr.ecr.us-east-1.amazonaws.com/proxy/library/alpine:3 AS runner
 
-COPY --from=builder /app/tw-mcp /bin/tw-mcp
+COPY --from=builder /app/tw-mcp-http /bin/tw-mcp-http
+COPY --from=builder /app/tw-mcp-stdio /bin/tw-mcp-stdio
 
 ARG BUILD_DATE
 ARG BUILD_VCS_REF
 ARG BUILD_VERSION
 
-ENV VERSION $BUILD_VERSION
+ENV TW_MCP_VERSION $BUILD_VERSION
 
 LABEL org.label-schema.build-date=$BUILD_DATE \
       org.label-schema.description="Teamwork MCP server" \
@@ -67,4 +70,4 @@ LABEL org.label-schema.build-date=$BUILD_DATE \
       org.label-schema.vendor="Teamwork" \
       org.label-schema.version=$BUILD_VERSION
 
-ENTRYPOINT ["/bin/tw-mcp"]
+ENTRYPOINT ["/bin/tw-mcp-http"]

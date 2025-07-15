@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -16,6 +15,7 @@ import (
 	httptrace "github.com/DataDog/dd-trace-go/contrib/net/http/v2"
 	"github.com/DataDog/dd-trace-go/v2/ddtrace/tracer"
 	"github.com/mark3labs/mcp-go/server"
+	"github.com/teamwork/mcp/internal/auth"
 	"github.com/teamwork/mcp/internal/config"
 	"github.com/teamwork/mcp/internal/request"
 	"github.com/teamwork/mcp/internal/toolsets"
@@ -23,15 +23,13 @@ import (
 	"github.com/teamwork/twapi-go-sdk/session"
 )
 
-const (
-	mcpName = "Teamwork.com"
-)
-
 var reBearerToken = regexp.MustCompile(`^Bearer (.+)$`)
 
 func main() {
 	defer handleExit()
-	resources := config.Load()
+
+	resources, teardown := config.Load()
+	defer teardown()
 
 	done := make(chan os.Signal, 1)
 	signal.Notify(done, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
@@ -89,19 +87,11 @@ func main() {
 }
 
 func newMCPServer(resources config.Resources) (*server.MCPServer, error) {
-	mcpServer := server.NewMCPServer(mcpName, strings.TrimPrefix(resources.Info.Version, "v"),
-		server.WithRecovery(),
-		server.WithToolCapabilities(true),
-		server.WithLogging(),
-	)
-
 	group := twprojects.DefaultToolsetGroup(false, resources.TeamworkEngine())
 	if err := group.EnableToolsets(toolsets.MethodAll); err != nil {
 		return nil, fmt.Errorf("failed to enable toolsets: %w", err)
 	}
-	group.RegisterAll(mcpServer)
-
-	return mcpServer, nil
+	return config.NewMCPServer(resources, group), nil
 }
 
 func newRouter(resources config.Resources) *http.ServeMux {
@@ -129,21 +119,9 @@ func newRouter(resources config.Resources) *http.ServeMux {
 			return
 		}
 
-		resourceAddress := "https://mcp.teamwork.com"
-		authorizationAddress := "https://www.teamwork.com"
-
-		switch {
-		case resources.IsStaging():
-			resourceAddress = "https://mcp.eks.stg.teamworkops.com"
-			authorizationAddress = "https://www.staging.teamwork.com"
-		case resources.IsDev() && resources.Info.DevEnvInstallation != "":
-			resourceAddress = fmt.Sprintf("https://mcp.%s", resources.Info.DevEnvInstallation)
-			authorizationAddress = fmt.Sprintf("https://%s", resources.Info.DevEnvInstallation)
-		}
-
 		_, _ = w.Write([]byte(`{
-  "resource": "` + resourceAddress + `",
-  "authorization_servers": ["` + authorizationAddress + `"],
+  "resource": "` + resources.Info.MCPURL + `",
+  "authorization_servers": ["` + resources.Info.APIURL + `"],
   "bearer_methods_supported": ["header"],
   "resource_documentation": "https://apidocs.teamwork.com/guides/teamwork/app-login-flow"
 }`))
@@ -162,7 +140,10 @@ func requestInfoMiddleware(next http.Handler) http.Handler {
 }
 
 func tracerMiddleware(resources config.Resources, next http.Handler) http.Handler {
-	return httptrace.WrapHandler(next, resources.Info.DatadogAPMService, "http.request",
+	if !resources.Info.DatadogAPM.Enabled {
+		return next
+	}
+	return httptrace.WrapHandler(next, resources.Info.DatadogAPM.Service, "http.request",
 		httptrace.WithResourceNamer(func(req *http.Request) string {
 			return fmt.Sprintf("%s_%s", req.Method, req.URL.Path)
 		}),
@@ -193,12 +174,6 @@ func authMiddleware(resources config.Resources, next http.Handler) http.Handler 
 			slog.String("query", r.URL.RawQuery),
 		)
 
-		server := "https://www.teamwork.com"
-		if resources.IsDev() && resources.Info.DevEnvInstallation != "" {
-			server = fmt.Sprintf("https://%s", resources.Info.DevEnvInstallation)
-		}
-		url := fmt.Sprintf("%s/launchpad/v1/userinfo.json", server)
-
 		matches := reBearerToken.FindStringSubmatch(r.Header.Get("Authorization"))
 		if len(matches) < 2 {
 			http.Error(w, "Unauthorized", http.StatusUnauthorized)
@@ -206,53 +181,18 @@ func authMiddleware(resources config.Resources, next http.Handler) http.Handler 
 		}
 		bearerToken := matches[1]
 
-		authRequest, err := http.NewRequest(http.MethodGet, url, nil)
-		if err != nil {
-			requestLogger.Error("failed to create auth request",
-				slog.String("error", err.Error()),
-			)
-			http.Error(w, "Failed to create auth request", http.StatusInternalServerError)
-			return
-		}
-		authRequest.Header.Set("Authorization", "Bearer "+bearerToken)
-
-		response, err := resources.TeamworkHTTPClient().Do(authRequest)
-		if err != nil {
-			requestLogger.Error("failed to perform auth request",
-				slog.String("error", err.Error()),
-			)
-			http.Error(w, "Failed to perform auth request", http.StatusInternalServerError)
-			return
-		}
-		defer func() {
-			if err := response.Body.Close(); err != nil {
-				requestLogger.Error("failed to close auth response body",
-					slog.String("error", err.Error()),
-				)
-			}
-		}()
-
-		if response.StatusCode != http.StatusOK {
+		info, err := auth.GetBearerInfo(r.Context(), resources, bearerToken)
+		if err == auth.ErrBearerInfoUnauthorized {
 			http.Error(w, "Unauthorized", http.StatusUnauthorized)
 			return
-		}
-
-		var info authInfo
-
-		decoder := json.NewDecoder(response.Body)
-		if err := decoder.Decode(&info); err != nil {
-			requestLogger.Error("failed to decode auth response",
+		} else if err != nil {
+			requestLogger.Error("failed to get bearer info",
 				slog.String("error", err.Error()),
 			)
-			http.Error(w, "Failed to decode auth response", http.StatusInternalServerError)
+			http.Error(w, "Failed to get bearer info", http.StatusInternalServerError)
 			return
 		}
 
-		requestLogger.Debug("authenticated request",
-			slog.Int64("user_id", info.UserID),
-			slog.Int64("installation_id", info.InstallationID),
-			slog.String("url", info.URL),
-		)
 		if span, ok := tracer.SpanFromContext(r.Context()); ok {
 			span.SetTag("user.id", info.UserID)
 			span.SetTag("installation.id", info.InstallationID)
@@ -263,12 +203,6 @@ func authMiddleware(resources config.Resources, next http.Handler) http.Handler 
 
 		next.ServeHTTP(w, r)
 	})
-}
-
-type authInfo struct {
-	UserID         int64  `json:"user_id"`
-	InstallationID int64  `json:"installation_id"`
-	URL            string `json:"url"`
 }
 
 type exitCode int

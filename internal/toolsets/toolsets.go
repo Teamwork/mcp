@@ -6,9 +6,15 @@ package toolsets
 
 import (
 	"fmt"
+	"sync"
 
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
+)
+
+var (
+	registeredMethods      = make(map[Method]struct{})
+	registeredMethodsMutex sync.RWMutex
 )
 
 // Method identifies the name of a logical unit of operation or action that can
@@ -24,6 +30,22 @@ const MethodAll Method = "all"
 // String returns the string representation of the Method.
 func (m Method) String() string {
 	return string(m)
+}
+
+// IsRegistered checks if the method is registered.
+func (m Method) IsRegistered() bool {
+	registeredMethodsMutex.RLock()
+	defer registeredMethodsMutex.RUnlock()
+	_, exists := registeredMethods[m]
+	return exists || m == MethodAll
+}
+
+// RegisterMethod registers a method. This is used to validate that only known
+// methods are used when enabling Toolsets.
+func RegisterMethod(method Method) {
+	registeredMethodsMutex.Lock()
+	defer registeredMethodsMutex.Unlock()
+	registeredMethods[method] = struct{}{}
 }
 
 // ToolsetDoesNotExistError is an error type that indicates a requested toolset
@@ -337,4 +359,16 @@ func (tg *ToolsetGroup) GetToolset(method Method) (*Toolset, error) {
 		return nil, NewToolsetDoesNotExistError(method)
 	}
 	return toolset, nil
+}
+
+// HasTools checks if the ToolsetGroup has any enabled Toolsets with available
+// tools. It returns true if at least one Toolset is enabled and has tools,
+// otherwise it returns false.
+func (tg *ToolsetGroup) HasTools() bool {
+	for _, toolset := range tg.Toolsets {
+		if toolset.Enabled && len(toolset.GetAvailableTools()) > 0 {
+			return true
+		}
+	}
+	return false
 }

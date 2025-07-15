@@ -34,6 +34,15 @@ const projectDescription = "The project feature in Teamwork.com serves as the ce
 	"initiative, projects in Teamwork.com help teams structure their efforts, collaborate more effectively, and " +
 	"deliver results with greater visibility and accountability."
 
+func init() {
+	// register the toolset methods
+	toolsets.RegisterMethod(MethodProjectCreate)
+	toolsets.RegisterMethod(MethodProjectUpdate)
+	toolsets.RegisterMethod(MethodProjectDelete)
+	toolsets.RegisterMethod(MethodProjectGet)
+	toolsets.RegisterMethod(MethodProjectList)
+}
+
 // ProjectCreate creates a project in Teamwork Projects.
 func ProjectCreate(engine *twapi.Engine) server.ServerTool {
 	return server.ServerTool{

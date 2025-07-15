@@ -4,27 +4,26 @@ import (
 	"log/slog"
 	"net/http"
 	"net/url"
-	"os"
+	"strings"
+	"time"
 
+	"github.com/DataDog/dd-trace-go/v2/ddtrace/tracer"
+	"github.com/getsentry/sentry-go"
+	"github.com/mark3labs/mcp-go/server"
 	"github.com/teamwork/mcp/internal/request"
+	"github.com/teamwork/mcp/internal/toolsets"
 	twapi "github.com/teamwork/twapi-go-sdk"
 	"github.com/teamwork/twapi-go-sdk/session"
 )
 
-// Load loads the configuration for the MCP service.
-func Load() Resources {
-	resources := newResources()
+const (
+	mcpName            = "Teamwork.com"
+	sentryFlushTimeout = 2 * time.Second
+)
 
-	var logHandler slog.Handler
-	if resources.IsDev() {
-		logHandler = slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
-			Level: slog.LevelDebug,
-		})
-	} else {
-		logHandler = slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
-			Level: slog.LevelInfo,
-		})
-	}
+// Load loads the configuration for the MCP service.
+func Load() (Resources, func()) {
+	resources := newResources()
 
 	var haProxyURL *url.URL
 	if resources.Info.HAProxyURL != "" {
@@ -39,7 +38,7 @@ func Load() Resources {
 		}
 	}
 
-	resources.logger = slog.New(logHandler)
+	resources.logger = slog.New(newCustomLogHandler(resources))
 	resources.teamworkHTTPClient = new(http.Client)
 	resources.teamworkEngine = twapi.NewEngine(session.NewBearerTokenContext(),
 		twapi.WithHTTPClient(resources.teamworkHTTPClient),
@@ -62,5 +61,43 @@ func Load() Resources {
 		}),
 		twapi.WithLogger(resources.logger),
 	)
-	return resources
+
+	if resources.Info.DatadogAPM.Enabled {
+		err := tracer.Start(
+			tracer.WithAgentAddr(resources.Info.DatadogAPM.AgentHost+":"+resources.Info.DatadogAPM.AgentPort),
+			tracer.WithDogstatsdAddr(resources.Info.DatadogAPM.AgentHost+":"+resources.Info.DatadogAPM.StatsdPort),
+			tracer.WithEnv(resources.Info.DatadogAPM.Environment),
+			tracer.WithService(resources.Info.DatadogAPM.Service),
+			tracer.WithServiceVersion(resources.Info.DatadogAPM.Version),
+			tracer.WithGlobalTag("awsregion", resources.Info.AWSRegion),
+			tracer.WithRuntimeMetrics(),
+		)
+		if err != nil {
+			// the logger is not initialized yet, so we use the default logger
+			slog.Default().Error("failed to start datadog tracer",
+				slog.String("error", err.Error()),
+			)
+		}
+	}
+
+	return resources, func() {
+		if resources.Info.DatadogAPM.Enabled {
+			tracer.Stop()
+		}
+		if resources.Info.Log.SentryDSN != "" {
+			sentry.Flush(sentryFlushTimeout)
+		}
+	}
+}
+
+// NewMCPServer creates a new MCP server with the given resources and toolset
+// group.
+func NewMCPServer(resources Resources, group *toolsets.ToolsetGroup) *server.MCPServer {
+	mcpServer := server.NewMCPServer(mcpName, strings.TrimPrefix(resources.Info.Version, "v"),
+		server.WithRecovery(),
+		server.WithToolCapabilities(group.HasTools()),
+		server.WithLogging(),
+	)
+	group.RegisterAll(mcpServer)
+	return mcpServer
 }
