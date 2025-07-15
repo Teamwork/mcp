@@ -78,6 +78,8 @@ func newCustomLogHandler(resources Resources) slog.Handler {
 		err := sentry.Init(sentry.ClientOptions{
 			Dsn:            resources.Info.Log.SentryDSN,
 			SendDefaultPII: true,
+			Release:        resources.Info.Version,
+			Environment:    resources.Info.Environment,
 		})
 		if err == nil {
 			sentryHandler = sentryslog.Option{

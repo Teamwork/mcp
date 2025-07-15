@@ -27,6 +27,8 @@ type Resources struct {
 		// ServerAddress is the address of the server. This is useful for the MCP
 		// server in HTTP mode.
 		ServerAddress string
+		// Environment is the environment this app is running in.
+		Environment string
 		// AWSRegion is the AWS region this app is running in.
 		AWSRegion string
 		// MCPURL is the base URL of the MCP server. This is useful for the MCP
@@ -75,6 +77,7 @@ func newResources() Resources {
 	var resources Resources
 	resources.Info.Version = getEnv("TW_MCP_VERSION", Version)
 	resources.Info.ServerAddress = getEnv("TW_MCP_SERVER_ADDRESS", "localhost:8012")
+	resources.Info.Environment = getEnv("TW_MCP_ENV", "dev")
 	resources.Info.AWSRegion = getEnv("TW_MCP_AWS_REGION", "us-east-1")
 	resources.Info.MCPURL = strings.TrimSuffix(getEnv("TW_MCP_URL", "https://mcp.teamwork.com"), "/")
 	resources.Info.APIURL = strings.TrimSuffix(getEnv("TW_MCP_API_URL", "https://teamwork.com"), "/")
@@ -90,7 +93,7 @@ func newResources() Resources {
 	resources.Info.DatadogAPM.AgentHost = getEnv("DD_AGENT_HOST", "localhost")
 	resources.Info.DatadogAPM.AgentPort = getEnv("DD_TRACE_AGENT_PORT", "8126")
 	resources.Info.DatadogAPM.StatsdPort = getEnv("DD_DOGSTATSD_PORT", "8125")
-	resources.Info.DatadogAPM.Environment = getEnv("DD_ENV", "dev")
+	resources.Info.DatadogAPM.Environment = getEnv("DD_ENV", resources.Info.Environment)
 	resources.Info.DatadogAPM.Version = getEnv("DD_VERSION", resources.Info.Version)
 
 	return resources

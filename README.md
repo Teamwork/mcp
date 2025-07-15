@@ -42,6 +42,7 @@ The server can be configured using the following environment variables:
 |----------|-------------|---------|---------|
 | `TW_MCP_VERSION` | Version of the MCP server | `dev` | `v1.0.0` |
 | `TW_MCP_SERVER_ADDRESS` | Server bind address (HTTP mode only) | `localhost:8012` | `:8080`, `0.0.0.0:8012` |
+| `TW_MCP_ENV` | Environment the app is running in | `dev` | `staging`, `production` |
 | `TW_MCP_AWS_REGION` | AWS region where the app is running | `us-east-1` | `eu-west-1` |
 | `TW_MCP_HAPROXY_URL` | HAProxy instance URL (HTTP mode) | _(empty)_ | `https://haproxy.example.com` |
 | `TW_MCP_URL` | The base URL for the MCP server | `https://mcp.example.dev.stg.teamworkops.com` |
@@ -67,7 +68,7 @@ The server can be configured using the following environment variables:
 | `DD_AGENT_HOST` | Datadog Agent host | `localhost` | `datadog-agent` |
 | `DD_TRACE_AGENT_PORT` | Datadog trace agent port | `8126` | `8126` |
 | `DD_DOGSTATSD_PORT` | DogStatsD agent port | `8125` | `8125` |
-| `DD_ENV` | Environment for Datadog APM | `dev` | `staging`, `production` |
+| `DD_ENV` | Environment for Datadog APM | _(uses TW_MCP_ENV)_ | `staging`, `production` |
 | `DD_VERSION` | Version for Datadog APM | _(uses TW_MCP_VERSION)_ | `v1.0.0` |
 
 
