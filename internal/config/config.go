@@ -46,6 +46,7 @@ func Load() (Resources, func()) {
 		// disable TLS verification when using HAProxy, as the certificate won't
 		// match the internal address
 		resources.teamworkHTTPClient.Transport = &http.Transport{
+			Proxy: http.ProxyURL(haProxyURL),
 			TLSClientConfig: &tls.Config{
 				InsecureSkipVerify: true,
 			},
@@ -57,17 +58,6 @@ func Load() (Resources, func()) {
 		twapi.WithMiddleware(func(next twapi.HTTPClient) twapi.HTTPClient {
 			return twapi.HTTPClientFunc(func(req *http.Request) (*http.Response, error) {
 				request.SetProxyHeaders(req)
-				return next.Do(req)
-			})
-		}),
-		twapi.WithMiddleware(func(next twapi.HTTPClient) twapi.HTTPClient {
-			return twapi.HTTPClientFunc(func(req *http.Request) (*http.Response, error) {
-				if haProxyURL != nil {
-					// use internal HAProxy address to avoid extra hops
-					req.Header.Set("Host", req.URL.Host)
-					req.URL.Host = haProxyURL.Host
-					req.URL.Scheme = haProxyURL.Scheme
-				}
 				return next.Do(req)
 			})
 		}),
