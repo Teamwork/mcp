@@ -41,7 +41,7 @@ func GetBearerInfo(ctx context.Context, resources config.Resources, token string
 	}
 	defer func() {
 		if err := response.Body.Close(); err != nil {
-			resources.Logger().Error("failed to close auth response body",
+			resources.Logger().ErrorContext(ctx, "failed to close auth response body",
 				slog.String("error", err.Error()),
 			)
 		}

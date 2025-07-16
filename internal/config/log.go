@@ -77,6 +77,7 @@ func newCustomLogHandler(resources Resources) slog.Handler {
 	if resources.Info.Log.SentryDSN != "" {
 		err := sentry.Init(sentry.ClientOptions{
 			Dsn:            resources.Info.Log.SentryDSN,
+			EnableTracing:  true,
 			SendDefaultPII: true,
 			Release:        resources.Info.Version,
 			Environment:    resources.Info.Environment,
@@ -87,7 +88,10 @@ func newCustomLogHandler(resources Resources) slog.Handler {
 			)
 		} else {
 			sentryHandler = sentryslog.Option{
-				EventLevel: []slog.Level{slog.LevelError},
+				EventLevel: []slog.Level{
+					slog.LevelError,
+					sentryslog.LevelFatal,
+				},
 			}.NewSentryHandler(context.Background())
 		}
 	}

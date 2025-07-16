@@ -25,6 +25,8 @@ const (
 // Load loads the configuration for the MCP service.
 func Load() (Resources, func()) {
 	resources := newResources()
+	resources.logger = slog.New(newCustomLogHandler(resources))
+	resources.teamworkHTTPClient = new(http.Client)
 
 	var haProxyURL *url.URL
 	if resources.Info.HAProxyURL != "" {
@@ -34,22 +36,20 @@ func Load() (Resources, func()) {
 				slog.String("url", resources.Info.HAProxyURL),
 				slog.String("error", err.Error()),
 			)
-			// reset to nil to avoid using an invalid URL
 			haProxyURL = nil
-		}
-	}
 
-	resources.logger = slog.New(newCustomLogHandler(resources))
+		} else {
+			// disable TLS verification when using HAProxy, as the certificate won't
+			// match the internal address
+			resources.teamworkHTTPClient.Transport = &http.Transport{
+				TLSClientConfig: &tls.Config{
+					InsecureSkipVerify: true,
+				},
+			}
 
-	resources.teamworkHTTPClient = new(http.Client)
-	if haProxyURL != nil {
-		// disable TLS verification when using HAProxy, as the certificate won't
-		// match the internal address
-		resources.teamworkHTTPClient.Transport = &http.Transport{
-			Proxy: http.ProxyURL(haProxyURL),
-			TLSClientConfig: &tls.Config{
-				InsecureSkipVerify: true,
-			},
+			resources.logger.Info("using HAProxy for Teamwork API requests",
+				slog.String("url", haProxyURL.String()),
+			)
 		}
 	}
 
@@ -57,7 +57,31 @@ func Load() (Resources, func()) {
 		twapi.WithHTTPClient(resources.teamworkHTTPClient),
 		twapi.WithMiddleware(func(next twapi.HTTPClient) twapi.HTTPClient {
 			return twapi.HTTPClientFunc(func(req *http.Request) (*http.Response, error) {
+				// add request information to Sentry reports
+				if resources.Info.Log.SentryDSN != "" {
+					hub := sentry.CurrentHub().Clone()
+					hub.Scope().SetRequest(req)
+					ctx := sentry.SetHubOnContext(req.Context(), hub)
+					req = req.WithContext(ctx)
+				}
+				return next.Do(req)
+			})
+		}),
+		twapi.WithMiddleware(func(next twapi.HTTPClient) twapi.HTTPClient {
+			return twapi.HTTPClientFunc(func(req *http.Request) (*http.Response, error) {
+				// add proxy headers
 				request.SetProxyHeaders(req)
+				return next.Do(req)
+			})
+		}),
+		twapi.WithMiddleware(func(next twapi.HTTPClient) twapi.HTTPClient {
+			return twapi.HTTPClientFunc(func(req *http.Request) (*http.Response, error) {
+				if haProxyURL != nil {
+					// use internal HAProxy address to avoid extra hops
+					req.Header.Set("Host", req.URL.Host)
+					req.URL.Host = haProxyURL.Host
+					req.URL.Scheme = haProxyURL.Scheme
+				}
 				return next.Do(req)
 			})
 		}),

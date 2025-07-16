@@ -14,6 +14,7 @@ import (
 
 	httptrace "github.com/DataDog/dd-trace-go/contrib/net/http/v2"
 	"github.com/DataDog/dd-trace-go/v2/ddtrace/tracer"
+	"github.com/getsentry/sentry-go"
 	"github.com/mark3labs/mcp-go/server"
 	"github.com/teamwork/mcp/internal/auth"
 	"github.com/teamwork/mcp/internal/config"
@@ -130,7 +131,19 @@ func newRouter(resources config.Resources) *http.ServeMux {
 }
 
 func addRouterMiddlewares(resources config.Resources, mux *http.ServeMux) http.Handler {
-	return requestInfoMiddleware(tracerMiddleware(resources, authMiddleware(resources, mux)))
+	return sentryMiddleware(resources, requestInfoMiddleware(tracerMiddleware(resources, authMiddleware(resources, mux))))
+}
+
+func sentryMiddleware(resources config.Resources, next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if resources.Info.Log.SentryDSN != "" {
+			hub := sentry.CurrentHub().Clone()
+			hub.Scope().SetRequest(r)
+			ctx := sentry.SetHubOnContext(r.Context(), hub)
+			r = r.WithContext(ctx)
+		}
+		next.ServeHTTP(w, r)
+	})
 }
 
 func requestInfoMiddleware(next http.Handler) http.Handler {
@@ -186,7 +199,7 @@ func authMiddleware(resources config.Resources, next http.Handler) http.Handler 
 			http.Error(w, "Unauthorized", http.StatusUnauthorized)
 			return
 		} else if err != nil {
-			requestLogger.Error("failed to get bearer info",
+			requestLogger.ErrorContext(r.Context(), "failed to get bearer info",
 				slog.String("error", err.Error()),
 			)
 			http.Error(w, "Failed to get bearer info", http.StatusInternalServerError)
