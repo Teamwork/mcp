@@ -81,7 +81,11 @@ func newCustomLogHandler(resources Resources) slog.Handler {
 			Release:        resources.Info.Version,
 			Environment:    resources.Info.Environment,
 		})
-		if err == nil {
+		if err != nil {
+			slog.Default().Error("failed to initialize sentry",
+				slog.String("error", err.Error()),
+			)
+		} else {
 			sentryHandler = sentryslog.Option{
 				EventLevel: []slog.Level{slog.LevelError},
 			}.NewSentryHandler(context.Background())
