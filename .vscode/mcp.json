@@ -1,0 +1,39 @@
+{
+  "inputs": [
+    {
+      "id": "tw-mcp-us-token",
+      "type": "promptString",
+      "description": "Teamwork Bearer token for US server"
+    },
+    {
+      "id": "tw-mcp-eu-token",
+      "type": "promptString",
+      "description": "Teamwork Bearer token for EU server"
+    },
+    {
+      "id": "tw-mcp-stg-token",
+      "type": "promptString",
+      "description": "Teamwork Bearer token for Staging server"
+    }
+  ],
+  "servers": {
+    "Teamwork US": {
+      "url": "https://mcp.us.teamworkops.com/",
+      "headers": {
+        "Authorization": "Bearer ${input:tw-mcp-us-token}"
+      }
+    },
+    "Teamwork EU": {
+      "url": "https://mcp.eu.teamworkops.com/",
+      "headers": {
+        "Authorization": "Bearer ${input:tw-mcp-eu-token}"
+      }
+    },
+    "Teamwork Staging": {
+      "url": "https://mcp.eks.stg.teamworkops.com//",
+      "headers": {
+        "Authorization": "Bearer ${input:tw-mcp-stg-token}"
+      }
+    }
+  }
+}
