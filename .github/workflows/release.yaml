@@ -82,6 +82,13 @@ jobs:
           version="${GITHUB_REF#refs/tags/}"
           echo "version=$version" >> $GITHUB_OUTPUT
 
+      - name: Previous Tag
+        id: previous-tag
+        run: |
+          git fetch --tags
+          tag=$(git describe --tags --abbrev=0 "${GITHUB_REF}^")
+          echo "tag=$tag" >> $GITHUB_OUTPUT
+
       - name: Go Build
         run: |
           version="${{ steps.version.outputs.version }}"
@@ -112,6 +119,7 @@ jobs:
           gh release create $version \
             --fail-on-no-commits \
             --generate-notes \
+            --notes-start-tag ${{ steps.previous-tag.outputs.tag }} \
             --verify-tag \
             releases/*
         env:
