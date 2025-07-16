@@ -89,18 +89,8 @@ func Load() (Resources, func()) {
 	)
 
 	if resources.Info.DatadogAPM.Enabled {
-		err := tracer.Start(
-			tracer.WithAgentAddr(resources.Info.DatadogAPM.AgentHost+":"+resources.Info.DatadogAPM.AgentPort),
-			tracer.WithDogstatsdAddr(resources.Info.DatadogAPM.AgentHost+":"+resources.Info.DatadogAPM.StatsdPort),
-			tracer.WithEnv(resources.Info.DatadogAPM.Environment),
-			tracer.WithService(resources.Info.DatadogAPM.Service),
-			tracer.WithServiceVersion(resources.Info.DatadogAPM.Version),
-			tracer.WithGlobalTag("awsregion", resources.Info.AWSRegion),
-			tracer.WithRuntimeMetrics(),
-		)
-		if err != nil {
-			// the logger is not initialized yet, so we use the default logger
-			slog.Default().Error("failed to start datadog tracer",
+		if err := startDatadog(resources); err != nil {
+			resources.logger.Error("failed to start datadog tracer",
 				slog.String("error", err.Error()),
 			)
 		}
