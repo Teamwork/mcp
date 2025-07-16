@@ -1,6 +1,7 @@
 package config
 
 import (
+	"crypto/tls"
 	"log/slog"
 	"net/http"
 	"net/url"
@@ -39,7 +40,18 @@ func Load() (Resources, func()) {
 	}
 
 	resources.logger = slog.New(newCustomLogHandler(resources))
+
 	resources.teamworkHTTPClient = new(http.Client)
+	if haProxyURL != nil {
+		// disable TLS verification when using HAProxy, as the certificate won't
+		// match the internal address
+		resources.teamworkHTTPClient.Transport = &http.Transport{
+			TLSClientConfig: &tls.Config{
+				InsecureSkipVerify: true,
+			},
+		}
+	}
+
 	resources.teamworkEngine = twapi.NewEngine(session.NewBearerTokenContext(),
 		twapi.WithHTTPClient(resources.teamworkHTTPClient),
 		twapi.WithMiddleware(func(next twapi.HTTPClient) twapi.HTTPClient {
