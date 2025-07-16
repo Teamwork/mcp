@@ -14,7 +14,7 @@ import (
 	"github.com/teamwork/twapi-go-sdk/projects"
 )
 
-// List of methods available in the Teamwork Projects MCP service.
+// List of methods available in the Teamwork.com MCP service.
 //
 // The naming convention for methods follows a pattern described here:
 // https://github.com/github/github-mcp-server/issues/333
@@ -43,7 +43,7 @@ func init() {
 	toolsets.RegisterMethod(MethodProjectList)
 }
 
-// ProjectCreate creates a project in Teamwork Projects.
+// ProjectCreate creates a project in Teamwork.com.
 func ProjectCreate(engine *twapi.Engine) server.ServerTool {
 	return server.ServerTool{
 		Tool: mcp.NewTool(string(MethodProjectCreate),
@@ -111,7 +111,7 @@ func ProjectCreate(engine *twapi.Engine) server.ServerTool {
 	}
 }
 
-// ProjectUpdate updates a project in Teamwork Projects.
+// ProjectUpdate updates a project in Teamwork.com.
 func ProjectUpdate(engine *twapi.Engine) server.ServerTool {
 	return server.ServerTool{
 		Tool: mcp.NewTool(string(MethodProjectUpdate),
@@ -183,7 +183,7 @@ func ProjectUpdate(engine *twapi.Engine) server.ServerTool {
 	}
 }
 
-// ProjectDelete deletes a project in Teamwork Projects.
+// ProjectDelete deletes a project in Teamwork.com.
 func ProjectDelete(engine *twapi.Engine) server.ServerTool {
 	return server.ServerTool{
 		Tool: mcp.NewTool(string(MethodProjectDelete),
@@ -224,7 +224,7 @@ func ProjectDelete(engine *twapi.Engine) server.ServerTool {
 	}
 }
 
-// ProjectGet retrieves a project in Teamwork Projects.
+// ProjectGet retrieves a project in Teamwork.com.
 func ProjectGet(engine *twapi.Engine) server.ServerTool {
 	return server.ServerTool{
 		Tool: mcp.NewTool(string(MethodProjectGet),
@@ -272,7 +272,7 @@ func ProjectGet(engine *twapi.Engine) server.ServerTool {
 	}
 }
 
-// ProjectList lists projects in Teamwork Projects.
+// ProjectList lists projects in Teamwork.com.
 func ProjectList(engine *twapi.Engine) server.ServerTool {
 	return server.ServerTool{
 		Tool: mcp.NewTool(string(MethodProjectList),
@@ -315,7 +315,7 @@ func ProjectList(engine *twapi.Engine) server.ServerTool {
 				return mcp.NewToolResultErrorFromErr("invalid parameters", err), nil
 			}
 
-			projectsList, err := projects.ProjectList(ctx, engine, projectListRequest)
+			projectList, err := projects.ProjectList(ctx, engine, projectListRequest)
 			if err != nil {
 				var httpErr *twapi.HTTPError
 				if errors.As(err, &httpErr) {
@@ -331,7 +331,7 @@ func ProjectList(engine *twapi.Engine) server.ServerTool {
 				return nil, fmt.Errorf("failed to list projects: %w", err)
 			}
 
-			encoded, err := json.Marshal(projectsList)
+			encoded, err := json.Marshal(projectList)
 			if err != nil {
 				return nil, err
 			}

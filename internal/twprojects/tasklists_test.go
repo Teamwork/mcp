@@ -9,7 +9,7 @@ import (
 	"github.com/teamwork/mcp/internal/twprojects"
 )
 
-func TestProjectCreate(t *testing.T) {
+func TestTasklistCreate(t *testing.T) {
 	mcpServer := mcpServerMock()
 
 	request := &toolRequest{
@@ -21,15 +21,11 @@ func TestProjectCreate(t *testing.T) {
 			},
 		},
 	}
-	request.Params.Name = twprojects.MethodProjectCreate.String()
+	request.Params.Name = twprojects.MethodTasklistCreate.String()
 	request.Params.Arguments = map[string]any{
-		"name":        "Example",
-		"description": "This is an example project.",
-		"start-at":    "20230101",
-		"end-at":      "20231231",
-		"company-id":  float64(123),
-		"owner-id":    float64(456),
-		"tag-ids":     []float64{1, 2, 3},
+		"name":         "Example",
+		"description":  "This is an example tasklist.",
+		"milestone-id": float64(456),
 	}
 
 	encodedRequest, err := json.Marshal(request)
@@ -44,7 +40,7 @@ func TestProjectCreate(t *testing.T) {
 	}
 }
 
-func TestProjectUpdate(t *testing.T) {
+func TestTasklistUpdate(t *testing.T) {
 	mcpServer := mcpServerMock()
 
 	request := &toolRequest{
@@ -56,16 +52,12 @@ func TestProjectUpdate(t *testing.T) {
 			},
 		},
 	}
-	request.Params.Name = twprojects.MethodProjectUpdate.String()
+	request.Params.Name = twprojects.MethodTasklistUpdate.String()
 	request.Params.Arguments = map[string]any{
-		"id":          float64(123),
-		"name":        "Example",
-		"description": "This is an example project.",
-		"start-at":    "20230101",
-		"end-at":      "20231231",
-		"company-id":  float64(123),
-		"owner-id":    float64(456),
-		"tag-ids":     []float64{1, 2, 3},
+		"id":           float64(123),
+		"name":         "Example",
+		"description":  "This is an example tasklist.",
+		"milestone-id": float64(123),
 	}
 
 	encodedRequest, err := json.Marshal(request)
@@ -80,7 +72,7 @@ func TestProjectUpdate(t *testing.T) {
 	}
 }
 
-func TestProjectDelete(t *testing.T) {
+func TestTasklistDelete(t *testing.T) {
 	mcpServer := mcpServerMock()
 
 	request := &toolRequest{
@@ -92,7 +84,7 @@ func TestProjectDelete(t *testing.T) {
 			},
 		},
 	}
-	request.Params.Name = twprojects.MethodProjectDelete.String()
+	request.Params.Name = twprojects.MethodTasklistDelete.String()
 	request.Params.Arguments = map[string]any{
 		"id": float64(123),
 	}
@@ -109,7 +101,7 @@ func TestProjectDelete(t *testing.T) {
 	}
 }
 
-func TestProjectGet(t *testing.T) {
+func TestTasklistGet(t *testing.T) {
 	mcpServer := mcpServerMock()
 
 	request := &toolRequest{
@@ -121,7 +113,7 @@ func TestProjectGet(t *testing.T) {
 			},
 		},
 	}
-	request.Params.Name = twprojects.MethodProjectGet.String()
+	request.Params.Name = twprojects.MethodTasklistGet.String()
 	request.Params.Arguments = map[string]any{
 		"id": float64(123),
 	}
@@ -138,7 +130,7 @@ func TestProjectGet(t *testing.T) {
 	}
 }
 
-func TestProjectList(t *testing.T) {
+func TestTasklistList(t *testing.T) {
 	mcpServer := mcpServerMock()
 
 	request := &toolRequest{
@@ -150,13 +142,11 @@ func TestProjectList(t *testing.T) {
 			},
 		},
 	}
-	request.Params.Name = twprojects.MethodProjectList.String()
+	request.Params.Name = twprojects.MethodTasklistList.String()
 	request.Params.Arguments = map[string]any{
-		"search-term":    "test",
-		"tag-ids":        []float64{1, 2, 3},
-		"match-all-tags": true,
-		"page":           float64(1),
-		"page-size":      float64(10),
+		"search-term": "test",
+		"page":        float64(1),
+		"page-size":   float64(10),
 	}
 
 	encodedRequest, err := json.Marshal(request)
