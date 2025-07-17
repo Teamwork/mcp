@@ -173,7 +173,7 @@ func TestTasklistListByProject(t *testing.T) {
 			},
 		},
 	}
-	request.Params.Name = twprojects.MethodTasklistList.String()
+	request.Params.Name = twprojects.MethodTasklistListByProject.String()
 	request.Params.Arguments = map[string]any{
 		"search_term": "test",
 		"project_id":  float64(123),

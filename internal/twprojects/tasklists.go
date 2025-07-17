@@ -41,6 +41,7 @@ func init() {
 	toolsets.RegisterMethod(MethodTasklistDelete)
 	toolsets.RegisterMethod(MethodTasklistGet)
 	toolsets.RegisterMethod(MethodTasklistList)
+	toolsets.RegisterMethod(MethodTasklistListByProject)
 }
 
 // TasklistCreate creates a tasklist in Teamwork.com.
