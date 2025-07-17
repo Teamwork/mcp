@@ -71,6 +71,7 @@ jobs:
         with:
           persist-credentials: false
           fetch-tags: true
+          ref: ${{ github.ref }}
 
       - name: Set up Go
         uses: actions/setup-go@v5
