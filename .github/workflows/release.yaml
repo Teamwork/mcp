@@ -70,6 +70,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
+          fetch-tags: true
 
       - name: Set up Go
         uses: actions/setup-go@v5
@@ -85,7 +86,6 @@ jobs:
       - name: Previous Tag
         id: previous-tag
         run: |
-          git fetch --tags
           tag=$(git describe --tags --abbrev=0 "${GITHUB_REF}^")
           echo "tag=$tag" >> $GITHUB_OUTPUT
 
