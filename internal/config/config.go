@@ -12,6 +12,7 @@ import (
 	"github.com/DataDog/dd-trace-go/v2/ddtrace/ext"
 	"github.com/DataDog/dd-trace-go/v2/ddtrace/tracer"
 	"github.com/DataDog/dd-trace-go/v2/instrumentation/httptrace"
+	"github.com/DataDog/dd-trace-go/v2/instrumentation/net/http/pattern"
 	"github.com/getsentry/sentry-go"
 	"github.com/mark3labs/mcp-go/server"
 	"github.com/teamwork/mcp/internal/request"
@@ -84,11 +85,12 @@ func Load() (Resources, func()) {
 					return next.Do(req)
 				}
 				_, ctx, finishSpans := httptrace.StartRequestSpan(req,
-					tracer.Tag(ext.SpanKind, ext.SpanKindServer),
-					tracer.Tag(ext.Component, "net/http"),
 					tracer.ServiceName(resources.Info.DatadogAPM.Service),
 					tracer.ResourceName(fmt.Sprintf("%s_%s", req.Method, req.URL.Path)),
-					tracer.Tag(ext.HTTPRoute, req.Pattern),
+					tracer.Tag(ext.SpanKind, ext.SpanKindServer),
+					tracer.Tag(ext.Component, "net/http"),
+					tracer.Tag(ext.HTTPRoute, pattern.Route(req.Pattern)),
+					tracer.Tag(ext.EventSampleRate, 1.0),
 					httptrace.HeaderTagsFromRequest(req, datadogInstr.HTTPHeadersAsTags()),
 				)
 				req = req.WithContext(ctx)
