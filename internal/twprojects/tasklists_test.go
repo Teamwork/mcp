@@ -23,9 +23,9 @@ func TestTasklistCreate(t *testing.T) {
 	}
 	request.Params.Name = twprojects.MethodTasklistCreate.String()
 	request.Params.Arguments = map[string]any{
-		"name":         "Example",
-		"description":  "This is an example tasklist.",
-		"milestone_id": float64(456),
+		"name":        "Example",
+		"description": "This is an example tasklist.",
+		"project_id":  float64(456),
 	}
 
 	encodedRequest, err := json.Marshal(request)
@@ -54,10 +54,10 @@ func TestTasklistUpdate(t *testing.T) {
 	}
 	request.Params.Name = twprojects.MethodTasklistUpdate.String()
 	request.Params.Arguments = map[string]any{
-		"id":           float64(123),
-		"name":         "Example",
-		"description":  "This is an example tasklist.",
-		"milestone_id": float64(123),
+		"id":          float64(123),
+		"name":        "Example",
+		"description": "This is an example tasklist.",
+		"project_id":  float64(123),
 	}
 
 	encodedRequest, err := json.Marshal(request)
