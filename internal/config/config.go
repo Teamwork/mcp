@@ -75,6 +75,8 @@ func Load() (Resources, func()) {
 			return twapi.HTTPClientFunc(func(req *http.Request) (*http.Response, error) {
 				// add proxy headers
 				request.SetProxyHeaders(req)
+				// add user agent
+				req.Header.Set("User-Agent", "Teamwork MCP/"+resources.Info.Version)
 				return next.Do(req)
 			})
 		}),
@@ -91,6 +93,8 @@ func Load() (Resources, func()) {
 					tracer.Tag(ext.Component, "net/http"),
 					tracer.Tag(ext.HTTPRoute, pattern.Route(req.Pattern)),
 					tracer.Tag(ext.EventSampleRate, 1.0),
+					tracer.Tag("http.url_details.host", req.URL.Host),
+					tracer.Tag("http.url_details.scheme", req.URL.Scheme),
 					httptrace.HeaderTagsFromRequest(req, datadogInstr.HTTPHeadersAsTags()),
 				)
 				req = req.WithContext(ctx)
