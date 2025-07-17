@@ -280,7 +280,7 @@ func ProjectList(engine *twapi.Engine) server.ServerTool {
 			mcp.WithToolAnnotation(mcp.ToolAnnotation{
 				ReadOnlyHint: twapi.Ptr(true),
 			}),
-			mcp.WithString("searchTerm",
+			mcp.WithString("search_term",
 				mcp.Description("A search term to filter projects by name or description."),
 			),
 			mcp.WithArray("tag_ids",

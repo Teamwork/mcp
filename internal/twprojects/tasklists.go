@@ -248,7 +248,7 @@ func TasklistList(engine *twapi.Engine) server.ServerTool {
 			mcp.WithToolAnnotation(mcp.ToolAnnotation{
 				ReadOnlyHint: twapi.Ptr(true),
 			}),
-			mcp.WithString("searchTerm",
+			mcp.WithString("search_term",
 				mcp.Description("A search term to filter tasklists by name."),
 			),
 			mcp.WithNumber("page",
@@ -307,7 +307,7 @@ func TasklistListByProject(engine *twapi.Engine) server.ServerTool {
 				mcp.Required(),
 				mcp.Description("The ID of the project from which to retrieve tasklists."),
 			),
-			mcp.WithString("searchTerm",
+			mcp.WithString("search_term",
 				mcp.Description("A search term to filter tasklists by name."),
 			),
 			mcp.WithNumber("page",
