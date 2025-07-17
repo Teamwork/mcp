@@ -2,13 +2,16 @@ package config
 
 import (
 	"crypto/tls"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"net/url"
 	"strings"
 	"time"
 
+	"github.com/DataDog/dd-trace-go/v2/ddtrace/ext"
 	"github.com/DataDog/dd-trace-go/v2/ddtrace/tracer"
+	"github.com/DataDog/dd-trace-go/v2/instrumentation/httptrace"
 	"github.com/getsentry/sentry-go"
 	"github.com/mark3labs/mcp-go/server"
 	"github.com/teamwork/mcp/internal/request"
@@ -72,6 +75,25 @@ func Load() (Resources, func()) {
 				// add proxy headers
 				request.SetProxyHeaders(req)
 				return next.Do(req)
+			})
+		}),
+		twapi.WithMiddleware(func(next twapi.HTTPClient) twapi.HTTPClient {
+			return twapi.HTTPClientFunc(func(req *http.Request) (*http.Response, error) {
+				// trace middleware
+				if !resources.Info.DatadogAPM.Enabled {
+					return next.Do(req)
+				}
+				_, ctx, finishSpans := httptrace.StartRequestSpan(req,
+					tracer.Tag(ext.SpanKind, ext.SpanKindServer),
+					tracer.Tag(ext.Component, "net/http"),
+					tracer.ServiceName(resources.Info.DatadogAPM.Service),
+					tracer.ResourceName(fmt.Sprintf("%s_%s", req.Method, req.URL.Path)),
+					tracer.Tag(ext.HTTPRoute, req.Pattern),
+				)
+				req = req.WithContext(ctx)
+				response, err := next.Do(req)
+				finishSpans(response.StatusCode, nil, nil)
+				return response, err
 			})
 		}),
 		twapi.WithMiddleware(func(next twapi.HTTPClient) twapi.HTTPClient {
