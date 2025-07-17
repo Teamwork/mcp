@@ -25,11 +25,11 @@ func TestProjectCreate(t *testing.T) {
 	request.Params.Arguments = map[string]any{
 		"name":        "Example",
 		"description": "This is an example project.",
-		"start-at":    "20230101",
-		"end-at":      "20231231",
-		"company-id":  float64(123),
-		"owner-id":    float64(456),
-		"tag-ids":     []float64{1, 2, 3},
+		"start_at":    "20230101",
+		"end_at":      "20231231",
+		"company_id":  float64(123),
+		"owner_id":    float64(456),
+		"tag_ids":     []float64{1, 2, 3},
 	}
 
 	encodedRequest, err := json.Marshal(request)
@@ -61,11 +61,11 @@ func TestProjectUpdate(t *testing.T) {
 		"id":          float64(123),
 		"name":        "Example",
 		"description": "This is an example project.",
-		"start-at":    "20230101",
-		"end-at":      "20231231",
-		"company-id":  float64(123),
-		"owner-id":    float64(456),
-		"tag-ids":     []float64{1, 2, 3},
+		"start_at":    "20230101",
+		"end_at":      "20231231",
+		"company_id":  float64(123),
+		"owner_id":    float64(456),
+		"tag_ids":     []float64{1, 2, 3},
 	}
 
 	encodedRequest, err := json.Marshal(request)
@@ -152,11 +152,11 @@ func TestProjectList(t *testing.T) {
 	}
 	request.Params.Name = twprojects.MethodProjectList.String()
 	request.Params.Arguments = map[string]any{
-		"search-term":    "test",
-		"tag-ids":        []float64{1, 2, 3},
-		"match-all-tags": true,
+		"search_term":    "test",
+		"tag_ids":        []float64{1, 2, 3},
+		"match_all_tags": true,
 		"page":           float64(1),
-		"page-size":      float64(10),
+		"page_size":      float64(10),
 	}
 
 	encodedRequest, err := json.Marshal(request)

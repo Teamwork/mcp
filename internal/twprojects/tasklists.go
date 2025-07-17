@@ -19,11 +19,12 @@ import (
 // The naming convention for methods follows a pattern described here:
 // https://github.com/github/github-mcp-server/issues/333
 const (
-	MethodTasklistCreate toolsets.Method = "twprojects-create_tasklist"
-	MethodTasklistUpdate toolsets.Method = "twprojects-update_tasklist"
-	MethodTasklistDelete toolsets.Method = "twprojects-delete_tasklist"
-	MethodTasklistGet    toolsets.Method = "twprojects-get_tasklist"
-	MethodTasklistList   toolsets.Method = "twprojects-list_tasklists"
+	MethodTasklistCreate        toolsets.Method = "twprojects-create_tasklist"
+	MethodTasklistUpdate        toolsets.Method = "twprojects-update_tasklist"
+	MethodTasklistDelete        toolsets.Method = "twprojects-delete_tasklist"
+	MethodTasklistGet           toolsets.Method = "twprojects-get_tasklist"
+	MethodTasklistList          toolsets.Method = "twprojects-list_tasklists"
+	MethodTasklistListByProject toolsets.Method = "twprojects-list_tasklists_by_project"
 )
 
 const tasklistDescription = "In the context of Teamwork.com, a task list is a way to group related tasks within a " +
@@ -260,6 +261,66 @@ func TasklistList(engine *twapi.Engine) server.ServerTool {
 			var tasklistListRequest projects.TasklistListRequest
 
 			err := helpers.ParamGroup(request.GetArguments(),
+				helpers.OptionalParam(&tasklistListRequest.Filters.SearchTerm, "search_term"),
+				helpers.OptionalNumericParam(&tasklistListRequest.Filters.Page, "page"),
+				helpers.OptionalNumericParam(&tasklistListRequest.Filters.PageSize, "page_size"),
+			)
+			if err != nil {
+				return mcp.NewToolResultErrorFromErr("invalid parameters", err), nil
+			}
+
+			tasklistList, err := projects.TasklistList(ctx, engine, tasklistListRequest)
+			if err != nil {
+				var httpErr *twapi.HTTPError
+				if errors.As(err, &httpErr) {
+					switch {
+					case httpErr.StatusCode >= 500:
+						return nil, fmt.Errorf("server error: %w", err)
+					case httpErr.StatusCode >= 400:
+						return mcp.NewToolResultErrorFromErr("bad request", err), nil
+					default:
+						return mcp.NewToolResultErrorFromErr("unexpected HTTP status", err), nil
+					}
+				}
+				return nil, fmt.Errorf("failed to list tasklists: %w", err)
+			}
+
+			encoded, err := json.Marshal(tasklistList)
+			if err != nil {
+				return nil, err
+			}
+			return mcp.NewToolResultText(string(encoded)), nil
+		},
+	}
+}
+
+// TasklistListByProject lists tasklists in Teamwork.com by project.
+func TasklistListByProject(engine *twapi.Engine) server.ServerTool {
+	return server.ServerTool{
+		Tool: mcp.NewTool(string(MethodTasklistListByProject),
+			mcp.WithDescription("List tasklists in Teamwork.com by project. "+tasklistDescription),
+			mcp.WithToolAnnotation(mcp.ToolAnnotation{
+				ReadOnlyHint: twapi.Ptr(true),
+			}),
+			mcp.WithNumber("project_id",
+				mcp.Required(),
+				mcp.Description("The ID of the project from which to retrieve tasklists."),
+			),
+			mcp.WithString("searchTerm",
+				mcp.Description("A search term to filter tasklists by name."),
+			),
+			mcp.WithNumber("page",
+				mcp.Description("Page number for pagination of results."),
+			),
+			mcp.WithNumber("page_size",
+				mcp.Description("Number of results per page for pagination."),
+			),
+		),
+		Handler: func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+			var tasklistListRequest projects.TasklistListRequest
+
+			err := helpers.ParamGroup(request.GetArguments(),
+				helpers.RequiredNumericParam(&tasklistListRequest.Path.ProjectID, "project_id"),
 				helpers.OptionalParam(&tasklistListRequest.Filters.SearchTerm, "search_term"),
 				helpers.OptionalNumericParam(&tasklistListRequest.Filters.Page, "page"),
 				helpers.OptionalNumericParam(&tasklistListRequest.Filters.PageSize, "page_size"),

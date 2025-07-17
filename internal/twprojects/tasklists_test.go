@@ -25,7 +25,7 @@ func TestTasklistCreate(t *testing.T) {
 	request.Params.Arguments = map[string]any{
 		"name":         "Example",
 		"description":  "This is an example tasklist.",
-		"milestone-id": float64(456),
+		"milestone_id": float64(456),
 	}
 
 	encodedRequest, err := json.Marshal(request)
@@ -57,7 +57,7 @@ func TestTasklistUpdate(t *testing.T) {
 		"id":           float64(123),
 		"name":         "Example",
 		"description":  "This is an example tasklist.",
-		"milestone-id": float64(123),
+		"milestone_id": float64(123),
 	}
 
 	encodedRequest, err := json.Marshal(request)
@@ -144,9 +144,41 @@ func TestTasklistList(t *testing.T) {
 	}
 	request.Params.Name = twprojects.MethodTasklistList.String()
 	request.Params.Arguments = map[string]any{
-		"search-term": "test",
+		"search_term": "test",
 		"page":        float64(1),
-		"page-size":   float64(10),
+		"page_size":   float64(10),
+	}
+
+	encodedRequest, err := json.Marshal(request)
+	if err != nil {
+		t.Fatalf("failed to encode request: %v", err)
+	}
+
+	ctx := context.Background()
+	message := mcpServer.HandleMessage(ctx, encodedRequest)
+	if err, ok := message.(mcp.JSONRPCError); ok {
+		t.Errorf("tool failed to execute: %v", err.Error)
+	}
+}
+
+func TestTasklistListByProject(t *testing.T) {
+	mcpServer := mcpServerMock()
+
+	request := &toolRequest{
+		JSONRPC: mcp.JSONRPC_VERSION,
+		ID:      1,
+		CallToolRequest: mcp.CallToolRequest{
+			Request: mcp.Request{
+				Method: string(mcp.MethodToolsCall),
+			},
+		},
+	}
+	request.Params.Name = twprojects.MethodTasklistList.String()
+	request.Params.Arguments = map[string]any{
+		"search_term": "test",
+		"project_id":  float64(123),
+		"page":        float64(1),
+		"page_size":   float64(10),
 	}
 
 	encodedRequest, err := json.Marshal(request)

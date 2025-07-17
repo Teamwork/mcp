@@ -80,11 +80,11 @@ func ProjectCreate(engine *twapi.Engine) server.ServerTool {
 			err := helpers.ParamGroup(request.GetArguments(),
 				helpers.RequiredParam(&projectCreateRequest.Name, "name"),
 				helpers.OptionalPointerParam(&projectCreateRequest.Description, "description"),
-				helpers.OptionalLegacyDatePointerParam(&projectCreateRequest.StartAt, "start-at"),
-				helpers.OptionalLegacyDatePointerParam(&projectCreateRequest.EndAt, "end-at"),
-				helpers.OptionalNumericParam(&projectCreateRequest.CompanyID, "company-id"),
-				helpers.OptionalNumericPointerParam(&projectCreateRequest.OwnerID, "owned-id"),
-				helpers.OptionalNumericListParam(&projectCreateRequest.TagIDs, "tag-ids"),
+				helpers.OptionalLegacyDatePointerParam(&projectCreateRequest.StartAt, "start_at"),
+				helpers.OptionalLegacyDatePointerParam(&projectCreateRequest.EndAt, "end_at"),
+				helpers.OptionalNumericParam(&projectCreateRequest.CompanyID, "company_id"),
+				helpers.OptionalNumericPointerParam(&projectCreateRequest.OwnerID, "owned_id"),
+				helpers.OptionalNumericListParam(&projectCreateRequest.TagIDs, "tag_ids"),
 			)
 			if err != nil {
 				return mcp.NewToolResultErrorFromErr("invalid parameters", err), nil
