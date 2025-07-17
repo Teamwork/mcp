@@ -89,6 +89,7 @@ func Load() (Resources, func()) {
 					tracer.ServiceName(resources.Info.DatadogAPM.Service),
 					tracer.ResourceName(fmt.Sprintf("%s_%s", req.Method, req.URL.Path)),
 					tracer.Tag(ext.HTTPRoute, req.Pattern),
+					httptrace.HeaderTagsFromRequest(req, datadogInstr.HTTPHeadersAsTags()),
 				)
 				req = req.WithContext(ctx)
 				response, err := next.Do(req)
