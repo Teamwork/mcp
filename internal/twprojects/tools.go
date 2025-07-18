@@ -13,6 +13,7 @@ func DefaultToolsetGroup(readOnly bool, engine *twapi.Engine) *toolsets.ToolsetG
 			ProjectCreate(engine),
 			ProjectUpdate(engine),
 			ProjectDelete(engine),
+			ProjectMemberAdd(engine),
 			TasklistCreate(engine),
 			TasklistUpdate(engine),
 			TasklistDelete(engine),
