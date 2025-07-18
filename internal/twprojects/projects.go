@@ -3,7 +3,6 @@ package twprojects
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 
 	"github.com/mark3labs/mcp-go/mcp"
@@ -92,18 +91,7 @@ func ProjectCreate(engine *twapi.Engine) server.ServerTool {
 
 			project, err := projects.ProjectCreate(ctx, engine, projectCreateRequest)
 			if err != nil {
-				var httpErr *twapi.HTTPError
-				if errors.As(err, &httpErr) {
-					switch {
-					case httpErr.StatusCode >= 500:
-						return nil, fmt.Errorf("server error: %w", err)
-					case httpErr.StatusCode >= 400:
-						return mcp.NewToolResultErrorFromErr("bad request", err), nil
-					default:
-						return mcp.NewToolResultErrorFromErr("unexpected HTTP status", err), nil
-					}
-				}
-				return nil, fmt.Errorf("failed to create project: %w", err)
+				return helpers.HandleAPIError(err, "failed to create project")
 			}
 
 			return mcp.NewToolResultText(fmt.Sprintf("Project created successfully with ID %d", project.ID)), nil
@@ -164,18 +152,7 @@ func ProjectUpdate(engine *twapi.Engine) server.ServerTool {
 
 			_, err = projects.ProjectUpdate(ctx, engine, projectUpdateRequest)
 			if err != nil {
-				var httpErr *twapi.HTTPError
-				if errors.As(err, &httpErr) {
-					switch {
-					case httpErr.StatusCode >= 500:
-						return nil, fmt.Errorf("server error: %w", err)
-					case httpErr.StatusCode >= 400:
-						return mcp.NewToolResultErrorFromErr("bad request", err), nil
-					default:
-						return mcp.NewToolResultErrorFromErr("unexpected HTTP status", err), nil
-					}
-				}
-				return nil, fmt.Errorf("failed to update project: %w", err)
+				return helpers.HandleAPIError(err, "failed to update project")
 			}
 
 			return mcp.NewToolResultText("Project updated successfully"), nil
@@ -205,18 +182,7 @@ func ProjectDelete(engine *twapi.Engine) server.ServerTool {
 
 			_, err = projects.ProjectDelete(ctx, engine, projectDeleteRequest)
 			if err != nil {
-				var httpErr *twapi.HTTPError
-				if errors.As(err, &httpErr) {
-					switch {
-					case httpErr.StatusCode >= 500:
-						return nil, fmt.Errorf("server error: %w", err)
-					case httpErr.StatusCode >= 400:
-						return mcp.NewToolResultErrorFromErr("bad request", err), nil
-					default:
-						return mcp.NewToolResultErrorFromErr("unexpected HTTP status", err), nil
-					}
-				}
-				return nil, fmt.Errorf("failed to delete project: %w", err)
+				return helpers.HandleAPIError(err, "failed to delete project")
 			}
 
 			return mcp.NewToolResultText("Project deleted successfully"), nil
@@ -249,18 +215,7 @@ func ProjectGet(engine *twapi.Engine) server.ServerTool {
 
 			project, err := projects.ProjectGet(ctx, engine, projectGetRequest)
 			if err != nil {
-				var httpErr *twapi.HTTPError
-				if errors.As(err, &httpErr) {
-					switch {
-					case httpErr.StatusCode >= 500:
-						return nil, fmt.Errorf("server error: %w", err)
-					case httpErr.StatusCode >= 400:
-						return mcp.NewToolResultErrorFromErr("bad request", err), nil
-					default:
-						return mcp.NewToolResultErrorFromErr("unexpected HTTP status", err), nil
-					}
-				}
-				return nil, fmt.Errorf("failed to get project: %w", err)
+				return helpers.HandleAPIError(err, "failed to get project")
 			}
 
 			encoded, err := json.Marshal(project)
@@ -317,18 +272,7 @@ func ProjectList(engine *twapi.Engine) server.ServerTool {
 
 			projectList, err := projects.ProjectList(ctx, engine, projectListRequest)
 			if err != nil {
-				var httpErr *twapi.HTTPError
-				if errors.As(err, &httpErr) {
-					switch {
-					case httpErr.StatusCode >= 500:
-						return nil, fmt.Errorf("server error: %w", err)
-					case httpErr.StatusCode >= 400:
-						return mcp.NewToolResultErrorFromErr("bad request", err), nil
-					default:
-						return mcp.NewToolResultErrorFromErr("unexpected HTTP status", err), nil
-					}
-				}
-				return nil, fmt.Errorf("failed to list projects: %w", err)
+				return helpers.HandleAPIError(err, "failed to list projects")
 			}
 
 			encoded, err := json.Marshal(projectList)

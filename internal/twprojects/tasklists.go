@@ -3,7 +3,6 @@ package twprojects
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 
 	"github.com/mark3labs/mcp-go/mcp"
@@ -79,18 +78,7 @@ func TasklistCreate(engine *twapi.Engine) server.ServerTool {
 
 			tasklist, err := projects.TasklistCreate(ctx, engine, tasklistCreateRequest)
 			if err != nil {
-				var httpErr *twapi.HTTPError
-				if errors.As(err, &httpErr) {
-					switch {
-					case httpErr.StatusCode >= 500:
-						return nil, fmt.Errorf("server error: %w", err)
-					case httpErr.StatusCode >= 400:
-						return mcp.NewToolResultErrorFromErr("bad request", err), nil
-					default:
-						return mcp.NewToolResultErrorFromErr("unexpected HTTP status", err), nil
-					}
-				}
-				return nil, fmt.Errorf("failed to create tasklist: %w", err)
+				return helpers.HandleAPIError(err, "failed to create tasklist")
 			}
 
 			return mcp.NewToolResultText(fmt.Sprintf("Tasklist created successfully with ID %d", tasklist.ID)), nil
@@ -132,18 +120,7 @@ func TasklistUpdate(engine *twapi.Engine) server.ServerTool {
 
 			_, err = projects.TasklistUpdate(ctx, engine, tasklistUpdateRequest)
 			if err != nil {
-				var httpErr *twapi.HTTPError
-				if errors.As(err, &httpErr) {
-					switch {
-					case httpErr.StatusCode >= 500:
-						return nil, fmt.Errorf("server error: %w", err)
-					case httpErr.StatusCode >= 400:
-						return mcp.NewToolResultErrorFromErr("bad request", err), nil
-					default:
-						return mcp.NewToolResultErrorFromErr("unexpected HTTP status", err), nil
-					}
-				}
-				return nil, fmt.Errorf("failed to update tasklist: %w", err)
+				return helpers.HandleAPIError(err, "failed to update tasklist")
 			}
 
 			return mcp.NewToolResultText("Tasklist updated successfully"), nil
@@ -173,18 +150,7 @@ func TasklistDelete(engine *twapi.Engine) server.ServerTool {
 
 			_, err = projects.TasklistDelete(ctx, engine, tasklistDeleteRequest)
 			if err != nil {
-				var httpErr *twapi.HTTPError
-				if errors.As(err, &httpErr) {
-					switch {
-					case httpErr.StatusCode >= 500:
-						return nil, fmt.Errorf("server error: %w", err)
-					case httpErr.StatusCode >= 400:
-						return mcp.NewToolResultErrorFromErr("bad request", err), nil
-					default:
-						return mcp.NewToolResultErrorFromErr("unexpected HTTP status", err), nil
-					}
-				}
-				return nil, fmt.Errorf("failed to delete tasklist: %w", err)
+				return helpers.HandleAPIError(err, "failed to delete tasklist")
 			}
 
 			return mcp.NewToolResultText("Tasklist deleted successfully"), nil
@@ -217,18 +183,7 @@ func TasklistGet(engine *twapi.Engine) server.ServerTool {
 
 			tasklist, err := projects.TasklistGet(ctx, engine, tasklistGetRequest)
 			if err != nil {
-				var httpErr *twapi.HTTPError
-				if errors.As(err, &httpErr) {
-					switch {
-					case httpErr.StatusCode >= 500:
-						return nil, fmt.Errorf("server error: %w", err)
-					case httpErr.StatusCode >= 400:
-						return mcp.NewToolResultErrorFromErr("bad request", err), nil
-					default:
-						return mcp.NewToolResultErrorFromErr("unexpected HTTP status", err), nil
-					}
-				}
-				return nil, fmt.Errorf("failed to get tasklist: %w", err)
+				return helpers.HandleAPIError(err, "failed to get tasklist")
 			}
 
 			encoded, err := json.Marshal(tasklist)
@@ -272,18 +227,7 @@ func TasklistList(engine *twapi.Engine) server.ServerTool {
 
 			tasklistList, err := projects.TasklistList(ctx, engine, tasklistListRequest)
 			if err != nil {
-				var httpErr *twapi.HTTPError
-				if errors.As(err, &httpErr) {
-					switch {
-					case httpErr.StatusCode >= 500:
-						return nil, fmt.Errorf("server error: %w", err)
-					case httpErr.StatusCode >= 400:
-						return mcp.NewToolResultErrorFromErr("bad request", err), nil
-					default:
-						return mcp.NewToolResultErrorFromErr("unexpected HTTP status", err), nil
-					}
-				}
-				return nil, fmt.Errorf("failed to list tasklists: %w", err)
+				return helpers.HandleAPIError(err, "failed to list tasklists")
 			}
 
 			encoded, err := json.Marshal(tasklistList)
@@ -332,18 +276,7 @@ func TasklistListByProject(engine *twapi.Engine) server.ServerTool {
 
 			tasklistList, err := projects.TasklistList(ctx, engine, tasklistListRequest)
 			if err != nil {
-				var httpErr *twapi.HTTPError
-				if errors.As(err, &httpErr) {
-					switch {
-					case httpErr.StatusCode >= 500:
-						return nil, fmt.Errorf("server error: %w", err)
-					case httpErr.StatusCode >= 400:
-						return mcp.NewToolResultErrorFromErr("bad request", err), nil
-					default:
-						return mcp.NewToolResultErrorFromErr("unexpected HTTP status", err), nil
-					}
-				}
-				return nil, fmt.Errorf("failed to list tasklists: %w", err)
+				return helpers.HandleAPIError(err, "failed to list tasklists")
 			}
 
 			encoded, err := json.Marshal(tasklistList)
