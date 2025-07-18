@@ -51,6 +51,12 @@ func mcpServerMock() *server.MCPServer {
 	mcpServer.AddTools(twprojects.TaskList(engineMock))
 	mcpServer.AddTools(twprojects.TaskListByTasklist(engineMock))
 	mcpServer.AddTools(twprojects.TaskListByProject(engineMock))
+	mcpServer.AddTools(twprojects.UserCreate(engineMock))
+	mcpServer.AddTools(twprojects.UserUpdate(engineMock))
+	mcpServer.AddTools(twprojects.UserDelete(engineMock))
+	mcpServer.AddTools(twprojects.UserGet(engineMock))
+	mcpServer.AddTools(twprojects.UserList(engineMock))
+	mcpServer.AddTools(twprojects.UserListByProject(engineMock))
 	return mcpServer
 }
 

@@ -19,6 +19,9 @@ func DefaultToolsetGroup(readOnly bool, engine *twapi.Engine) *toolsets.ToolsetG
 			TaskCreate(engine),
 			TaskUpdate(engine),
 			TaskDelete(engine),
+			UserCreate(engine),
+			UserUpdate(engine),
+			UserDelete(engine),
 		).
 		AddReadTools(
 			ProjectGet(engine),
@@ -30,6 +33,9 @@ func DefaultToolsetGroup(readOnly bool, engine *twapi.Engine) *toolsets.ToolsetG
 			TaskList(engine),
 			TaskListByTasklist(engine),
 			TaskListByProject(engine),
+			UserGet(engine),
+			UserList(engine),
+			UserListByProject(engine),
 		))
 	return group
 }
