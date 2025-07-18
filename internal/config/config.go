@@ -9,10 +9,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/DataDog/dd-trace-go/v2/ddtrace/ext"
+	httptrace "github.com/DataDog/dd-trace-go/contrib/net/http/v2"
 	"github.com/DataDog/dd-trace-go/v2/ddtrace/tracer"
-	"github.com/DataDog/dd-trace-go/v2/instrumentation/httptrace"
-	"github.com/DataDog/dd-trace-go/v2/instrumentation/net/http/pattern"
 	"github.com/getsentry/sentry-go"
 	"github.com/mark3labs/mcp-go/server"
 	"github.com/teamwork/mcp/internal/request"
@@ -57,6 +55,21 @@ func Load() (Resources, func()) {
 		}
 	}
 
+	if resources.Info.DatadogAPM.Enabled {
+		resources.teamworkHTTPClient = httptrace.WrapClient(resources.teamworkHTTPClient,
+			httptrace.WithService(resources.Info.DatadogAPM.Service),
+			httptrace.WithResourceNamer(func(req *http.Request) string {
+				return fmt.Sprintf("%s_%s", req.Method, req.URL.Path)
+			}),
+			httptrace.WithBefore(func(r *http.Request, s *tracer.Span) {
+				// tag the span when using internal HAProxy address
+				if host := r.Header.Get("Host"); host != "" && host != r.URL.Host {
+					s.SetTag("http.haproxy_address", r.URL.Host)
+				}
+			}),
+		)
+	}
+
 	resources.teamworkEngine = twapi.NewEngine(session.NewBearerTokenContext(),
 		twapi.WithHTTPClient(resources.teamworkHTTPClient),
 		twapi.WithMiddleware(func(next twapi.HTTPClient) twapi.HTTPClient {
@@ -78,29 +91,6 @@ func Load() (Resources, func()) {
 				// add user agent
 				req.Header.Set("User-Agent", "Teamwork MCP/"+resources.Info.Version)
 				return next.Do(req)
-			})
-		}),
-		twapi.WithMiddleware(func(next twapi.HTTPClient) twapi.HTTPClient {
-			return twapi.HTTPClientFunc(func(req *http.Request) (*http.Response, error) {
-				// trace middleware
-				if !resources.Info.DatadogAPM.Enabled {
-					return next.Do(req)
-				}
-				_, ctx, finishSpans := httptrace.StartRequestSpan(req,
-					tracer.ServiceName(resources.Info.DatadogAPM.Service),
-					tracer.ResourceName(fmt.Sprintf("%s_%s", req.Method, req.URL.Path)),
-					tracer.Tag(ext.SpanKind, ext.SpanKindServer),
-					tracer.Tag(ext.Component, "net/http"),
-					tracer.Tag(ext.HTTPRoute, pattern.Route(req.Pattern)),
-					tracer.Tag(ext.EventSampleRate, 1.0),
-					tracer.Tag("http.url_details.host", req.URL.Host),
-					tracer.Tag("http.url_details.scheme", req.URL.Scheme),
-					httptrace.HeaderTagsFromRequest(req, datadogInstr.HTTPHeadersAsTags()),
-				)
-				req = req.WithContext(ctx)
-				response, err := next.Do(req)
-				finishSpans(response.StatusCode, nil, nil)
-				return response, err
 			})
 		}),
 		twapi.WithMiddleware(func(next twapi.HTTPClient) twapi.HTTPClient {

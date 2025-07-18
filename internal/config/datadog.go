@@ -4,14 +4,7 @@ import (
 	"log/slog"
 
 	"github.com/DataDog/dd-trace-go/v2/ddtrace/tracer"
-	"github.com/DataDog/dd-trace-go/v2/instrumentation"
 )
-
-var datadogInstr *instrumentation.Instrumentation
-
-func init() {
-	datadogInstr = instrumentation.Load(instrumentation.PackageNetHTTP)
-}
 
 func startDatadog(resources Resources) error {
 	return tracer.Start(
