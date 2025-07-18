@@ -34,6 +34,7 @@ func DefaultToolsetGroup(readOnly bool, engine *twapi.Engine) *toolsets.ToolsetG
 			TaskListByTasklist(engine),
 			TaskListByProject(engine),
 			UserGet(engine),
+			UserGetMe(engine),
 			UserList(engine),
 			UserListByProject(engine),
 		))

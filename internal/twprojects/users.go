@@ -22,6 +22,7 @@ const (
 	MethodUserUpdate        toolsets.Method = "twprojects-update_user"
 	MethodUserDelete        toolsets.Method = "twprojects-delete_user"
 	MethodUserGet           toolsets.Method = "twprojects-get_user"
+	MethodUserGetMe         toolsets.Method = "twprojects-get_user_me"
 	MethodUserList          toolsets.Method = "twprojects-list_users"
 	MethodUserListByProject toolsets.Method = "twprojects-list_users_by_project"
 )
@@ -39,6 +40,7 @@ func init() {
 	toolsets.RegisterMethod(MethodUserUpdate)
 	toolsets.RegisterMethod(MethodUserDelete)
 	toolsets.RegisterMethod(MethodUserGet)
+	toolsets.RegisterMethod(MethodUserGetMe)
 	toolsets.RegisterMethod(MethodUserList)
 	toolsets.RegisterMethod(MethodUserListByProject)
 }
@@ -215,6 +217,31 @@ func UserGet(engine *twapi.Engine) server.ServerTool {
 			}
 
 			user, err := projects.UserGet(ctx, engine, userGetRequest)
+			if err != nil {
+				return helpers.HandleAPIError(err, "failed to get user")
+			}
+
+			encoded, err := json.Marshal(user)
+			if err != nil {
+				return nil, err
+			}
+			return mcp.NewToolResultText(string(encoded)), nil
+		},
+	}
+}
+
+// UserGetMe retrieves the logged user in Teamwork.com.
+func UserGetMe(engine *twapi.Engine) server.ServerTool {
+	return server.ServerTool{
+		Tool: mcp.NewTool(string(MethodUserGetMe),
+			mcp.WithDescription("Get the logged user in Teamwork.com. "+userDescription),
+			mcp.WithToolAnnotation(mcp.ToolAnnotation{
+				ReadOnlyHint: twapi.Ptr(true),
+			}),
+		),
+		Handler: func(ctx context.Context, _ mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+			var userGetMeRequest projects.UserGetMeRequest
+			user, err := projects.UserGetMe(ctx, engine, userGetMeRequest)
 			if err != nil {
 				return helpers.HandleAPIError(err, "failed to get user")
 			}

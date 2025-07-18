@@ -140,6 +140,33 @@ func TestUserGet(t *testing.T) {
 	}
 }
 
+func TestUserGetMe(t *testing.T) {
+	mcpServer := mcpServerMock()
+
+	request := &toolRequest{
+		JSONRPC: mcp.JSONRPC_VERSION,
+		ID:      1,
+		CallToolRequest: mcp.CallToolRequest{
+			Request: mcp.Request{
+				Method: string(mcp.MethodToolsCall),
+			},
+		},
+	}
+	request.Params.Name = twprojects.MethodUserGetMe.String()
+	request.Params.Arguments = map[string]any{}
+
+	encodedRequest, err := json.Marshal(request)
+	if err != nil {
+		t.Fatalf("failed to encode request: %v", err)
+	}
+
+	ctx := context.Background()
+	message := mcpServer.HandleMessage(ctx, encodedRequest)
+	if err, ok := message.(mcp.JSONRPCError); ok {
+		t.Errorf("tool failed to execute: %v", err.Error)
+	}
+}
+
 func TestUserList(t *testing.T) {
 	mcpServer := mcpServerMock()
 
