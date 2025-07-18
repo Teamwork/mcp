@@ -12,7 +12,7 @@ import (
 	"syscall"
 	"time"
 
-	httptrace "github.com/DataDog/dd-trace-go/contrib/net/http/v2"
+	ddhttp "github.com/DataDog/dd-trace-go/contrib/net/http/v2"
 	"github.com/DataDog/dd-trace-go/v2/ddtrace/tracer"
 	"github.com/getsentry/sentry-go"
 	"github.com/mark3labs/mcp-go/server"
@@ -156,11 +156,11 @@ func tracerMiddleware(resources config.Resources, next http.Handler) http.Handle
 	if !resources.Info.DatadogAPM.Enabled {
 		return next
 	}
-	return httptrace.WrapHandler(next, resources.Info.DatadogAPM.Service, "http.request",
-		httptrace.WithResourceNamer(func(req *http.Request) string {
+	return ddhttp.WrapHandler(next, resources.Info.DatadogAPM.Service, "http.request",
+		ddhttp.WithResourceNamer(func(req *http.Request) string {
 			return fmt.Sprintf("%s_%s", req.Method, req.URL.Path)
 		}),
-		httptrace.WithIgnoreRequest(func(req *http.Request) bool {
+		ddhttp.WithIgnoreRequest(func(req *http.Request) bool {
 			if req.URL.Path == "/api/health" {
 				return true
 			}

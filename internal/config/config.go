@@ -9,8 +9,10 @@ import (
 	"strings"
 	"time"
 
-	httptrace "github.com/DataDog/dd-trace-go/contrib/net/http/v2"
+	ddhttp "github.com/DataDog/dd-trace-go/contrib/net/http/v2"
+	"github.com/DataDog/dd-trace-go/v2/ddtrace/ext"
 	"github.com/DataDog/dd-trace-go/v2/ddtrace/tracer"
+	"github.com/DataDog/dd-trace-go/v2/instrumentation/httptrace"
 	"github.com/getsentry/sentry-go"
 	"github.com/mark3labs/mcp-go/server"
 	"github.com/teamwork/mcp/internal/request"
@@ -56,15 +58,17 @@ func Load() (Resources, func()) {
 	}
 
 	if resources.Info.DatadogAPM.Enabled {
-		resources.teamworkHTTPClient = httptrace.WrapClient(resources.teamworkHTTPClient,
-			httptrace.WithService(resources.Info.DatadogAPM.Service),
-			httptrace.WithResourceNamer(func(req *http.Request) string {
+		resources.teamworkHTTPClient = ddhttp.WrapClient(resources.teamworkHTTPClient,
+			ddhttp.WithService(resources.Info.DatadogAPM.Service),
+			ddhttp.WithResourceNamer(func(req *http.Request) string {
 				return fmt.Sprintf("%s_%s", req.Method, req.URL.Path)
 			}),
-			httptrace.WithBefore(func(r *http.Request, s *tracer.Span) {
-				// tag the span when using internal HAProxy address
+			ddhttp.WithBefore(func(r *http.Request, s *tracer.Span) {
+				// update the span URL when using internal HAProxy address
 				if host := r.Header.Get("Host"); host != "" && host != r.URL.Host {
-					s.SetTag("http.haproxy_address", r.URL.Host)
+					url := httptrace.URLFromRequest(r, true)
+					url = strings.Replace(url, r.URL.Host, host, 1)
+					s.SetTag(ext.HTTPURL, url)
 				}
 			}),
 		)
