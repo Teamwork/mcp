@@ -71,7 +71,8 @@ func TaskCreate(engine *twapi.Engine) server.ServerTool {
 				mcp.Description("The start date of the task in ISO 8601 format (YYYY-MM-DD)."),
 			),
 			mcp.WithString("due_date",
-				mcp.Description("The due date of the task in ISO 8601 format (YYYY-MM-DD)."),
+				mcp.Description("The due date of the task in ISO 8601 format (YYYY-MM-DD). When this is not provided, it "+
+					"will fallback to the milestone due date if a milestone is set."),
 			),
 			mcp.WithNumber("estimated_minutes",
 				mcp.Description("The estimated time to complete the task in minutes."),
@@ -176,7 +177,8 @@ func TaskUpdate(engine *twapi.Engine) server.ServerTool {
 				mcp.Description("The start date of the task in ISO 8601 format (YYYY-MM-DD)."),
 			),
 			mcp.WithString("due_date",
-				mcp.Description("The due date of the task in ISO 8601 format (YYYY-MM-DD)."),
+				mcp.Description("The due date of the task in ISO 8601 format (YYYY-MM-DD). When this is not provided, it "+
+					"will fallback to the milestone due date if a milestone is set."),
 			),
 			mcp.WithNumber("estimated_minutes",
 				mcp.Description("The estimated time to complete the task in minutes."),

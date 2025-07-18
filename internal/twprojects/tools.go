@@ -22,6 +22,9 @@ func DefaultToolsetGroup(readOnly bool, engine *twapi.Engine) *toolsets.ToolsetG
 			UserCreate(engine),
 			UserUpdate(engine),
 			UserDelete(engine),
+			MilestoneCreate(engine),
+			MilestoneUpdate(engine),
+			MilestoneDelete(engine),
 		).
 		AddReadTools(
 			ProjectGet(engine),
@@ -37,6 +40,9 @@ func DefaultToolsetGroup(readOnly bool, engine *twapi.Engine) *toolsets.ToolsetG
 			UserGetMe(engine),
 			UserList(engine),
 			UserListByProject(engine),
+			MilestoneGet(engine),
+			MilestoneList(engine),
+			MilestoneListByProject(engine),
 		))
 	return group
 }
