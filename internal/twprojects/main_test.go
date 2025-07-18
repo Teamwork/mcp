@@ -5,9 +5,11 @@ import (
 	"context"
 	"io"
 	"net/http"
+	"testing"
 
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
+	"github.com/teamwork/mcp/internal/toolsets"
 	"github.com/teamwork/mcp/internal/twprojects"
 	"github.com/teamwork/twapi-go-sdk"
 )
@@ -31,33 +33,15 @@ var engineMock = twapi.NewEngine(sessionMock{}, twapi.WithMiddleware(func(twapi.
 	})
 }))
 
-func mcpServerMock() *server.MCPServer {
+func mcpServerMock(t *testing.T) *server.MCPServer {
 	mcpServer := server.NewMCPServer("test-server", "1.0.0")
-	mcpServer.AddTools(twprojects.ProjectCreate(engineMock))
-	mcpServer.AddTools(twprojects.ProjectUpdate(engineMock))
-	mcpServer.AddTools(twprojects.ProjectDelete(engineMock))
-	mcpServer.AddTools(twprojects.ProjectGet(engineMock))
-	mcpServer.AddTools(twprojects.ProjectList(engineMock))
-	mcpServer.AddTools(twprojects.TasklistCreate(engineMock))
-	mcpServer.AddTools(twprojects.TasklistUpdate(engineMock))
-	mcpServer.AddTools(twprojects.TasklistDelete(engineMock))
-	mcpServer.AddTools(twprojects.TasklistGet(engineMock))
-	mcpServer.AddTools(twprojects.TasklistList(engineMock))
-	mcpServer.AddTools(twprojects.TasklistListByProject(engineMock))
-	mcpServer.AddTools(twprojects.TaskCreate(engineMock))
-	mcpServer.AddTools(twprojects.TaskUpdate(engineMock))
-	mcpServer.AddTools(twprojects.TaskDelete(engineMock))
-	mcpServer.AddTools(twprojects.TaskGet(engineMock))
-	mcpServer.AddTools(twprojects.TaskList(engineMock))
-	mcpServer.AddTools(twprojects.TaskListByTasklist(engineMock))
-	mcpServer.AddTools(twprojects.TaskListByProject(engineMock))
-	mcpServer.AddTools(twprojects.UserCreate(engineMock))
-	mcpServer.AddTools(twprojects.UserUpdate(engineMock))
-	mcpServer.AddTools(twprojects.UserDelete(engineMock))
-	mcpServer.AddTools(twprojects.UserGet(engineMock))
-	mcpServer.AddTools(twprojects.UserGetMe(engineMock))
-	mcpServer.AddTools(twprojects.UserList(engineMock))
-	mcpServer.AddTools(twprojects.UserListByProject(engineMock))
+
+	toolsetGroup := twprojects.DefaultToolsetGroup(false, engineMock)
+	if err := toolsetGroup.EnableToolsets(toolsets.MethodAll); err != nil {
+		t.Fatalf("failed to enable toolsets: %v", err)
+	}
+	toolsetGroup.RegisterAll(mcpServer)
+
 	return mcpServer
 }
 

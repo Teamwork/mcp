@@ -10,7 +10,7 @@ import (
 )
 
 func TestUserCreate(t *testing.T) {
-	mcpServer := mcpServerMock()
+	mcpServer := mcpServerMock(t)
 
 	request := &toolRequest{
 		JSONRPC: mcp.JSONRPC_VERSION,
@@ -46,7 +46,7 @@ func TestUserCreate(t *testing.T) {
 }
 
 func TestUserUpdate(t *testing.T) {
-	mcpServer := mcpServerMock()
+	mcpServer := mcpServerMock(t)
 
 	request := &toolRequest{
 		JSONRPC: mcp.JSONRPC_VERSION,
@@ -83,7 +83,7 @@ func TestUserUpdate(t *testing.T) {
 }
 
 func TestUserDelete(t *testing.T) {
-	mcpServer := mcpServerMock()
+	mcpServer := mcpServerMock(t)
 
 	request := &toolRequest{
 		JSONRPC: mcp.JSONRPC_VERSION,
@@ -112,7 +112,7 @@ func TestUserDelete(t *testing.T) {
 }
 
 func TestUserGet(t *testing.T) {
-	mcpServer := mcpServerMock()
+	mcpServer := mcpServerMock(t)
 
 	request := &toolRequest{
 		JSONRPC: mcp.JSONRPC_VERSION,
@@ -141,7 +141,7 @@ func TestUserGet(t *testing.T) {
 }
 
 func TestUserGetMe(t *testing.T) {
-	mcpServer := mcpServerMock()
+	mcpServer := mcpServerMock(t)
 
 	request := &toolRequest{
 		JSONRPC: mcp.JSONRPC_VERSION,
@@ -168,7 +168,7 @@ func TestUserGetMe(t *testing.T) {
 }
 
 func TestUserList(t *testing.T) {
-	mcpServer := mcpServerMock()
+	mcpServer := mcpServerMock(t)
 
 	request := &toolRequest{
 		JSONRPC: mcp.JSONRPC_VERSION,
@@ -200,7 +200,7 @@ func TestUserList(t *testing.T) {
 }
 
 func TestUserListByProject(t *testing.T) {
-	mcpServer := mcpServerMock()
+	mcpServer := mcpServerMock(t)
 
 	request := &toolRequest{
 		JSONRPC: mcp.JSONRPC_VERSION,

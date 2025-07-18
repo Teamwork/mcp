@@ -10,7 +10,7 @@ import (
 )
 
 func TestProjectCreate(t *testing.T) {
-	mcpServer := mcpServerMock()
+	mcpServer := mcpServerMock(t)
 
 	request := &toolRequest{
 		JSONRPC: mcp.JSONRPC_VERSION,
@@ -45,7 +45,7 @@ func TestProjectCreate(t *testing.T) {
 }
 
 func TestProjectUpdate(t *testing.T) {
-	mcpServer := mcpServerMock()
+	mcpServer := mcpServerMock(t)
 
 	request := &toolRequest{
 		JSONRPC: mcp.JSONRPC_VERSION,
@@ -81,7 +81,7 @@ func TestProjectUpdate(t *testing.T) {
 }
 
 func TestProjectDelete(t *testing.T) {
-	mcpServer := mcpServerMock()
+	mcpServer := mcpServerMock(t)
 
 	request := &toolRequest{
 		JSONRPC: mcp.JSONRPC_VERSION,
@@ -110,7 +110,7 @@ func TestProjectDelete(t *testing.T) {
 }
 
 func TestProjectGet(t *testing.T) {
-	mcpServer := mcpServerMock()
+	mcpServer := mcpServerMock(t)
 
 	request := &toolRequest{
 		JSONRPC: mcp.JSONRPC_VERSION,
@@ -139,7 +139,7 @@ func TestProjectGet(t *testing.T) {
 }
 
 func TestProjectList(t *testing.T) {
-	mcpServer := mcpServerMock()
+	mcpServer := mcpServerMock(t)
 
 	request := &toolRequest{
 		JSONRPC: mcp.JSONRPC_VERSION,

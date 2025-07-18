@@ -10,7 +10,7 @@ import (
 )
 
 func TestTaskCreate(t *testing.T) {
-	mcpServer := mcpServerMock()
+	mcpServer := mcpServerMock(t)
 
 	request := &toolRequest{
 		JSONRPC: mcp.JSONRPC_VERSION,
@@ -52,7 +52,7 @@ func TestTaskCreate(t *testing.T) {
 }
 
 func TestTaskUpdate(t *testing.T) {
-	mcpServer := mcpServerMock()
+	mcpServer := mcpServerMock(t)
 
 	request := &toolRequest{
 		JSONRPC: mcp.JSONRPC_VERSION,
@@ -95,7 +95,7 @@ func TestTaskUpdate(t *testing.T) {
 }
 
 func TestTaskDelete(t *testing.T) {
-	mcpServer := mcpServerMock()
+	mcpServer := mcpServerMock(t)
 
 	request := &toolRequest{
 		JSONRPC: mcp.JSONRPC_VERSION,
@@ -124,7 +124,7 @@ func TestTaskDelete(t *testing.T) {
 }
 
 func TestTaskGet(t *testing.T) {
-	mcpServer := mcpServerMock()
+	mcpServer := mcpServerMock(t)
 
 	request := &toolRequest{
 		JSONRPC: mcp.JSONRPC_VERSION,
@@ -153,7 +153,7 @@ func TestTaskGet(t *testing.T) {
 }
 
 func TestTaskList(t *testing.T) {
-	mcpServer := mcpServerMock()
+	mcpServer := mcpServerMock(t)
 
 	request := &toolRequest{
 		JSONRPC: mcp.JSONRPC_VERSION,
@@ -186,7 +186,7 @@ func TestTaskList(t *testing.T) {
 }
 
 func TestTaskListByTasklist(t *testing.T) {
-	mcpServer := mcpServerMock()
+	mcpServer := mcpServerMock(t)
 
 	request := &toolRequest{
 		JSONRPC: mcp.JSONRPC_VERSION,
@@ -220,7 +220,7 @@ func TestTaskListByTasklist(t *testing.T) {
 }
 
 func TestTaskListByProject(t *testing.T) {
-	mcpServer := mcpServerMock()
+	mcpServer := mcpServerMock(t)
 
 	request := &toolRequest{
 		JSONRPC: mcp.JSONRPC_VERSION,
