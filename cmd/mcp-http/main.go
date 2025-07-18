@@ -212,9 +212,13 @@ func authMiddleware(resources config.Resources, next http.Handler) http.Handler 
 			span.SetTag("installation.url", info.URL)
 		}
 
-		r = r.WithContext(session.WithBearerTokenContext(r.Context(), session.NewBearerToken(bearerToken, info.URL)))
+		ctx := r.Context()
+		// detect cross-region requests
+		ctx = config.WithCrossRegion(ctx, !strings.EqualFold(resources.Info.AWSRegion, info.Region))
+		// inject session
+		ctx = session.WithBearerTokenContext(ctx, session.NewBearerToken(bearerToken, info.URL))
 
-		next.ServeHTTP(w, r)
+		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
 

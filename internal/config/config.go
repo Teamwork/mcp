@@ -105,7 +105,7 @@ func Load() (Resources, func()) {
 		}),
 		twapi.WithMiddleware(func(next twapi.HTTPClient) twapi.HTTPClient {
 			return twapi.HTTPClientFunc(func(req *http.Request) (*http.Response, error) {
-				if haProxyURL != nil {
+				if haProxyURL != nil && !isCrossRegion(req.Context()) {
 					// use internal HAProxy address to avoid extra hops
 					req.Header.Set("Host", req.URL.Host)
 					req.URL.Host = haProxyURL.Host

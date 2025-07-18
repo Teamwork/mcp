@@ -20,6 +20,7 @@ var ErrBearerInfoUnauthorized = errors.New("unauthorized: failed to get bearer i
 type BearerInfo struct {
 	UserID         int64  `json:"user_id"`
 	InstallationID int64  `json:"installation_id"`
+	Region         string `json:"awsRegion"`
 	URL            string `json:"url"`
 }
 
