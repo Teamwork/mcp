@@ -3,6 +3,7 @@ package twprojects_test
 import (
 	"context"
 	"encoding/json"
+	"net/http"
 	"testing"
 
 	"github.com/mark3labs/mcp-go/mcp"
@@ -10,7 +11,7 @@ import (
 )
 
 func TestUserCreate(t *testing.T) {
-	mcpServer := mcpServerMock(t)
+	mcpServer := mcpServerMock(t, http.StatusCreated, []byte(`{"id":"123"}`))
 
 	request := &toolRequest{
 		JSONRPC: mcp.JSONRPC_VERSION,
@@ -38,15 +39,11 @@ func TestUserCreate(t *testing.T) {
 		t.Fatalf("failed to encode request: %v", err)
 	}
 
-	ctx := context.Background()
-	message := mcpServer.HandleMessage(ctx, encodedRequest)
-	if err, ok := message.(mcp.JSONRPCError); ok {
-		t.Errorf("tool failed to execute: %v", err.Error)
-	}
+	checkMessage(t, mcpServer.HandleMessage(context.Background(), encodedRequest))
 }
 
 func TestUserUpdate(t *testing.T) {
-	mcpServer := mcpServerMock(t)
+	mcpServer := mcpServerMock(t, http.StatusOK, []byte(`{}`))
 
 	request := &toolRequest{
 		JSONRPC: mcp.JSONRPC_VERSION,
@@ -75,15 +72,11 @@ func TestUserUpdate(t *testing.T) {
 		t.Fatalf("failed to encode request: %v", err)
 	}
 
-	ctx := context.Background()
-	message := mcpServer.HandleMessage(ctx, encodedRequest)
-	if err, ok := message.(mcp.JSONRPCError); ok {
-		t.Errorf("tool failed to execute: %v", err.Error)
-	}
+	checkMessage(t, mcpServer.HandleMessage(context.Background(), encodedRequest))
 }
 
 func TestUserDelete(t *testing.T) {
-	mcpServer := mcpServerMock(t)
+	mcpServer := mcpServerMock(t, http.StatusOK, []byte(`{}`))
 
 	request := &toolRequest{
 		JSONRPC: mcp.JSONRPC_VERSION,
@@ -104,15 +97,11 @@ func TestUserDelete(t *testing.T) {
 		t.Fatalf("failed to encode request: %v", err)
 	}
 
-	ctx := context.Background()
-	message := mcpServer.HandleMessage(ctx, encodedRequest)
-	if err, ok := message.(mcp.JSONRPCError); ok {
-		t.Errorf("tool failed to execute: %v", err.Error)
-	}
+	checkMessage(t, mcpServer.HandleMessage(context.Background(), encodedRequest))
 }
 
 func TestUserGet(t *testing.T) {
-	mcpServer := mcpServerMock(t)
+	mcpServer := mcpServerMock(t, http.StatusOK, []byte(`{}`))
 
 	request := &toolRequest{
 		JSONRPC: mcp.JSONRPC_VERSION,
@@ -133,15 +122,11 @@ func TestUserGet(t *testing.T) {
 		t.Fatalf("failed to encode request: %v", err)
 	}
 
-	ctx := context.Background()
-	message := mcpServer.HandleMessage(ctx, encodedRequest)
-	if err, ok := message.(mcp.JSONRPCError); ok {
-		t.Errorf("tool failed to execute: %v", err.Error)
-	}
+	checkMessage(t, mcpServer.HandleMessage(context.Background(), encodedRequest))
 }
 
 func TestUserGetMe(t *testing.T) {
-	mcpServer := mcpServerMock(t)
+	mcpServer := mcpServerMock(t, http.StatusOK, []byte(`{}`))
 
 	request := &toolRequest{
 		JSONRPC: mcp.JSONRPC_VERSION,
@@ -160,15 +145,11 @@ func TestUserGetMe(t *testing.T) {
 		t.Fatalf("failed to encode request: %v", err)
 	}
 
-	ctx := context.Background()
-	message := mcpServer.HandleMessage(ctx, encodedRequest)
-	if err, ok := message.(mcp.JSONRPCError); ok {
-		t.Errorf("tool failed to execute: %v", err.Error)
-	}
+	checkMessage(t, mcpServer.HandleMessage(context.Background(), encodedRequest))
 }
 
 func TestUserList(t *testing.T) {
-	mcpServer := mcpServerMock(t)
+	mcpServer := mcpServerMock(t, http.StatusOK, []byte(`{}`))
 
 	request := &toolRequest{
 		JSONRPC: mcp.JSONRPC_VERSION,
@@ -192,15 +173,11 @@ func TestUserList(t *testing.T) {
 		t.Fatalf("failed to encode request: %v", err)
 	}
 
-	ctx := context.Background()
-	message := mcpServer.HandleMessage(ctx, encodedRequest)
-	if err, ok := message.(mcp.JSONRPCError); ok {
-		t.Errorf("tool failed to execute: %v", err.Error)
-	}
+	checkMessage(t, mcpServer.HandleMessage(context.Background(), encodedRequest))
 }
 
 func TestUserListByProject(t *testing.T) {
-	mcpServer := mcpServerMock(t)
+	mcpServer := mcpServerMock(t, http.StatusOK, []byte(`{}`))
 
 	request := &toolRequest{
 		JSONRPC: mcp.JSONRPC_VERSION,
@@ -225,9 +202,5 @@ func TestUserListByProject(t *testing.T) {
 		t.Fatalf("failed to encode request: %v", err)
 	}
 
-	ctx := context.Background()
-	message := mcpServer.HandleMessage(ctx, encodedRequest)
-	if err, ok := message.(mcp.JSONRPCError); ok {
-		t.Errorf("tool failed to execute: %v", err.Error)
-	}
+	checkMessage(t, mcpServer.HandleMessage(context.Background(), encodedRequest))
 }

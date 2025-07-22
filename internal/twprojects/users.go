@@ -79,15 +79,15 @@ func UserCreate(engine *twapi.Engine) server.ServerTool {
 			var userCreateRequest projects.UserCreateRequest
 
 			err := helpers.ParamGroup(request.GetArguments(),
-				helpers.RequiredParam(&userCreateRequest.FirstName, "first-name"),
-				helpers.RequiredParam(&userCreateRequest.LastName, "last-name"),
+				helpers.RequiredParam(&userCreateRequest.FirstName, "first_name"),
+				helpers.RequiredParam(&userCreateRequest.LastName, "last_name"),
 				helpers.OptionalPointerParam(&userCreateRequest.Title, "title"),
 				helpers.RequiredParam(&userCreateRequest.Email, "email"),
 				helpers.OptionalPointerParam(&userCreateRequest.Admin, "admin"),
 				helpers.OptionalPointerParam(&userCreateRequest.Type, "type",
 					helpers.RestrictValues("account", "collaborator", "contact"),
 				),
-				helpers.OptionalNumericPointerParam(&userCreateRequest.CompanyID, "company-id"),
+				helpers.OptionalNumericPointerParam(&userCreateRequest.CompanyID, "company_id"),
 			)
 			if err != nil {
 				return mcp.NewToolResultErrorFromErr("invalid parameters", err), nil

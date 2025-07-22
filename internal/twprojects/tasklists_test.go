@@ -3,6 +3,7 @@ package twprojects_test
 import (
 	"context"
 	"encoding/json"
+	"net/http"
 	"testing"
 
 	"github.com/mark3labs/mcp-go/mcp"
@@ -10,7 +11,7 @@ import (
 )
 
 func TestTasklistCreate(t *testing.T) {
-	mcpServer := mcpServerMock(t)
+	mcpServer := mcpServerMock(t, http.StatusCreated, []byte(`{"tasklistId":"123"}`))
 
 	request := &toolRequest{
 		JSONRPC: mcp.JSONRPC_VERSION,
@@ -23,9 +24,10 @@ func TestTasklistCreate(t *testing.T) {
 	}
 	request.Params.Name = twprojects.MethodTasklistCreate.String()
 	request.Params.Arguments = map[string]any{
-		"name":        "Example",
-		"description": "This is an example tasklist.",
-		"project_id":  float64(456),
+		"name":         "Example",
+		"description":  "This is an example tasklist.",
+		"project_id":   float64(456),
+		"milestone_id": float64(789),
 	}
 
 	encodedRequest, err := json.Marshal(request)
@@ -33,15 +35,11 @@ func TestTasklistCreate(t *testing.T) {
 		t.Fatalf("failed to encode request: %v", err)
 	}
 
-	ctx := context.Background()
-	message := mcpServer.HandleMessage(ctx, encodedRequest)
-	if err, ok := message.(mcp.JSONRPCError); ok {
-		t.Errorf("tool failed to execute: %v", err.Error)
-	}
+	checkMessage(t, mcpServer.HandleMessage(context.Background(), encodedRequest))
 }
 
 func TestTasklistUpdate(t *testing.T) {
-	mcpServer := mcpServerMock(t)
+	mcpServer := mcpServerMock(t, http.StatusOK, []byte(`{}`))
 
 	request := &toolRequest{
 		JSONRPC: mcp.JSONRPC_VERSION,
@@ -54,10 +52,11 @@ func TestTasklistUpdate(t *testing.T) {
 	}
 	request.Params.Name = twprojects.MethodTasklistUpdate.String()
 	request.Params.Arguments = map[string]any{
-		"id":          float64(123),
-		"name":        "Example",
-		"description": "This is an example tasklist.",
-		"project_id":  float64(123),
+		"id":           float64(123),
+		"name":         "Example",
+		"description":  "This is an example tasklist.",
+		"project_id":   float64(123),
+		"milestone_id": float64(789),
 	}
 
 	encodedRequest, err := json.Marshal(request)
@@ -65,15 +64,11 @@ func TestTasklistUpdate(t *testing.T) {
 		t.Fatalf("failed to encode request: %v", err)
 	}
 
-	ctx := context.Background()
-	message := mcpServer.HandleMessage(ctx, encodedRequest)
-	if err, ok := message.(mcp.JSONRPCError); ok {
-		t.Errorf("tool failed to execute: %v", err.Error)
-	}
+	checkMessage(t, mcpServer.HandleMessage(context.Background(), encodedRequest))
 }
 
 func TestTasklistDelete(t *testing.T) {
-	mcpServer := mcpServerMock(t)
+	mcpServer := mcpServerMock(t, http.StatusOK, []byte(`{}`))
 
 	request := &toolRequest{
 		JSONRPC: mcp.JSONRPC_VERSION,
@@ -94,15 +89,11 @@ func TestTasklistDelete(t *testing.T) {
 		t.Fatalf("failed to encode request: %v", err)
 	}
 
-	ctx := context.Background()
-	message := mcpServer.HandleMessage(ctx, encodedRequest)
-	if err, ok := message.(mcp.JSONRPCError); ok {
-		t.Errorf("tool failed to execute: %v", err.Error)
-	}
+	checkMessage(t, mcpServer.HandleMessage(context.Background(), encodedRequest))
 }
 
 func TestTasklistGet(t *testing.T) {
-	mcpServer := mcpServerMock(t)
+	mcpServer := mcpServerMock(t, http.StatusOK, []byte(`{}`))
 
 	request := &toolRequest{
 		JSONRPC: mcp.JSONRPC_VERSION,
@@ -123,15 +114,11 @@ func TestTasklistGet(t *testing.T) {
 		t.Fatalf("failed to encode request: %v", err)
 	}
 
-	ctx := context.Background()
-	message := mcpServer.HandleMessage(ctx, encodedRequest)
-	if err, ok := message.(mcp.JSONRPCError); ok {
-		t.Errorf("tool failed to execute: %v", err.Error)
-	}
+	checkMessage(t, mcpServer.HandleMessage(context.Background(), encodedRequest))
 }
 
 func TestTasklistList(t *testing.T) {
-	mcpServer := mcpServerMock(t)
+	mcpServer := mcpServerMock(t, http.StatusOK, []byte(`{}`))
 
 	request := &toolRequest{
 		JSONRPC: mcp.JSONRPC_VERSION,
@@ -154,15 +141,11 @@ func TestTasklistList(t *testing.T) {
 		t.Fatalf("failed to encode request: %v", err)
 	}
 
-	ctx := context.Background()
-	message := mcpServer.HandleMessage(ctx, encodedRequest)
-	if err, ok := message.(mcp.JSONRPCError); ok {
-		t.Errorf("tool failed to execute: %v", err.Error)
-	}
+	checkMessage(t, mcpServer.HandleMessage(context.Background(), encodedRequest))
 }
 
 func TestTasklistListByProject(t *testing.T) {
-	mcpServer := mcpServerMock(t)
+	mcpServer := mcpServerMock(t, http.StatusOK, []byte(`{}`))
 
 	request := &toolRequest{
 		JSONRPC: mcp.JSONRPC_VERSION,
@@ -186,9 +169,5 @@ func TestTasklistListByProject(t *testing.T) {
 		t.Fatalf("failed to encode request: %v", err)
 	}
 
-	ctx := context.Background()
-	message := mcpServer.HandleMessage(ctx, encodedRequest)
-	if err, ok := message.(mcp.JSONRPCError); ok {
-		t.Errorf("tool failed to execute: %v", err.Error)
-	}
+	checkMessage(t, mcpServer.HandleMessage(context.Background(), encodedRequest))
 }

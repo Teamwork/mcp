@@ -3,6 +3,7 @@ package twprojects_test
 import (
 	"context"
 	"encoding/json"
+	"net/http"
 	"testing"
 
 	"github.com/mark3labs/mcp-go/mcp"
@@ -10,7 +11,7 @@ import (
 )
 
 func TestProjectMemberAdd(t *testing.T) {
-	mcpServer := mcpServerMock(t)
+	mcpServer := mcpServerMock(t, http.StatusOK, []byte(`{}`))
 
 	request := &toolRequest{
 		JSONRPC: mcp.JSONRPC_VERSION,
@@ -32,9 +33,5 @@ func TestProjectMemberAdd(t *testing.T) {
 		t.Fatalf("failed to encode request: %v", err)
 	}
 
-	ctx := context.Background()
-	message := mcpServer.HandleMessage(ctx, encodedRequest)
-	if err, ok := message.(mcp.JSONRPCError); ok {
-		t.Errorf("tool failed to execute: %v", err.Error)
-	}
+	checkMessage(t, mcpServer.HandleMessage(context.Background(), encodedRequest))
 }
