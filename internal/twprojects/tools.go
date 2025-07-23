@@ -35,6 +35,9 @@ func DefaultToolsetGroup(readOnly bool, engine *twapi.Engine) *toolsets.ToolsetG
 			TeamCreate(engine),
 			TeamUpdate(engine),
 			TeamDelete(engine),
+			CommentCreate(engine),
+			CommentUpdate(engine),
+			CommentDelete(engine),
 		).
 		AddReadTools(
 			ProjectGet(engine),
@@ -61,6 +64,12 @@ func DefaultToolsetGroup(readOnly bool, engine *twapi.Engine) *toolsets.ToolsetG
 			TeamList(engine),
 			TeamListByCompany(engine),
 			TeamListByProject(engine),
+			CommentGet(engine),
+			CommentList(engine),
+			CommentListByFileVersion(engine),
+			CommentListByMilestone(engine),
+			CommentListByNotebook(engine),
+			CommentListByTask(engine),
 		))
 	return group
 }
