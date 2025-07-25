@@ -25,6 +25,7 @@ func TestMilestoneCreate(t *testing.T) {
 	request.Params.Name = twprojects.MethodMilestoneCreate.String()
 	request.Params.Arguments = map[string]any{
 		"name":        "Example",
+		"project_id":  float64(123),
 		"description": "Example milestone description",
 		"due_date":    "20231231",
 		"assignees": map[string]any{

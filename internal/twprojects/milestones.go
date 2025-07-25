@@ -52,6 +52,10 @@ func MilestoneCreate(engine *twapi.Engine) server.ServerTool {
 				mcp.Required(),
 				mcp.Description("The name of the milestone."),
 			),
+			mcp.WithNumber("project_id",
+				mcp.Required(),
+				mcp.Description("The ID of the project to create the milestone in."),
+			),
 			mcp.WithString("description",
 				mcp.Description("A description of the milestone."),
 			),
@@ -95,6 +99,7 @@ func MilestoneCreate(engine *twapi.Engine) server.ServerTool {
 			var milestoneCreateRequest projects.MilestoneCreateRequest
 
 			err := helpers.ParamGroup(request.GetArguments(),
+				helpers.RequiredNumericParam(&milestoneCreateRequest.Path.ProjectID, "project_id"),
 				helpers.RequiredParam(&milestoneCreateRequest.Name, "name"),
 				helpers.OptionalPointerParam(&milestoneCreateRequest.Description, "description"),
 				helpers.RequiredLegacyDateParam(&milestoneCreateRequest.DueAt, "due_date"),
