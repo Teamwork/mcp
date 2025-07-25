@@ -1,6 +1,7 @@
 package config
 
 import (
+	"context"
 	"crypto/tls"
 	"fmt"
 	"log/slog"
@@ -14,6 +15,9 @@ import (
 	"github.com/DataDog/dd-trace-go/v2/ddtrace/tracer"
 	"github.com/DataDog/dd-trace-go/v2/instrumentation/httptrace"
 	"github.com/getsentry/sentry-go"
+	"github.com/mark3labs/mcp-go/client"
+	"github.com/mark3labs/mcp-go/client/transport"
+	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
 	"github.com/teamwork/mcp/internal/request"
 	"github.com/teamwork/mcp/internal/toolsets"
@@ -139,4 +143,34 @@ func NewMCPServer(resources Resources, group *toolsets.ToolsetGroup) *server.MCP
 	)
 	group.RegisterAll(mcpServer)
 	return mcpServer
+}
+
+// NewMCPClient creates a new MCP client.
+func NewMCPClient(
+	ctx context.Context,
+	resources Resources,
+	transport transport.Interface,
+	options ...client.ClientOption,
+) (*client.Client, *mcp.InitializeResult, error) {
+	mcpClient := client.NewClient(transport, options...)
+
+	mcpClient.OnNotification(func(notification mcp.JSONRPCNotification) {
+		resources.logger.Info("MCP notification",
+			slog.String("method", notification.Method),
+		)
+	})
+
+	mcpServerInfo, err := mcpClient.Initialize(ctx, mcp.InitializeRequest{
+		Params: mcp.InitializeParams{
+			ProtocolVersion: mcp.LATEST_PROTOCOL_VERSION,
+			ClientInfo: mcp.Implementation{
+				Name:    mcpName,
+				Version: strings.TrimPrefix(resources.Info.Version, "v"),
+			},
+		},
+	})
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to initialize MCP client: %w", err)
+	}
+	return mcpClient, mcpServerInfo, nil
 }
