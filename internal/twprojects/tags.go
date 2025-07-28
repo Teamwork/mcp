@@ -198,7 +198,7 @@ func TagList(engine *twapi.Engine) server.ServerTool {
 			mcp.WithArray("project_ids",
 				mcp.Description("A list of project IDs to filter tags by projects"),
 				mcp.Items(map[string]any{
-					"type": "number",
+					"type": "integer",
 				}),
 			),
 			mcp.WithNumber("page",

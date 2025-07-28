@@ -99,7 +99,7 @@ func CompanyCreate(engine *twapi.Engine) server.ServerTool {
 			mcp.WithArray("tag_ids",
 				mcp.Description("A list of tag IDs to associate with the company."),
 				mcp.Items(map[string]any{
-					"type": "number",
+					"type": "integer",
 				}),
 			),
 		),
@@ -200,7 +200,7 @@ func CompanyUpdate(engine *twapi.Engine) server.ServerTool {
 			mcp.WithArray("tag_ids",
 				mcp.Description("A list of tag IDs to associate with the company."),
 				mcp.Items(map[string]any{
-					"type": "number",
+					"type": "integer",
 				}),
 			),
 		),
@@ -323,7 +323,7 @@ func CompanyList(engine *twapi.Engine) server.ServerTool {
 			mcp.WithArray("tag_ids",
 				mcp.Description("A list of tag IDs to filter companies by tags"),
 				mcp.Items(map[string]any{
-					"type": "number",
+					"type": "integer",
 				}),
 			),
 			mcp.WithBoolean("match_all_tags",

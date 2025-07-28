@@ -72,7 +72,7 @@ func TeamCreate(engine *twapi.Engine) server.ServerTool {
 			mcp.WithArray("user_ids",
 				mcp.Description("A list of user IDs to add to the team."),
 				mcp.Items(map[string]any{
-					"type": "number",
+					"type": "integer",
 				}),
 			),
 		),
@@ -133,7 +133,7 @@ func TeamUpdate(engine *twapi.Engine) server.ServerTool {
 			mcp.WithArray("user_ids",
 				mcp.Description("A list of user IDs to add to the team."),
 				mcp.Items(map[string]any{
-					"type": "number",
+					"type": "integer",
 				}),
 			),
 		),

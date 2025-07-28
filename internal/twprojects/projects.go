@@ -69,7 +69,7 @@ func ProjectCreate(engine *twapi.Engine) server.ServerTool {
 			mcp.WithArray("tag_ids",
 				mcp.Description("A list of tag IDs to associate with the project."),
 				mcp.Items(map[string]any{
-					"type": "number",
+					"type": "integer",
 				}),
 			),
 		),
@@ -129,7 +129,7 @@ func ProjectUpdate(engine *twapi.Engine) server.ServerTool {
 			mcp.WithArray("tag_ids",
 				mcp.Description("A list of tag IDs to associate with the project."),
 				mcp.Items(map[string]any{
-					"type": "number",
+					"type": "integer",
 				}),
 			),
 		),
@@ -241,7 +241,7 @@ func ProjectList(engine *twapi.Engine) server.ServerTool {
 			mcp.WithArray("tag_ids",
 				mcp.Description("A list of tag IDs to filter projects by tags"),
 				mcp.Items(map[string]any{
-					"type": "number",
+					"type": "integer",
 				}),
 			),
 			mcp.WithBoolean("match_all_tags",

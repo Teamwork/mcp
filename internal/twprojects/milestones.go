@@ -72,17 +72,17 @@ func MilestoneCreate(engine *twapi.Engine) server.ServerTool {
 					"user_ids": map[string]any{
 						"type":        "array",
 						"description": "List of user IDs assigned to the milestone.",
-						"items":       map[string]any{"type": "number"},
+						"items":       map[string]any{"type": "integer"},
 					},
 					"company_ids": map[string]any{
 						"type":        "array",
 						"description": "List of company IDs assigned to the milestone.",
-						"items":       map[string]any{"type": "number"},
+						"items":       map[string]any{"type": "integer"},
 					},
 					"team_ids": map[string]any{
 						"type":        "array",
 						"description": "List of team IDs assigned to the milestone.",
-						"items":       map[string]any{"type": "number"},
+						"items":       map[string]any{"type": "integer"},
 					},
 				}),
 				mcp.AdditionalProperties(false),
@@ -97,13 +97,13 @@ func MilestoneCreate(engine *twapi.Engine) server.ServerTool {
 			mcp.WithArray("tasklist_ids",
 				mcp.Description("A list of tasklist IDs to associate with the milestone."),
 				mcp.Items(map[string]any{
-					"type": "number",
+					"type": "integer",
 				}),
 			),
 			mcp.WithArray("tag_ids",
 				mcp.Description("A list of tag IDs to associate with the milestone."),
 				mcp.Items(map[string]any{
-					"type": "number",
+					"type": "integer",
 				}),
 			),
 		),
@@ -179,17 +179,17 @@ func MilestoneUpdate(engine *twapi.Engine) server.ServerTool {
 					"user_ids": map[string]any{
 						"type":        "array",
 						"description": "List of user IDs assigned to the milestone.",
-						"items":       map[string]any{"type": "number"},
+						"items":       map[string]any{"type": "integer"},
 					},
 					"company_ids": map[string]any{
 						"type":        "array",
 						"description": "List of company IDs assigned to the milestone.",
-						"items":       map[string]any{"type": "number"},
+						"items":       map[string]any{"type": "integer"},
 					},
 					"team_ids": map[string]any{
 						"type":        "array",
 						"description": "List of team IDs assigned to the milestone.",
-						"items":       map[string]any{"type": "number"},
+						"items":       map[string]any{"type": "integer"},
 					},
 				}),
 				mcp.AdditionalProperties(false),
@@ -204,13 +204,13 @@ func MilestoneUpdate(engine *twapi.Engine) server.ServerTool {
 			mcp.WithArray("tasklist_ids",
 				mcp.Description("A list of tasklist IDs to associate with the milestone."),
 				mcp.Items(map[string]any{
-					"type": "number",
+					"type": "integer",
 				}),
 			),
 			mcp.WithArray("tag_ids",
 				mcp.Description("A list of tag IDs to associate with the milestone."),
 				mcp.Items(map[string]any{
-					"type": "number",
+					"type": "integer",
 				}),
 			),
 		),
@@ -340,7 +340,7 @@ func MilestoneList(engine *twapi.Engine) server.ServerTool {
 			mcp.WithArray("tag_ids",
 				mcp.Description("A list of tag IDs to filter milestones by tags"),
 				mcp.Items(map[string]any{
-					"type": "number",
+					"type": "integer",
 				}),
 			),
 			mcp.WithBoolean("match_all_tags",
@@ -404,7 +404,7 @@ func MilestoneListByProject(engine *twapi.Engine) server.ServerTool {
 			mcp.WithArray("tag_ids",
 				mcp.Description("A list of tag IDs to filter milestones by tags"),
 				mcp.Items(map[string]any{
-					"type": "number",
+					"type": "integer",
 				}),
 			),
 			mcp.WithBoolean("match_all_tags",

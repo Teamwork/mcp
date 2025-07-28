@@ -83,17 +83,17 @@ func TaskCreate(engine *twapi.Engine) server.ServerTool {
 					"user_ids": map[string]any{
 						"type":        "array",
 						"description": "List of user IDs assigned to the task.",
-						"items":       map[string]any{"type": "number"},
+						"items":       map[string]any{"type": "integer"},
 					},
 					"company_ids": map[string]any{
 						"type":        "array",
 						"description": "List of company IDs assigned to the task.",
-						"items":       map[string]any{"type": "number"},
+						"items":       map[string]any{"type": "integer"},
 					},
 					"team_ids": map[string]any{
 						"type":        "array",
 						"description": "List of team IDs assigned to the task.",
-						"items":       map[string]any{"type": "number"},
+						"items":       map[string]any{"type": "integer"},
 					},
 				}),
 				mcp.AdditionalProperties(false),
@@ -108,7 +108,7 @@ func TaskCreate(engine *twapi.Engine) server.ServerTool {
 			mcp.WithArray("tag_ids",
 				mcp.Description("A list of tag IDs to assign to the task."),
 				mcp.Items(map[string]any{
-					"type": "number",
+					"type": "integer",
 				}),
 			),
 		),
@@ -200,17 +200,17 @@ func TaskUpdate(engine *twapi.Engine) server.ServerTool {
 					"user_ids": map[string]any{
 						"type":        "array",
 						"description": "List of user IDs assigned to the task.",
-						"items":       map[string]any{"type": "number"},
+						"items":       map[string]any{"type": "integer"},
 					},
 					"company_ids": map[string]any{
 						"type":        "array",
 						"description": "List of company IDs assigned to the task.",
-						"items":       map[string]any{"type": "number"},
+						"items":       map[string]any{"type": "integer"},
 					},
 					"team_ids": map[string]any{
 						"type":        "array",
 						"description": "List of team IDs assigned to the task.",
-						"items":       map[string]any{"type": "number"},
+						"items":       map[string]any{"type": "integer"},
 					},
 				}),
 				mcp.AdditionalProperties(false),
@@ -225,7 +225,7 @@ func TaskUpdate(engine *twapi.Engine) server.ServerTool {
 			mcp.WithArray("tag_ids",
 				mcp.Description("A list of tag IDs to assign to the task."),
 				mcp.Items(map[string]any{
-					"type": "number",
+					"type": "integer",
 				}),
 			),
 		),
@@ -359,7 +359,7 @@ func TaskList(engine *twapi.Engine) server.ServerTool {
 			mcp.WithArray("tag_ids",
 				mcp.Description("A list of tag IDs to filter tasks by tags"),
 				mcp.Items(map[string]any{
-					"type": "number",
+					"type": "integer",
 				}),
 			),
 			mcp.WithBoolean("match_all_tags",
@@ -420,7 +420,7 @@ func TaskListByTasklist(engine *twapi.Engine) server.ServerTool {
 			mcp.WithArray("tag_ids",
 				mcp.Description("A list of tag IDs to filter tasks by tags"),
 				mcp.Items(map[string]any{
-					"type": "number",
+					"type": "integer",
 				}),
 			),
 			mcp.WithBoolean("match_all_tags",
@@ -482,7 +482,7 @@ func TaskListByProject(engine *twapi.Engine) server.ServerTool {
 			mcp.WithArray("tag_ids",
 				mcp.Description("A list of tag IDs to filter tasks by tags"),
 				mcp.Items(map[string]any{
-					"type": "number",
+					"type": "integer",
 				}),
 			),
 			mcp.WithBoolean("match_all_tags",
