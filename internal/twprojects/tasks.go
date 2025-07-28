@@ -140,9 +140,9 @@ func TaskCreate(engine *twapi.Engine) server.ServerTool {
 					taskCreateRequest.Assignees = new(projects.UserGroups)
 
 					err = helpers.ParamGroup(assigneesMap,
-						helpers.OptionalNumericListParam(&taskCreateRequest.Assignees.UserIDs, "user-ids"),
-						helpers.OptionalNumericListParam(&taskCreateRequest.Assignees.CompanyIDs, "company-ids"),
-						helpers.OptionalNumericListParam(&taskCreateRequest.Assignees.TeamIDs, "team-ids"),
+						helpers.OptionalNumericListParam(&taskCreateRequest.Assignees.UserIDs, "user_ids"),
+						helpers.OptionalNumericListParam(&taskCreateRequest.Assignees.CompanyIDs, "company_ids"),
+						helpers.OptionalNumericListParam(&taskCreateRequest.Assignees.TeamIDs, "team_ids"),
 					)
 					if err != nil {
 						return nil, fmt.Errorf("invalid assignees: %w", err)

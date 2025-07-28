@@ -145,9 +145,9 @@ func TeamUpdate(engine *twapi.Engine) server.ServerTool {
 				helpers.OptionalPointerParam(&teamUpdateRequest.Name, "name"),
 				helpers.OptionalPointerParam(&teamUpdateRequest.Handle, "handle"),
 				helpers.OptionalPointerParam(&teamUpdateRequest.Description, "description"),
-				helpers.OptionalNumericPointerParam(&teamUpdateRequest.CompanyID, "company-id"),
-				helpers.OptionalNumericPointerParam(&teamUpdateRequest.ProjectID, "project-id"),
-				helpers.OptionalCustomNumericListParam(&teamUpdateRequest.UserIDs, "user-ids"),
+				helpers.OptionalNumericPointerParam(&teamUpdateRequest.CompanyID, "company_id"),
+				helpers.OptionalNumericPointerParam(&teamUpdateRequest.ProjectID, "project_id"),
+				helpers.OptionalCustomNumericListParam(&teamUpdateRequest.UserIDs, "user_ids"),
 			)
 			if err != nil {
 				return mcp.NewToolResultErrorFromErr("invalid parameters", err), nil

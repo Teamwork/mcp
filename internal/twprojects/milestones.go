@@ -236,9 +236,9 @@ func MilestoneUpdate(engine *twapi.Engine) server.ServerTool {
 				} else if assigneesMap != nil {
 					milestoneUpdateRequest.Assignees = new(projects.LegacyUserGroups)
 					err = helpers.ParamGroup(assigneesMap,
-						helpers.OptionalNumericListParam(&milestoneUpdateRequest.Assignees.UserIDs, "user-ids"),
-						helpers.OptionalNumericListParam(&milestoneUpdateRequest.Assignees.CompanyIDs, "company-ids"),
-						helpers.OptionalNumericListParam(&milestoneUpdateRequest.Assignees.TeamIDs, "team-ids"),
+						helpers.OptionalNumericListParam(&milestoneUpdateRequest.Assignees.UserIDs, "user_ids"),
+						helpers.OptionalNumericListParam(&milestoneUpdateRequest.Assignees.CompanyIDs, "company_ids"),
+						helpers.OptionalNumericListParam(&milestoneUpdateRequest.Assignees.TeamIDs, "team_ids"),
 					)
 					if err != nil {
 						return nil, fmt.Errorf("invalid assignees: %w", err)
