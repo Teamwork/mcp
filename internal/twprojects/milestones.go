@@ -67,27 +67,32 @@ func MilestoneCreate(engine *twapi.Engine) server.ServerTool {
 			mcp.WithObject("assignees",
 				mcp.Required(),
 				mcp.Description("An object containing assignees for the milestone. "+
-					"At least one of user_ids, company_ids or team_ids must be provided."),
+					"MUST contain at least one of: user_ids, company_ids or team_ids with non-empty arrays."),
 				mcp.Properties(map[string]any{
 					"user_ids": map[string]any{
 						"type":        "array",
 						"description": "List of user IDs assigned to the milestone.",
 						"items":       map[string]any{"type": "integer"},
+						"minItems":    1,
 					},
 					"company_ids": map[string]any{
 						"type":        "array",
 						"description": "List of company IDs assigned to the milestone.",
 						"items":       map[string]any{"type": "integer"},
+						"minItems":    1,
 					},
 					"team_ids": map[string]any{
 						"type":        "array",
 						"description": "List of team IDs assigned to the milestone.",
 						"items":       map[string]any{"type": "integer"},
+						"minItems":    1,
 					},
 				}),
 				mcp.AdditionalProperties(false),
-				func(property map[string]any) {
-					property["anyOf"] = []map[string]any{
+				func(schemaMap map[string]any) {
+					schemaMap["minProperties"] = 1
+					schemaMap["maxProperties"] = 3
+					schemaMap["anyOf"] = []map[string]any{
 						{"required": []string{"user_ids"}},
 						{"required": []string{"company_ids"}},
 						{"required": []string{"team_ids"}},
@@ -180,21 +185,26 @@ func MilestoneUpdate(engine *twapi.Engine) server.ServerTool {
 						"type":        "array",
 						"description": "List of user IDs assigned to the milestone.",
 						"items":       map[string]any{"type": "integer"},
+						"minItems":    1,
 					},
 					"company_ids": map[string]any{
 						"type":        "array",
 						"description": "List of company IDs assigned to the milestone.",
 						"items":       map[string]any{"type": "integer"},
+						"minItems":    1,
 					},
 					"team_ids": map[string]any{
 						"type":        "array",
 						"description": "List of team IDs assigned to the milestone.",
 						"items":       map[string]any{"type": "integer"},
+						"minItems":    1,
 					},
 				}),
 				mcp.AdditionalProperties(false),
-				func(property map[string]any) {
-					property["anyOf"] = []map[string]any{
+				func(schemaMap map[string]any) {
+					schemaMap["minProperties"] = 1
+					schemaMap["maxProperties"] = 3
+					schemaMap["anyOf"] = []map[string]any{
 						{"required": []string{"user_ids"}},
 						{"required": []string{"company_ids"}},
 						{"required": []string{"team_ids"}},
