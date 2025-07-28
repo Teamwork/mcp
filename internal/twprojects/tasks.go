@@ -78,21 +78,32 @@ func TaskCreate(engine *twapi.Engine) server.ServerTool {
 				mcp.Description("The estimated time to complete the task in minutes."),
 			),
 			mcp.WithObject("assignees",
-				mcp.Description("The assignees of the task. This is a JSON object with user IDs, company IDs, and team IDs."),
+				mcp.Description("An object containing assignees for the task."),
 				mcp.Properties(map[string]any{
 					"user_ids": map[string]any{
 						"type":        "array",
 						"description": "List of user IDs assigned to the task.",
+						"items":       map[string]any{"type": "number"},
 					},
 					"company_ids": map[string]any{
 						"type":        "array",
 						"description": "List of company IDs assigned to the task.",
+						"items":       map[string]any{"type": "number"},
 					},
 					"team_ids": map[string]any{
 						"type":        "array",
 						"description": "List of team IDs assigned to the task.",
+						"items":       map[string]any{"type": "number"},
 					},
 				}),
+				mcp.AdditionalProperties(false),
+				func(property map[string]any) {
+					property["anyOf"] = []map[string]any{
+						{"required": []string{"user_ids"}},
+						{"required": []string{"company_ids"}},
+						{"required": []string{"team_ids"}},
+					}
+				},
 			),
 			mcp.WithArray("tag_ids",
 				mcp.Description("A list of tag IDs to assign to the task."),
@@ -184,21 +195,32 @@ func TaskUpdate(engine *twapi.Engine) server.ServerTool {
 				mcp.Description("The estimated time to complete the task in minutes."),
 			),
 			mcp.WithObject("assignees",
-				mcp.Description("The assignees of the task. This is a JSON object with user IDs, company IDs, and team IDs."),
+				mcp.Description("An object containing assignees for the task."),
 				mcp.Properties(map[string]any{
 					"user_ids": map[string]any{
 						"type":        "array",
 						"description": "List of user IDs assigned to the task.",
+						"items":       map[string]any{"type": "number"},
 					},
 					"company_ids": map[string]any{
 						"type":        "array",
 						"description": "List of company IDs assigned to the task.",
+						"items":       map[string]any{"type": "number"},
 					},
 					"team_ids": map[string]any{
 						"type":        "array",
 						"description": "List of team IDs assigned to the task.",
+						"items":       map[string]any{"type": "number"},
 					},
 				}),
+				mcp.AdditionalProperties(false),
+				func(property map[string]any) {
+					property["anyOf"] = []map[string]any{
+						{"required": []string{"user_ids"}},
+						{"required": []string{"company_ids"}},
+						{"required": []string{"team_ids"}},
+					}
+				},
 			),
 			mcp.WithArray("tag_ids",
 				mcp.Description("A list of tag IDs to assign to the task."),

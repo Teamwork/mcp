@@ -66,21 +66,33 @@ func MilestoneCreate(engine *twapi.Engine) server.ServerTool {
 			),
 			mcp.WithObject("assignees",
 				mcp.Required(),
-				mcp.Description("A list of assignees for the milestone. At least one assignee must be provided."),
+				mcp.Description("An object containing assignees for the milestone. "+
+					"At least one of user_ids, company_ids or team_ids must be provided."),
 				mcp.Properties(map[string]any{
 					"user_ids": map[string]any{
 						"type":        "array",
 						"description": "List of user IDs assigned to the milestone.",
+						"items":       map[string]any{"type": "number"},
 					},
 					"company_ids": map[string]any{
 						"type":        "array",
 						"description": "List of company IDs assigned to the milestone.",
+						"items":       map[string]any{"type": "number"},
 					},
 					"team_ids": map[string]any{
 						"type":        "array",
 						"description": "List of team IDs assigned to the milestone.",
+						"items":       map[string]any{"type": "number"},
 					},
 				}),
+				mcp.AdditionalProperties(false),
+				func(property map[string]any) {
+					property["anyOf"] = []map[string]any{
+						{"required": []string{"user_ids"}},
+						{"required": []string{"company_ids"}},
+						{"required": []string{"team_ids"}},
+					}
+				},
 			),
 			mcp.WithArray("tasklist_ids",
 				mcp.Description("A list of tasklist IDs to associate with the milestone."),
@@ -158,27 +170,36 @@ func MilestoneUpdate(engine *twapi.Engine) server.ServerTool {
 				mcp.Description("A description of the milestone."),
 			),
 			mcp.WithString("due_date",
-				mcp.Required(),
 				mcp.Description("The due date of the milestone in the format YYYYMMDD. This date will be used in all tasks "+
 					"without a due date related to this milestone."),
 			),
 			mcp.WithObject("assignees",
-				mcp.Required(),
-				mcp.Description("A list of assignees for the milestone. At least one assignee must be provided."),
+				mcp.Description("An object containing assignees for the milestone."),
 				mcp.Properties(map[string]any{
 					"user_ids": map[string]any{
 						"type":        "array",
 						"description": "List of user IDs assigned to the milestone.",
+						"items":       map[string]any{"type": "number"},
 					},
 					"company_ids": map[string]any{
 						"type":        "array",
 						"description": "List of company IDs assigned to the milestone.",
+						"items":       map[string]any{"type": "number"},
 					},
 					"team_ids": map[string]any{
 						"type":        "array",
 						"description": "List of team IDs assigned to the milestone.",
+						"items":       map[string]any{"type": "number"},
 					},
 				}),
+				mcp.AdditionalProperties(false),
+				func(property map[string]any) {
+					property["anyOf"] = []map[string]any{
+						{"required": []string{"user_ids"}},
+						{"required": []string{"company_ids"}},
+						{"required": []string{"team_ids"}},
+					}
+				},
 			),
 			mcp.WithArray("tasklist_ids",
 				mcp.Description("A list of tasklist IDs to associate with the milestone."),
