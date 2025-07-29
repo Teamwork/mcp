@@ -6,7 +6,7 @@ Teamwork operations through the Model Context Protocol.
 
 ## 📋 Prerequisites
 
-- Python 3.8 or later
+- Python 3.13 or later
 - pip (Python package installer)
 - Access to a running Teamwork MCP server
 - Valid Teamwork API credentials
@@ -15,8 +15,21 @@ Teamwork operations through the Model Context Protocol.
 
 ### 1. Install Dependencies
 
+
+Without a virtual environment, you can install the required dependencies
+directly:
+
 ```bash
-cd examples/tw-python-client
+cd examples/python-langchain
+pip install -r requirements.txt
+```
+
+With a virtual environment:
+
+```bash
+cd examples/python-langchain
+python -m venv venv
+source venv/bin/activate
 pip install -r requirements.txt
 ```
 
@@ -37,14 +50,14 @@ export OPENAI_API_KEY="your-openai-api-key-here"
 # when using anthropic:claude-3-5-sonnet-20241022, anthropic:claude-3-opus-20240229, etc.
 export ANTHROPIC_API_KEY="your-anthropic-api-key-here"
 
-# when using google:gemini-1.5-pro, google:gemini-1.5-flash, etc.
+# when using google_genai:gemini-2.5-flash, etc.
 export GOOGLE_API_KEY="your-google-api-key-here"
 ```
 
 ## 🚀 Running the Example
 
 ```bash
-cd examples/tw-python-client
+cd examples/python-langchain
 python main.py --llm-model openai:gpt-4o
 ```
 

@@ -8,13 +8,23 @@ Tool to interact with different LLM models and the Teamwork.com MCP server.
 import argparse
 import asyncio
 import os
+import signal
+import sys
 
 from langchain_mcp_adapters.client import MultiServerMCPClient
 from langchain_mcp_adapters.tools import load_mcp_tools
 from langgraph.prebuilt import create_react_agent
 
+def signal_handler(signal, frame):
+    """Handle termination signals to gracefully exit."""
+    print("👋 Goodbye!")
+    sys.exit(0)
+
 async def main():
   """Main function to run the example."""
+
+  signal.signal(signal.SIGINT, signal_handler)
+  signal.signal(signal.SIGTERM, signal_handler)
 
   parser = argparse.ArgumentParser(description="Run the Teamwork.com MCP client example.")
   parser.add_argument(
@@ -37,6 +47,16 @@ async def main():
   )
   args = parser.parse_args()
 
+  if not args.server:
+    print("Error: Please provide a server URL using the --server argument.")
+    return
+  if not args.bearer_token:
+    print("Error: Please provide a bearer token using the --bearer-token argument or set the TW_MCP_BEARER_TOKEN environment variable.")
+    return
+  if not args.llm_model:
+    print("Error: Please provide an LLM model using the --llm-model argument.")
+    return
+
   client = MultiServerMCPClient(
     {
       "Teamwork.com": {
@@ -54,9 +74,14 @@ async def main():
     agent = create_react_agent(args.llm_model, tools)
 
     while True:
-      user_input = input("tw-client> ")
+      try:
+        user_input = input("tw-client> ")
+      except EOFError:
+        print("\n👋 Goodbye!")
+        break
+
       if user_input.lower() == 'exit':
-        print("Chat ended. Goodbye!")
+        print("👋 Goodbye!")
         break
 
       response = await agent.ainvoke({"messages": user_input})
