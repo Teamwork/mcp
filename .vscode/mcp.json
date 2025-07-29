@@ -18,7 +18,7 @@
   ],
   "servers": {
     "Teamwork US": {
-      "url": "https://mcp.us.teamworkops.com/",
+      "url": "https://mcp.ai.teamwork.com/",
       "headers": {
         "Authorization": "Bearer ${input:tw-mcp-us-token}"
       }
@@ -30,7 +30,7 @@
       }
     },
     "Teamwork Staging": {
-      "url": "https://mcp.eks.stg.teamworkops.com//",
+      "url": "https://mcp.eks.stg.teamworkops.com/",
       "headers": {
         "Authorization": "Bearer ${input:tw-mcp-stg-token}"
       }
