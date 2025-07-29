@@ -1,0 +1,31 @@
+{
+  "name": "nodejs-langchain",
+  "version": "1.0.0",
+  "description": "Langchain with Teamwork.com MCP server",
+  "main": "index.js",
+  "scripts": {
+    "start": "node dist/index.js",
+    "build": "tsc"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Teamwork/mcp.git"
+  },
+  "author": "Rafael Dantas Justo",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/Teamwork/mcp/issues"
+  },
+  "homepage": "https://github.com/Teamwork/mcp#readme",
+  "dependencies": {
+    "@langchain/anthropic": "^0.3.25",
+    "@langchain/core": "^0.3.66",
+    "@langchain/google-genai": "^0.2.16",
+    "@langchain/langgraph": "^0.4.0",
+    "@langchain/mcp-adapters": "^0.6.0",
+    "@langchain/openai": "^0.6.3",
+    "@types/node": "^24.1.0",
+    "commander": "^14.0.0",
+    "typescript": "^5.8.3"
+  }
+}
