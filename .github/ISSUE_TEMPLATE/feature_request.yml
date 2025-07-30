@@ -1,0 +1,195 @@
+name: ✨ Feature Request
+description: Suggest a new feature or enhancement for the Teamwork MCP Server
+title: "[Feature]: "
+labels: ["feature-request", "needs-triage"]
+assignees: []
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## ✨ Thanks for suggesting a feature!
+        
+        We love hearing ideas from our community! Your suggestions help us build a better server for everyone. 🚀
+        
+        **Pro tip:** The more context you provide, the better we can understand and prioritize your request! 🎯
+
+  - type: textarea
+    id: feature-summary
+    attributes:
+      label: 🎯 What feature would you like?
+      description: A clear and concise description of the feature you'd like to see
+      placeholder: |
+        Example: "Add support for Teamwork's Milestones API to create, update, and manage project milestones through the MCP server."
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem-statement
+    attributes:
+      label: 🤔 What problem does this solve?
+      description: Explain the problem or use case this feature would address
+      placeholder: |
+        Example: "Currently, there's no way to manage project milestones through the MCP server. Our team needs to track project phases and deadlines, but we have to use the REST API directly, which is more complex and error-prone."
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposed-solution
+    attributes:
+      label: 💡 How should it work?
+      description: Describe your ideal solution or how you envision this feature working
+      placeholder: |
+        Example: "Add a new 'milestones' package with functions like:
+        • milestones.Create(ctx, engine, request) - Create a new milestone
+        • milestones.List(ctx, engine, projectID) - List project milestones  
+        • milestones.Update(ctx, engine, request) - Update milestone details
+        • milestones.Delete(ctx, engine, milestoneID) - Delete a milestone"
+    validations:
+      required: true
+
+  - type: textarea
+    id: api-design
+    attributes:
+      label: 🔧 API design example
+      description: Show us what the API might look like (optional but helpful!)
+      render: go
+      placeholder: |
+        package main
+        
+        import (
+            "context"
+            "time"
+            
+            "github.com/mark3labs/mcp-go/server"
+            "github.com/teamwork/mcp/internal/config"
+            "github.com/teamwork/mcp/internal/twprojects"
+            twapi "github.com/teamwork/twapi-go-sdk"
+            "github.com/teamwork/twapi-go-sdk/session"
+        )
+        
+        func main() {
+            ctx := context.Background()
+            
+            // For direct API usage (if adding new SDK features)
+            engine := twapi.NewEngine(session.NewBearerTokenContext())
+            
+            // For MCP tools (if adding new MCP functionality)
+            resources, teardown := config.Load()
+            defer teardown()
+            
+            // Example: Add new milestone tools to the MCP server
+            group := twprojects.DefaultToolsetGroup(false, resources.TeamworkEngine())
+            mcpServer := config.NewMCPServer(resources, group)
+            
+            // Your new feature implementation here...
+            // For example, milestone tools would be added to the twprojects package
+        }
+
+  - type: dropdown
+    id: feature-category
+    attributes:
+      label: 📂 What category is this?
+      description: Help us categorize your feature request
+      options:
+        - "New API endpoint support (e.g., Tasks, Time tracking, etc.)"
+        - "Enhancement to existing functionality"
+        - "New authentication method"
+        - "Developer experience improvement"
+        - "Performance optimization"
+        - "Documentation/Examples"
+        - "Testing utilities"
+        - "Other"
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: teamwork-api
+    attributes:
+      label: 🌐 Teamwork API support
+      description: Does the Teamwork API already support this feature?
+      options:
+        - label: Yes, this feature exists in the Teamwork REST API
+        - label: No, this would be a new feature for both the API and MCP server
+        - label: I'm not sure if the API supports this
+        - label: This is MCP-specific (not related to API endpoints)
+
+  - type: input
+    id: api-documentation
+    attributes:
+      label: 📖 API documentation link
+      description: If this feature exists in the Teamwork API, please provide a link to the documentation
+      placeholder: "https://apidocs.teamwork.com/docs/teamwork/..."
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: 🔄 What alternatives have you considered?
+      description: Are there other ways to solve this problem? What are the pros/cons?
+      placeholder: |
+        Example: "We considered using the raw HTTP client to call the API directly, but:
+        • It requires more boilerplate code
+        • We lose type safety
+        • Error handling is more complex
+        • We have to manage serialization ourselves"
+
+  - type: textarea
+    id: use-case
+    attributes:
+      label: 🎪 Real-world use case
+      description: Tell us about your specific use case - this helps us understand the importance
+      placeholder: |
+        Example: "We're building an internal tool that syncs project data between Teamwork and our ERP system. We need to create milestones automatically when certain business events occur (like contract signing, delivery dates, etc.). Our team processes about 50 projects per month, so automation is crucial."
+
+  - type: checkboxes
+    id: implementation-willingness
+    attributes:
+      label: 🙋 Would you like to help implement this?
+      description: We welcome community contributions!
+      options:
+        - label: Yes, I'd like to work on this feature
+        - label: Yes, but I'd need guidance on how to get started
+        - label: I can help with testing/feedback
+        - label: I can help with documentation
+        - label: I'd prefer the maintainers implement this
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: ⚡ How urgent is this for you?
+      description: Help us understand the priority from your perspective
+      options:
+        - "🔥 Critical - blocking our project"
+        - "🚀 High - would significantly improve our workflow"
+        - "📈 Medium - would be a nice improvement"
+        - "💡 Low - just a nice-to-have idea"
+    validations:
+      required: true
+
+  - type: textarea
+    id: additional-context
+    attributes:
+      label: 📎 Additional context
+      description: Anything else that would help us understand your request?
+      placeholder: |
+        • Screenshots or mockups
+        • Links to similar features in other MCP servers
+        • Performance requirements
+        • Compatibility considerations
+        • Timeline constraints
+        • Related feature requests
+
+  - type: markdown
+    attributes:
+      value: |
+        ---
+        
+        ## 🛣️ What happens next?
+        
+        1. **🏷️ We'll triage** - Our team will review and label your request
+        2. **💬 We'll discuss** - We might ask questions or discuss implementation details
+        3. **📋 We'll prioritize** - We'll consider the request against our roadmap
+        4. **🔨 We'll implement** - Either we or a community contributor will work on it
+        5. **🎉 We'll ship** - The feature will be included in a future release
+        
+        **Feature requests help shape the future of the MCP server - thank you!** 🙏

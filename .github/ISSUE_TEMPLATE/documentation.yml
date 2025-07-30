@@ -1,0 +1,170 @@
+name: 📚 Documentation Issue
+description: Report issues with documentation, examples, or request documentation improvements
+title: "[Docs]: "
+labels: ["documentation", "needs-triage"]
+assignees: []
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## 📚 Thanks for helping improve our documentation!
+        
+        Great documentation makes the server easier to use for everyone. Whether you found an error, something unclear, or have ideas for improvement - we appreciate your feedback! 🙏
+
+  - type: dropdown
+    id: docs-type
+    attributes:
+      label: 📝 What type of documentation issue is this?
+      description: Help us categorize your documentation request
+      options:
+        - "🐛 Error/typo in existing documentation"
+        - "❓ Unclear or confusing documentation"
+        - "📋 Missing documentation for existing feature"
+        - "🔗 Broken link or outdated reference"
+        - "💡 Suggestion for new documentation/examples"
+        - "🎯 Code example that doesn't work"
+        - "🏗️ API reference improvement"
+        - "🚀 Getting started guide improvement"
+    validations:
+      required: true
+
+  - type: textarea
+    id: issue-description
+    attributes:
+      label: 🎯 What's the issue?
+      description: Describe the documentation problem or improvement you'd like to see
+      placeholder: |
+        Example: "The OAuth2 example in the README doesn't show how to handle token refresh, which is causing confusion for users building long-running applications."
+    validations:
+      required: true
+
+  - type: input
+    id: location
+    attributes:
+      label: 📍 Where is this issue?
+      description: Specific file, URL, or section where you found the issue
+      placeholder: "README.md, examples/oauth2/oauth2.go, line 45, https://github.com/teamwork/mcp/..."
+    validations:
+      required: false
+
+  - type: textarea
+    id: current-content
+    attributes:
+      label: 📄 Current content (if applicable)
+      description: Copy the current text/code that has issues
+      render: markdown
+      placeholder: |
+        ```go
+        // Current example that doesn't work
+        session := session.NewOAuth2("client_id", "client_secret")
+        // Missing token refresh handling
+        ```
+
+  - type: textarea
+    id: suggested-improvement
+    attributes:
+      label: ✨ Suggested improvement
+      description: How should this be improved? What would make it clearer?
+      placeholder: |
+        Example: "Add a complete example showing how to:
+        1. Set up OAuth2 authentication
+        2. Handle initial token exchange
+        3. Implement automatic token refresh
+        4. Handle refresh failures gracefully
+        
+        Also add a note about when to use OAuth2 vs Bearer tokens."
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposed-content
+    attributes:
+      label: 📝 Proposed content (optional)
+      description: If you have specific text or code to suggest, include it here
+      render: markdown
+      placeholder: |
+        ```go
+        // Improved example with token refresh
+        session := session.NewOAuth2("client_id", "client_secret",
+            session.WithOAuth2CallbackServerAddr("127.0.0.1:6275"),
+            session.WithOAuth2TokenRefreshCallback(func(token *oauth2.Token) {
+                // Save the refreshed token for future use
+                log.Printf("Token refreshed, expires: %v", token.Expiry)
+            }),
+        )
+        ```
+
+  - type: dropdown
+    id: audience
+    attributes:
+      label: 👥 Who is this for?
+      description: What type of user would benefit from this documentation?
+      options:
+        - "🚀 Beginners - new to the MCP server"
+        - "💻 Developers - familiar with Go and APIs"
+        - "🏢 Enterprise users - complex integrations"
+        - "🔧 Contributors - people working on the MCP server"
+        - "📖 Everyone - general improvement"
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: improvement-areas
+    attributes:
+      label: 🎯 What would make this better?
+      description: Select all that apply
+      options:
+        - label: More code examples
+        - label: Step-by-step instructions
+        - label: Visual diagrams or screenshots
+        - label: Common pitfalls and how to avoid them
+        - label: Performance tips and best practices
+        - label: Error handling examples
+        - label: Real-world use case examples
+        - label: Links to related Teamwork API docs
+
+  - type: textarea
+    id: context
+    attributes:
+      label: 🔍 Additional context
+      description: Any other information that might help us improve the documentation
+      placeholder: |
+        • What you were trying to accomplish
+        • How long it took you to figure out the solution
+        • What external resources you had to consult
+        • Common questions from your team/community
+        • Related issues or discussions
+
+  - type: checkboxes
+    id: contribution-willingness
+    attributes:
+      label: 🙋 Would you like to help improve this?
+      description: We welcome documentation contributions!
+      options:
+        - label: Yes, I can write the improved documentation
+        - label: Yes, I can provide feedback on drafts
+        - label: Yes, I can help test examples/tutorials
+        - label: I'd prefer the maintainers handle this
+
+  - type: markdown
+    attributes:
+      value: |
+        ---
+        
+        ## 📈 Why documentation matters
+        
+        Good documentation:
+        - **🚀 Reduces onboarding time** for new users
+        - **🐛 Prevents common mistakes** and support requests  
+        - **💡 Showcases best practices** and real-world usage
+        - **🌍 Makes the MCP server accessible** to more developers
+
+        ## 🛠️ What happens next?
+        
+        1. **🏷️ We'll review** your documentation feedback
+        2. **📝 We'll plan** the improvements needed
+        3. **✍️ We'll write** (or work with you to write) better docs
+        4. **✅ We'll update** the documentation and examples
+        
+        **Thanks for helping make our documentation better!** 📖✨

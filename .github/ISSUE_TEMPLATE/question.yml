@@ -1,0 +1,196 @@
+name: ❓ Question & Help
+description: Ask questions about using the Teamwork MCP Server or get help with implementation
+title: "[Question]: "
+labels: ["question", "help-wanted"]
+assignees: []
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## ❓ Welcome to our Q&A!
+        
+        We're here to help you succeed with the Teamwork MCP Server! Whether you're just getting started or tackling a complex integration, we're happy to help. 🚀
+        
+        **Before asking:** Please check our [README](../README.md), [examples](../examples/), and [API docs](https://apidocs.teamwork.com/) first. You might find your answer faster! 🔍
+
+  - type: textarea
+    id: question
+    attributes:
+      label: ❓ What's your question?
+      description: Ask away! The more specific, the better we can help
+      placeholder: |
+        Example: "How do I handle rate limiting when making many API calls in a loop? The MCP server seems to hit rate limits after about 100 requests."
+    validations:
+      required: true
+
+  - type: dropdown
+    id: question-category
+    attributes:
+      label: 📂 What category is this about?
+      description: Help us route your question to the right expert
+      options:
+        - "🔐 Authentication (Bearer token, OAuth2, Basic auth)"
+        - "📊 Projects API (create, update, list projects)"
+        - "🏗️ Server architecture and design patterns"
+        - "🚀 Getting started and setup"
+        - "⚡ Performance and rate limiting"
+        - "🐛 Debugging and troubleshooting"
+        - "🔧 Custom configuration and HTTP clients"
+        - "📱 Integration patterns and best practices"
+        - "🌐 Teamwork API usage and limitations"
+        - "💡 Other"
+    validations:
+      required: true
+
+  - type: textarea
+    id: what-tried
+    attributes:
+      label: 🔍 What have you tried?
+      description: Tell us what you've attempted so far - this helps us give better advice
+      placeholder: |
+        Example: "I tried:
+        1. Setting a custom HTTP client with longer timeouts
+        2. Adding delays between requests
+        3. Checking the response headers for rate limit info
+        
+        But I'm still getting 429 errors after ~100 requests."
+    validations:
+      required: false
+
+  - type: textarea
+    id: code-context
+    attributes:
+      label: 💻 Your code (optional)
+      description: Share the relevant code you're working with - remove any sensitive data!
+      render: go
+      placeholder: |
+        package main
+        
+        import (
+            "context"
+            "log/slog"
+            "os"
+            
+            "github.com/mark3labs/mcp-go/server"
+            "github.com/teamwork/mcp/internal/config"
+            "github.com/teamwork/mcp/internal/toolsets"
+            "github.com/teamwork/mcp/internal/twprojects"
+            twapi "github.com/teamwork/twapi-go-sdk"
+            "github.com/teamwork/twapi-go-sdk/session"
+        )
+        
+        func main() {
+            ctx := context.Background()
+            
+            // Create a Teamwork API engine (for direct API usage)
+            engine := twapi.NewEngine(session.NewBearerTokenContext())
+            
+            // Or create an MCP server with Teamwork tools (for MCP integration)
+            resources, teardown := config.Load()
+            defer teardown()
+            
+            group := twprojects.DefaultToolsetGroup(false, resources.TeamworkEngine())
+            mcpServer := config.NewMCPServer(resources, group)
+            
+            // Your code here...
+        }
+
+  - type: input
+    id: go-version
+    attributes:
+      label: 🐹 Go version
+      description: What version of Go are you using?
+      placeholder: "go version go1.24.1 darwin/arm64"
+
+  - type: input
+    id: server-version
+    attributes:
+      label: 📦 Server version
+      description: Which version of the server are you using?
+      placeholder: "v1.0.0 or latest"
+
+  - type: textarea
+    id: environment-details
+    attributes:
+      label: 🌍 Environment details
+      description: Tell us about your setup (optional but can be helpful)
+      placeholder: |
+        • Operating system: macOS 15.1
+        • Application type: CLI tool / web service / background worker
+        • Expected volume: 1000 API calls per hour
+        • Teamwork instance: teamwork.com cloud / self-hosted
+        • Special requirements: must run in Docker, corporate proxy, etc.
+
+  - type: textarea
+    id: expected-outcome
+    attributes:
+      label: 🎯 What outcome are you looking for?
+      description: What would success look like for you?
+      placeholder: |
+        Example: "I want to be able to sync 500 projects from our internal system to Teamwork every night without hitting rate limits or errors."
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: urgency
+    attributes:
+      label: ⏰ How urgent is this?
+      description: Help us understand your timeline
+      options:
+        - label: 🔥 Urgent - I'm blocked and need help ASAP
+        - label: 🚀 Soon - I need this working within a few days  
+        - label: 📅 When possible - no immediate deadline
+        - label: 💡 Just curious - learning and exploring
+
+  - type: checkboxes
+    id: help-type
+    attributes:
+      label: 🤝 What kind of help would be most useful?
+      description: Select all that apply
+      options:
+        - label: Code examples showing the right approach
+        - label: Explanation of how something works
+        - label: Best practices and recommendations
+        - label: Debugging help to find the issue
+        - label: Alternative approaches to consider
+        - label: Links to documentation or resources
+
+  - type: textarea
+    id: additional-context
+    attributes:
+      label: 📎 Additional context
+      description: Anything else that might help us understand your situation?
+      placeholder: |
+        • Business context: why you're building this
+        • Constraints: performance, security, compliance requirements
+        • Team experience: new to Go, experienced with APIs, etc.
+        • Previous experience: migrating from another MCP server, first Teamwork integration
+        • Related questions or concerns
+
+  - type: markdown
+    attributes:
+      value: |
+        ---
+        
+        ## 🤝 Our commitment to you
+        
+        **🔥 We're passionate** about helping you succeed with the MCP server
+        **👥 We put community first** - your questions help everyone learn
+        **💙 We choose kindness** - no question is too basic or silly
+        **⭐ We strive for excellence** - we'll give you the best answer we can
+        
+        ## 🕐 Response times
+        
+        - **🔥 Urgent questions**: We aim to respond within 24 hours
+        - **🚀 General questions**: Usually within 2-3 business days
+        - **💡 Complex questions**: May take longer but we'll keep you updated
+        
+        ## 🌟 Ways to get faster help
+        
+        1. **📖 Check existing resources** first (README, examples, docs)
+        2. **🔍 Search existing issues** - someone might have asked already
+        3. **📝 Be specific** - include code, error messages, and context
+        4. **🎯 One question per issue** - makes it easier to track and help
+        
+        **We're excited to help you build something awesome!** 🎉

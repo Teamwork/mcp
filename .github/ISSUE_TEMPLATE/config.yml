@@ -1,0 +1,17 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 📖 API Documentation
+    url: https://apidocs.teamwork.com/
+    about: Official Teamwork API documentation and reference
+  
+  - name: 💬 GitHub Discussions
+    url: https://github.com/teamwork/mcp/discussions
+    about: Ask questions, share ideas, and discuss with the community
+  
+  - name: 🆘 Teamwork Support
+    url: https://teamwork.com/support
+    about: Get help with your Teamwork account or general platform questions
+  
+  - name: 📝 Need something else?
+    url: https://github.com/teamwork/mcp/discussions/new?category=general
+    about: For issues that don't fit our templates, please start a discussion instead

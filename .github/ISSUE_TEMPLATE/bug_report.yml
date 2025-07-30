@@ -1,0 +1,199 @@
+name: 🐛 Bug Report
+description: Report a bug to help us improve the Teamwork MCP Server
+title: "[Bug]: "
+labels: ["bug", "needs-triage"]
+assignees: []
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## 🐛 Thanks for reporting a bug!
+
+        We appreciate you taking the time to help us improve the Teamwork MCP Server. The more details you provide, the faster we can fix the issue! 🚀
+
+  - type: textarea
+    id: bug-description
+    attributes:
+      label: 📝 What's the bug?
+      description: A clear and concise description of what the bug is
+      placeholder: |
+        Example: "When calling projects.ProjectCreate() with an empty name, the server panics instead of returning a validation error."
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected-behavior
+    attributes:
+      label: ✅ What should happen?
+      description: Tell us what you expected to happen
+      placeholder: |
+        Example: "The server should return a validation error indicating that the project name is required."
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual-behavior
+    attributes:
+      label: ❌ What actually happens?
+      description: Tell us what actually happens instead
+      placeholder: |
+        Example: "The application crashes with a panic: runtime error: invalid memory address or nil pointer dereference"
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction-steps
+    attributes:
+      label: 🔄 How to reproduce
+      description: Step-by-step instructions to reproduce the bug
+      placeholder: |
+        1. Import the package: `import "github.com/teamwork/mcp/projects"`
+        2. Create a session with valid credentials
+        3. Call `projects.ProjectCreate(ctx, engine, projects.ProjectCreateRequest{Name: ""})`
+        4. See the panic occur
+    validations:
+      required: true
+
+  - type: textarea
+    id: code-sample
+    attributes:
+      label: 💻 Code sample
+      description: A minimal code example that reproduces the issue
+      render: go
+      placeholder: |
+        package main
+        
+        import (
+            "context"
+            "fmt"
+            
+            twapi "github.com/teamwork/mcp"
+            "github.com/teamwork/mcp/projects"
+            "github.com/teamwork/mcp/session"
+        )
+        
+        func main() {
+            ctx := context.Background()
+            engine := twapi.NewEngine(session.NewBearerToken("token", "https://example.teamwork.com"))
+            
+            // This causes the bug
+            project, err := projects.ProjectCreate(ctx, engine, projects.ProjectCreateRequest{
+                Name: "", // Empty name
+            })
+            fmt.Printf("Result: %+v, Error: %v\n", project, err)
+        }
+    validations:
+      required: false
+
+  - type: textarea
+    id: error-output
+    attributes:
+      label: 🚨 Error message/output
+      description: Full error message, stack trace, or relevant output
+      render: text
+      placeholder: |
+        panic: runtime error: invalid memory address or nil pointer dereference
+        [signal SIGSEGV: segmentation violation code=0x1 addr=0x0 pc=0x...]
+        
+        goroutine 1 [running]:
+        github.com/teamwork/mcp/projects.ProjectCreate(...)
+            /path/to/project.go:123 +0x...
+    validations:
+      required: false
+
+  - type: input
+    id: go-version
+    attributes:
+      label: 🐹 Go version
+      description: Output of `go version`
+      placeholder: "go version go1.24.1 darwin/arm64"
+    validations:
+      required: true
+
+  - type: input
+    id: server-version
+    attributes:
+      label: 📦 Server version
+      description: Which version of the server are you using?
+      placeholder: "v1.0.0 or commit hash if using latest"
+    validations:
+      required: true
+
+  - type: input
+    id: operating-system
+    attributes:
+      label: 💻 Operating System
+      description: Your operating system and version
+      placeholder: "macOS 15.1, Ubuntu 22.04, Windows 11, etc."
+    validations:
+      required: true
+
+  - type: dropdown
+    id: authentication-method
+    attributes:
+      label: 🔐 Authentication method
+      description: Which authentication method are you using?
+      options:
+        - "Bearer Token"
+        - "Basic Auth (API token)"
+        - "Basic Auth (username/password)"
+        - "OAuth2"
+        - "Other/Custom"
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: environment-checklist
+    attributes:
+      label: 🌍 Environment
+      description: Help us understand your setup
+      options:
+        - label: This happens in a production environment
+        - label: This happens in a development environment
+        - label: This happens with a self-hosted Teamwork instance
+        - label: This happens with teamwork.com (cloud)
+        - label: This happens consistently (every time)
+        - label: This happens intermittently (sometimes)
+
+  - type: textarea
+    id: additional-context
+    attributes:
+      label: 📎 Additional context
+      description: Anything else that might help us understand the issue
+      placeholder: |
+        • Network configuration details
+        • Proxy settings
+        • Related issues or discussions
+        • Workarounds you've tried
+        • Performance impact
+        • When the issue first appeared
+
+  - type: checkboxes
+    id: troubleshooting
+    attributes:
+      label: 🔧 Troubleshooting checklist
+      description: Please confirm you've tried these basic steps
+      options:
+        - label: I have updated to the latest version of the server
+          required: false
+        - label: I have checked the API documentation at https://apidocs.teamwork.com/
+          required: false
+        - label: I have searched existing issues for similar problems
+          required: false
+        - label: I have verified my API token/credentials are valid
+          required: false
+
+  - type: markdown
+    attributes:
+      value: |
+        ---
+        
+        ## 🔍 What happens next?
+        
+        1. **🏷️ We'll triage** - Our team will review and label your issue
+        2. **🕵️ We'll investigate** - We'll reproduce the issue and dig into the code
+        3. **🔧 We'll fix** - Once we understand the problem, we'll work on a solution
+        4. **✅ We'll verify** - We'll test the fix and get it released
+        
+        **Thanks for helping make the Teamwork MCP Server better!** 🙏
