@@ -225,7 +225,9 @@ func TeamGet(engine *twapi.Engine) server.ServerTool {
 			if err != nil {
 				return nil, err
 			}
-			return mcp.NewToolResultText(string(encoded)), nil
+			return mcp.NewToolResultText(string(helpers.WebLinker(ctx, encoded,
+				helpers.WebLinkerWithIDPathBuilder("/app/teams"),
+			))), nil
 		},
 	}
 }
@@ -269,7 +271,9 @@ func TeamList(engine *twapi.Engine) server.ServerTool {
 			if err != nil {
 				return nil, err
 			}
-			return mcp.NewToolResultText(string(encoded)), nil
+			return mcp.NewToolResultText(string(helpers.WebLinker(ctx, encoded,
+				helpers.WebLinkerWithIDPathBuilder("/app/teams"),
+			))), nil
 		},
 	}
 }
@@ -318,7 +322,9 @@ func TeamListByCompany(engine *twapi.Engine) server.ServerTool {
 			if err != nil {
 				return nil, err
 			}
-			return mcp.NewToolResultText(string(encoded)), nil
+			return mcp.NewToolResultText(string(helpers.WebLinker(ctx, encoded,
+				helpers.WebLinkerWithIDPathBuilder("/app/teams"),
+			))), nil
 		},
 	}
 }
@@ -367,7 +373,9 @@ func TeamListByProject(engine *twapi.Engine) server.ServerTool {
 			if err != nil {
 				return nil, err
 			}
-			return mcp.NewToolResultText(string(encoded)), nil
+			return mcp.NewToolResultText(string(helpers.WebLinker(ctx, encoded,
+				helpers.WebLinkerWithIDPathBuilder("/app/teams"),
+			))), nil
 		},
 	}
 }

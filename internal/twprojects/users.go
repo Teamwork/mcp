@@ -225,7 +225,9 @@ func UserGet(engine *twapi.Engine) server.ServerTool {
 			if err != nil {
 				return nil, err
 			}
-			return mcp.NewToolResultText(string(encoded)), nil
+			return mcp.NewToolResultText(string(helpers.WebLinker(ctx, encoded,
+				helpers.WebLinkerWithIDPathBuilder("/app/people"),
+			))), nil
 		},
 	}
 }
@@ -250,7 +252,9 @@ func UserGetMe(engine *twapi.Engine) server.ServerTool {
 			if err != nil {
 				return nil, err
 			}
-			return mcp.NewToolResultText(string(encoded)), nil
+			return mcp.NewToolResultText(string(helpers.WebLinker(ctx, encoded,
+				helpers.WebLinkerWithIDPathBuilder("/app/people"),
+			))), nil
 		},
 	}
 }
@@ -302,7 +306,9 @@ func UserList(engine *twapi.Engine) server.ServerTool {
 			if err != nil {
 				return nil, err
 			}
-			return mcp.NewToolResultText(string(encoded)), nil
+			return mcp.NewToolResultText(string(helpers.WebLinker(ctx, encoded,
+				helpers.WebLinkerWithIDPathBuilder("/app/people"),
+			))), nil
 		},
 	}
 }
@@ -359,7 +365,9 @@ func UserListByProject(engine *twapi.Engine) server.ServerTool {
 			if err != nil {
 				return nil, err
 			}
-			return mcp.NewToolResultText(string(encoded)), nil
+			return mcp.NewToolResultText(string(helpers.WebLinker(ctx, encoded,
+				helpers.WebLinkerWithIDPathBuilder("/app/people"),
+			))), nil
 		},
 	}
 }

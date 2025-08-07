@@ -328,7 +328,9 @@ func MilestoneGet(engine *twapi.Engine) server.ServerTool {
 			if err != nil {
 				return nil, err
 			}
-			return mcp.NewToolResultText(string(encoded)), nil
+			return mcp.NewToolResultText(string(helpers.WebLinker(ctx, encoded,
+				helpers.WebLinkerWithIDPathBuilder("/app/milestones"),
+			))), nil
 		},
 	}
 }
@@ -388,7 +390,9 @@ func MilestoneList(engine *twapi.Engine) server.ServerTool {
 			if err != nil {
 				return nil, err
 			}
-			return mcp.NewToolResultText(string(encoded)), nil
+			return mcp.NewToolResultText(string(helpers.WebLinker(ctx, encoded,
+				helpers.WebLinkerWithIDPathBuilder("/app/milestones"),
+			))), nil
 		},
 	}
 }
@@ -453,7 +457,9 @@ func MilestoneListByProject(engine *twapi.Engine) server.ServerTool {
 			if err != nil {
 				return nil, err
 			}
-			return mcp.NewToolResultText(string(encoded)), nil
+			return mcp.NewToolResultText(string(helpers.WebLinker(ctx, encoded,
+				helpers.WebLinkerWithIDPathBuilder("/app/milestones"),
+			))), nil
 		},
 	}
 }

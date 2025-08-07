@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"reflect"
 	"strings"
 
 	"github.com/mark3labs/mcp-go/mcp"
@@ -233,7 +234,7 @@ func CommentGet(engine *twapi.Engine) server.ServerTool {
 			if err != nil {
 				return nil, err
 			}
-			return mcp.NewToolResultText(string(encoded)), nil
+			return mcp.NewToolResultText(string(helpers.WebLinker(ctx, encoded, commentPathBuilder))), nil
 		},
 	}
 }
@@ -277,7 +278,7 @@ func CommentList(engine *twapi.Engine) server.ServerTool {
 			if err != nil {
 				return nil, err
 			}
-			return mcp.NewToolResultText(string(encoded)), nil
+			return mcp.NewToolResultText(string(helpers.WebLinker(ctx, encoded, commentPathBuilder))), nil
 		},
 	}
 }
@@ -327,7 +328,7 @@ func CommentListByFileVersion(engine *twapi.Engine) server.ServerTool {
 			if err != nil {
 				return nil, err
 			}
-			return mcp.NewToolResultText(string(encoded)), nil
+			return mcp.NewToolResultText(string(helpers.WebLinker(ctx, encoded, commentPathBuilder))), nil
 		},
 	}
 }
@@ -376,7 +377,7 @@ func CommentListByMilestone(engine *twapi.Engine) server.ServerTool {
 			if err != nil {
 				return nil, err
 			}
-			return mcp.NewToolResultText(string(encoded)), nil
+			return mcp.NewToolResultText(string(helpers.WebLinker(ctx, encoded, commentPathBuilder))), nil
 		},
 	}
 }
@@ -425,7 +426,7 @@ func CommentListByNotebook(engine *twapi.Engine) server.ServerTool {
 			if err != nil {
 				return nil, err
 			}
-			return mcp.NewToolResultText(string(encoded)), nil
+			return mcp.NewToolResultText(string(helpers.WebLinker(ctx, encoded, commentPathBuilder))), nil
 		},
 	}
 }
@@ -474,7 +475,28 @@ func CommentListByTask(engine *twapi.Engine) server.ServerTool {
 			if err != nil {
 				return nil, err
 			}
-			return mcp.NewToolResultText(string(encoded)), nil
+			return mcp.NewToolResultText(string(helpers.WebLinker(ctx, encoded, commentPathBuilder))), nil
 		},
 	}
+}
+
+func commentPathBuilder(object map[string]any) string {
+	id := object["id"]
+	var relatedObjectType, relatedObjectID any
+	if relatedObject, ok := object["object"]; ok {
+		if relatedMap, ok := relatedObject.(map[string]any); ok {
+			relatedObjectType = relatedMap["type"]
+			relatedObjectID = relatedMap["id"]
+		}
+	}
+	if id == nil || relatedObjectType == nil {
+		return ""
+	}
+	if id == reflect.Zero(reflect.TypeOf(id)).Interface() {
+		return ""
+	}
+	if relatedObjectType == reflect.Zero(reflect.TypeOf(relatedObjectType)).Interface() {
+		return ""
+	}
+	return fmt.Sprintf("/#%v/%v?c=%v", relatedObjectType, relatedObjectID, id)
 }

@@ -48,6 +48,8 @@ func main() {
 		exit(exitCodeSetupFailure)
 	}
 
+	// inject customer URL in the context
+	ctx = config.WithCustomerURL(ctx, info.URL)
 	// inject bearer token in the context
 	ctx = session.WithBearerTokenContext(ctx, session.NewBearerToken(resources.Info.BearerToken, info.URL))
 

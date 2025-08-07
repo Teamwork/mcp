@@ -215,6 +215,8 @@ func authMiddleware(resources config.Resources, next http.Handler) http.Handler 
 		ctx := r.Context()
 		// detect cross-region requests
 		ctx = config.WithCrossRegion(ctx, !strings.EqualFold(resources.Info.AWSRegion, info.Region))
+		// inject customer URL
+		ctx = config.WithCustomerURL(ctx, info.URL)
 		// inject session
 		ctx = session.WithBearerTokenContext(ctx, session.NewBearerToken(bearerToken, info.URL))
 

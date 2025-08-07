@@ -350,7 +350,9 @@ func TaskGet(engine *twapi.Engine) server.ServerTool {
 			if err != nil {
 				return nil, err
 			}
-			return mcp.NewToolResultText(string(encoded)), nil
+			return mcp.NewToolResultText(string(helpers.WebLinker(ctx, encoded,
+				helpers.WebLinkerWithIDPathBuilder("/app/tasks"),
+			))), nil
 		},
 	}
 }
@@ -407,7 +409,9 @@ func TaskList(engine *twapi.Engine) server.ServerTool {
 			if err != nil {
 				return nil, err
 			}
-			return mcp.NewToolResultText(string(encoded)), nil
+			return mcp.NewToolResultText(string(helpers.WebLinker(ctx, encoded,
+				helpers.WebLinkerWithIDPathBuilder("/app/tasks"),
+			))), nil
 		},
 	}
 }
@@ -469,7 +473,9 @@ func TaskListByTasklist(engine *twapi.Engine) server.ServerTool {
 			if err != nil {
 				return nil, err
 			}
-			return mcp.NewToolResultText(string(encoded)), nil
+			return mcp.NewToolResultText(string(helpers.WebLinker(ctx, encoded,
+				helpers.WebLinkerWithIDPathBuilder("/app/tasks"),
+			))), nil
 		},
 	}
 }
@@ -531,7 +537,9 @@ func TaskListByProject(engine *twapi.Engine) server.ServerTool {
 			if err != nil {
 				return nil, err
 			}
-			return mcp.NewToolResultText(string(encoded)), nil
+			return mcp.NewToolResultText(string(helpers.WebLinker(ctx, encoded,
+				helpers.WebLinkerWithIDPathBuilder("/app/tasks"),
+			))), nil
 		},
 	}
 }
