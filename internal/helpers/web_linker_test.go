@@ -136,3 +136,72 @@ func TestWebLinker(t *testing.T) {
 		})
 	}
 }
+
+func TestWebLinkerWithIDPathBuilder(t *testing.T) {
+	builder := helpers.WebLinkerWithIDPathBuilder("entities")
+
+	tests := []struct {
+		name   string
+		object map[string]any
+		want   string
+	}{
+		{
+			name:   "missing id field returns empty",
+			object: map[string]any{"name": "no id"},
+			want:   "",
+		},
+		{
+			name:   "int id builds path",
+			object: map[string]any{"id": 123},
+			want:   "entities/123",
+		},
+		{
+			name:   "zero int id returns empty",
+			object: map[string]any{"id": 0},
+			want:   "",
+		},
+		{
+			name:   "float id is truncated to int64 in path (no decimals)",
+			object: map[string]any{"id": 123.0},
+			want:   "entities/123",
+		},
+		{
+			name:   "big float id is truncated to int64 in path (no decimals)",
+			object: map[string]any{"id": 12345678901234.0},
+			want:   "entities/12345678901234",
+		},
+		{
+			name:   "float id with decimals is not truncated",
+			object: map[string]any{"id": 123.9},
+			want:   "entities/123.9",
+		},
+		{
+			name:   "string id builds path",
+			object: map[string]any{"id": "abc"},
+			want:   "entities/abc",
+		},
+		{
+			name:   "empty string id returns empty",
+			object: map[string]any{"id": ""},
+			want:   "",
+		},
+		{
+			name:   "true bool id builds path",
+			object: map[string]any{"id": true},
+			want:   "entities/true",
+		},
+		{
+			name:   "false bool id returns empty (zero value)",
+			object: map[string]any{"id": false},
+			want:   "",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := builder(tt.object); got != tt.want {
+				t.Errorf("builder returned %q, want %q (id=%#v)", got, tt.want, tt.object["id"])
+			}
+		})
+	}
+}

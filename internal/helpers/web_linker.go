@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"math"
 	"reflect"
 	"slices"
 	"strings"
@@ -146,6 +147,10 @@ func WebLinkerWithIDPathBuilder(prefix string) func(map[string]any) string {
 		}
 		if id == reflect.Zero(reflect.TypeOf(id)).Interface() {
 			return ""
+		}
+		// round float64 IDs to int64 to avoid decimal points in URLs
+		if numeric, ok := id.(float64); ok && math.Trunc(numeric) == numeric {
+			id = int64(numeric)
 		}
 		return fmt.Sprintf("%s/%v", prefix, id)
 	}

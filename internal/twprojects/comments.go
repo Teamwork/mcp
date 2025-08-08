@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"math"
 	"reflect"
 	"strings"
 
@@ -495,8 +496,17 @@ func commentPathBuilder(object map[string]any) string {
 	if id == reflect.Zero(reflect.TypeOf(id)).Interface() {
 		return ""
 	}
+	if numeric, ok := id.(float64); ok && math.Trunc(numeric) == numeric {
+		id = int64(numeric)
+	}
 	if relatedObjectType == reflect.Zero(reflect.TypeOf(relatedObjectType)).Interface() {
 		return ""
+	}
+	if relatedObjectID == reflect.Zero(reflect.TypeOf(relatedObjectID)).Interface() {
+		return ""
+	}
+	if numeric, ok := relatedObjectID.(float64); ok && math.Trunc(numeric) == numeric {
+		relatedObjectID = int64(numeric)
 	}
 	return fmt.Sprintf("/#%v/%v?c=%v", relatedObjectType, relatedObjectID, id)
 }
