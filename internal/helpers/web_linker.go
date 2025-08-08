@@ -41,8 +41,8 @@ func WebLinkerWithIgnoreFields(fields ...string) WebLinkerOption {
 
 // WebLinker processes JSON data to inject web links into entities based on
 // their structure. It decodes the input data as JSON, traverses the top-level
-// fields, and adds a "webLink" field to qualifying objects using the provided
-// buildPath function and customer URL from context.
+// fields, and adds a "webLink" field in the meta section to qualifying objects
+// using the provided buildPath function and customer URL from context.
 //
 // The function handles two types of structures for each top-level field:
 //   - Single objects: {"field": {"id": 123, ...}} → adds webLink to the object
@@ -92,7 +92,21 @@ func WebLinker(
 		if path == "" {
 			return object
 		}
-		object["webLink"] = fmt.Sprintf("%s/%s", url, strings.TrimPrefix(path, "/"))
+		link := fmt.Sprintf("%s/%s", url, strings.TrimPrefix(path, "/"))
+		if meta, ok := object["meta"]; ok {
+			if m, ok := meta.(map[string]any); ok {
+				if _, exists := m["webLink"]; exists {
+					// If meta already has a webLink, do not overwrite it
+					return object
+				}
+				m["webLink"] = link
+				object["meta"] = m
+			}
+		} else {
+			object["meta"] = map[string]any{
+				"webLink": link,
+			}
+		}
 		return object
 	}
 

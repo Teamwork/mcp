@@ -22,17 +22,17 @@ func TestWebLinker(t *testing.T) {
 		name: "single entity",
 		data: []byte(`{"entity":{"id":123,"name":"Test"}}`),
 		url:  "https://example.com/",
-		want: []byte(`{"entity":{"id":123,"name":"Test","webLink":"https://example.com/entities/123"}}`),
+		want: []byte(`{"entity":{"id":123,"name":"Test","meta":{"webLink":"https://example.com/entities/123"}}}`),
 	}, {
 		name: "multiple entities",
 		data: []byte(`{"entities":[{"id":123,"name":"Test1"},{"id":456,"name":"Test2"}]}`),
 		url:  "https://example.com/",
-		want: []byte(`{"entities":[{"id":123,"name":"Test1","webLink":"https://example.com/entities/123"},{"id":456,"name":"Test2","webLink":"https://example.com/entities/456"}]}`),
+		want: []byte(`{"entities":[{"id":123,"name":"Test1","meta":{"webLink":"https://example.com/entities/123"}},{"id":456,"name":"Test2","meta":{"webLink":"https://example.com/entities/456"}}]}`),
 	}, {
 		name: "with known root fields",
 		data: []byte(`{"meta":{"page":1},"included":[{"id":789,"name":"Included"}],"entity":{"id":123,"name":"Test"}}`),
 		url:  "https://example.com/",
-		want: []byte(`{"meta":{"page":1},"included":[{"id":789,"name":"Included"}],"entity":{"id":123,"name":"Test","webLink":"https://example.com/entities/123"}}`),
+		want: []byte(`{"meta":{"page":1},"included":[{"id":789,"name":"Included"}],"entity":{"id":123,"name":"Test","meta":{"webLink":"https://example.com/entities/123"}}}`),
 	}, {
 		name: "non-JSON data",
 		data: []byte(`Not a JSON`),
@@ -52,7 +52,7 @@ func TestWebLinker(t *testing.T) {
 		name: "array with mixed items",
 		data: []byte(`{"entities":[{"id":123,"name":"Test1"},{"name":"Test2"},{"id":456,"name":"Test3"}]}`),
 		url:  "https://example.com/",
-		want: []byte(`{"entities":[{"id":123,"name":"Test1","webLink":"https://example.com/entities/123"},{"name":"Test2"},{"id":456,"name":"Test3","webLink":"https://example.com/entities/456"}]}`),
+		want: []byte(`{"entities":[{"id":123,"name":"Test1","meta":{"webLink":"https://example.com/entities/123"}},{"name":"Test2"},{"id":456,"name":"Test3","meta":{"webLink":"https://example.com/entities/456"}}]}`),
 	}}
 
 	for _, tt := range tests {
@@ -65,7 +65,7 @@ func TestWebLinker(t *testing.T) {
 			gotErr, wantErr := json.Unmarshal(got, &gotMap), json.Unmarshal(tt.want, &wantMap)
 			if gotErr != nil || wantErr != nil {
 				if !bytes.Equal(got, tt.want) {
-					t.Errorf("unexpected result %s, want %s", got, tt.want)
+					t.Errorf("unexpected result (invalid json) %s, want %s", got, tt.want)
 				}
 			}
 			if !reflect.DeepEqual(gotMap, wantMap) {
