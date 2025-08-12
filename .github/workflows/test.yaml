@@ -17,7 +17,7 @@ jobs:
     runs-on: [self-hosted, staging, default]
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           persist-credentials: false
 
@@ -37,7 +37,7 @@ jobs:
             image=${{ vars.AWS_ECR_MASTER_ACCOUNT }}.dkr.ecr.${{ vars.AWS_ECR_MASTER_REGION }}.amazonaws.com/proxy/moby/buildkit:buildx-stable-1
 
       - name: Checkout Teamwork Central Build Actions
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           repository: Teamwork/gha-builds
           ref: main
@@ -68,7 +68,7 @@ jobs:
     needs: build
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           persist-credentials: false
 
@@ -94,7 +94,7 @@ jobs:
     needs: build
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           persist-credentials: false
 

@@ -13,7 +13,7 @@ jobs:
     runs-on: [self-hosted, staging, default]
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 0  # Need full history to compare branches and check ancestry
           token: ${{ secrets.GH_ADMIN_TOKEN }}
