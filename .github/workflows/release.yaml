@@ -79,7 +79,7 @@ jobs:
             -H "Authorization: Bearer  ${{ secrets.GH_ADMIN_TOKEN }}" \
             -H "X-GitHub-Api-Version: 2022-11-28" \
             https://api.github.com/repos/Teamwork/gitops-stg-eks/actions/workflows/179048870/dispatches \
-            -d '{"ref":"master","inputs":{"app":"platform/mcp","version":"$VERSION"}}'
+            -d '{"ref":"master","inputs":{"app":"platform/mcp","version":"'"$VERSION"'"}}'
             echo "Update staging gitops platform/mcp to $VERSION"
           else
             curl -L \
@@ -88,7 +88,7 @@ jobs:
             -H "Authorization: Bearer  ${{ secrets.GH_ADMIN_TOKEN }}" \
             -H "X-GitHub-Api-Version: 2022-11-28" \
             https://api.github.com/repos/Teamwork/gitops-us-eks/actions/workflows/179991878/dispatches \
-            -d '{"ref":"main","inputs":{"app":"platform/mcp","version":"$VERSION"}}'
+            -d '{"ref":"main","inputs":{"app":"platform/mcp","version":"'"$VERSION"'"}}'
             echo "Update US gitops platform/mcp to $VERSION"
 
             curl -L \
@@ -97,7 +97,7 @@ jobs:
             -H "Authorization: Bearer  ${{ secrets.GH_ADMIN_TOKEN }}" \
             -H "X-GitHub-Api-Version: 2022-11-28" \
             https://api.github.com/repos/Teamwork/gitops-eu-eks/actions/workflows/179991961/dispatches \
-            -d '{"ref":"main","inputs":{"app":"platform/mcp","version":"$VERSION"}}'
+            -d '{"ref":"main","inputs":{"app":"platform/mcp","version":"'"$VERSION"'"}}'
             echo "Update EU gitops platform/mcp to $VERSION"
           fi
 
