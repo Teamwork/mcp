@@ -50,6 +50,10 @@ jobs:
           path: .github/actions/build
           persist-credentials: false
 
+      - name:  Set image version variable # As the go build step creates a new commit when it updates the helm chart we need to get the commit prior to that one to update the gitops repo
+        run: |
+          echo "gitops_version=v$(git describe --always --match "v*" | sed 's/^v//')" >> $GITHUB_ENV
+
       - name: Go Build
         uses: ./.github/actions/build/go/default
         with:
@@ -70,7 +74,6 @@ jobs:
 
       - name: Trigger gitops workflow
         run: |
-          export VERSION="v$(git describe --always --match "v*" | sed 's/^v//')"
           if [[ ${{ github.ref }} =~ "staging" ]]
           then
             curl -L \
@@ -79,8 +82,8 @@ jobs:
             -H "Authorization: Bearer  ${{ secrets.GH_ADMIN_TOKEN }}" \
             -H "X-GitHub-Api-Version: 2022-11-28" \
             https://api.github.com/repos/Teamwork/gitops-stg-eks/actions/workflows/179048870/dispatches \
-            -d '{"ref":"master","inputs":{"app":"platform/mcp","version":"'"$VERSION"'"}}'
-            echo "Update staging gitops platform/mcp to $VERSION"
+            -d '{"ref":"master","inputs":{"app":"platform/mcp","version":"${{env.gitops_version}}"}}'
+            echo "Update staging gitops platform/mcp to ${{env.gitops_version}}"
           else
             curl -L \
             -X POST \
@@ -88,8 +91,8 @@ jobs:
             -H "Authorization: Bearer  ${{ secrets.GH_ADMIN_TOKEN }}" \
             -H "X-GitHub-Api-Version: 2022-11-28" \
             https://api.github.com/repos/Teamwork/gitops-us-eks/actions/workflows/179991878/dispatches \
-            -d '{"ref":"main","inputs":{"app":"platform/mcp","version":"'"$VERSION"'"}}'
-            echo "Update US gitops platform/mcp to $VERSION"
+            -d '{"ref":"main","inputs":{"app":"platform/mcp","version":"${{env.gitops_version}}"}}'
+            echo "Update US gitops platform/mcp to ${{env.gitops_version}}"
 
             curl -L \
             -X POST \
@@ -97,8 +100,8 @@ jobs:
             -H "Authorization: Bearer  ${{ secrets.GH_ADMIN_TOKEN }}" \
             -H "X-GitHub-Api-Version: 2022-11-28" \
             https://api.github.com/repos/Teamwork/gitops-eu-eks/actions/workflows/179991961/dispatches \
-            -d '{"ref":"main","inputs":{"app":"platform/mcp","version":"'"$VERSION"'"}}'
-            echo "Update EU gitops platform/mcp to $VERSION"
+            -d '{"ref":"main","inputs":{"app":"platform/mcp","version":"${{env.gitops_version}}"}}'
+            echo "Update EU gitops platform/mcp to ${{env.gitops_version}}"
           fi
 
   release-binaries:
