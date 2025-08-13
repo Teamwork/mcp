@@ -29,8 +29,6 @@ jobs:
           if git show-ref --verify --quiet refs/remotes/origin/staging; then
             git checkout staging
             git reset --hard origin/main
-            git checkout origin/staging -- chart/Chart.yaml
-            git commit -m "Keep the pods running, please" chart/Chart.yaml
           else
             git checkout -b staging origin/main
           fi
