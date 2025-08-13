@@ -71,7 +71,7 @@ jobs:
           SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
           PUSH_PROD: true
           PUSH_DEV_ENV: false
-          UPDATE_HELM_CHART: true
+          UPDATE_HELM_CHART: false
           NPM_TOKEN: false
 
       - name: Trigger gitops workflow

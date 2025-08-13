@@ -1,6 +1,0 @@
-apiVersion: v2
-type: application
-name: mcp
-description: A Helm chart for Kubernetes
-version: 1.9.0
-appVersion: "v0.11.3"

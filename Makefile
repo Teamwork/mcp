@@ -14,7 +14,7 @@ EFFECTIVE_BRANCH = $(call get_effective_branch,$(BRANCH))
 LATEST_TAG       = 343218184206.dkr.ecr.us-east-1.amazonaws.com/teamwork/mcp:$(subst /,,${EFFECTIVE_BRANCH})-latest
 TAG              = 343218184206.dkr.ecr.us-east-1.amazonaws.com/teamwork/mcp:$(VERSION)
 
-.PHONY: build push chart-update git-push install
+.PHONY: build push install
 
 default: build
 
@@ -40,13 +40,6 @@ push:
 	  --progress=plain \
 	  --ssh $(SSH_AGENT) \
 	  .
-
-chart-update:
-	yq eval -i '.appVersion = "$(VERSION)"' chart/Chart.yaml
-
-git-push: chart-update
-	git commit -am "[ci skip] Updated helm chart to $(VERSION)"
-	git push gh HEAD:$(EFFECTIVE_BRANCH)
 
 install:
 	sudo wget https://github.com/mikefarah/yq/releases/download/v4.16.2/yq_linux_amd64 -O /usr/bin/yq
