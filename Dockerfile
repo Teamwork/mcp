@@ -58,7 +58,7 @@ ARG BUILD_DATE
 ARG BUILD_VCS_REF
 ARG BUILD_VERSION
 
-ENV TW_MCP_VERSION $BUILD_VERSION
+ENV TW_MCP_VERSION=$BUILD_VERSION
 
 LABEL org.label-schema.build-date=$BUILD_DATE \
       org.label-schema.description="Teamwork MCP server" \

@@ -52,7 +52,7 @@ jobs:
         with:
           repository: Teamwork/gha-builds
           ref: main
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.GH_ADMIN_TOKEN }}
           path: .github/actions/build
           persist-credentials: false
 
