@@ -1,10 +1,4 @@
 version: 2
-registries:
-  github-teamwork:
-    type: git
-    url: https://github.com
-    username: x-access-token
-    password: ${{secrets.GH_ADMIN_TOKEN}}
 updates:
   - package-ecosystem: "gomod"
     directory: "/"
