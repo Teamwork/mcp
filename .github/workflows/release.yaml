@@ -2,8 +2,6 @@ name: Release
 
 on:
   push:
-    branches:
-      - staging
     tags:
       - 'v*.*.*'
   workflow_dispatch:
@@ -15,108 +13,8 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  release-image:
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v5
-        with:
-          persist-credentials: false
-          fetch-tags: true
-          fetch-depth: 0
-          ref: ${{ github.ref }}
-
-      - name: Login to ECR
-        uses: docker/login-action@v3
-        with:
-          registry: ${{ vars.AWS_ECR_MASTER_ACCOUNT }}.dkr.ecr.${{ vars.AWS_ECR_MASTER_REGION }}.amazonaws.com
-          username: ${{ secrets.AWS_ECR_MASTER_ACCESS_KEY }}
-          password: ${{ secrets.AWS_ECR_MASTER_SECRET_ACCESS_KEY }}
-
-      - run: docker context create builders
-      - uses: docker/setup-buildx-action@v3
-        with:
-          version: latest
-          endpoint: builders
-          driver-opts: |
-            image=${{ vars.AWS_ECR_MASTER_ACCOUNT }}.dkr.ecr.${{ vars.AWS_ECR_MASTER_REGION }}.amazonaws.com/proxy/moby/buildkit:buildx-stable-1
-
-      - name: Version
-        id: version
-        run: |
-          if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
-            version="${GITHUB_REF#refs/tags/}"
-          else
-            # For branch pushes, use branch name with commit SHA
-            branch_name="${GITHUB_REF#refs/heads/}"
-            short_sha="${GITHUB_SHA:0:7}"
-            version="${branch_name}-${short_sha}"
-          fi
-          echo "version=$version" >> $GITHUB_OUTPUT
-
-      - name: Checkout Teamwork Central Build Actions
-        uses: actions/checkout@v5
-        with:
-          repository: Teamwork/gha-builds
-          ref: main
-          token: ${{ secrets.GH_ADMIN_TOKEN }}
-          path: .github/actions/build
-          persist-credentials: false
-
-      - name: Go Build
-        uses: ./.github/actions/build/go/default
-        with:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          ECR_ACCOUNT: ${{ vars.AWS_ECR_MASTER_ACCOUNT }}
-          ECR_REGION: ${{ vars.AWS_ECR_MASTER_REGION }}
-          ECR_ACCESS_KEY: ${{ secrets.AWS_ECR_MASTER_ACCESS_KEY }}
-          ECR_SECRET_ACCESS_KEY: ${{ secrets.AWS_ECR_MASTER_SECRET_ACCESS_KEY }}
-          IMAGE_REPO_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
-          IMAGE_REPO_PASSWORD: ${{ secrets.DOCKERHUB_TOKEN }}
-          IMAGE_NAME: "mcp"
-          HELM_CHART_PATH: "chart"
-          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
-          PUSH_PROD: true
-          PUSH_DEV_ENV: false
-          UPDATE_HELM_CHART: false
-          NPM_TOKEN: false
-
-      - name: Trigger gitops workflow
-        run: |
-          version="${{ steps.version.outputs.version }}"
-
-          if [[ "${{ github.ref_name }}" = "staging" ]]; then
-            curl -L \
-              -X POST \
-              -H "Accept: application/vnd.github+json" \
-              -H "Authorization: Bearer  ${{ secrets.GH_ADMIN_TOKEN }}" \
-              -H "X-GitHub-Api-Version: 2022-11-28" \
-              https://api.github.com/repos/Teamwork/gitops-stg-eks/actions/workflows/179048870/dispatches \
-              -d '{"ref":"master","inputs":{"app":"platform/mcp","version":"'"$version"'"}}'
-            echo "Update staging gitops platform/mcp to $version"
-          else
-            curl -L \
-              -X POST \
-              -H "Accept: application/vnd.github+json" \
-              -H "Authorization: Bearer  ${{ secrets.GH_ADMIN_TOKEN }}" \
-              -H "X-GitHub-Api-Version: 2022-11-28" \
-              https://api.github.com/repos/Teamwork/gitops-us-eks/actions/workflows/179991878/dispatches \
-              -d '{"ref":"main","inputs":{"app":"platform/mcp","version":"'"$version"'"}}'
-            echo "Update US gitops platform/mcp to $version"
-
-            curl -L \
-              -X POST \
-              -H "Accept: application/vnd.github+json" \
-              -H "Authorization: Bearer  ${{ secrets.GH_ADMIN_TOKEN }}" \
-              -H "X-GitHub-Api-Version: 2022-11-28" \
-              https://api.github.com/repos/Teamwork/gitops-eu-eks/actions/workflows/179991961/dispatches \
-              -d '{"ref":"main","inputs":{"app":"platform/mcp","version":"'"$version"'"}}'
-            echo "Update EU gitops platform/mcp to $version"
-          fi
-
   release-binaries:
     runs-on: ubuntu-latest
-    needs: release-image
     if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
 
     steps:
@@ -135,14 +33,7 @@ jobs:
       - name: Version
         id: version
         run: |
-          if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
-            version="${GITHUB_REF#refs/tags/}"
-          else
-            # For branch pushes, use branch name with commit SHA
-            branch_name="${GITHUB_REF#refs/heads/}"
-            short_sha="${GITHUB_SHA:0:7}"
-            version="${branch_name}-${short_sha}"
-          fi
+          version="${GITHUB_REF#refs/tags/}"
           echo "version=$version" >> $GITHUB_OUTPUT
 
       - name: Previous Tag

@@ -15,8 +15,7 @@ jobs:
     steps:
       - uses: actions/checkout@v5
         with:
-          fetch-depth: 0  # Need full history to compare branches and check ancestry
-          token: ${{ secrets.GH_ADMIN_TOKEN }}
+          fetch-depth: 0
 
       - name: Configure Git
         run: |
