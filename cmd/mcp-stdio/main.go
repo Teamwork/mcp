@@ -66,7 +66,7 @@ func main() {
 }
 
 func newMCPServer(resources config.Resources) (*server.MCPServer, error) {
-	group := twprojects.DefaultToolsetGroup(readOnly, resources.TeamworkEngine())
+	group := twprojects.DefaultToolsetGroup(readOnly, false, resources.TeamworkEngine())
 	if err := group.EnableToolsets(methods...); err != nil {
 		return nil, fmt.Errorf("failed to enable toolsets: %w", err)
 	}

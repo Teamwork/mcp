@@ -1,47 +1,54 @@
 package twprojects
 
 import (
+	"github.com/mark3labs/mcp-go/server"
 	"github.com/teamwork/mcp/internal/toolsets"
 	twapi "github.com/teamwork/twapi-go-sdk"
 )
 
 // DefaultToolsetGroup creates a default ToolsetGroup for Teamwork Projects.
-func DefaultToolsetGroup(readOnly bool, engine *twapi.Engine) *toolsets.ToolsetGroup {
+func DefaultToolsetGroup(readOnly, allowDelete bool, engine *twapi.Engine) *toolsets.ToolsetGroup {
+	writeTools := []server.ServerTool{
+		ProjectCreate(engine),
+		ProjectUpdate(engine),
+		ProjectMemberAdd(engine),
+		TasklistCreate(engine),
+		TasklistUpdate(engine),
+		TaskCreate(engine),
+		TaskUpdate(engine),
+		UserCreate(engine),
+		UserUpdate(engine),
+		MilestoneCreate(engine),
+		MilestoneUpdate(engine),
+		CompanyCreate(engine),
+		CompanyUpdate(engine),
+		TagCreate(engine),
+		TagUpdate(engine),
+		TeamCreate(engine),
+		TeamUpdate(engine),
+		CommentCreate(engine),
+		CommentUpdate(engine),
+		TimelogCreate(engine),
+		TimelogUpdate(engine),
+	}
+	if allowDelete {
+		writeTools = append(writeTools, []server.ServerTool{
+			ProjectDelete(engine),
+			TasklistDelete(engine),
+			TaskDelete(engine),
+			UserDelete(engine),
+			MilestoneDelete(engine),
+			CompanyDelete(engine),
+			TagDelete(engine),
+			TeamDelete(engine),
+			CommentDelete(engine),
+			TimelogDelete(engine),
+		}...)
+	}
+
 	group := toolsets.NewToolsetGroup(readOnly)
 	group.AddToolset(toolsets.NewToolset("projects", projectDescription).
-		AddWriteTools(
-			ProjectCreate(engine),
-			ProjectUpdate(engine),
-			ProjectDelete(engine),
-			ProjectMemberAdd(engine),
-			TasklistCreate(engine),
-			TasklistUpdate(engine),
-			TasklistDelete(engine),
-			TaskCreate(engine),
-			TaskUpdate(engine),
-			TaskDelete(engine),
-			UserCreate(engine),
-			UserUpdate(engine),
-			UserDelete(engine),
-			MilestoneCreate(engine),
-			MilestoneUpdate(engine),
-			MilestoneDelete(engine),
-			CompanyCreate(engine),
-			CompanyUpdate(engine),
-			CompanyDelete(engine),
-			TagCreate(engine),
-			TagUpdate(engine),
-			TagDelete(engine),
-			TeamCreate(engine),
-			TeamUpdate(engine),
-			TeamDelete(engine),
-			CommentCreate(engine),
-			CommentUpdate(engine),
-			CommentDelete(engine),
-			TimelogCreate(engine),
-			TimelogUpdate(engine),
-			TimelogDelete(engine),
-		).
+		AddWriteTools(writeTools...).
 		AddReadTools(
 			ProjectGet(engine),
 			ProjectList(engine),

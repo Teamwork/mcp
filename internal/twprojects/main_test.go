@@ -38,7 +38,7 @@ var engineMock = func(status int, response []byte) *twapi.Engine {
 func mcpServerMock(t *testing.T, status int, response []byte) *server.MCPServer {
 	mcpServer := server.NewMCPServer("test-server", "1.0.0")
 
-	toolsetGroup := twprojects.DefaultToolsetGroup(false, engineMock(status, response))
+	toolsetGroup := twprojects.DefaultToolsetGroup(false, true, engineMock(status, response))
 	if err := toolsetGroup.EnableToolsets(toolsets.MethodAll); err != nil {
 		t.Fatalf("failed to enable toolsets: %v", err)
 	}
