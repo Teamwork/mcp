@@ -7,7 +7,7 @@ Self‑hosted / local binary (STDIO): use the [`tw-mcp`](https://github.com/Team
 release binary.
 
 This guide helps a Teamwork.com user connect AI tools (Claude, VSCode Copilot
-Chat, Gemini, etc.) to Teamwork via MCP.
+Chat, Gemini, etc.) to Teamwork.com via MCP.
 
 ---
 ## 1. 📋 Prerequisites

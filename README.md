@@ -7,35 +7,35 @@
 [![MCP](https://img.shields.io/badge/MCP-Compatible-green.svg)](https://modelcontextprotocol.io/)
 
 > 📌 Are you a Teamwork.com user wanting to connect AI tools (Claude Desktop, VS
-> Code Copilot Chat, Gemini, etc.) to your Teamwork site right now? Jump
+> Code Copilot Chat, Gemini, etc.) to your Teamwork.com site right now? Jump
 > straight to the **[Usage Guide (How to Connect)](usage.md)** for tokens,
-> enabling MCP, and client configuration examples.
+> enabling MCP and client configuration examples.
 
 ## 📖 Overview
 
 This MCP (Model Context Protocol) server enables seamless integration between
 Large Language Models and Teamwork.com. It provides a standardized interface for
-LLMs to interact with Teamwork projects, allowing AI agents to perform various
-project management operations.
+LLMs to interact with Teamwork.com projects, allowing AI agents to perform
+various project management operations.
 
 ### 🤖 What is MCP?
 
 Model Context Protocol (MCP) is an open protocol that standardizes how
 applications provide context to LLMs. This server describes all the actions
-available in Teamwork (tools) in a way that LLMs can understand and execute
+available in Teamwork.com (tools) in a way that LLMs can understand and execute
 through AI agents.
 
 ## ✨ Features
 
 - **Multiple Transport Modes**: HTTP and STDIO interfaces for different deployment scenarios
-- **Secure Authentication**: Bearer token and OAuth2 integration with Teamwork
+- **Secure Authentication**: Bearer token and OAuth2 integration with Teamwork.com
 - **Tool Framework**: Extensible toolset architecture for adding new capabilities
 - **Production Ready**: Comprehensive logging, monitoring, and observability
 - **Read-Only Mode**: Optional restriction to read-only operations for safety
 
 ## 🚀 Available Servers
 
-This project provides three different ways to interact with the Teamwork MCP
+This project provides three different ways to interact with the Teamwork.com MCP
 server:
 
 ### 📡 HTTP Server
@@ -74,7 +74,7 @@ go run cmd/mcp-http-cli/main.go -mcp-url=https://mcp.example.com list-tools
 ## 📋 Prerequisites
 
 - Go 1.24 or later
-- Valid Teamwork API credentials (bearer token or OAuth2 setup)
+- Valid Teamwork.com API credentials (bearer token or OAuth2 setup)
 
 ## 🧪 Development & Testing
 
@@ -110,7 +110,7 @@ NODE_EXTRA_CA_CERTS=letsencrypt-stg-root-x1.pem npx @modelcontextprotocol/inspec
 │   ├── config/           # Configuration management
 │   ├── helpers/          # Utility functions
 │   ├── toolsets/         # Tool framework and management
-│   └── twprojects/       # Teamwork project operations
+│   └── twprojects/       # Teamwork.com project operations
 ├── examples/             # Usage examples and integrations
 ├── chart/                # Kubernetes Helm chart
 └── Dockerfile            # Container build configuration
