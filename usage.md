@@ -53,6 +53,9 @@ workflows or clients that only speak HTTP.
 ## 5. 🖥️ Configure Common Clients
 
 ### 💬 Claude Desktop (STDIO)
+
+<img width="764" height="428" alt="image" src="https://github.com/user-attachments/assets/de6bb3c2-dfc5-4f6c-b497-6ea22ea01636" />
+
 1. Download the latest release: https://github.com/Teamwork/mcp/releases/latest
 2. Rename/move the binary into your PATH as `tw-mcp` (e.g. `/usr/local/bin/tw-mcp`)
 3. (macOS) Approve it in Security & Privacy if blocked.
@@ -78,12 +81,16 @@ Replace `<installation>` with your site domain (e.g. `mycompany.teamwork.com`).
 
 ### 🧩 VSCode (GitHub Copilot Chat MCP)
 
+<img width="753" height="839" alt="image" src="https://github.com/user-attachments/assets/61204ca7-c904-4cf6-aa3a-059b8c96fa48" />
+
 * Reference config file: https://github.com/Teamwork/mcp/blob/main/.vscode/mcp.json
 * Docs: https://code.visualstudio.com/docs/copilot/chat/mcp-servers#_add-an-mcp-server
 
 Use either `command` (STDIO) or `httpUrl` (hosted) style.
 
 ### 🌐 Gemini CLI (HTTP)
+
+<img width="732" height="558" alt="image" src="https://github.com/user-attachments/assets/b26d2fe0-2d88-4bcc-beb5-3dab5cb575b0" />
 
 * Install: https://github.com/google-gemini/gemini-cli?tab=readme-ov-file#quickstart
 * Edit `$HOME/.gemini/settings.json`:
