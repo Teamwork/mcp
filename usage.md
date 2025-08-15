@@ -102,12 +102,16 @@ Use either `command` (STDIO) or `httpUrl` (hosted) style.
     "Teamwork.com": {
       "httpUrl": "https://mcp.ai.teamwork.com",
       "headers": { "Authorization": "Bearer <token>" },
-      "trust": true,
+      "trust": false,
       "timeout": 5000
     }
   }
 }
 ```
+
+The `"trust": false` setting will make Gemini CLI ask before executing any
+action against the Teamwork.com MCP server. This is recommended to avoid
+accidental modifications.
 
 ### 🛠️ Other Platforms (n8n, Appmixer, custom)
 
