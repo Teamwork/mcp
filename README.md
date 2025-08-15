@@ -6,6 +6,11 @@
 [![Go](https://img.shields.io/badge/Go-1.24.2-blue.svg)](https://golang.org/)
 [![MCP](https://img.shields.io/badge/MCP-Compatible-green.svg)](https://modelcontextprotocol.io/)
 
+> 📌 Are you a Teamwork.com user wanting to connect AI tools (Claude Desktop, VS
+> Code Copilot Chat, Gemini, etc.) to your Teamwork site right now? Jump
+> straight to the **[Usage Guide (How to Connect)](usage.md)** for tokens,
+> enabling MCP, and client configuration examples.
+
 ## 📖 Overview
 
 This MCP (Model Context Protocol) server enables seamless integration between
