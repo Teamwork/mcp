@@ -13,3 +13,11 @@ const (
 	MethodCompanyGet    toolsets.Method = "twdesk-get_company"
 	MethodCompanyList   toolsets.Method = "twdesk-list_companies"
 )
+
+func init() {
+	toolsets.RegisterMethod(MethodCompanyCreate)
+	toolsets.RegisterMethod(MethodCompanyUpdate)
+	toolsets.RegisterMethod(MethodCompanyDelete)
+	toolsets.RegisterMethod(MethodCompanyGet)
+	toolsets.RegisterMethod(MethodCompanyList)
+}

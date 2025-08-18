@@ -13,3 +13,11 @@ const (
 	MethodSourceGet    toolsets.Method = "twdesk-get_source"
 	MethodSourceList   toolsets.Method = "twdesk-list_sources"
 )
+
+func init() {
+	toolsets.RegisterMethod(MethodSourceCreate)
+	toolsets.RegisterMethod(MethodSourceUpdate)
+	toolsets.RegisterMethod(MethodSourceDelete)
+	toolsets.RegisterMethod(MethodSourceGet)
+	toolsets.RegisterMethod(MethodSourceList)
+}

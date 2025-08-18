@@ -13,3 +13,11 @@ const (
 	MethodTicketGet    toolsets.Method = "twdesk-get_ticket"
 	MethodTicketList   toolsets.Method = "twdesk-list_tickets"
 )
+
+func init() {
+	toolsets.RegisterMethod(MethodTagCreate)
+	toolsets.RegisterMethod(MethodTagUpdate)
+	toolsets.RegisterMethod(MethodTagDelete)
+	toolsets.RegisterMethod(MethodTagGet)
+	toolsets.RegisterMethod(MethodTagList)
+}
