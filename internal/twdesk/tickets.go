@@ -62,26 +62,26 @@ func TicketGet(client *deskclient.Client) server.ServerTool {
 
 // TicketList returns a list of tickets that apply to the filters in Teamwork Desk
 func TicketList(client *deskclient.Client) server.ServerTool {
+	opts := []mcp.ToolOption{
+		mcp.WithDescription("List all tickets in Teamwork Desk"),
+		mcp.WithArray("inboxIDs", mcp.Description("The IDs of the inboxes to filter by.")),
+		mcp.WithArray("customerIDs", mcp.Description("The IDs of the customers to filter by.")),
+		mcp.WithArray("companyIDs", mcp.Description("The IDs of the companies to filter by.")),
+		mcp.WithArray("tagIDs", mcp.Description("The IDs of the tags to filter by.")),
+		mcp.WithArray("taskIDs", mcp.Description("The IDs of the tasks to filter by.")),
+		mcp.WithArray("projectsIDs", mcp.Description("The IDs of the projects to filter by.")),
+		mcp.WithArray("statusIDs", mcp.Description("The IDs of the statuses to filter by.")),
+		mcp.WithArray("priorityIDs", mcp.Description("The IDs of the priorities to filter by.")),
+		mcp.WithArray("slaIDs", mcp.Description("The IDs of the SLAs to filter by.")),
+		mcp.WithArray("userIDs", mcp.Description("The IDs of the users to filter by.")),
+		mcp.WithBoolean("shared", mcp.Description("Find tickets shared with me outside of inboxes I have access to")),
+		mcp.WithBoolean("slaBreached", mcp.Description("Find tickets where the SLA has been breached")),
+	}
+
+	opts = append(opts, PaginationOptions()...)
+
 	return server.ServerTool{
-		Tool: mcp.NewTool(string(MethodTicketList),
-			mcp.WithDescription("List all tickets in Teamwork Desk"),
-			mcp.WithArray("inboxIDs", mcp.Description("The IDs of the inboxes to filter by.")),
-			mcp.WithArray("customerIDs", mcp.Description("The IDs of the customers to filter by.")),
-			mcp.WithArray("companyIDs", mcp.Description("The IDs of the companies to filter by.")),
-			mcp.WithArray("tagIDs", mcp.Description("The IDs of the tags to filter by.")),
-			mcp.WithArray("taskIDs", mcp.Description("The IDs of the tasks to filter by.")),
-			mcp.WithArray("projectsIDs", mcp.Description("The IDs of the projects to filter by.")),
-			mcp.WithArray("statusIDs", mcp.Description("The IDs of the statuses to filter by.")),
-			mcp.WithArray("priorityIDs", mcp.Description("The IDs of the priorities to filter by.")),
-			mcp.WithArray("slaIDs", mcp.Description("The IDs of the SLAs to filter by.")),
-			mcp.WithArray("userIDs", mcp.Description("The IDs of the users to filter by.")),
-			mcp.WithBoolean("shared", mcp.Description("Find tickets shared with me outside of inboxes I have access to")),
-			mcp.WithBoolean("slaBreached", mcp.Description("Find tickets where the SLA has been breached")),
-			mcp.WithNumber("page", mcp.Description("The page number to retrieve.")),
-			mcp.WithNumber("pageSize", mcp.Description("The number of tickets to retrieve per page.")),
-			mcp.WithString("orderBy", mcp.Description("The field to order the results by.")),
-			mcp.WithString("orderDirection", mcp.Description("The direction to order the results by.")),
-		),
+		Tool: mcp.NewTool(string(MethodTicketList), opts...),
 		Handler: func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 			// Apply filters to the ticket list
 			inboxIDs := request.GetIntSlice("inboxIDs", []int{})
@@ -149,10 +149,7 @@ func TicketList(client *deskclient.Client) server.ServerTool {
 
 			params := url.Values{}
 			params.Set("filter", filter.Build())
-			params.Set("page", fmt.Sprintf("%d", request.GetInt("page", 1)))
-			params.Set("pageSize", fmt.Sprintf("%d", request.GetInt("pageSize", 10)))
-			params.Set("orderBy", request.GetString("orderBy", "createdAt"))
-			params.Set("orderMode", request.GetString("orderDirection", "desc"))
+			SetPagination(&params, request)
 
 			tickets, err := client.Tickets.List(ctx, params)
 			if err != nil {
