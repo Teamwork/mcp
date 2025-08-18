@@ -19,7 +19,6 @@ import (
 const (
 	MethodTagCreate toolsets.Method = "twdesk-create_tag"
 	MethodTagUpdate toolsets.Method = "twdesk-update_tag"
-	MethodTagDelete toolsets.Method = "twdesk-delete_tag"
 	MethodTagGet    toolsets.Method = "twdesk-get_tag"
 	MethodTagList   toolsets.Method = "twdesk-list_tags"
 )
@@ -27,7 +26,6 @@ const (
 func init() {
 	toolsets.RegisterMethod(MethodTagCreate)
 	toolsets.RegisterMethod(MethodTagUpdate)
-	toolsets.RegisterMethod(MethodTagDelete)
 	toolsets.RegisterMethod(MethodTagGet)
 	toolsets.RegisterMethod(MethodTagList)
 }
