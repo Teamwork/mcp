@@ -253,6 +253,11 @@ func TeamList(engine *twapi.Engine) server.ServerTool {
 		Handler: func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 			var teamListRequest projects.TeamListRequest
 
+			// to simplify the teams logic for the LLM, always return all team types
+			teamListRequest.Filters.IncludeCompanyTeams = true
+			teamListRequest.Filters.IncludeProjectTeams = true
+			teamListRequest.Filters.IncludeSubteams = true
+
 			err := helpers.ParamGroup(request.GetArguments(),
 				helpers.OptionalParam(&teamListRequest.Filters.SearchTerm, "search_term"),
 				helpers.OptionalNumericParam(&teamListRequest.Filters.Page, "page"),
