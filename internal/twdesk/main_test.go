@@ -1,4 +1,4 @@
-package twprojects_test
+package twdesk_test
 
 import (
 	"github.com/teamwork/mcp/internal/testutil"
@@ -6,7 +6,7 @@ import (
 
 // Re-export the shared utilities for convenience
 var (
-	mcpServerMock = testutil.ProjectsMCPServerMock
+	mcpServerMock = testutil.DeskMCPServerMock
 	checkMessage  = testutil.CheckMessage
 )
 

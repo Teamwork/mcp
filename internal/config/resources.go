@@ -6,6 +6,7 @@ import (
 	"os"
 	"strings"
 
+	desksdk "github.com/teamwork/desksdkgo/client"
 	twapi "github.com/teamwork/twapi-go-sdk"
 )
 
@@ -18,6 +19,7 @@ var Version = "dev"
 type Resources struct {
 	teamworkHTTPClient *http.Client
 	teamworkEngine     *twapi.Engine
+	deskClient         *desksdk.Client
 	logger             *slog.Logger
 
 	// Info stores environment variables mappings.
@@ -114,6 +116,11 @@ func (r *Resources) TeamworkHTTPClient() *http.Client {
 // requests to Teamwork API.
 func (r *Resources) TeamworkEngine() *twapi.Engine {
 	return r.teamworkEngine
+}
+
+// DeskClient returns the Teamwork Desk Client for use.
+func (r *Resources) DeskClient() *desksdk.Client {
+	return r.deskClient
 }
 
 func getEnv(key, fallback string) string {
