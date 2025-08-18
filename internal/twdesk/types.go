@@ -13,3 +13,11 @@ const (
 	MethodTypeGet    toolsets.Method = "twdesk-get_type"
 	MethodTypeList   toolsets.Method = "twdesk-list_types"
 )
+
+func init() {
+	toolsets.RegisterMethod(MethodTypeCreate)
+	toolsets.RegisterMethod(MethodTypeUpdate)
+	toolsets.RegisterMethod(MethodTypeDelete)
+	toolsets.RegisterMethod(MethodTypeGet)
+	toolsets.RegisterMethod(MethodTypeList)
+}

@@ -13,3 +13,11 @@ const (
 	MethodUserGet    toolsets.Method = "twdesk-get_user"
 	MethodUserList   toolsets.Method = "twdesk-list_users"
 )
+
+func init() {
+	toolsets.RegisterMethod(MethodUserCreate)
+	toolsets.RegisterMethod(MethodUserUpdate)
+	toolsets.RegisterMethod(MethodUserDelete)
+	toolsets.RegisterMethod(MethodUserGet)
+	toolsets.RegisterMethod(MethodUserList)
+}

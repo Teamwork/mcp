@@ -13,3 +13,11 @@ const (
 	MethodPriorityGet    toolsets.Method = "twdesk-get_priority"
 	MethodPriorityList   toolsets.Method = "twdesk-list_priorities"
 )
+
+func init() {
+	toolsets.RegisterMethod(MethodPriorityCreate)
+	toolsets.RegisterMethod(MethodPriorityUpdate)
+	toolsets.RegisterMethod(MethodPriorityDelete)
+	toolsets.RegisterMethod(MethodPriorityGet)
+	toolsets.RegisterMethod(MethodPriorityList)
+}
