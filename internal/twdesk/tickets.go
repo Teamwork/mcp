@@ -78,7 +78,7 @@ func TicketList(client *deskclient.Client) server.ServerTool {
 		mcp.WithBoolean("slaBreached", mcp.Description("Find tickets where the SLA has been breached")),
 	}
 
-	opts = append(opts, PaginationOptions()...)
+	opts = append(opts, paginationOptions()...)
 
 	return server.ServerTool{
 		Tool: mcp.NewTool(string(MethodTicketList), opts...),
@@ -149,7 +149,7 @@ func TicketList(client *deskclient.Client) server.ServerTool {
 
 			params := url.Values{}
 			params.Set("filter", filter.Build())
-			SetPagination(&params, request)
+			setPagination(&params, request)
 
 			tickets, err := client.Tickets.List(ctx, params)
 			if err != nil {
@@ -166,10 +166,16 @@ func TicketCreate(client *deskclient.Client) server.ServerTool {
 	return server.ServerTool{
 		Tool: mcp.NewTool(string(MethodTicketCreate),
 			mcp.WithDescription("Create a new ticket in Teamwork Desk"),
+			mcp.WithString("subject", mcp.Required(), mcp.Description("The subject of the ticket.")),
+			mcp.WithString("description", mcp.Description("The description of the ticket.")),
+			mcp.WithString("priority", mcp.Description("The priority of the ticket.")),
+			mcp.WithString("status", mcp.Description("The status of the ticket.")),
 		),
 		Handler: func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 			ticket, err := client.Tickets.Create(ctx, &deskmodels.TicketResponse{
-				Ticket: deskmodels.Ticket{},
+				Ticket: deskmodels.Ticket{
+					Subject: request.GetString("subject", ""),
+				},
 			})
 			if err != nil {
 				return nil, fmt.Errorf("failed to create ticket: %w", err)

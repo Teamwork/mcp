@@ -7,7 +7,7 @@ import (
 	"github.com/mark3labs/mcp-go/mcp"
 )
 
-func PaginationOptions() []mcp.ToolOption {
+func paginationOptions() []mcp.ToolOption {
 	return []mcp.ToolOption{
 		mcp.WithNumber("page", mcp.Description("The page number to retrieve.")),
 		mcp.WithNumber("pageSize", mcp.Description("The number of tickets to retrieve per page.")),
@@ -16,7 +16,7 @@ func PaginationOptions() []mcp.ToolOption {
 	}
 }
 
-func SetPagination(v *url.Values, request mcp.CallToolRequest) {
+func setPagination(v *url.Values, request mcp.CallToolRequest) {
 	v.Set("page", fmt.Sprintf("%d", request.GetInt("page", 1)))
 	v.Set("pageSize", fmt.Sprintf("%d", request.GetInt("pageSize", 10)))
 	v.Set("orderBy", request.GetString("orderBy", "createdAt"))
