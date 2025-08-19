@@ -55,6 +55,7 @@ func UserList(client *deskclient.Client) server.ServerTool {
 			mcp.WithArray("lastName", mcp.Description("The last names of the users to filter by.")),
 			mcp.WithArray("email", mcp.Description("The email addresses of the users to filter by.")),
 			mcp.WithArray("inboxIDs", mcp.Description("The IDs of the inboxes to filter by.")),
+			mcp.WithBoolean("isPartTime", mcp.Description("Whether to include part-time users in the results.")),
 		),
 		Handler: func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 			// Apply filters to the user list
@@ -65,16 +66,21 @@ func UserList(client *deskclient.Client) server.ServerTool {
 
 			filter := deskclient.NewFilter()
 			if len(firstNames) > 0 {
-				filter = filter.In("first_name", firstNames)
+				filter = filter.In("firstName", firstNames)
 			}
 			if len(lastNames) > 0 {
-				filter = filter.In("last_name", lastNames)
+				filter = filter.In("lastName", lastNames)
 			}
 			if len(emails) > 0 {
 				filter = filter.In("email", emails)
 			}
 			if len(inboxIDs) > 0 {
 				filter = filter.In("inboxes.id", inboxIDs)
+			}
+
+			isPartTime := request.GetBool("isPartTime", false)
+			if isPartTime {
+				filter = filter.Eq("isPartTime", true)
 			}
 
 			params := url.Values{}
