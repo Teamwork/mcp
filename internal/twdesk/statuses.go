@@ -53,13 +53,17 @@ func StatusGet(client *deskclient.Client) server.ServerTool {
 
 // StatusList returns a list of statuses that apply to the filters in Teamwork Desk
 func StatusList(client *deskclient.Client) server.ServerTool {
+	opts := []mcp.ToolOption{
+		mcp.WithDescription("List all statuses in Teamwork Desk"),
+		mcp.WithArray("name", mcp.Description("The name of the status to filter by.")),
+		mcp.WithArray("color", mcp.Description("The color of the status to filter by.")),
+		mcp.WithArray("code", mcp.Description("The code of the status to filter by.")),
+	}
+
+	opts = append(opts, paginationOptions()...)
+
 	return server.ServerTool{
-		Tool: mcp.NewTool(string(MethodStatusList),
-			mcp.WithDescription("List all statuses in Teamwork Desk"),
-			mcp.WithArray("name", mcp.Description("The name of the status to filter by.")),
-			mcp.WithArray("color", mcp.Description("The color of the status to filter by.")),
-			mcp.WithArray("code", mcp.Description("The code of the status to filter by.")),
-		),
+		Tool: mcp.NewTool(string(MethodStatusList), opts...),
 		Handler: func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 			// Apply filters to the status list
 			name := request.GetStringSlice("name", []string{})

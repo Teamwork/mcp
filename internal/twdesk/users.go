@@ -48,15 +48,19 @@ func UserGet(client *deskclient.Client) server.ServerTool {
 
 // UserList returns a list of users that apply to the filters in Teamwork Desk
 func UserList(client *deskclient.Client) server.ServerTool {
+	opts := []mcp.ToolOption{
+		mcp.WithDescription("List all users in Teamwork Desk"),
+		mcp.WithArray("firstName", mcp.Description("The first names of the users to filter by.")),
+		mcp.WithArray("lastName", mcp.Description("The last names of the users to filter by.")),
+		mcp.WithArray("email", mcp.Description("The email addresses of the users to filter by.")),
+		mcp.WithArray("inboxIDs", mcp.Description("The IDs of the inboxes to filter by.")),
+		mcp.WithBoolean("isPartTime", mcp.Description("Whether to include part-time users in the results.")),
+	}
+
+	opts = append(opts, paginationOptions()...)
+
 	return server.ServerTool{
-		Tool: mcp.NewTool(string(MethodUserList),
-			mcp.WithDescription("List all users in Teamwork Desk"),
-			mcp.WithArray("firstName", mcp.Description("The first names of the users to filter by.")),
-			mcp.WithArray("lastName", mcp.Description("The last names of the users to filter by.")),
-			mcp.WithArray("email", mcp.Description("The email addresses of the users to filter by.")),
-			mcp.WithArray("inboxIDs", mcp.Description("The IDs of the inboxes to filter by.")),
-			mcp.WithBoolean("isPartTime", mcp.Description("Whether to include part-time users in the results.")),
-		),
+		Tool: mcp.NewTool(string(MethodUserList), opts...),
 		Handler: func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 			// Apply filters to the user list
 			firstNames := request.GetStringSlice("firstName", []string{})

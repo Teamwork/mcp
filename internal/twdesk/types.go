@@ -53,12 +53,15 @@ func TypeGet(client *deskclient.Client) server.ServerTool {
 
 // TypeList returns a list of types that apply to the filters in Teamwork Desk
 func TypeList(client *deskclient.Client) server.ServerTool {
+	opts := []mcp.ToolOption{
+		mcp.WithDescription("List all types in Teamwork Desk"),
+		mcp.WithArray("name", mcp.Description("The name of the type to filter by.")),
+		mcp.WithArray("inboxIDs", mcp.Description("The inbox IDs of the type to filter by.")),
+	}
+
+	opts = append(opts, paginationOptions()...)
 	return server.ServerTool{
-		Tool: mcp.NewTool(string(MethodTypeList),
-			mcp.WithDescription("List all types in Teamwork Desk"),
-			mcp.WithArray("name", mcp.Description("The name of the type to filter by.")),
-			mcp.WithArray("inboxIDs", mcp.Description("The inbox IDs of the type to filter by.")),
-		),
+		Tool: mcp.NewTool(string(MethodTypeList), opts...),
 		Handler: func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 			// Apply filters to the type list
 			name := request.GetStringSlice("name", []string{})

@@ -53,12 +53,16 @@ func PriorityGet(client *deskclient.Client) server.ServerTool {
 
 // PriorityList returns a list of priorities that apply to the filters in Teamwork Desk
 func PriorityList(client *deskclient.Client) server.ServerTool {
+	opts := []mcp.ToolOption{
+		mcp.WithDescription("List all priorities in Teamwork Desk"),
+		mcp.WithArray("name", mcp.Description("The name of the priority to filter by.")),
+		mcp.WithArray("color", mcp.Description("The color of the priority to filter by.")),
+	}
+
+	opts = append(opts, paginationOptions()...)
+
 	return server.ServerTool{
-		Tool: mcp.NewTool(string(MethodPriorityList),
-			mcp.WithDescription("List all priorities in Teamwork Desk"),
-			mcp.WithArray("name", mcp.Description("The name of the priority to filter by.")),
-			mcp.WithArray("color", mcp.Description("The color of the priority to filter by.")),
-		),
+		Tool: mcp.NewTool(string(MethodPriorityList), opts...),
 		Handler: func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 			// Apply filters to the priority list
 			name := request.GetStringSlice("name", []string{})

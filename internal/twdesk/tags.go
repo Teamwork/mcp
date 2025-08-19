@@ -53,13 +53,17 @@ func TagGet(client *deskclient.Client) server.ServerTool {
 
 // TagList returns a list of tags that apply to the filters in Teamwork Desk
 func TagList(client *deskclient.Client) server.ServerTool {
+	opts := []mcp.ToolOption{
+		mcp.WithDescription("List all tags in Teamwork Desk"),
+		mcp.WithString("name", mcp.Description("The name of the tag to filter by.")),
+		mcp.WithString("color", mcp.Description("The color of the tag to filter by.")),
+		mcp.WithArray("inboxIDs", mcp.Description("The IDs of the inboxes to filter by.")),
+	}
+
+	opts = append(opts, paginationOptions()...)
+
 	return server.ServerTool{
-		Tool: mcp.NewTool(string(MethodTagList),
-			mcp.WithDescription("List all tags in Teamwork Desk"),
-			mcp.WithString("name", mcp.Description("The name of the tag to filter by.")),
-			mcp.WithString("color", mcp.Description("The color of the tag to filter by.")),
-			mcp.WithArray("inboxIDs", mcp.Description("The IDs of the inboxes to filter by.")),
-		),
+		Tool: mcp.NewTool(string(MethodTagList), opts...),
 		Handler: func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 			// Apply filters to the tag list
 			name := request.GetString("name", "")
