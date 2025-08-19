@@ -1,6 +1,16 @@
 package twdesk
 
-import "github.com/teamwork/mcp/internal/toolsets"
+import (
+	"context"
+	"fmt"
+	"net/url"
+
+	"github.com/mark3labs/mcp-go/mcp"
+	"github.com/mark3labs/mcp-go/server"
+	deskclient "github.com/teamwork/desksdkgo/client"
+	deskmodels "github.com/teamwork/desksdkgo/models"
+	"github.com/teamwork/mcp/internal/toolsets"
+)
 
 // List of methods available in the Teamwork.com MCP service.
 //
@@ -9,7 +19,6 @@ import "github.com/teamwork/mcp/internal/toolsets"
 const (
 	MethodPriorityCreate toolsets.Method = "twdesk-create_priority"
 	MethodPriorityUpdate toolsets.Method = "twdesk-update_priority"
-	MethodPriorityDelete toolsets.Method = "twdesk-delete_priority"
 	MethodPriorityGet    toolsets.Method = "twdesk-get_priority"
 	MethodPriorityList   toolsets.Method = "twdesk-list_priorities"
 )
@@ -17,7 +26,122 @@ const (
 func init() {
 	toolsets.RegisterMethod(MethodPriorityCreate)
 	toolsets.RegisterMethod(MethodPriorityUpdate)
-	toolsets.RegisterMethod(MethodPriorityDelete)
 	toolsets.RegisterMethod(MethodPriorityGet)
 	toolsets.RegisterMethod(MethodPriorityList)
+}
+
+// PriorityGet finds a priority in Teamwork Desk.  This will find it by ID
+func PriorityGet(client *deskclient.Client) server.ServerTool {
+	return server.ServerTool{
+		Tool: mcp.NewTool(string(MethodPriorityGet),
+			mcp.WithDescription("Get a priority from Teamwork Desk"),
+			mcp.WithString("id",
+				mcp.Required(),
+				mcp.Description("The ID of the priority to retrieve."),
+			),
+		),
+		Handler: func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+			priority, err := client.TicketPriorities.Get(ctx, request.GetInt("id", 0))
+			if err != nil {
+				return nil, fmt.Errorf("failed to get priority: %w", err)
+			}
+
+			return mcp.NewToolResultText(fmt.Sprintf("Priority retrieved successfully: %s", priority.TicketPriority.Name)), nil
+		},
+	}
+}
+
+// PriorityList returns a list of priorities that apply to the filters in Teamwork Desk
+func PriorityList(client *deskclient.Client) server.ServerTool {
+	return server.ServerTool{
+		Tool: mcp.NewTool(string(MethodPriorityList),
+			mcp.WithDescription("List all priorities in Teamwork Desk"),
+			mcp.WithArray("name", mcp.Description("The name of the priority to filter by.")),
+			mcp.WithArray("color", mcp.Description("The color of the priority to filter by.")),
+		),
+		Handler: func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+			// Apply filters to the priority list
+			name := request.GetStringSlice("name", []string{})
+			color := request.GetStringSlice("color", []string{})
+
+			filter := deskclient.NewFilter()
+			if len(name) > 0 {
+				filter = filter.In("name", name)
+			}
+			if len(color) > 0 {
+				filter = filter.In("color", color)
+			}
+
+			params := url.Values{}
+			params.Set("filter", filter.Build())
+
+			priorities, err := client.TicketPriorities.List(ctx, params)
+			if err != nil {
+				return nil, fmt.Errorf("failed to list priorities: %w", err)
+			}
+
+			return mcp.NewToolResultText(fmt.Sprintf("Priorities retrieved successfully: %v", priorities)), nil
+		},
+	}
+}
+
+// PriorityCreate creates a priority in Teamwork Desk
+func PriorityCreate(client *deskclient.Client) server.ServerTool {
+	return server.ServerTool{
+		Tool: mcp.NewTool(string(MethodPriorityCreate),
+			mcp.WithDescription("Create a new priority in Teamwork Desk"),
+			mcp.WithString("name",
+				mcp.Required(),
+				mcp.Description("The name of the priority."),
+			),
+			mcp.WithString("color",
+				mcp.Description("The color of the priority."),
+			),
+		),
+		Handler: func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+			priority, err := client.TicketPriorities.Create(ctx, &deskmodels.TicketPriorityResponse{
+				TicketPriority: deskmodels.TicketPriority{
+					Name:  request.GetString("name", ""),
+					Color: request.GetString("color", ""),
+				},
+			})
+			if err != nil {
+				return nil, fmt.Errorf("failed to create priority: %w", err)
+			}
+
+			return mcp.NewToolResultText(fmt.Sprintf("Priority created successfully with ID %d", priority.TicketPriority.ID)), nil
+		},
+	}
+}
+
+// PriorityUpdate updates a priority in Teamwork Desk
+func PriorityUpdate(client *deskclient.Client) server.ServerTool {
+	return server.ServerTool{
+		Tool: mcp.NewTool(string(MethodPriorityUpdate),
+			mcp.WithDescription("Update an existing priority in Teamwork Desk"),
+			mcp.WithString("id",
+				mcp.Required(),
+				mcp.Description("The ID of the priority to update."),
+			),
+			mcp.WithString("name",
+				mcp.Description("The new name of the priority."),
+			),
+			mcp.WithString("color",
+				mcp.Description("The color of the priority."),
+			),
+		),
+		Handler: func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+			_, err := client.TicketPriorities.Update(ctx, request.GetInt("id", 0), &deskmodels.TicketPriorityResponse{
+				TicketPriority: deskmodels.TicketPriority{
+					Name:  request.GetString("name", ""),
+					Color: request.GetString("color", ""),
+				},
+			})
+			if err != nil {
+				return nil, fmt.Errorf("failed to create priority: %w", err)
+			}
+
+			return mcp.NewToolResultText("Priority updated successfully"), nil
+		},
+	}
 }
