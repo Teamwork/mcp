@@ -60,7 +60,7 @@ func CustomerList(client *deskclient.Client) server.ServerTool {
 		mcp.WithArray("emails", mcp.Description("The emails of the customers to filter by.")),
 	}
 
-	opts = append(opts, PaginationOptions()...)
+	opts = append(opts, paginationOptions()...)
 
 	return server.ServerTool{
 		Tool: mcp.NewTool(string(MethodCustomerList), opts...),
@@ -85,7 +85,7 @@ func CustomerList(client *deskclient.Client) server.ServerTool {
 
 			params := url.Values{}
 			params.Set("filter", filter.Build())
-			SetPagination(&params, request)
+			setPagination(&params, request)
 
 			customers, err := client.Customers.List(ctx, params)
 			if err != nil {

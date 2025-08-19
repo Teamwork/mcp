@@ -60,7 +60,7 @@ func CompanyList(client *deskclient.Client) server.ServerTool {
 		mcp.WithString("kind", mcp.Description("The kind of the company to filter by."), mcp.Enum("company", "group")),
 	}
 
-	opts = append(opts, PaginationOptions()...)
+	opts = append(opts, paginationOptions()...)
 
 	return server.ServerTool{
 		Tool: mcp.NewTool(string(MethodCompanyList), opts...),
@@ -85,7 +85,7 @@ func CompanyList(client *deskclient.Client) server.ServerTool {
 
 			params := url.Values{}
 			params.Set("filter", filter.Build())
-			SetPagination(&params, request)
+			setPagination(&params, request)
 
 			companies, err := client.Companies.List(ctx, params)
 			if err != nil {
