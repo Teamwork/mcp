@@ -9,7 +9,6 @@ import "github.com/teamwork/mcp/internal/toolsets"
 const (
 	MethodTypeCreate toolsets.Method = "twdesk-create_type"
 	MethodTypeUpdate toolsets.Method = "twdesk-update_type"
-	MethodTypeDelete toolsets.Method = "twdesk-delete_type"
 	MethodTypeGet    toolsets.Method = "twdesk-get_type"
 	MethodTypeList   toolsets.Method = "twdesk-list_types"
 )
@@ -17,7 +16,6 @@ const (
 func init() {
 	toolsets.RegisterMethod(MethodTypeCreate)
 	toolsets.RegisterMethod(MethodTypeUpdate)
-	toolsets.RegisterMethod(MethodTypeDelete)
 	toolsets.RegisterMethod(MethodTypeGet)
 	toolsets.RegisterMethod(MethodTypeList)
 }

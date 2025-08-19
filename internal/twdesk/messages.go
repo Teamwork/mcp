@@ -9,7 +9,6 @@ import "github.com/teamwork/mcp/internal/toolsets"
 const (
 	MethodMessageCreate toolsets.Method = "twdesk-create_message"
 	MethodMessageUpdate toolsets.Method = "twdesk-update_message"
-	MethodMessageDelete toolsets.Method = "twdesk-delete_message"
 	MethodMessageGet    toolsets.Method = "twdesk-get_message"
 	MethodMessageList   toolsets.Method = "twdesk-list_messages"
 )
@@ -17,7 +16,6 @@ const (
 func init() {
 	toolsets.RegisterMethod(MethodMessageCreate)
 	toolsets.RegisterMethod(MethodMessageUpdate)
-	toolsets.RegisterMethod(MethodMessageDelete)
 	toolsets.RegisterMethod(MethodMessageGet)
 	toolsets.RegisterMethod(MethodMessageList)
 }

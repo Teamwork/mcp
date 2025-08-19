@@ -9,7 +9,6 @@ import "github.com/teamwork/mcp/internal/toolsets"
 const (
 	MethodUserCreate toolsets.Method = "twdesk-create_user"
 	MethodUserUpdate toolsets.Method = "twdesk-update_user"
-	MethodUserDelete toolsets.Method = "twdesk-delete_user"
 	MethodUserGet    toolsets.Method = "twdesk-get_user"
 	MethodUserList   toolsets.Method = "twdesk-list_users"
 )
@@ -17,7 +16,6 @@ const (
 func init() {
 	toolsets.RegisterMethod(MethodUserCreate)
 	toolsets.RegisterMethod(MethodUserUpdate)
-	toolsets.RegisterMethod(MethodUserDelete)
 	toolsets.RegisterMethod(MethodUserGet)
 	toolsets.RegisterMethod(MethodUserList)
 }
