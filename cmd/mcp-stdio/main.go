@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"slices"
 	"strings"
 
 	"github.com/mark3labs/mcp-go/mcp"
@@ -20,7 +21,23 @@ import (
 )
 
 var (
-	methods  = methodsInput([]toolsets.Method{toolsets.MethodAll})
+	methods          = methodsInput([]toolsets.Method{toolsets.MethodAll})
+	methodsWhitelist = []string{
+		// allow some protocol methods to bypass authentication
+		//
+		// https://modelcontextprotocol.io/specification/2025-06-18/basic/lifecycle
+		// https://modelcontextprotocol.io/specification/2025-06-18/server/tools#listing-tools
+		// https://modelcontextprotocol.io/specification/2025-06-18/server/resources#listing-resources
+		// https://modelcontextprotocol.io/specification/2025-06-18/server/resources#resource-templates
+		// https://modelcontextprotocol.io/specification/2025-06-18/server/prompts#listing-prompts
+		"initialize",
+		"notifications/initialized",
+		"logging/setLevel",
+		"tools/list",
+		"resources/list",
+		"resources/templates/list",
+		"prompts/list",
+	}
 	readOnly bool
 )
 
@@ -34,33 +51,31 @@ func main() {
 	flag.BoolVar(&readOnly, "read-only", false, "Restrict the server to read-only operations")
 	flag.Parse()
 
-	if resources.Info.BearerToken == "" {
-		mcpError(resources, errors.New("TW_MCP_BEARER_TOKEN environment variable is not set"), mcp.INVALID_PARAMS)
-		exit(exitCodeSetupFailure)
-	}
-
 	ctx := context.Background()
 
-	// detect the installation from the bearer token
-	info, err := auth.GetBearerInfo(ctx, resources, resources.Info.BearerToken)
-	if err != nil {
-		mcpError(resources, fmt.Errorf("failed to authenticate: %s", err), mcp.INVALID_PARAMS)
-		exit(exitCodeSetupFailure)
-	}
+	if resources.Info.BearerToken != "" {
+		// detect the installation from the bearer token
+		info, err := auth.GetBearerInfo(ctx, resources, resources.Info.BearerToken)
+		if err != nil {
+			mcpError(resources.Logger(), fmt.Errorf("failed to authenticate: %s", err), mcp.INVALID_PARAMS)
+			exit(exitCodeSetupFailure)
+		}
 
-	// inject customer URL in the context
-	ctx = config.WithCustomerURL(ctx, info.URL)
-	// inject bearer token in the context
-	ctx = session.WithBearerTokenContext(ctx, session.NewBearerToken(resources.Info.BearerToken, info.URL))
+		// inject customer URL in the context
+		ctx = config.WithCustomerURL(ctx, info.URL)
+		// inject bearer token in the context
+		ctx = session.WithBearerTokenContext(ctx, session.NewBearerToken(resources.Info.BearerToken, info.URL))
+	}
 
 	mcpServer, err := newMCPServer(resources)
 	if err != nil {
-		mcpError(resources, fmt.Errorf("failed to create MCP server: %s", err), mcp.INTERNAL_ERROR)
+		mcpError(resources.Logger(), fmt.Errorf("failed to create MCP server: %s", err), mcp.INTERNAL_ERROR)
 		exit(exitCodeSetupFailure)
 	}
 	mcpSTDIOServer := server.NewStdioServer(mcpServer)
-	if err := mcpSTDIOServer.Listen(ctx, os.Stdin, os.Stdout); err != nil {
-		mcpError(resources, fmt.Errorf("failed to serve: %s", err), mcp.INTERNAL_ERROR)
+	stdinWrapper := newStdinWrapper(resources.Logger(), resources.Info.BearerToken != "", methodsWhitelist)
+	if err := mcpSTDIOServer.Listen(ctx, stdinWrapper, os.Stdout); err != nil {
+		mcpError(resources.Logger(), fmt.Errorf("failed to serve: %s", err), mcp.INTERNAL_ERROR)
 		exit(exitCodeSetupFailure)
 	}
 }
@@ -73,14 +88,16 @@ func newMCPServer(resources config.Resources) (*server.MCPServer, error) {
 	return config.NewMCPServer(resources, group), nil
 }
 
-func mcpError(resources config.Resources, err error, code int) {
+func mcpError(logger *slog.Logger, err error, code int) {
 	mcpError := mcp.NewJSONRPCError(mcp.NewRequestId("startup"), code, err.Error(), nil)
-	encoder := json.NewEncoder(os.Stdout)
-	if err := encoder.Encode(mcpError); err != nil {
-		resources.Logger().Error("failed to encode error",
+	encoded, err := json.Marshal(mcpError)
+	if err != nil {
+		logger.Error("failed to encode error",
 			slog.String("error", err.Error()),
 		)
+		return
 	}
+	fmt.Printf("%s\n", string(encoded))
 }
 
 type methodsInput []toolsets.Method
@@ -108,6 +125,46 @@ func (t *methodsInput) Set(value string) error {
 		}
 	}
 	return errs
+}
+
+type stdinWrapper struct {
+	logger           *slog.Logger
+	authenticated    bool
+	methodsWhitelist []string
+}
+
+func newStdinWrapper(logger *slog.Logger, authenticated bool, methods []string) stdinWrapper {
+	return stdinWrapper{
+		logger:           logger,
+		authenticated:    authenticated,
+		methodsWhitelist: methods,
+	}
+}
+
+func (s stdinWrapper) Read(p []byte) (n int, err error) {
+	if s.authenticated {
+		return os.Stdin.Read(p)
+	}
+	buffer := make([]byte, len(p))
+	n, err = os.Stdin.Read(buffer)
+	if err != nil {
+		return n, err
+	}
+	content := buffer[:n]
+	if len(content) == 0 {
+		return n, err
+	}
+	var baseMessage struct {
+		Method string `json:"method"`
+	}
+	if err := json.Unmarshal(content, &baseMessage); err != nil {
+		return 0, errors.New("parse error")
+	}
+	if !slices.Contains(s.methodsWhitelist, baseMessage.Method) {
+		return 0, errors.New("not authenticated")
+	}
+	copy(p, buffer)
+	return n, err
 }
 
 type exitCode int

@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/signal"
 	"regexp"
+	"slices"
 	"strings"
 	"syscall"
 	"time"
@@ -173,12 +174,40 @@ func tracerMiddleware(resources config.Resources, next http.Handler) http.Handle
 }
 
 func authMiddleware(resources config.Resources, next http.Handler) http.Handler {
+	whitelistEndpoints := map[string][]string{
+		// health checks don't require authentication
+		"/api/health": {http.MethodGet, http.MethodOptions},
+
+		// allow some protocol methods to bypass authentication
+		//
+		// https://modelcontextprotocol.io/specification/2025-06-18/basic/lifecycle
+		// https://modelcontextprotocol.io/specification/2025-06-18/server/tools#listing-tools
+		// https://modelcontextprotocol.io/specification/2025-06-18/server/resources#listing-resources
+		// https://modelcontextprotocol.io/specification/2025-06-18/server/resources#resource-templates
+		// https://modelcontextprotocol.io/specification/2025-06-18/server/prompts#listing-prompts
+		"/":                         {http.MethodPost},
+		"/tools/list":               {http.MethodPost},
+		"/resources/list":           {http.MethodPost},
+		"/resources/templates/list": {http.MethodPost},
+		"/prompts/list":             {http.MethodPost},
+	}
+
+	whitelistPrefixEndpoints := map[string][]string{
+		// OAuth2 endpoints cannot require authentication
+		"/.well-known": {"GET", "OPTIONS"},
+	}
+
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// some endpoints don't require auth
-		if (r.URL.Path == "/api/health" || strings.HasPrefix(r.URL.Path, "/.well-known")) &&
-			(r.Method == http.MethodGet || r.Method == http.MethodOptions) {
+		if methods, ok := whitelistEndpoints[r.URL.Path]; ok && slices.Contains(methods, r.Method) {
 			next.ServeHTTP(w, r)
 			return
+		}
+		for prefix, methods := range whitelistPrefixEndpoints {
+			if strings.HasPrefix(r.URL.Path, prefix) && slices.Contains(methods, r.Method) {
+				next.ServeHTTP(w, r)
+				return
+			}
 		}
 
 		requestLogger := resources.Logger().With(
