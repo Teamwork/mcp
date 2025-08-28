@@ -58,7 +58,6 @@ push-stdio:
 	  -t $(LATEST_TAG) \
 	  --push \
 	  --progress=plain \
-	  --target runner \
 	  .
 
 install:
