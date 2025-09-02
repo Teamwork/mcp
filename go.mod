@@ -7,8 +7,8 @@ require (
 	github.com/DataDog/dd-trace-go/v2 v2.2.2
 	github.com/getsentry/sentry-go v0.35.1
 	github.com/getsentry/sentry-go/slog v0.35.1
-	github.com/mark3labs/mcp-go v0.38.0
-	github.com/teamwork/twapi-go-sdk v1.1.1
+	github.com/mark3labs/mcp-go v0.39.1
+	github.com/teamwork/twapi-go-sdk v1.2.0
 )
 
 require (

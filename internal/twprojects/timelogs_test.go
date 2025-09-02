@@ -145,10 +145,15 @@ func TestTimelogList(t *testing.T) {
 	}
 	request.Params.Name = twprojects.MethodTimelogList.String()
 	request.Params.Arguments = map[string]any{
-		"tag_ids":        []float64{1, 2, 3},
-		"match_all_tags": true,
-		"page":           float64(1),
-		"page_size":      float64(10),
+		"tag_ids":              []float64{1, 2, 3},
+		"match_all_tags":       true,
+		"start_date":           "2023-01-01T00:00:00Z",
+		"end_date":             "2023-12-31T23:59:59Z",
+		"assigned_user_ids":    []float64{1, 2, 3},
+		"assigned_company_ids": []float64{4, 5, 6},
+		"assigned_team_ids":    []float64{7, 8, 9},
+		"page":                 float64(1),
+		"page_size":            float64(10),
 	}
 
 	encodedRequest, err := json.Marshal(request)
@@ -173,11 +178,16 @@ func TestTimelogListByProject(t *testing.T) {
 	}
 	request.Params.Name = twprojects.MethodTimelogListByProject.String()
 	request.Params.Arguments = map[string]any{
-		"project_id":     float64(123),
-		"tag_ids":        []float64{1, 2, 3},
-		"match_all_tags": true,
-		"page":           float64(1),
-		"page_size":      float64(10),
+		"project_id":           float64(123),
+		"tag_ids":              []float64{1, 2, 3},
+		"match_all_tags":       true,
+		"start_date":           "2023-01-01T00:00:00Z",
+		"end_date":             "2023-12-31T23:59:59Z",
+		"assigned_user_ids":    []float64{1, 2, 3},
+		"assigned_company_ids": []float64{4, 5, 6},
+		"assigned_team_ids":    []float64{7, 8, 9},
+		"page":                 float64(1),
+		"page_size":            float64(10),
 	}
 
 	encodedRequest, err := json.Marshal(request)
@@ -202,11 +212,16 @@ func TestTimelogListByTask(t *testing.T) {
 	}
 	request.Params.Name = twprojects.MethodTimelogListByTask.String()
 	request.Params.Arguments = map[string]any{
-		"task_id":        float64(123),
-		"tag_ids":        []float64{1, 2, 3},
-		"match_all_tags": true,
-		"page":           float64(1),
-		"page_size":      float64(10),
+		"task_id":              float64(123),
+		"tag_ids":              []float64{1, 2, 3},
+		"match_all_tags":       true,
+		"start_date":           "2023-01-01T00:00:00Z",
+		"end_date":             "2023-12-31T23:59:59Z",
+		"assigned_user_ids":    []float64{1, 2, 3},
+		"assigned_company_ids": []float64{4, 5, 6},
+		"assigned_team_ids":    []float64{7, 8, 9},
+		"page":                 float64(1),
+		"page_size":            float64(10),
 	}
 
 	encodedRequest, err := json.Marshal(request)
