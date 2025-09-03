@@ -92,6 +92,8 @@ func DefaultToolsetGroup(readOnly, allowDelete bool, engine *twapi.Engine) *tool
 			TimelogListByTask(engine),
 			TimerGet(engine),
 			TimerList(engine),
+			ActivityList(engine),
+			ActivityListByProject(engine),
 		))
 	return group
 }
