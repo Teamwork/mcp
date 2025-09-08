@@ -4,7 +4,7 @@ go 1.24.2
 
 require (
 	github.com/DataDog/dd-trace-go/contrib/net/http/v2 v2.2.2
-	github.com/DataDog/dd-trace-go/v2 v2.2.2
+	github.com/DataDog/dd-trace-go/v2 v2.2.3
 	github.com/getsentry/sentry-go v0.35.1
 	github.com/getsentry/sentry-go/slog v0.35.1
 	github.com/mark3labs/mcp-go v0.39.1
@@ -16,7 +16,7 @@ require (
 	github.com/DataDog/datadog-agent/comp/core/tagger/origindetection v0.67.0 // indirect
 	github.com/DataDog/datadog-agent/pkg/obfuscate v0.67.0 // indirect
 	github.com/DataDog/datadog-agent/pkg/proto v0.67.0 // indirect
-	github.com/DataDog/datadog-agent/pkg/remoteconfig/state v0.67.0 // indirect
+	github.com/DataDog/datadog-agent/pkg/remoteconfig/state v0.69.0 // indirect
 	github.com/DataDog/datadog-agent/pkg/trace v0.67.0 // indirect
 	github.com/DataDog/datadog-agent/pkg/util/log v0.67.0 // indirect
 	github.com/DataDog/datadog-agent/pkg/util/scrubber v0.67.0 // indirect
