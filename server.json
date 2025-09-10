@@ -7,7 +7,7 @@
     "url": "https://github.com/teamwork/mcp",
     "source": "github"
   },
-  "version": "1.2.0",
+  "version": "1.0.0",
   "remotes": [
     {
       "type": "sse",
@@ -39,7 +39,7 @@
       "registry_type": "oci",
       "registry_base_url": "https://docker.io",
       "identifier": "teamwork/mcp",
-      "version": "v1.2.0",
+      "version": "v1.0.0",
       "transport": {
         "type": "stdio"
       },
