@@ -1,0 +1,60 @@
+# GitHub Actions workflow to publish to MCP Registry:
+# https://github.com/modelcontextprotocol/registry/blob/72f9f80d680f2e88309f4025106d5f44124b359f/docs/guides/publishing/github-actions.md
+
+name: Publish to MCP Registry
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+env:
+  GO_VERSION: "1.24.x"
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Check version
+        id: check_version
+        run: |
+          tag_version="${GITHUB_REF#refs/tags/v}"
+          server_version=$(jq -r .version server.json)
+          if [[ "$tag_version" != "$server_version" ]]; then
+            echo "❌ Tag $tag_version does not match server.json version $server_version" >> $GITHUB_STEP_SUMMARY
+            echo "proceed=false" >> $GITHUB_OUTPUT
+          else
+            echo "✅ Tag $tag_version matches server.json version $server_version" >> $GITHUB_STEP_SUMMARY
+            echo "proceed=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Set up Go
+        if: steps.check_version.outputs.proceed == 'true'
+        uses: actions/setup-go@v6
+        with:
+          go-version: ${{ env.GO_VERSION }}
+
+      - name: Install MCP Publisher
+        if: steps.check_version.outputs.proceed == 'true'
+        run: |
+          git clone https://github.com/modelcontextprotocol/registry publisher-repo
+          cd publisher-repo
+          make publisher
+          cp cmd/publisher/bin/mcp-publisher ../mcp-publisher
+          cd ..
+          chmod +x mcp-publisher
+
+      - name: Login to MCP Registry
+        if: steps.check_version.outputs.proceed == 'true'
+        run: ./mcp-publisher login github-oidc
+
+      - name: Publish to MCP Registry
+        if: steps.check_version.outputs.proceed == 'true'
+        run: ./mcp-publisher publish

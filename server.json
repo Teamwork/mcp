@@ -1,0 +1,71 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-07-09/server.schema.json",
+  "name": "io.github.teamwork/mcp",
+  "description": "The Teamwork.com official MCP server helps teams efficiently manage client projects with AI.",
+  "status": "active",
+  "repository": {
+    "url": "https://github.com/teamwork/mcp",
+    "source": "github"
+  },
+  "version": "1.2.0",
+  "remotes": [
+    {
+      "type": "sse",
+      "url": "https://mcp.ai.teamwork.com",
+      "headers": [
+        {
+          "name": "Authorization",
+          "description": "API key generated from the Teamwork.com OAuth2 process: https://apidocs.teamwork.com/guides/teamwork/app-login-flow",
+          "is_required": true,
+          "is_secret": true
+        }
+      ]
+    },
+    {
+      "type": "streamable-http",
+      "url": "https://mcp.ai.teamwork.com",
+      "headers": [
+        {
+          "name": "Authorization",
+          "description": "API key generated from the Teamwork.com OAuth2 process: https://apidocs.teamwork.com/guides/teamwork/app-login-flow",
+          "is_required": true,
+          "is_secret": true
+        }
+      ]
+    }
+  ],
+  "packages": [
+    {
+      "registry_type": "oci",
+      "registry_base_url": "https://docker.io",
+      "identifier": "teamwork/mcp",
+      "version": "v1.2.0",
+      "transport": {
+        "type": "stdio"
+      },
+      "environment_variables": [
+        {
+          "description": "API key generated from the Teamwork.com OAuth2 process: https://apidocs.teamwork.com/guides/teamwork/app-login-flow",
+          "is_required": true,
+          "format": "string",
+          "is_secret": true,
+          "name": "TW_MCP_BEARER_TOKEN"
+        },
+        {
+          "description": "Choose log output format between 'text' or 'json'. Default is 'text'.",
+          "is_required": false,
+          "format": "string",
+          "is_secret": false,
+          "name": "TW_MCP_LOG_FORMAT"
+        },
+        {
+          "description": "Choose log level between 'debug', 'info', 'warn' or 'error'. Default is 'info'.",
+          "is_required": false,
+          "format": "string",
+          "is_secret": false,
+          "name": "TW_MCP_LOG_LEVEL"
+        }
+      ]
+    }
+  ]
+}
