@@ -1,6 +1,6 @@
 {
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-07-09/server.schema.json",
-  "name": "io.github.teamwork/mcp",
+  "name": "io.github.Teamwork/mcp",
   "description": "The Teamwork.com official MCP server helps teams efficiently manage client projects with AI.",
   "status": "active",
   "repository": {
