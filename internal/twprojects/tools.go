@@ -35,6 +35,11 @@ func DefaultToolsetGroup(readOnly, allowDelete bool, engine *twapi.Engine) *tool
 		TimerPause(engine),
 		TimerResume(engine),
 		TimerComplete(engine),
+		RateInstallationUserUpdate(engine),
+		RateInstallationUserBulkUpdate(engine),
+		RateProjectUpdate(engine),
+		RateProjectAndUsersUpdate(engine),
+		RateProjectUserUpdate(engine),
 	}
 	if allowDelete {
 		writeTools = append(writeTools, []server.ServerTool{
@@ -94,6 +99,13 @@ func DefaultToolsetGroup(readOnly, allowDelete bool, engine *twapi.Engine) *tool
 			TimerList(engine),
 			ActivityList(engine),
 			ActivityListByProject(engine),
+			RateUserGet(engine),
+			RateInstallationUserList(engine),
+			RateInstallationUserGet(engine),
+			RateProjectGet(engine),
+			RateProjectUserList(engine),
+			RateProjectUserGet(engine),
+			RateProjectUserHistoryGet(engine),
 		))
 	return group
 }
