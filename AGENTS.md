@@ -4,7 +4,7 @@ A concise guide for AI coding agents working on this repository. It complements 
 
 ## Project overview
 - Language/runtime: Go 1.25+
-- Purpose: Model Context Protocol (MCP) server for Teamwork.com with HTTP and STDIO transports, plus a small HTTP CLI.
+- Purpose: Model Context Protocol (MCP) server for Teamwork.com with HTTP, STDIO transports and HTTP CLI.
 - Main entry points:
   - STDIO server: `cmd/mcp-stdio/main.go`
   - HTTP server: `cmd/mcp-http/main.go`
