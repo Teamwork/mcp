@@ -58,7 +58,7 @@ LABEL org.label-schema.build-date=$BUILD_DATE \
       org.label-schema.vcs-ref=$BUILD_VCS_REF \
       org.label-schema.vendor="Teamwork.com" \
       org.label-schema.version=$BUILD_VERSION \
-      io.modelcontextprotocol.server.name="io.github.teamwork/mcp"
+      io.modelcontextprotocol.server.name="com.teamwork/mcp"
 
 ENTRYPOINT [ "/bin/tw-mcp-http" ]
 
