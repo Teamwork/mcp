@@ -3,7 +3,7 @@
 A concise guide for AI coding agents working on this repository. It complements `README.md` with machine-actionable build, test, run, and convention notes.
 
 ## Project overview
-- Language/runtime: Go 1.25+
+- Language/runtime: Go 1.25 or newer
 - Purpose: Model Context Protocol (MCP) server for Teamwork.com with HTTP, STDIO transports and HTTP CLI.
 - Main entry points:
   - STDIO server: `cmd/mcp-stdio/main.go`
