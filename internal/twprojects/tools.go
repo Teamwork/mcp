@@ -69,6 +69,7 @@ func DefaultToolsetGroup(readOnly, allowDelete bool, engine *twapi.Engine) *tool
 			UserGetMe(engine),
 			UserList(engine),
 			UserListByProject(engine),
+			UsersWorkload(engine),
 			MilestoneGet(engine),
 			MilestoneList(engine),
 			MilestoneListByProject(engine),
