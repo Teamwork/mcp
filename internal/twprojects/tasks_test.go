@@ -32,12 +32,23 @@ func TestTaskCreate(t *testing.T) {
 		"start_date":        "2023-10-01",
 		"due_date":          "2023-10-15",
 		"estimated_minutes": float64(120),
+		"parent_task_id":    float64(456),
 		"assignees": map[string]any{
 			"user_ids":    []float64{1, 2, 3},
 			"team_ids":    []float64{4, 5},
 			"company_ids": []float64{6, 7},
 		},
 		"tag_ids": []float64{1, 2, 3},
+		"predecessors": []map[string]any{
+			{
+				"task_id": float64(456),
+				"type":    "start",
+			},
+			{
+				"task_id": float64(789),
+				"type":    "complete",
+			},
+		},
 	}
 
 	encodedRequest, err := json.Marshal(request)
@@ -71,12 +82,23 @@ func TestTaskUpdate(t *testing.T) {
 		"start_date":        "2023-10-01",
 		"due_date":          "2023-10-15",
 		"estimated_minutes": float64(120),
+		"parent_task_id":    float64(456),
 		"assignees": map[string]any{
 			"user_ids":    []float64{1, 2, 3},
 			"team_ids":    []float64{4, 5},
 			"company_ids": []float64{6, 7},
 		},
 		"tag_ids": []float64{1, 2, 3},
+		"predecessors": []map[string]any{
+			{
+				"task_id": float64(456),
+				"type":    "start",
+			},
+			{
+				"task_id": float64(789),
+				"type":    "complete",
+			},
+		},
 	}
 
 	encodedRequest, err := json.Marshal(request)

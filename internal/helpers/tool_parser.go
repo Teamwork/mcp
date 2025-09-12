@@ -100,7 +100,22 @@ func param[T any](
 	}
 	v, ok := value.(T)
 	if !ok {
-		return fmt.Errorf("invalid type for %s: expected %T, got %T", key, *target, value)
+		// attempt to convert from string if the type is only an alias of string and
+		// the value is a string
+		var fallback bool
+		if vStr, okStr := value.(string); okStr {
+			vv := reflect.ValueOf(value)
+			if vv.Kind() == reflect.Pointer {
+				vv = vv.Elem()
+			}
+			if vv.Kind() == reflect.String {
+				v = reflect.ValueOf(vStr).Convert(reflect.TypeOf(v)).Interface().(T)
+				fallback = true
+			}
+		}
+		if !fallback {
+			return fmt.Errorf("invalid type for %s: expected %T, got %T", key, *target, value)
+		}
 	}
 	for _, middleware := range middlewares {
 		var err error

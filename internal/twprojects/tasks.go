@@ -77,6 +77,9 @@ func TaskCreate(engine *twapi.Engine) server.ServerTool {
 			mcp.WithNumber("estimated_minutes",
 				mcp.Description("The estimated time to complete the task in minutes."),
 			),
+			mcp.WithNumber("parent_task_id",
+				mcp.Description("The ID of the parent task if creating a subtask."),
+			),
 			mcp.WithObject("assignees",
 				mcp.Description("An object containing assignees for the task."),
 				mcp.Properties(map[string]any{
@@ -116,6 +119,26 @@ func TaskCreate(engine *twapi.Engine) server.ServerTool {
 					"type": "integer",
 				}),
 			),
+			mcp.WithArray("predecessors",
+				mcp.Description("List of task dependencies that must be completed before this task can start, defining its "+
+					"position in the project workflow and ensuring proper sequencing of work."),
+				mcp.Items(map[string]any{
+					"type": "object",
+					"properties": map[string]any{
+						"task_id": map[string]any{
+							"type":        "integer",
+							"description": "The ID of the predecessor task.",
+						},
+						"type": map[string]any{
+							"type": "string",
+							"description": "The type of dependency. Possible values are: start or complete. 'start' means this " +
+								"task can complete when the predecessor starts, 'complete' means this task can complete when the " +
+								"predecessor is completed.",
+							"enum": []string{"start", "complete"},
+						},
+					},
+				}),
+			),
 		),
 		Handler: func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 			var taskCreateRequest projects.TaskCreateRequest
@@ -131,6 +154,7 @@ func TaskCreate(engine *twapi.Engine) server.ServerTool {
 				helpers.OptionalDatePointerParam(&taskCreateRequest.StartAt, "start_date"),
 				helpers.OptionalDatePointerParam(&taskCreateRequest.DueAt, "due_date"),
 				helpers.OptionalNumericPointerParam(&taskCreateRequest.EstimatedMinutes, "estimated_minutes"),
+				helpers.OptionalNumericPointerParam(&taskCreateRequest.ParentTaskID, "parent_task_id"),
 				helpers.OptionalNumericListParam(&taskCreateRequest.TagIDs, "tag_ids"),
 			)
 			if err != nil {
@@ -152,6 +176,36 @@ func TaskCreate(engine *twapi.Engine) server.ServerTool {
 					if err != nil {
 						return nil, fmt.Errorf("invalid assignees: %w", err)
 					}
+				}
+			}
+
+			if predecessors, ok := request.GetArguments()["predecessors"]; ok {
+				predecessorsSlice, ok := predecessors.([]any)
+				if !ok {
+					return nil, fmt.Errorf("invalid predecessors")
+				}
+
+				for _, predecessor := range predecessorsSlice {
+					predecessorMap, ok := predecessor.(map[string]any)
+					if !ok {
+						return nil, fmt.Errorf("invalid predecessor")
+					}
+
+					var p projects.TaskPredecessor
+					err = helpers.ParamGroup(predecessorMap,
+						helpers.RequiredNumericParam(&p.ID, "task_id"),
+						helpers.RequiredParam(&p.Type, "type",
+							helpers.RestrictValues(
+								projects.TaskPredecessorTypeStart,
+								projects.TaskPredecessorTypeFinish,
+							),
+						),
+					)
+					if err != nil {
+						return nil, fmt.Errorf("invalid predecessor: %w", err)
+					}
+
+					taskCreateRequest.Predecessors = append(taskCreateRequest.Predecessors, p)
 				}
 			}
 
@@ -199,6 +253,9 @@ func TaskUpdate(engine *twapi.Engine) server.ServerTool {
 			mcp.WithNumber("estimated_minutes",
 				mcp.Description("The estimated time to complete the task in minutes."),
 			),
+			mcp.WithNumber("parent_task_id",
+				mcp.Description("The ID of the parent task if creating a subtask."),
+			),
 			mcp.WithObject("assignees",
 				mcp.Description("An object containing assignees for the task."),
 				mcp.Properties(map[string]any{
@@ -238,6 +295,26 @@ func TaskUpdate(engine *twapi.Engine) server.ServerTool {
 					"type": "integer",
 				}),
 			),
+			mcp.WithArray("predecessors",
+				mcp.Description("List of task dependencies that must be completed before this task can start, defining its "+
+					"position in the project workflow and ensuring proper sequencing of work."),
+				mcp.Items(map[string]any{
+					"type": "object",
+					"properties": map[string]any{
+						"task_id": map[string]any{
+							"type":        "integer",
+							"description": "The ID of the predecessor task.",
+						},
+						"type": map[string]any{
+							"type": "string",
+							"description": "The type of dependency. Possible values are: start or complete. 'start' means this " +
+								"task can complete when the predecessor starts, 'complete' means this task can complete when the " +
+								"predecessor is completed.",
+							"enum": []string{"start", "complete"},
+						},
+					},
+				}),
+			),
 		),
 		Handler: func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 			var taskUpdateRequest projects.TaskUpdateRequest
@@ -254,6 +331,7 @@ func TaskUpdate(engine *twapi.Engine) server.ServerTool {
 				helpers.OptionalDatePointerParam(&taskUpdateRequest.StartAt, "start_date"),
 				helpers.OptionalDatePointerParam(&taskUpdateRequest.DueAt, "due_date"),
 				helpers.OptionalNumericPointerParam(&taskUpdateRequest.EstimatedMinutes, "estimated_minutes"),
+				helpers.OptionalNumericPointerParam(&taskUpdateRequest.ParentTaskID, "parent_task_id"),
 				helpers.OptionalNumericListParam(&taskUpdateRequest.TagIDs, "tag_ids"),
 			)
 			if err != nil {
@@ -275,6 +353,43 @@ func TaskUpdate(engine *twapi.Engine) server.ServerTool {
 					if err != nil {
 						return nil, fmt.Errorf("invalid assignees: %w", err)
 					}
+				}
+			}
+
+			if predecessors, ok := request.GetArguments()["predecessors"]; ok {
+				predecessorsSlice, ok := predecessors.([]any)
+				if !ok {
+					return nil, fmt.Errorf("invalid predecessors")
+				}
+
+				for _, predecessor := range predecessorsSlice {
+					predecessorMap, ok := predecessor.(map[string]any)
+					if !ok {
+						return nil, fmt.Errorf("invalid predecessor")
+					}
+
+					var p projects.TaskPredecessor
+					err = helpers.ParamGroup(predecessorMap,
+						helpers.RequiredNumericParam(&p.ID, "task_id"),
+						helpers.RequiredParam(&p.Type, "type",
+							func(typ *projects.TaskPredecessorType) (bool, error) {
+								if typ == nil {
+									return false, nil
+								}
+								switch *typ {
+								case projects.TaskPredecessorTypeStart, projects.TaskPredecessorTypeFinish:
+									return true, nil
+								default:
+									return false, fmt.Errorf("invalid type: %s", *typ)
+								}
+							},
+						),
+					)
+					if err != nil {
+						return nil, fmt.Errorf("invalid predecessor: %w", err)
+					}
+
+					taskUpdateRequest.Predecessors = append(taskUpdateRequest.Predecessors, p)
 				}
 			}
 
