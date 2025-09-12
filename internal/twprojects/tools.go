@@ -35,6 +35,8 @@ func DefaultToolsetGroup(readOnly, allowDelete bool, engine *twapi.Engine) *tool
 		TimerPause(engine),
 		TimerResume(engine),
 		TimerComplete(engine),
+		NotebookCreate(engine),
+		NotebookUpdate(engine),
 	}
 	if allowDelete {
 		writeTools = append(writeTools, []server.ServerTool{
@@ -49,6 +51,7 @@ func DefaultToolsetGroup(readOnly, allowDelete bool, engine *twapi.Engine) *tool
 			CommentDelete(engine),
 			TimelogDelete(engine),
 			TimerDelete(engine),
+			NotebookDelete(engine),
 		}...)
 	}
 
@@ -95,6 +98,8 @@ func DefaultToolsetGroup(readOnly, allowDelete bool, engine *twapi.Engine) *tool
 			TimerList(engine),
 			ActivityList(engine),
 			ActivityListByProject(engine),
+			NotebookGet(engine),
+			NotebookList(engine),
 		))
 	return group
 }
