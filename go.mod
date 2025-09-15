@@ -8,7 +8,7 @@ require (
 	github.com/getsentry/sentry-go v0.35.3
 	github.com/getsentry/sentry-go/slog v0.35.3
 	github.com/mark3labs/mcp-go v0.39.1
-	github.com/teamwork/twapi-go-sdk v1.3.1
+	github.com/teamwork/twapi-go-sdk v1.4.0
 )
 
 require (
