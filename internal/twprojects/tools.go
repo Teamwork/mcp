@@ -100,6 +100,7 @@ func DefaultToolsetGroup(readOnly, allowDelete bool, engine *twapi.Engine) *tool
 			ActivityListByProject(engine),
 			NotebookGet(engine),
 			NotebookList(engine),
+			IndustryList(engine),
 		))
 	return group
 }
