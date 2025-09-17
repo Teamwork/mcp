@@ -36,14 +36,15 @@ func main() {
 		resources.Logger().Error("MCP URL is required")
 		exit(exitCodeSetupFailure)
 	}
-	if *mcpToken == "" {
-		resources.Logger().Error("MCP token is required")
-		exit(exitCodeSetupFailure)
+
+	var options []transport.StreamableHTTPCOption
+	if *mcpToken != "" {
+		options = append(options, transport.WithHTTPHeaders(map[string]string{
+			"Authorization": "Bearer " + *mcpToken,
+		}))
 	}
 
-	mcpTransport, err := transport.NewStreamableHTTP(*mcpURL, transport.WithHTTPHeaders(map[string]string{
-		"Authorization": "Bearer " + *mcpToken,
-	}))
+	mcpTransport, err := transport.NewStreamableHTTP(*mcpURL, options...)
 	if err != nil {
 		resources.Logger().Error("failed to create MCP transport",
 			slog.String("error", err.Error()),

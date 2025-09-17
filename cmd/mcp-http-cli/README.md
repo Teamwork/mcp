@@ -41,10 +41,7 @@ This CLI tool is designed for:
 
 ```bash
 # List all available tools
-go run cmd/mcp-http-cli/main.go \
-  -mcp-url=https://my-mcp.example.com \
-  -mcp-token=your-bearer-token \
-  list-tools
+go run cmd/mcp-http-cli/main.go list-tools
 
 # Call a tool without parameters
 go run cmd/mcp-http-cli/main.go \
