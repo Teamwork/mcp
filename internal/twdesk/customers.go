@@ -201,8 +201,9 @@ func CustomerUpdate(client *deskclient.Client) server.ServerTool {
 	return server.ServerTool{
 		Tool: mcp.NewTool(string(MethodCustomerUpdate),
 			mcp.WithDescription(
-				"Update an existing customer in Teamwork Desk by ID, allowing changes to their name, contact details, and other attributes. "+
-					"Supports evolving business relationships, correcting customer records, or improving ticket handling."),
+				"Update an existing customer in Teamwork Desk by ID, allowing changes to their name, "+
+					"contact details, and other attributes. Supports evolving business relationships, "+
+					"correcting customer records, or improving ticket handling."),
 			mcp.WithString("id",
 				mcp.Required(),
 				mcp.Description("The ID of the customer to update."),

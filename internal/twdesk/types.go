@@ -135,8 +135,9 @@ func TypeUpdate(client *deskclient.Client) server.ServerTool {
 	return server.ServerTool{
 		Tool: mcp.NewTool(string(MethodTypeUpdate),
 			mcp.WithDescription(
-				"Update an existing ticket type in Teamwork Desk by ID, allowing changes to its name, display order, and future inbox settings. "+
-					"Supports evolving support policies, rebranding, or correcting type attributes for improved "+
+				"Update an existing ticket type in Teamwork Desk by ID, allowing changes to its name, display order, "+
+					"and future inbox settings. Supports evolving support policies, rebranding, or correcting "+
+					"type attributes for improved "+
 					"ticket handling."),
 			mcp.WithString("id",
 				mcp.Required(),
