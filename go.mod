@@ -9,6 +9,7 @@ require (
 	github.com/getsentry/sentry-go/slog v0.35.3
 	github.com/mark3labs/mcp-go v0.39.1
 	github.com/teamwork/twapi-go-sdk v1.4.0
+	github.com/teamwork/desksdkgo v0.0.0-20250814193340-a4429f1f7c89
 )
 
 require (
@@ -59,6 +60,7 @@ require (
 	github.com/puzpuzpuz/xsync/v3 v3.5.1 // indirect
 	github.com/secure-systems-lab/go-securesystemslib v0.9.0 // indirect
 	github.com/shirou/gopsutil/v4 v4.25.3 // indirect
+	github.com/sirupsen/logrus v1.9.3 // indirect
 	github.com/spf13/cast v1.7.1 // indirect
 	github.com/tinylib/msgp v1.2.5 // indirect
 	github.com/tklauser/go-sysconf v0.3.14 // indirect

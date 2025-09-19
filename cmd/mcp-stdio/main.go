@@ -16,6 +16,7 @@ import (
 	"github.com/teamwork/mcp/internal/auth"
 	"github.com/teamwork/mcp/internal/config"
 	"github.com/teamwork/mcp/internal/toolsets"
+	"github.com/teamwork/mcp/internal/twdesk"
 	"github.com/teamwork/mcp/internal/twprojects"
 	"github.com/teamwork/twapi-go-sdk/session"
 )
@@ -67,11 +68,17 @@ func main() {
 }
 
 func newMCPServer(resources config.Resources) (*server.MCPServer, error) {
-	group := twprojects.DefaultToolsetGroup(readOnly, false, resources.TeamworkEngine())
-	if err := group.EnableToolsets(methods...); err != nil {
-		return nil, fmt.Errorf("failed to enable toolsets: %w", err)
+	projectsGroup := twprojects.DefaultToolsetGroup(readOnly, false, resources.TeamworkEngine())
+	if err := projectsGroup.EnableToolsets(methods...); err != nil {
+		return nil, fmt.Errorf("failed to enable projects toolsets: %w", err)
 	}
-	return config.NewMCPServer(resources, group), nil
+
+	deskGroup := twdesk.DefaultToolsetGroup(resources.DeskClient())
+	if err := deskGroup.EnableToolsets(methods...); err != nil {
+		return nil, fmt.Errorf("failed to enable desk toolsets: %w", err)
+	}
+
+	return config.NewMCPServer(resources, projectsGroup, deskGroup), nil
 }
 
 func mcpError(logger *slog.Logger, err error, code int) {
