@@ -29,7 +29,10 @@ func init() {
 func UserGet(client *deskclient.Client) server.ServerTool {
 	return server.ServerTool{
 		Tool: mcp.NewTool(string(MethodUserGet),
-			mcp.WithDescription("Retrieve detailed information about a specific user in Teamwork Desk by their ID. Useful for auditing user records, troubleshooting ticket assignments, or integrating Desk user data into automation workflows."),
+			mcp.WithDescription(
+				"Retrieve detailed information about a specific user in Teamwork Desk by their ID. "+
+					"Useful for auditing user records, troubleshooting ticket assignments, or "+
+					"integrating Desk user data into automation workflows."),
 			mcp.WithReadOnlyHintAnnotation(true),
 			mcp.WithString("id",
 				mcp.Required(),
@@ -50,7 +53,10 @@ func UserGet(client *deskclient.Client) server.ServerTool {
 // UserList returns a list of users that apply to the filters in Teamwork Desk
 func UserList(client *deskclient.Client) server.ServerTool {
 	opts := []mcp.ToolOption{
-		mcp.WithDescription("List all users in Teamwork Desk, with optional filters for name, email, inbox, and part-time status. Enables users to audit, analyze, or synchronize user configurations for support management, reporting, or integration scenarios."),
+		mcp.WithDescription(
+			"List all users in Teamwork Desk, with optional filters for name, email, inbox, and part-time status. " +
+				"Enables users to audit, analyze, or synchronize user configurations for support management, " +
+				"reporting, or integration scenarios."),
 		mcp.WithReadOnlyHintAnnotation(true),
 		mcp.WithArray("firstName", mcp.Description("The first names of the users to filter by.")),
 		mcp.WithArray("lastName", mcp.Description("The last names of the users to filter by.")),

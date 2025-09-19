@@ -34,7 +34,10 @@ func init() {
 func PriorityGet(client *deskclient.Client) server.ServerTool {
 	return server.ServerTool{
 		Tool: mcp.NewTool(string(MethodPriorityGet),
-			mcp.WithDescription("Retrieve detailed information about a specific priority in Teamwork Desk by its ID. Useful for inspecting priority attributes, troubleshooting ticket routing, or integrating Desk priority data into automation workflows."),
+			mcp.WithDescription(
+				"Retrieve detailed information about a specific priority in Teamwork Desk by its ID. "+
+					"Useful for inspecting priority attributes, troubleshooting ticket routing, or "+
+					"integrating Desk priority data into automation workflows."),
 			mcp.WithReadOnlyHintAnnotation(true),
 			mcp.WithString("id",
 				mcp.Required(),
@@ -55,7 +58,10 @@ func PriorityGet(client *deskclient.Client) server.ServerTool {
 // PriorityList returns a list of priorities that apply to the filters in Teamwork Desk
 func PriorityList(client *deskclient.Client) server.ServerTool {
 	opts := []mcp.ToolOption{
-		mcp.WithDescription("List all available priorities in Teamwork Desk, with optional filters for name and color. Enables users to audit, analyze, or synchronize priority configurations for ticket management, reporting, or integration scenarios."),
+		mcp.WithDescription(
+			"List all available priorities in Teamwork Desk, with optional filters for name and color. " +
+				"Enables users to audit, analyze, or synchronize priority configurations for ticket management, " +
+				"reporting, or integration scenarios."),
 		mcp.WithReadOnlyHintAnnotation(true),
 		mcp.WithArray("name", mcp.Description("The name of the priority to filter by.")),
 		mcp.WithArray("color", mcp.Description("The color of the priority to filter by.")),
@@ -95,7 +101,9 @@ func PriorityList(client *deskclient.Client) server.ServerTool {
 func PriorityCreate(client *deskclient.Client) server.ServerTool {
 	return server.ServerTool{
 		Tool: mcp.NewTool(string(MethodPriorityCreate),
-			mcp.WithDescription("Create a new priority in Teamwork Desk by specifying its name and color. Useful for customizing ticket workflows, introducing new escalation levels, or adapting Desk to evolving support processes."),
+			mcp.WithDescription(
+				"Create a new priority in Teamwork Desk by specifying its name and color. Useful for customizing "+
+					"ticket workflows, introducing new escalation levels, or adapting Desk to evolving support processes."),
 			mcp.WithString("name",
 				mcp.Required(),
 				mcp.Description("The name of the priority."),
@@ -124,7 +132,10 @@ func PriorityCreate(client *deskclient.Client) server.ServerTool {
 func PriorityUpdate(client *deskclient.Client) server.ServerTool {
 	return server.ServerTool{
 		Tool: mcp.NewTool(string(MethodPriorityUpdate),
-			mcp.WithDescription("Update an existing priority in Teamwork Desk by ID, allowing changes to its name and color. Supports evolving support policies, rebranding, or correcting priority attributes for improved ticket handling."),
+			mcp.WithDescription(
+				"Update an existing priority in Teamwork Desk by ID, allowing changes to its name and color. "+
+					"Supports evolving support policies, rebranding, or correcting priority attributes for improved "+
+					"ticket handling."),
 			mcp.WithString("id",
 				mcp.Required(),
 				mcp.Description("The ID of the priority to update."),

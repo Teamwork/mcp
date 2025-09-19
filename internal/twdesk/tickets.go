@@ -36,7 +36,10 @@ func init() {
 func TicketGet(client *deskclient.Client) server.ServerTool {
 	return server.ServerTool{
 		Tool: mcp.NewTool(string(MethodTicketGet),
-			mcp.WithDescription("Retrieve detailed information about a specific ticket in Teamwork Desk by its ID. Useful for auditing ticket records, troubleshooting support workflows, or integrating Desk ticket data into automation and reporting systems."),
+			mcp.WithDescription(
+				"Retrieve detailed information about a specific ticket in Teamwork Desk by its ID. "+
+					"Useful for auditing ticket records, troubleshooting support workflows, or "+
+					"integrating Desk ticket data into automation and reporting systems."),
 			mcp.WithReadOnlyHintAnnotation(true),
 			mcp.WithString("id",
 				mcp.Required(),
@@ -64,7 +67,10 @@ func TicketGet(client *deskclient.Client) server.ServerTool {
 // TicketList returns a list of tickets that apply to the filters in Teamwork Desk
 func TicketList(client *deskclient.Client) server.ServerTool {
 	opts := []mcp.ToolOption{
-		mcp.WithDescription("List all tickets in Teamwork Desk, with extensive filters for inbox, customer, company, tag, status, priority, SLA, user, and more. Enables users to audit, analyze, or synchronize ticket data for support management, reporting, or integration scenarios."),
+		mcp.WithDescription(
+			"List all tickets in Teamwork Desk, with extensive filters for inbox, customer, company, tag, status, " +
+				"priority, SLA, user, and more. Enables users to audit, analyze, or synchronize ticket data for support " +
+				"management, reporting, or integration scenarios."),
 		mcp.WithReadOnlyHintAnnotation(true),
 		mcp.WithArray("inboxIDs", mcp.Description("The IDs of the inboxes to filter by.")),
 		mcp.WithArray("customerIDs", mcp.Description("The IDs of the customers to filter by.")),
@@ -167,7 +173,9 @@ func TicketList(client *deskclient.Client) server.ServerTool {
 func TicketCreate(client *deskclient.Client) server.ServerTool {
 	return server.ServerTool{
 		Tool: mcp.NewTool(string(MethodTicketCreate),
-			mcp.WithDescription("Create a new ticket in Teamwork Desk by specifying subject, description, priority, and status. Useful for automating ticket creation, integrating external systems, or customizing support workflows."),
+			mcp.WithDescription(
+				"Create a new ticket in Teamwork Desk by specifying subject, description, priority, and status. "+
+					"Useful for automating ticket creation, integrating external systems, or customizing support workflows."),
 			mcp.WithString("subject", mcp.Required(), mcp.Description("The subject of the ticket.")),
 			mcp.WithString("description", mcp.Description("The description of the ticket.")),
 			mcp.WithString("priority", mcp.Description("The priority of the ticket.")),
@@ -192,7 +200,10 @@ func TicketCreate(client *deskclient.Client) server.ServerTool {
 func TicketUpdate(client *deskclient.Client) server.ServerTool {
 	return server.ServerTool{
 		Tool: mcp.NewTool(string(MethodTicketUpdate),
-			mcp.WithDescription("Update an existing ticket in Teamwork Desk by ID, allowing changes to its attributes. Supports evolving support processes, correcting ticket records, or integrating with automation systems for improved ticket handling."),
+			mcp.WithDescription(
+				"Update an existing ticket in Teamwork Desk by ID, allowing changes to its attributes. "+
+					"Supports evolving support processes, correcting ticket records, or integrating with automation "+
+					"systems for improved ticket handling."),
 			mcp.WithString("id",
 				mcp.Required(),
 				mcp.Description("The ID of the ticket to update."),

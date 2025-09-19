@@ -34,7 +34,10 @@ func init() {
 func CompanyGet(client *deskclient.Client) server.ServerTool {
 	return server.ServerTool{
 		Tool: mcp.NewTool(string(MethodCompanyGet),
-			mcp.WithDescription("Retrieve detailed information about a specific company in Teamwork Desk by its ID. Useful for auditing company records, troubleshooting ticket associations, or integrating Desk company data into automation workflows."),
+			mcp.WithDescription(
+				"Retrieve detailed information about a specific company in Teamwork Desk by its ID. "+
+					"Useful for auditing company records, troubleshooting ticket associations, or "+
+					"integrating Desk company data into automation workflows."),
 			mcp.WithReadOnlyHintAnnotation(true),
 			mcp.WithString("id",
 				mcp.Required(),
@@ -55,7 +58,10 @@ func CompanyGet(client *deskclient.Client) server.ServerTool {
 // CompanyList returns a list of companies that apply to the filters in Teamwork Desk
 func CompanyList(client *deskclient.Client) server.ServerTool {
 	opts := []mcp.ToolOption{
-		mcp.WithDescription("List all companies in Teamwork Desk, with optional filters for name, domains, and kind. Enables users to audit, analyze, or synchronize company configurations for ticket management, reporting, or integration scenarios."),
+		mcp.WithDescription(
+			"List all companies in Teamwork Desk, with optional filters for name, domains, and kind. " +
+				"Enables users to audit, analyze, or synchronize company configurations for ticket management, " +
+				"reporting, or integration scenarios."),
 		mcp.WithReadOnlyHintAnnotation(true),
 		mcp.WithString("name", mcp.Description("The name of the company to filter by.")),
 		mcp.WithArray("domains", mcp.Description("The domains of the company to filter by.")),
@@ -103,7 +109,10 @@ func CompanyList(client *deskclient.Client) server.ServerTool {
 func CompanyCreate(client *deskclient.Client) server.ServerTool {
 	return server.ServerTool{
 		Tool: mcp.NewTool(string(MethodCompanyCreate),
-			mcp.WithDescription("Create a new company in Teamwork Desk by specifying its name, domains, and other attributes. Useful for onboarding new organizations, customizing Desk for business relationships, or adapting support processes."),
+			mcp.WithDescription(
+				"Create a new company in Teamwork Desk by specifying its name, domains, and other attributes. "+
+					"Useful for onboarding new organizations, customizing Desk for business relationships, or "+
+					"adapting support processes."),
 			mcp.WithString("id",
 				mcp.Required(),
 				mcp.Description("The ID of the company to update."),
@@ -176,7 +185,10 @@ func CompanyCreate(client *deskclient.Client) server.ServerTool {
 func CompanyUpdate(client *deskclient.Client) server.ServerTool {
 	return server.ServerTool{
 		Tool: mcp.NewTool(string(MethodCompanyUpdate),
-			mcp.WithDescription("Update an existing company in Teamwork Desk by ID, allowing changes to its name, domains, and other attributes. Supports evolving business relationships, rebranding, or correcting company records for improved ticket handling."),
+			mcp.WithDescription(
+				"Update an existing company in Teamwork Desk by ID, allowing changes to its name, domains, and other attributes. "+
+					"Supports evolving business relationships, rebranding, or correcting company records for improved "+
+					"ticket handling."),
 			mcp.WithString("id",
 				mcp.Required(),
 				mcp.Description("The ID of the company to update."),

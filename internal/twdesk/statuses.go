@@ -34,7 +34,10 @@ func init() {
 func StatusGet(client *deskclient.Client) server.ServerTool {
 	return server.ServerTool{
 		Tool: mcp.NewTool(string(MethodStatusGet),
-			mcp.WithDescription("Retrieve detailed information about a specific status in Teamwork Desk by its ID. Useful for auditing status usage, troubleshooting ticket workflows, or integrating Desk status data into automation workflows."),
+			mcp.WithDescription(
+				"Retrieve detailed information about a specific status in Teamwork Desk by its ID. "+
+					"Useful for auditing status usage, troubleshooting ticket workflows, or "+
+					"integrating Desk status data into automation workflows."),
 			mcp.WithReadOnlyHintAnnotation(true),
 			mcp.WithString("id",
 				mcp.Required(),
@@ -55,7 +58,10 @@ func StatusGet(client *deskclient.Client) server.ServerTool {
 // StatusList returns a list of statuses that apply to the filters in Teamwork Desk
 func StatusList(client *deskclient.Client) server.ServerTool {
 	opts := []mcp.ToolOption{
-		mcp.WithDescription("List all statuses in Teamwork Desk, with optional filters for name, color, and code. Enables users to audit, analyze, or synchronize status configurations for ticket management, reporting, or integration scenarios."),
+		mcp.WithDescription(
+			"List all statuses in Teamwork Desk, with optional filters for name, color, and code. " +
+				"Enables users to audit, analyze, or synchronize status configurations for ticket management, " +
+				"reporting, or integration scenarios."),
 		mcp.WithReadOnlyHintAnnotation(true),
 		mcp.WithArray("name", mcp.Description("The name of the status to filter by.")),
 		mcp.WithArray("color", mcp.Description("The color of the status to filter by.")),
@@ -100,7 +106,10 @@ func StatusList(client *deskclient.Client) server.ServerTool {
 func StatusCreate(client *deskclient.Client) server.ServerTool {
 	return server.ServerTool{
 		Tool: mcp.NewTool(string(MethodStatusCreate),
-			mcp.WithDescription("Create a new status in Teamwork Desk by specifying its name, color, and display order. Useful for customizing ticket workflows, introducing new resolution states, or adapting Desk to evolving support processes."),
+			mcp.WithDescription(
+				"Create a new status in Teamwork Desk by specifying its name, color, and display order. "+
+					"Useful for customizing ticket workflows, introducing new resolution states, or "+
+					"adapting Desk to evolving support processes."),
 			mcp.WithString("name",
 				mcp.Required(),
 				mcp.Description("The name of the status."),
@@ -131,7 +140,10 @@ func StatusCreate(client *deskclient.Client) server.ServerTool {
 func StatusUpdate(client *deskclient.Client) server.ServerTool {
 	return server.ServerTool{
 		Tool: mcp.NewTool(string(MethodStatusUpdate),
-			mcp.WithDescription("Update an existing status in Teamwork Desk by ID, allowing changes to its name, color, and display order. Supports evolving support policies, rebranding, or correcting status attributes for improved ticket handling."),
+			mcp.WithDescription(
+				"Update an existing status in Teamwork Desk by ID, allowing changes to its name, color, and display order. "+
+					"Supports evolving support policies, rebranding, or correcting status attributes for improved "+
+					"ticket handling."),
 			mcp.WithString("id",
 				mcp.Required(),
 				mcp.Description("The ID of the status to update."),

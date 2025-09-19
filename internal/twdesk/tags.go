@@ -34,7 +34,10 @@ func init() {
 func TagGet(client *deskclient.Client) server.ServerTool {
 	return server.ServerTool{
 		Tool: mcp.NewTool(string(MethodTagGet),
-			mcp.WithDescription("Retrieve detailed information about a specific tag in Teamwork Desk by its ID. Useful for auditing tag usage, troubleshooting ticket categorization, or integrating Desk tag data into automation workflows."),
+			mcp.WithDescription(
+				"Retrieve detailed information about a specific tag in Teamwork Desk by its ID. "+
+					"Useful for auditing tag usage, troubleshooting ticket categorization, or "+
+					"integrating Desk tag data into automation workflows."),
 			mcp.WithReadOnlyHintAnnotation(true),
 			mcp.WithString("id",
 				mcp.Required(),
@@ -55,7 +58,10 @@ func TagGet(client *deskclient.Client) server.ServerTool {
 // TagList returns a list of tags that apply to the filters in Teamwork Desk
 func TagList(client *deskclient.Client) server.ServerTool {
 	opts := []mcp.ToolOption{
-		mcp.WithDescription("List all tags in Teamwork Desk, with optional filters for name, color, and inbox association. Enables users to audit, analyze, or synchronize tag configurations for ticket management, reporting, or integration scenarios."),
+		mcp.WithDescription(
+			"List all tags in Teamwork Desk, with optional filters for name, color, and inbox association. " +
+				"Enables users to audit, analyze, or synchronize tag configurations for ticket management, " +
+				"reporting, or integration scenarios."),
 		mcp.WithReadOnlyHintAnnotation(true),
 		mcp.WithString("name", mcp.Description("The name of the tag to filter by.")),
 		mcp.WithString("color", mcp.Description("The color of the tag to filter by.")),
@@ -100,7 +106,9 @@ func TagList(client *deskclient.Client) server.ServerTool {
 func TagCreate(client *deskclient.Client) server.ServerTool {
 	return server.ServerTool{
 		Tool: mcp.NewTool(string(MethodTagCreate),
-			mcp.WithDescription("Create a new tag in Teamwork Desk by specifying its name and color. Useful for customizing ticket workflows, introducing new categories, or adapting Desk to evolving support processes."),
+			mcp.WithDescription(
+				"Create a new tag in Teamwork Desk by specifying its name and color. Useful for customizing "+
+					"ticket workflows, introducing new categories, or adapting Desk to evolving support processes."),
 			mcp.WithString("name",
 				mcp.Required(),
 				mcp.Description("The name of the tag."),
@@ -129,7 +137,10 @@ func TagCreate(client *deskclient.Client) server.ServerTool {
 func TagUpdate(client *deskclient.Client) server.ServerTool {
 	return server.ServerTool{
 		Tool: mcp.NewTool(string(MethodTagUpdate),
-			mcp.WithDescription("Update an existing tag in Teamwork Desk by ID, allowing changes to its name and color. Supports evolving support policies, rebranding, or correcting tag attributes for improved ticket handling."),
+			mcp.WithDescription(
+				"Update an existing tag in Teamwork Desk by ID, allowing changes to its name and color. "+
+					"Supports evolving support policies, rebranding, or correcting tag attributes for improved "+
+					"ticket handling."),
 			mcp.WithString("id",
 				mcp.Required(),
 				mcp.Description("The ID of the tag to update."),
