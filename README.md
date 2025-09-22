@@ -1,5 +1,7 @@
 # Teamwork MCP Server
 
+[![CI](https://github.com/Teamwork/mcp/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/Teamwork/mcp/actions/workflows/ci.yml)
+
 > Model Context Protocol server for Teamwork.com integration with Large Language
 > Models
 

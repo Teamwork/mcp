@@ -16,6 +16,9 @@ INTERNAL_TAG        = 343218184206.dkr.ecr.us-east-1.amazonaws.com/teamwork/mcp:
 
 default: build
 
+smoke:
+	bash ./scripts/smoke.sh
+
 build:
 	docker buildx build \
 	  --build-arg BUILD_DATE=$(shell date -u +'%Y-%m-%dT%H:%M:%SZ') \
