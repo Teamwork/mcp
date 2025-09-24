@@ -24,21 +24,21 @@ import (
 var (
 	methods   = methodsInput([]toolsets.Method{toolsets.MethodAll})
 	readOnly  bool
-	logToFile bool
+	logToFile string
 )
 
 func main() {
 	defer handleExit()
 
 	flag.Var(&methods, "toolsets", "Comma-separated list of toolsets to enable")
-	flag.BoolVar(&logToFile, "log-to-file", false, "Write logs to file")
+	flag.StringVar(&logToFile, "log-to-file", "", "Path to log file (if empty, logs to stderr)")
 	flag.BoolVar(&readOnly, "read-only", false, "Restrict the server to read-only operations")
 	flag.Parse()
 
 	f := os.Stderr
-	if logToFile {
+	if logToFile != "" {
 		var err error
-		f, err = os.Open("./log.txt")
+		f, err = os.Open(logToFile)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "failed to open log file: %s\n", err)
 			exit(exitCodeSetupFailure)
