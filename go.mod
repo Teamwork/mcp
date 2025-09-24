@@ -8,7 +8,7 @@ require (
 	github.com/getsentry/sentry-go v0.35.3
 	github.com/getsentry/sentry-go/slog v0.35.3
 	github.com/mark3labs/mcp-go v0.40.0
-	github.com/teamwork/desksdkgo v0.0.0-20250924031148-6d51859db25d
+	github.com/teamwork/desksdkgo v0.0.0-20250924185936-ff711b483ff5
 	github.com/teamwork/twapi-go-sdk v1.4.0
 )
 
@@ -32,7 +32,7 @@ require (
 	github.com/Masterminds/semver/v3 v3.3.1 // indirect
 	github.com/Microsoft/go-winio v0.6.2 // indirect
 	github.com/bahlo/generic-list-go v0.2.0 // indirect
-	github.com/brianvoe/gofakeit/v7 v7.7.2 // indirect
+	github.com/brianvoe/gofakeit/v7 v7.7.3 // indirect
 	github.com/buger/jsonparser v1.1.1 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/cihub/seelog v0.0.0-20170130134532-f561c5e57575 // indirect

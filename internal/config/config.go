@@ -125,9 +125,20 @@ func Load(logOutput io.Writer) (Resources, func()) {
 	)
 
 	resources.deskClient = desksdk.NewClient(
-		resources.Info.APIURL,
-		desksdk.WithAPIKey(resources.Info.BearerToken),
-		desksdk.WithLogger(resources.logger),
+		resources.Info.APIURL+"/desk/api/v2",
+		desksdk.WithHTTPClient(resources.teamworkHTTPClient),
+		desksdk.WithMiddleware(func(ctx context.Context, req *http.Request, next desksdk.RequestHandler) (*http.Response, error) {
+			// Get the bearer token from the context (if available)
+			btx := session.NewBearerTokenContext()
+			err := btx.Authenticate(ctx, req)
+			if err != nil {
+				return nil, err
+			}
+
+			request.SetProxyHeaders(req)
+			req.Header.Set("User-Agent", "Teamwork MCP/"+resources.Info.Version)
+			return next(ctx, req)
+		}),
 	)
 
 	if resources.Info.DatadogAPM.Enabled {
