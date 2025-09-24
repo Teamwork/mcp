@@ -45,7 +45,7 @@ func main() {
 		}
 	}
 
-	defer f.Close() // nolint:errcheck
+	defer f.Close() //nolint:errcheck
 	resources, teardown := config.Load(f)
 	defer teardown()
 
