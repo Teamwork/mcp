@@ -44,6 +44,8 @@ func main() {
 		}))
 	}
 
+	options = append(options, transport.WithHTTPBasicClient(resources.TeamworkHTTPClient()))
+
 	mcpTransport, err := transport.NewStreamableHTTP(*mcpURL, options...)
 	if err != nil {
 		resources.Logger().Error("failed to create MCP transport",

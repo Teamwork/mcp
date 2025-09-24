@@ -21,6 +21,7 @@ import (
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
 	desksdk "github.com/teamwork/desksdkgo/client"
+	"github.com/teamwork/mcp/internal/network"
 	"github.com/teamwork/mcp/internal/request"
 	"github.com/teamwork/mcp/internal/toolsets"
 	twapi "github.com/teamwork/twapi-go-sdk"
@@ -79,6 +80,12 @@ func Load(logOutput io.Writer) (Resources, func()) {
 			}),
 		)
 	}
+
+	// Allow logging HTTP requests
+	resources.teamworkHTTPClient.Transport = network.NewLoggingRoundTripper(
+		resources.logger,
+		resources.teamworkHTTPClient.Transport,
+	)
 
 	resources.teamworkEngine = twapi.NewEngine(session.NewBearerTokenContext(),
 		twapi.WithHTTPClient(resources.teamworkHTTPClient),
