@@ -3,7 +3,6 @@ package network
 import (
 	"bytes"
 	"io"
-	"io/ioutil"
 	"log/slog"
 	"net/http"
 	"time"
@@ -30,7 +29,7 @@ func (lrt *LoggingRoundTripper) RoundTrip(req *http.Request) (*http.Response, er
 	var reqBody []byte
 	if req.Body != nil {
 		var err error
-		reqBody, err = ioutil.ReadAll(req.Body)
+		reqBody, err = io.ReadAll(req.Body)
 		if err != nil {
 			lrt.Log.Error("failed to read request body", "error", err)
 		}
@@ -58,7 +57,7 @@ func (lrt *LoggingRoundTripper) RoundTrip(req *http.Request) (*http.Response, er
 
 	var respBody []byte
 	if resp.Body != nil {
-		respBody, err = ioutil.ReadAll(resp.Body)
+		respBody, err = io.ReadAll(resp.Body)
 		if err != nil {
 			lrt.Log.Error("failed to read response body", "error", err)
 		}
