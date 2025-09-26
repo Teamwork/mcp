@@ -9,6 +9,7 @@ import (
 	"github.com/mark3labs/mcp-go/server"
 	deskclient "github.com/teamwork/desksdkgo/client"
 	deskmodels "github.com/teamwork/desksdkgo/models"
+	"github.com/teamwork/mcp/internal/helpers"
 	"github.com/teamwork/mcp/internal/toolsets"
 )
 
@@ -88,7 +89,7 @@ func CompanyList(client *deskclient.Client) server.ServerTool {
 			}
 
 			if len(domains) > 0 {
-				filter = filter.In("domains", domains)
+				filter = filter.In("domains", helpers.SliceToAny(domains))
 			}
 
 			params := url.Values{}

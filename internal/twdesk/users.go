@@ -8,6 +8,7 @@ import (
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
 	deskclient "github.com/teamwork/desksdkgo/client"
+	"github.com/teamwork/mcp/internal/helpers"
 	"github.com/teamwork/mcp/internal/toolsets"
 )
 
@@ -78,16 +79,16 @@ func UserList(client *deskclient.Client) server.ServerTool {
 
 			filter := deskclient.NewFilter()
 			if len(firstNames) > 0 {
-				filter = filter.In("firstName", firstNames)
+				filter = filter.In("firstName", helpers.SliceToAny(firstNames))
 			}
 			if len(lastNames) > 0 {
-				filter = filter.In("lastName", lastNames)
+				filter = filter.In("lastName", helpers.SliceToAny(lastNames))
 			}
 			if len(emails) > 0 {
-				filter = filter.In("email", emails)
+				filter = filter.In("email", helpers.SliceToAny(emails))
 			}
 			if len(inboxIDs) > 0 {
-				filter = filter.In("inboxes.id", inboxIDs)
+				filter = filter.In("inboxes.id", helpers.SliceToAny(inboxIDs))
 			}
 
 			isPartTime := request.GetBool("isPartTime", false)

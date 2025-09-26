@@ -9,6 +9,7 @@ import (
 	"github.com/mark3labs/mcp-go/server"
 	deskclient "github.com/teamwork/desksdkgo/client"
 	deskmodels "github.com/teamwork/desksdkgo/models"
+	"github.com/teamwork/mcp/internal/helpers"
 	"github.com/teamwork/mcp/internal/toolsets"
 )
 
@@ -80,15 +81,15 @@ func CustomerList(client *deskclient.Client) server.ServerTool {
 
 			filter := deskclient.NewFilter()
 			if len(companyIDs) > 0 {
-				filter = filter.In("companies.id", companyIDs)
+				filter = filter.In("companies.id", helpers.SliceToAny(companyIDs))
 			}
 
 			if len(companyNames) > 0 {
-				filter = filter.In("companies.name", companyNames)
+				filter = filter.In("companies.name", helpers.SliceToAny(companyNames))
 			}
 
 			if len(emails) > 0 {
-				filter = filter.In("contacts.value", emails)
+				filter = filter.In("contacts.value", helpers.SliceToAny(emails))
 			}
 
 			params := url.Values{}

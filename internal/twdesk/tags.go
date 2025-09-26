@@ -9,6 +9,7 @@ import (
 	"github.com/mark3labs/mcp-go/server"
 	deskclient "github.com/teamwork/desksdkgo/client"
 	deskmodels "github.com/teamwork/desksdkgo/models"
+	"github.com/teamwork/mcp/internal/helpers"
 	"github.com/teamwork/mcp/internal/toolsets"
 )
 
@@ -86,7 +87,7 @@ func TagList(client *deskclient.Client) server.ServerTool {
 				filter = filter.Eq("color", color)
 			}
 			if len(inboxIDs) > 0 {
-				filter = filter.In("inboxes.id", inboxIDs)
+				filter = filter.In("inboxes.id", helpers.SliceToAny(inboxIDs))
 			}
 
 			params := url.Values{}

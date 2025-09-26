@@ -108,43 +108,43 @@ func TicketList(client *deskclient.Client) server.ServerTool {
 			filter := deskclient.NewFilter()
 
 			if len(inboxIDs) > 0 {
-				filter = filter.In("inboxes.id", inboxIDs)
+				filter = filter.In("inboxes.id", helpers.SliceToAny(inboxIDs))
 			}
 
 			if len(customerIDs) > 0 {
-				filter = filter.In("customers.id", customerIDs)
+				filter = filter.In("customers.id", helpers.SliceToAny(customerIDs))
 			}
 
 			if len(companyIDs) > 0 {
-				filter = filter.In("companies.id", companyIDs)
+				filter = filter.In("companies.id", helpers.SliceToAny(companyIDs))
 			}
 
 			if len(tagIDs) > 0 {
-				filter = filter.In("tags.id", tagIDs)
+				filter = filter.In("tags.id", helpers.SliceToAny(tagIDs))
 			}
 
 			if len(taskIDs) > 0 {
-				filter = filter.In("tasks.id", taskIDs)
+				filter = filter.In("tasks.id", helpers.SliceToAny(taskIDs))
 			}
 
 			if len(projectsIDs) > 0 {
-				filter = filter.In("projects.id", projectsIDs)
+				filter = filter.In("projects.id", helpers.SliceToAny(projectsIDs))
 			}
 
 			if len(statusIDs) > 0 {
-				filter = filter.In("statuses.id", statusIDs)
+				filter = filter.In("statuses.id", helpers.SliceToAny(statusIDs))
 			}
 
 			if len(priorityIDs) > 0 {
-				filter = filter.In("priorities.id", priorityIDs)
+				filter = filter.In("priorities.id", helpers.SliceToAny(priorityIDs))
 			}
 
 			if len(slaIDs) > 0 {
-				filter = filter.In("slas.id", slaIDs)
+				filter = filter.In("slas.id", helpers.SliceToAny(slaIDs))
 			}
 
 			if len(userIDs) > 0 {
-				filter = filter.In("users.id", userIDs)
+				filter = filter.In("users.id", helpers.SliceToAny(userIDs))
 			}
 
 			if shared {

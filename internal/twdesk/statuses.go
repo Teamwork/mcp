@@ -9,6 +9,7 @@ import (
 	"github.com/mark3labs/mcp-go/server"
 	deskclient "github.com/teamwork/desksdkgo/client"
 	deskmodels "github.com/teamwork/desksdkgo/models"
+	"github.com/teamwork/mcp/internal/helpers"
 	"github.com/teamwork/mcp/internal/toolsets"
 )
 
@@ -80,13 +81,13 @@ func StatusList(client *deskclient.Client) server.ServerTool {
 
 			filter := deskclient.NewFilter()
 			if len(name) > 0 {
-				filter = filter.In("name", name)
+				filter = filter.In("name", helpers.SliceToAny(name))
 			}
 			if len(color) > 0 {
-				filter = filter.In("color", color)
+				filter = filter.In("color", helpers.SliceToAny(color))
 			}
 			if len(code) > 0 {
-				filter = filter.In("code", code)
+				filter = filter.In("code", helpers.SliceToAny(code))
 			}
 
 			params := url.Values{}
