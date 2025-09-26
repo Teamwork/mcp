@@ -1,5 +1,5 @@
 {
-  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-07-09/server.schema.json",
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-09-16/server.schema.json",
   "name": "com.teamwork/mcp",
   "description": "The Teamwork.com official MCP server helps teams efficiently manage client projects with AI.",
   "status": "active",
@@ -16,8 +16,8 @@
         {
           "name": "Authorization",
           "description": "API key generated from the Teamwork.com OAuth2 process: https://apidocs.teamwork.com/guides/teamwork/app-login-flow",
-          "is_required": true,
-          "is_secret": true
+          "isRequired": true,
+          "isSecret": true
         }
       ]
     },
@@ -28,41 +28,41 @@
         {
           "name": "Authorization",
           "description": "API key generated from the Teamwork.com OAuth2 process: https://apidocs.teamwork.com/guides/teamwork/app-login-flow",
-          "is_required": true,
-          "is_secret": true
+          "isRequired": true,
+          "isSecret": true
         }
       ]
     }
   ],
   "packages": [
     {
-      "registry_type": "oci",
-      "registry_base_url": "https://docker.io",
+      "registryType": "oci",
+      "registryBaseUrl": "https://docker.io",
       "identifier": "teamwork/mcp",
       "version": "v1.0.0",
       "transport": {
         "type": "stdio"
       },
-      "environment_variables": [
+      "environmentVariables": [
         {
           "description": "API key generated from the Teamwork.com OAuth2 process: https://apidocs.teamwork.com/guides/teamwork/app-login-flow",
-          "is_required": true,
+          "isRequired": true,
           "format": "string",
-          "is_secret": true,
+          "isSecret": true,
           "name": "TW_MCP_BEARER_TOKEN"
         },
         {
           "description": "Choose log output format between 'text' or 'json'. Default is 'text'.",
-          "is_required": false,
+          "isRequired": false,
           "format": "string",
-          "is_secret": false,
+          "isSecret": false,
           "name": "TW_MCP_LOG_FORMAT"
         },
         {
           "description": "Choose log level between 'debug', 'info', 'warn' or 'error'. Default is 'info'.",
-          "is_required": false,
+          "isRequired": false,
           "format": "string",
-          "is_secret": false,
+          "isSecret": false,
           "name": "TW_MCP_LOG_LEVEL"
         }
       ]
