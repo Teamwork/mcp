@@ -173,11 +173,12 @@ func TestTaskList(t *testing.T) {
 	}
 	request.Params.Name = twprojects.MethodTaskList.String()
 	request.Params.Arguments = map[string]any{
-		"search_term":    "test",
-		"tag_ids":        []float64{1, 2, 3},
-		"match_all_tags": true,
-		"page":           float64(1),
-		"page_size":      float64(10),
+		"search_term":       "test",
+		"tag_ids":           []float64{1, 2, 3},
+		"match_all_tags":    true,
+		"page":              float64(1),
+		"page_size":         float64(10),
+		"assignee_user_ids": []float64{4, 5, 6},
 	}
 
 	encodedRequest, err := json.Marshal(request)
@@ -202,12 +203,13 @@ func TestTaskListByTasklist(t *testing.T) {
 	}
 	request.Params.Name = twprojects.MethodTaskListByTasklist.String()
 	request.Params.Arguments = map[string]any{
-		"tasklist_id":    float64(123),
-		"search_term":    "test",
-		"tag_ids":        []float64{1, 2, 3},
-		"match_all_tags": true,
-		"page":           float64(1),
-		"page_size":      float64(10),
+		"tasklist_id":       float64(123),
+		"search_term":       "test",
+		"tag_ids":           []float64{1, 2, 3},
+		"match_all_tags":    true,
+		"page":              float64(1),
+		"page_size":         float64(10),
+		"assignee_user_ids": []float64{4, 5, 6},
 	}
 
 	encodedRequest, err := json.Marshal(request)
@@ -232,12 +234,13 @@ func TestTaskListByProject(t *testing.T) {
 	}
 	request.Params.Name = twprojects.MethodTaskListByProject.String()
 	request.Params.Arguments = map[string]any{
-		"project_id":     float64(123),
-		"search_term":    "test",
-		"tag_ids":        []float64{1, 2, 3},
-		"match_all_tags": true,
-		"page":           float64(1),
-		"page_size":      float64(10),
+		"project_id":        float64(123),
+		"search_term":       "test",
+		"tag_ids":           []float64{1, 2, 3},
+		"match_all_tags":    true,
+		"page":              float64(1),
+		"page_size":         float64(10),
+		"assignee_user_ids": []float64{4, 5, 6},
 	}
 
 	encodedRequest, err := json.Marshal(request)

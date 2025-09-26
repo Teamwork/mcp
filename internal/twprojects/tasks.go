@@ -489,6 +489,12 @@ func TaskList(engine *twapi.Engine) server.ServerTool {
 					"type": "integer",
 				}),
 			),
+			mcp.WithArray("assignee_user_ids",
+				mcp.Description("A list of user IDs to filter tasks by assigned users"),
+				mcp.Items(map[string]any{
+					"type": "integer",
+				}),
+			),
 			mcp.WithBoolean("match_all_tags",
 				mcp.Description("If true, the search will match tasks that have all the specified tags. "+
 					"If false, the search will match tasks that have any of the specified tags. "+
@@ -507,6 +513,7 @@ func TaskList(engine *twapi.Engine) server.ServerTool {
 			err := helpers.ParamGroup(request.GetArguments(),
 				helpers.OptionalParam(&taskListRequest.Filters.SearchTerm, "search_term"),
 				helpers.OptionalNumericListParam(&taskListRequest.Filters.TagIDs, "tag_ids"),
+				helpers.OptionalNumericListParam(&taskListRequest.Filters.AssigneeUserIDs, "assignee_user_ids"),
 				helpers.OptionalPointerParam(&taskListRequest.Filters.MatchAllTags, "match_all_tags"),
 				helpers.OptionalNumericParam(&taskListRequest.Filters.Page, "page"),
 				helpers.OptionalNumericParam(&taskListRequest.Filters.PageSize, "page_size"),
@@ -552,6 +559,12 @@ func TaskListByTasklist(engine *twapi.Engine) server.ServerTool {
 					"type": "integer",
 				}),
 			),
+			mcp.WithArray("assignee_user_ids",
+				mcp.Description("A list of user IDs to filter tasks by assigned users"),
+				mcp.Items(map[string]any{
+					"type": "integer",
+				}),
+			),
 			mcp.WithBoolean("match_all_tags",
 				mcp.Description("If true, the search will match tasks that have all the specified tags. "+
 					"If false, the search will match tasks that have any of the specified tags. "+
@@ -571,6 +584,7 @@ func TaskListByTasklist(engine *twapi.Engine) server.ServerTool {
 				helpers.RequiredNumericParam(&taskListRequest.Path.TasklistID, "tasklist_id"),
 				helpers.OptionalParam(&taskListRequest.Filters.SearchTerm, "search_term"),
 				helpers.OptionalNumericListParam(&taskListRequest.Filters.TagIDs, "tag_ids"),
+				helpers.OptionalNumericListParam(&taskListRequest.Filters.AssigneeUserIDs, "assignee_user_ids"),
 				helpers.OptionalPointerParam(&taskListRequest.Filters.MatchAllTags, "match_all_tags"),
 				helpers.OptionalNumericParam(&taskListRequest.Filters.Page, "page"),
 				helpers.OptionalNumericParam(&taskListRequest.Filters.PageSize, "page_size"),
@@ -616,6 +630,12 @@ func TaskListByProject(engine *twapi.Engine) server.ServerTool {
 					"type": "integer",
 				}),
 			),
+			mcp.WithArray("assignee_user_ids",
+				mcp.Description("A list of user IDs to filter tasks by assigned users"),
+				mcp.Items(map[string]any{
+					"type": "integer",
+				}),
+			),
 			mcp.WithBoolean("match_all_tags",
 				mcp.Description("If true, the search will match tasks that have all the specified tags. "+
 					"If false, the search will match tasks that have any of the specified tags. "+
@@ -635,6 +655,7 @@ func TaskListByProject(engine *twapi.Engine) server.ServerTool {
 				helpers.RequiredNumericParam(&taskListRequest.Path.ProjectID, "project_id"),
 				helpers.OptionalParam(&taskListRequest.Filters.SearchTerm, "search_term"),
 				helpers.OptionalNumericListParam(&taskListRequest.Filters.TagIDs, "tag_ids"),
+				helpers.OptionalNumericListParam(&taskListRequest.Filters.AssigneeUserIDs, "assignee_user_ids"),
 				helpers.OptionalPointerParam(&taskListRequest.Filters.MatchAllTags, "match_all_tags"),
 				helpers.OptionalNumericParam(&taskListRequest.Filters.Page, "page"),
 				helpers.OptionalNumericParam(&taskListRequest.Filters.PageSize, "page_size"),
