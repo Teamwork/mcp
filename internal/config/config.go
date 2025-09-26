@@ -8,6 +8,7 @@ import (
 	"log/slog"
 	"net/http"
 	"net/url"
+	"slices"
 	"strings"
 	"time"
 
@@ -176,10 +177,28 @@ func NewMCPServer(resources Resources, groups ...*toolsets.ToolsetGroup) *server
 		}
 	}
 
+	var hooks server.Hooks
+	hooks.AddAfterListTools(func(ctx context.Context, _ any, _ *mcp.ListToolsRequest, result *mcp.ListToolsResult) {
+		// filter tools based on scopes
+		scopes := scopes(ctx)
+		if len(scopes) == 0 || len(result.Tools) == 0 {
+			return
+		}
+
+		projectsScope := slices.Contains(scopes, "projects")
+		deskScope := slices.Contains(scopes, "desk")
+
+		result.Tools = slices.DeleteFunc(result.Tools, func(tool mcp.Tool) bool {
+			return (strings.HasPrefix(tool.Name, "twprojects") && !projectsScope) ||
+				(strings.HasPrefix(tool.Name, "twdesk") && !deskScope)
+		})
+	})
+
 	mcpServer := server.NewMCPServer(mcpName, strings.TrimPrefix(resources.Info.Version, "v"),
 		server.WithRecovery(),
 		server.WithToolCapabilities(hasTools),
 		server.WithLogging(),
+		server.WithHooks(&hooks),
 	)
 
 	// Register all toolset groups

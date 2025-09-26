@@ -264,6 +264,8 @@ func authMiddleware(resources config.Resources, next http.Handler) http.Handler 
 		ctx = config.WithCrossRegion(ctx, !strings.EqualFold(resources.Info.AWSRegion, info.Region))
 		// inject customer URL
 		ctx = config.WithCustomerURL(ctx, info.URL)
+		// inject scopes
+		ctx = config.WithScopes(ctx, info.Meta.Scopes)
 		// inject session
 		ctx = session.WithBearerTokenContext(ctx, session.NewBearerToken(bearerToken, info.URL))
 

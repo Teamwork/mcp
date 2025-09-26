@@ -22,6 +22,9 @@ type BearerInfo struct {
 	InstallationID int64  `json:"installation_id"`
 	Region         string `json:"awsRegion"`
 	URL            string `json:"url"`
+	Meta           struct {
+		Scopes []string `json:"scopes"`
+	} `json:"meta"`
 }
 
 // GetBearerInfo retrieves information about the bearer token from Teamwork API.
