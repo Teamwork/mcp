@@ -36,11 +36,16 @@ func (lrt *LoggingRoundTripper) RoundTrip(req *http.Request) (*http.Response, er
 		req.Body = io.NopCloser(bytes.NewBuffer(reqBody))
 	}
 
+	headers := req.Header.Clone()
+	if headers.Get("Authorization") != "" {
+		headers.Set("Authorization", "REDACTED")
+	}
+
 	// Log the request
 	lrt.Log.Info("HTTP request",
 		"url", req.URL.String(),
 		"method", req.Method,
-		"headers", req.Header,
+		"headers", headers,
 		"body", string(reqBody),
 	)
 
