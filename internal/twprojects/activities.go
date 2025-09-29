@@ -42,6 +42,8 @@ func ActivityList(engine *twapi.Engine) server.ServerTool {
 			mcp.WithToolAnnotation(mcp.ToolAnnotation{
 				ReadOnlyHint: twapi.Ptr(true),
 			}),
+			mcp.WithTitleAnnotation("List Activities"),
+			mcp.WithOutputSchema[projects.ActivityListResponse](),
 			mcp.WithString("start_date",
 				mcp.Description("Start date to filter activities. The date format follows RFC3339 - YYYY-MM-DDTHH:MM:SSZ."),
 			),
@@ -121,6 +123,8 @@ func ActivityListByProject(engine *twapi.Engine) server.ServerTool {
 			mcp.WithToolAnnotation(mcp.ToolAnnotation{
 				ReadOnlyHint: twapi.Ptr(true),
 			}),
+			mcp.WithTitleAnnotation("List Activities by Project"),
+			mcp.WithOutputSchema[projects.ActivityListResponse](),
 			mcp.WithNumber("project_id",
 				mcp.Required(),
 				mcp.Description("The ID of the project to retrieve activities from."),

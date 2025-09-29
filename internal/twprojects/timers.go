@@ -52,6 +52,7 @@ func TimerCreate(engine *twapi.Engine) server.ServerTool {
 	return server.ServerTool{
 		Tool: mcp.NewTool(string(MethodTimerCreate),
 			mcp.WithDescription("Create a new timer in Teamwork.com. "+timerDescription),
+			mcp.WithTitleAnnotation("Create Timer"),
 			mcp.WithString("description",
 				mcp.Description("A description of the timer."),
 			),
@@ -106,6 +107,7 @@ func TimerUpdate(engine *twapi.Engine) server.ServerTool {
 	return server.ServerTool{
 		Tool: mcp.NewTool(string(MethodTimerUpdate),
 			mcp.WithDescription("Update an existing timer in Teamwork.com. "+timerDescription),
+			mcp.WithTitleAnnotation("Update Timer"),
 			mcp.WithNumber("id",
 				mcp.Required(),
 				mcp.Description("The ID of the timer to update."),
@@ -156,6 +158,7 @@ func TimerPause(engine *twapi.Engine) server.ServerTool {
 	return server.ServerTool{
 		Tool: mcp.NewTool(string(MethodTimerPause),
 			mcp.WithDescription("Pause an existing timer in Teamwork.com. "+timerDescription),
+			mcp.WithTitleAnnotation("Pause Timer"),
 			mcp.WithNumber("id",
 				mcp.Required(),
 				mcp.Description("The ID of the timer to pause."),
@@ -186,6 +189,7 @@ func TimerResume(engine *twapi.Engine) server.ServerTool {
 	return server.ServerTool{
 		Tool: mcp.NewTool(string(MethodTimerResume),
 			mcp.WithDescription("Resume an existing timer in Teamwork.com. "+timerDescription),
+			mcp.WithTitleAnnotation("Resume Timer"),
 			mcp.WithNumber("id",
 				mcp.Required(),
 				mcp.Description("The ID of the timer to resume."),
@@ -216,6 +220,7 @@ func TimerComplete(engine *twapi.Engine) server.ServerTool {
 	return server.ServerTool{
 		Tool: mcp.NewTool(string(MethodTimerComplete),
 			mcp.WithDescription("Complete an existing timer in Teamwork.com. "+timerDescription),
+			mcp.WithTitleAnnotation("Complete Timer"),
 			mcp.WithNumber("id",
 				mcp.Required(),
 				mcp.Description("The ID of the timer to complete."),
@@ -246,6 +251,7 @@ func TimerDelete(engine *twapi.Engine) server.ServerTool {
 	return server.ServerTool{
 		Tool: mcp.NewTool(string(MethodTimerDelete),
 			mcp.WithDescription("Delete an existing timer in Teamwork.com. "+timerDescription),
+			mcp.WithTitleAnnotation("Delete Timer"),
 			mcp.WithNumber("id",
 				mcp.Required(),
 				mcp.Description("The ID of the timer to delete."),
@@ -279,6 +285,8 @@ func TimerGet(engine *twapi.Engine) server.ServerTool {
 			mcp.WithToolAnnotation(mcp.ToolAnnotation{
 				ReadOnlyHint: twapi.Ptr(true),
 			}),
+			mcp.WithTitleAnnotation("Get Timer"),
+			mcp.WithOutputSchema[projects.TimerGetResponse](),
 			mcp.WithNumber("id",
 				mcp.Required(),
 				mcp.Description("The ID of the timer to get."),
@@ -318,6 +326,8 @@ func TimerList(engine *twapi.Engine) server.ServerTool {
 			mcp.WithToolAnnotation(mcp.ToolAnnotation{
 				ReadOnlyHint: twapi.Ptr(true),
 			}),
+			mcp.WithTitleAnnotation("List Timers"),
+			mcp.WithOutputSchema[projects.TimerListResponse](),
 			mcp.WithNumber("user_id",
 				mcp.Description("The ID of the user to filter timers by. "+
 					"Only timers associated with this user will be returned."),

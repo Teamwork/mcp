@@ -48,6 +48,7 @@ func TasklistCreate(engine *twapi.Engine) server.ServerTool {
 	return server.ServerTool{
 		Tool: mcp.NewTool(string(MethodTasklistCreate),
 			mcp.WithDescription("Create a new tasklist in Teamwork.com. "+tasklistDescription),
+			mcp.WithTitleAnnotation("Create Tasklist"),
 			mcp.WithString("name",
 				mcp.Required(),
 				mcp.Description("The name of the tasklist."),
@@ -91,6 +92,7 @@ func TasklistUpdate(engine *twapi.Engine) server.ServerTool {
 	return server.ServerTool{
 		Tool: mcp.NewTool(string(MethodTasklistUpdate),
 			mcp.WithDescription("Update an existing tasklist in Teamwork.com. "+tasklistDescription),
+			mcp.WithTitleAnnotation("Update Tasklist"),
 			mcp.WithNumber("id",
 				mcp.Required(),
 				mcp.Description("The ID of the tasklist to update."),
@@ -133,6 +135,7 @@ func TasklistDelete(engine *twapi.Engine) server.ServerTool {
 	return server.ServerTool{
 		Tool: mcp.NewTool(string(MethodTasklistDelete),
 			mcp.WithDescription("Delete an existing tasklist in Teamwork.com. "+tasklistDescription),
+			mcp.WithTitleAnnotation("Delete Tasklist"),
 			mcp.WithNumber("id",
 				mcp.Required(),
 				mcp.Description("The ID of the tasklist to delete."),
@@ -166,6 +169,8 @@ func TasklistGet(engine *twapi.Engine) server.ServerTool {
 			mcp.WithToolAnnotation(mcp.ToolAnnotation{
 				ReadOnlyHint: twapi.Ptr(true),
 			}),
+			mcp.WithTitleAnnotation("Get Tasklist"),
+			mcp.WithOutputSchema[projects.TasklistGetResponse](),
 			mcp.WithNumber("id",
 				mcp.Required(),
 				mcp.Description("The ID of the tasklist to get."),
@@ -205,6 +210,8 @@ func TasklistList(engine *twapi.Engine) server.ServerTool {
 			mcp.WithToolAnnotation(mcp.ToolAnnotation{
 				ReadOnlyHint: twapi.Ptr(true),
 			}),
+			mcp.WithTitleAnnotation("List Tasklists"),
+			mcp.WithOutputSchema[projects.TasklistListResponse](),
 			mcp.WithString("search_term",
 				mcp.Description("A search term to filter tasklists by name."),
 			),
@@ -251,6 +258,8 @@ func TasklistListByProject(engine *twapi.Engine) server.ServerTool {
 			mcp.WithToolAnnotation(mcp.ToolAnnotation{
 				ReadOnlyHint: twapi.Ptr(true),
 			}),
+			mcp.WithTitleAnnotation("List Tasklists By Project"),
+			mcp.WithOutputSchema[projects.TasklistListResponse](),
 			mcp.WithNumber("project_id",
 				mcp.Required(),
 				mcp.Description("The ID of the project from which to retrieve tasklists."),

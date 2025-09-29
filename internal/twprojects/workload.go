@@ -36,6 +36,8 @@ func UsersWorkload(engine *twapi.Engine) server.ServerTool {
 			mcp.WithToolAnnotation(mcp.ToolAnnotation{
 				ReadOnlyHint: twapi.Ptr(true),
 			}),
+			mcp.WithTitleAnnotation("Get Users Workload"),
+			mcp.WithOutputSchema[projects.WorkloadResponse](),
 			mcp.WithString("start_date",
 				mcp.Required(),
 				mcp.Description("The start date of the workload period. The date must be in the format YYYY-MM-DD."),

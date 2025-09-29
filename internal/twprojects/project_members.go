@@ -35,6 +35,7 @@ func ProjectMemberAdd(engine *twapi.Engine) server.ServerTool {
 	return server.ServerTool{
 		Tool: mcp.NewTool(string(MethodProjectMemberAdd),
 			mcp.WithDescription("Add a user to a project in Teamwork.com. "+projectMemberDescription),
+			mcp.WithTitleAnnotation("Add Project Member"),
 			mcp.WithNumber("project_id",
 				mcp.Required(),
 				mcp.Description("The ID of the project to add the member to."),

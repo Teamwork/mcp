@@ -49,6 +49,7 @@ func TeamCreate(engine *twapi.Engine) server.ServerTool {
 	return server.ServerTool{
 		Tool: mcp.NewTool(string(MethodTeamCreate),
 			mcp.WithDescription("Create a new team in Teamwork.com. "+teamDescription),
+			mcp.WithTitleAnnotation("Create Team"),
 			mcp.WithString("name",
 				mcp.Required(),
 				mcp.Description("The name of the team."),
@@ -107,6 +108,7 @@ func TeamUpdate(engine *twapi.Engine) server.ServerTool {
 	return server.ServerTool{
 		Tool: mcp.NewTool(string(MethodTeamUpdate),
 			mcp.WithDescription("Update an existing team in Teamwork.com. "+teamDescription),
+			mcp.WithTitleAnnotation("Update Team"),
 			mcp.WithNumber("id",
 				mcp.Required(),
 				mcp.Description("The ID of the team to update."),
@@ -168,6 +170,7 @@ func TeamDelete(engine *twapi.Engine) server.ServerTool {
 	return server.ServerTool{
 		Tool: mcp.NewTool(string(MethodTeamDelete),
 			mcp.WithDescription("Delete an existing team in Teamwork.com. "+teamDescription),
+			mcp.WithTitleAnnotation("Delete Team"),
 			mcp.WithNumber("id",
 				mcp.Required(),
 				mcp.Description("The ID of the team to delete."),
@@ -201,6 +204,8 @@ func TeamGet(engine *twapi.Engine) server.ServerTool {
 			mcp.WithToolAnnotation(mcp.ToolAnnotation{
 				ReadOnlyHint: twapi.Ptr(true),
 			}),
+			mcp.WithTitleAnnotation("Get Team"),
+			mcp.WithOutputSchema[projects.TeamGetResponse](),
 			mcp.WithNumber("id",
 				mcp.Required(),
 				mcp.Description("The ID of the team to get."),
@@ -240,6 +245,8 @@ func TeamList(engine *twapi.Engine) server.ServerTool {
 			mcp.WithToolAnnotation(mcp.ToolAnnotation{
 				ReadOnlyHint: twapi.Ptr(true),
 			}),
+			mcp.WithTitleAnnotation("List Teams"),
+			mcp.WithOutputSchema[projects.TeamListResponse](),
 			mcp.WithString("search_term",
 				mcp.Description("A search term to filter teams by name or handle."),
 			),
@@ -291,6 +298,8 @@ func TeamListByCompany(engine *twapi.Engine) server.ServerTool {
 			mcp.WithToolAnnotation(mcp.ToolAnnotation{
 				ReadOnlyHint: twapi.Ptr(true),
 			}),
+			mcp.WithTitleAnnotation("List Teams By Company"),
+			mcp.WithOutputSchema[projects.TeamListResponse](),
 			mcp.WithNumber("company_id",
 				mcp.Required(),
 				mcp.Description("The ID of the company from which to retrieve teams."),
@@ -342,6 +351,8 @@ func TeamListByProject(engine *twapi.Engine) server.ServerTool {
 			mcp.WithToolAnnotation(mcp.ToolAnnotation{
 				ReadOnlyHint: twapi.Ptr(true),
 			}),
+			mcp.WithTitleAnnotation("List Teams By Project"),
+			mcp.WithOutputSchema[projects.TeamListResponse](),
 			mcp.WithNumber("project_id",
 				mcp.Required(),
 				mcp.Description("The ID of the project from which to retrieve teams."),

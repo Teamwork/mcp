@@ -45,6 +45,7 @@ func TagCreate(engine *twapi.Engine) server.ServerTool {
 	return server.ServerTool{
 		Tool: mcp.NewTool(string(MethodTagCreate),
 			mcp.WithDescription("Create a new tag in Teamwork.com. "+tagDescription),
+			mcp.WithTitleAnnotation("Create Tag"),
 			mcp.WithString("name",
 				mcp.Required(),
 				mcp.Description("The name of the tag. It must have less than 50 characters."),
@@ -79,6 +80,7 @@ func TagUpdate(engine *twapi.Engine) server.ServerTool {
 	return server.ServerTool{
 		Tool: mcp.NewTool(string(MethodTagUpdate),
 			mcp.WithDescription("Update an existing tag in Teamwork.com. "+tagDescription),
+			mcp.WithTitleAnnotation("Update Tag"),
 			mcp.WithNumber("id",
 				mcp.Required(),
 				mcp.Description("The ID of the tag to update."),
@@ -117,6 +119,7 @@ func TagDelete(engine *twapi.Engine) server.ServerTool {
 	return server.ServerTool{
 		Tool: mcp.NewTool(string(MethodTagDelete),
 			mcp.WithDescription("Delete an existing tag in Teamwork.com. "+tagDescription),
+			mcp.WithTitleAnnotation("Delete Tag"),
 			mcp.WithNumber("id",
 				mcp.Required(),
 				mcp.Description("The ID of the tag to delete."),
@@ -150,6 +153,8 @@ func TagGet(engine *twapi.Engine) server.ServerTool {
 			mcp.WithToolAnnotation(mcp.ToolAnnotation{
 				ReadOnlyHint: twapi.Ptr(true),
 			}),
+			mcp.WithTitleAnnotation("Get Tag"),
+			mcp.WithOutputSchema[projects.TagGetResponse](),
 			mcp.WithNumber("id",
 				mcp.Required(),
 				mcp.Description("The ID of the tag to get."),
@@ -187,6 +192,8 @@ func TagList(engine *twapi.Engine) server.ServerTool {
 			mcp.WithToolAnnotation(mcp.ToolAnnotation{
 				ReadOnlyHint: twapi.Ptr(true),
 			}),
+			mcp.WithTitleAnnotation("List Tags"),
+			mcp.WithOutputSchema[projects.TagListResponse](),
 			mcp.WithString("search_term",
 				mcp.Description("A search term to filter tags by name. "+
 					"Each word from the search term is used to match against the tag name."),

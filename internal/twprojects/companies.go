@@ -47,6 +47,7 @@ func CompanyCreate(engine *twapi.Engine) server.ServerTool {
 	return server.ServerTool{
 		Tool: mcp.NewTool(string(MethodCompanyCreate),
 			mcp.WithDescription("Create a new company in Teamwork.com. "+companyDescription),
+			mcp.WithTitleAnnotation("Create Company"),
 			mcp.WithString("name",
 				mcp.Required(),
 				mcp.Description("The name of the company."),
@@ -145,6 +146,7 @@ func CompanyUpdate(engine *twapi.Engine) server.ServerTool {
 	return server.ServerTool{
 		Tool: mcp.NewTool(string(MethodCompanyUpdate),
 			mcp.WithDescription("Update an existing company in Teamwork.com. "+companyDescription),
+			mcp.WithTitleAnnotation("Update Company"),
 			mcp.WithNumber("id",
 				mcp.Required(),
 				mcp.Description("The ID of the company to update."),
@@ -246,6 +248,7 @@ func CompanyDelete(engine *twapi.Engine) server.ServerTool {
 	return server.ServerTool{
 		Tool: mcp.NewTool(string(MethodCompanyDelete),
 			mcp.WithDescription("Delete an existing company in Teamwork.com. "+companyDescription),
+			mcp.WithTitleAnnotation("Delete Company"),
 			mcp.WithNumber("id",
 				mcp.Required(),
 				mcp.Description("The ID of the company to delete."),
@@ -279,6 +282,8 @@ func CompanyGet(engine *twapi.Engine) server.ServerTool {
 			mcp.WithToolAnnotation(mcp.ToolAnnotation{
 				ReadOnlyHint: twapi.Ptr(true),
 			}),
+			mcp.WithTitleAnnotation("Get Company"),
+			mcp.WithOutputSchema[projects.CompanyGetResponse](),
 			mcp.WithNumber("id",
 				mcp.Required(),
 				mcp.Description("The ID of the company to get."),
@@ -318,6 +323,8 @@ func CompanyList(engine *twapi.Engine) server.ServerTool {
 			mcp.WithToolAnnotation(mcp.ToolAnnotation{
 				ReadOnlyHint: twapi.Ptr(true),
 			}),
+			mcp.WithTitleAnnotation("List Companies"),
+			mcp.WithOutputSchema[projects.CompanyListResponse](),
 			mcp.WithString("search_term",
 				mcp.Description("A search term to filter companies by name. "+
 					"Each word from the search term is used to match against the company name."),

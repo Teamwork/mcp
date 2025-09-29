@@ -40,6 +40,8 @@ func IndustryList(engine *twapi.Engine) server.ServerTool {
 			mcp.WithToolAnnotation(mcp.ToolAnnotation{
 				ReadOnlyHint: twapi.Ptr(true),
 			}),
+			mcp.WithTitleAnnotation("List Industries"),
+			mcp.WithOutputSchema[projects.IndustryListResponse](),
 		),
 		Handler: func(ctx context.Context, _ mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 			var industryListRequest projects.IndustryListRequest

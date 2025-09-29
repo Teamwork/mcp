@@ -50,6 +50,7 @@ func TaskCreate(engine *twapi.Engine) server.ServerTool {
 	return server.ServerTool{
 		Tool: mcp.NewTool(string(MethodTaskCreate),
 			mcp.WithDescription("Create a new task in Teamwork.com. "+taskDescription),
+			mcp.WithTitleAnnotation("Create Task"),
 			mcp.WithString("name",
 				mcp.Required(),
 				mcp.Description("The name of the task."),
@@ -224,6 +225,7 @@ func TaskUpdate(engine *twapi.Engine) server.ServerTool {
 	return server.ServerTool{
 		Tool: mcp.NewTool(string(MethodTaskUpdate),
 			mcp.WithDescription("Update an existing task in Teamwork.com. "+taskDescription),
+			mcp.WithTitleAnnotation("Update Task"),
 			mcp.WithNumber("id",
 				mcp.Required(),
 				mcp.Description("The ID of the task to update."),
@@ -408,6 +410,7 @@ func TaskDelete(engine *twapi.Engine) server.ServerTool {
 	return server.ServerTool{
 		Tool: mcp.NewTool(string(MethodTaskDelete),
 			mcp.WithDescription("Delete an existing task in Teamwork.com. "+taskDescription),
+			mcp.WithTitleAnnotation("Delete Task"),
 			mcp.WithNumber("id",
 				mcp.Required(),
 				mcp.Description("The ID of the task to delete."),
@@ -441,6 +444,8 @@ func TaskGet(engine *twapi.Engine) server.ServerTool {
 			mcp.WithToolAnnotation(mcp.ToolAnnotation{
 				ReadOnlyHint: twapi.Ptr(true),
 			}),
+			mcp.WithTitleAnnotation("Get Task"),
+			mcp.WithOutputSchema[projects.TaskGetResponse](),
 			mcp.WithNumber("id",
 				mcp.Required(),
 				mcp.Description("The ID of the task to get."),
@@ -480,6 +485,8 @@ func TaskList(engine *twapi.Engine) server.ServerTool {
 			mcp.WithToolAnnotation(mcp.ToolAnnotation{
 				ReadOnlyHint: twapi.Ptr(true),
 			}),
+			mcp.WithTitleAnnotation("List Tasks"),
+			mcp.WithOutputSchema[projects.TaskListResponse](),
 			mcp.WithString("search_term",
 				mcp.Description("A search term to filter tasks by name."),
 			),
@@ -546,6 +553,8 @@ func TaskListByTasklist(engine *twapi.Engine) server.ServerTool {
 			mcp.WithToolAnnotation(mcp.ToolAnnotation{
 				ReadOnlyHint: twapi.Ptr(true),
 			}),
+			mcp.WithTitleAnnotation("List Tasks By Tasklist"),
+			mcp.WithOutputSchema[projects.TaskListResponse](),
 			mcp.WithNumber("tasklist_id",
 				mcp.Required(),
 				mcp.Description("The ID of the tasklist from which to retrieve tasks."),
@@ -617,6 +626,8 @@ func TaskListByProject(engine *twapi.Engine) server.ServerTool {
 			mcp.WithToolAnnotation(mcp.ToolAnnotation{
 				ReadOnlyHint: twapi.Ptr(true),
 			}),
+			mcp.WithTitleAnnotation("List Tasks By Project"),
+			mcp.WithOutputSchema[projects.TaskListResponse](),
 			mcp.WithNumber("project_id",
 				mcp.Required(),
 				mcp.Description("The ID of the project from which to retrieve tasks."),

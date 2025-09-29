@@ -50,6 +50,7 @@ func TimelogCreate(engine *twapi.Engine) server.ServerTool {
 	return server.ServerTool{
 		Tool: mcp.NewTool(string(MethodTimelogCreate),
 			mcp.WithDescription("Create a new timelog in Teamwork.com. "+timelogDescription),
+			mcp.WithTitleAnnotation("Create Timelog"),
 			mcp.WithString("description",
 				mcp.Description("A description of the timelog."),
 			),
@@ -131,6 +132,7 @@ func TimelogUpdate(engine *twapi.Engine) server.ServerTool {
 	return server.ServerTool{
 		Tool: mcp.NewTool(string(MethodTimelogUpdate),
 			mcp.WithDescription("Update an existing timelog in Teamwork.com. "+timelogDescription),
+			mcp.WithTitleAnnotation("Update Timelog"),
 			mcp.WithNumber("id",
 				mcp.Required(),
 				mcp.Description("The ID of the timelog to update."),
@@ -201,6 +203,7 @@ func TimelogDelete(engine *twapi.Engine) server.ServerTool {
 	return server.ServerTool{
 		Tool: mcp.NewTool(string(MethodTimelogDelete),
 			mcp.WithDescription("Delete an existing timelog in Teamwork.com. "+timelogDescription),
+			mcp.WithTitleAnnotation("Delete Timelog"),
 			mcp.WithNumber("id",
 				mcp.Required(),
 				mcp.Description("The ID of the timelog to delete."),
@@ -234,6 +237,8 @@ func TimelogGet(engine *twapi.Engine) server.ServerTool {
 			mcp.WithToolAnnotation(mcp.ToolAnnotation{
 				ReadOnlyHint: twapi.Ptr(true),
 			}),
+			mcp.WithTitleAnnotation("Get Timelog"),
+			mcp.WithOutputSchema[projects.TimelogGetResponse](),
 			mcp.WithNumber("id",
 				mcp.Required(),
 				mcp.Description("The ID of the timelog to get."),
@@ -271,6 +276,8 @@ func TimelogList(engine *twapi.Engine) server.ServerTool {
 			mcp.WithToolAnnotation(mcp.ToolAnnotation{
 				ReadOnlyHint: twapi.Ptr(true),
 			}),
+			mcp.WithTitleAnnotation("List Timelogs"),
+			mcp.WithOutputSchema[projects.TimelogListResponse](),
 			mcp.WithArray("tag_ids",
 				mcp.Description("A list of tag IDs to filter timelogs by tags"),
 				mcp.Items(map[string]any{
@@ -353,6 +360,8 @@ func TimelogListByProject(engine *twapi.Engine) server.ServerTool {
 			mcp.WithToolAnnotation(mcp.ToolAnnotation{
 				ReadOnlyHint: twapi.Ptr(true),
 			}),
+			mcp.WithTitleAnnotation("List Timelogs By Project"),
+			mcp.WithOutputSchema[projects.TimelogListResponse](),
 			mcp.WithNumber("project_id",
 				mcp.Required(),
 				mcp.Description("The ID of the project from which to retrieve timelogs."),
@@ -440,6 +449,8 @@ func TimelogListByTask(engine *twapi.Engine) server.ServerTool {
 			mcp.WithToolAnnotation(mcp.ToolAnnotation{
 				ReadOnlyHint: twapi.Ptr(true),
 			}),
+			mcp.WithTitleAnnotation("List Timelogs By Task"),
+			mcp.WithOutputSchema[projects.TimelogListResponse](),
 			mcp.WithNumber("task_id",
 				mcp.Required(),
 				mcp.Description("The ID of the task from which to retrieve timelogs."),

@@ -50,6 +50,7 @@ func UserCreate(engine *twapi.Engine) server.ServerTool {
 	return server.ServerTool{
 		Tool: mcp.NewTool(string(MethodUserCreate),
 			mcp.WithDescription("Create a new user in Teamwork.com. "+userDescription),
+			mcp.WithTitleAnnotation("Create User"),
 			mcp.WithString("first_name",
 				mcp.Required(),
 				mcp.Description("The first name of the user."),
@@ -108,6 +109,7 @@ func UserUpdate(engine *twapi.Engine) server.ServerTool {
 	return server.ServerTool{
 		Tool: mcp.NewTool(string(MethodUserUpdate),
 			mcp.WithDescription("Update an existing user in Teamwork.com. "+userDescription),
+			mcp.WithTitleAnnotation("Update User"),
 			mcp.WithNumber("id",
 				mcp.Required(),
 				mcp.Description("The ID of the user to update."),
@@ -168,6 +170,7 @@ func UserDelete(engine *twapi.Engine) server.ServerTool {
 	return server.ServerTool{
 		Tool: mcp.NewTool(string(MethodUserDelete),
 			mcp.WithDescription("Delete an existing user in Teamwork.com. "+userDescription),
+			mcp.WithTitleAnnotation("Delete User"),
 			mcp.WithNumber("id",
 				mcp.Required(),
 				mcp.Description("The ID of the user to delete."),
@@ -201,6 +204,8 @@ func UserGet(engine *twapi.Engine) server.ServerTool {
 			mcp.WithToolAnnotation(mcp.ToolAnnotation{
 				ReadOnlyHint: twapi.Ptr(true),
 			}),
+			mcp.WithTitleAnnotation("Get User"),
+			mcp.WithOutputSchema[projects.UserGetResponse](),
 			mcp.WithNumber("id",
 				mcp.Required(),
 				mcp.Description("The ID of the user to get."),
@@ -240,6 +245,8 @@ func UserGetMe(engine *twapi.Engine) server.ServerTool {
 			mcp.WithToolAnnotation(mcp.ToolAnnotation{
 				ReadOnlyHint: twapi.Ptr(true),
 			}),
+			mcp.WithTitleAnnotation("Get Logged User"),
+			mcp.WithOutputSchema[projects.UserGetMeResponse](),
 		),
 		Handler: func(ctx context.Context, _ mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 			var userGetMeRequest projects.UserGetMeRequest
@@ -267,6 +274,8 @@ func UserList(engine *twapi.Engine) server.ServerTool {
 			mcp.WithToolAnnotation(mcp.ToolAnnotation{
 				ReadOnlyHint: twapi.Ptr(true),
 			}),
+			mcp.WithTitleAnnotation("List Users"),
+			mcp.WithOutputSchema[projects.UserListResponse](),
 			mcp.WithString("search_term",
 				mcp.Description("A search term to filter users by first or last names, or e-mail. "+
 					"The user will be selected if each word of the term matches the first or last name, or e-mail, not "+
@@ -321,6 +330,8 @@ func UserListByProject(engine *twapi.Engine) server.ServerTool {
 			mcp.WithToolAnnotation(mcp.ToolAnnotation{
 				ReadOnlyHint: twapi.Ptr(true),
 			}),
+			mcp.WithTitleAnnotation("List Users By Project"),
+			mcp.WithOutputSchema[projects.UserListResponse](),
 			mcp.WithNumber("project_id",
 				mcp.Required(),
 				mcp.Description("The ID of the project from which to retrieve users."),

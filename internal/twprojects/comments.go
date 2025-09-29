@@ -57,6 +57,7 @@ func CommentCreate(engine *twapi.Engine) server.ServerTool {
 	return server.ServerTool{
 		Tool: mcp.NewTool(string(MethodCommentCreate),
 			mcp.WithDescription("Create a new comment in Teamwork.com. "+commentDescription),
+			mcp.WithTitleAnnotation("Create Comment"),
 			mcp.WithObject("object",
 				mcp.Required(),
 				mcp.Description("The object to create the comment for. It can be a tasks, milestones, files or notebooks."),
@@ -139,6 +140,7 @@ func CommentUpdate(engine *twapi.Engine) server.ServerTool {
 	return server.ServerTool{
 		Tool: mcp.NewTool(string(MethodCommentUpdate),
 			mcp.WithDescription("Update an existing comment in Teamwork.com. "+commentDescription),
+			mcp.WithTitleAnnotation("Update Comment"),
 			mcp.WithNumber("id",
 				mcp.Required(),
 				mcp.Description("The ID of the comment to update."),
@@ -178,6 +180,7 @@ func CommentDelete(engine *twapi.Engine) server.ServerTool {
 	return server.ServerTool{
 		Tool: mcp.NewTool(string(MethodCommentDelete),
 			mcp.WithDescription("Delete an existing comment in Teamwork.com. "+commentDescription),
+			mcp.WithTitleAnnotation("Delete Comment"),
 			mcp.WithNumber("id",
 				mcp.Required(),
 				mcp.Description("The ID of the comment to delete."),
@@ -211,6 +214,8 @@ func CommentGet(engine *twapi.Engine) server.ServerTool {
 			mcp.WithToolAnnotation(mcp.ToolAnnotation{
 				ReadOnlyHint: twapi.Ptr(true),
 			}),
+			mcp.WithTitleAnnotation("Get Comment"),
+			mcp.WithOutputSchema[projects.CommentGetResponse](),
 			mcp.WithNumber("id",
 				mcp.Required(),
 				mcp.Description("The ID of the comment to get."),
@@ -248,6 +253,8 @@ func CommentList(engine *twapi.Engine) server.ServerTool {
 			mcp.WithToolAnnotation(mcp.ToolAnnotation{
 				ReadOnlyHint: twapi.Ptr(true),
 			}),
+			mcp.WithTitleAnnotation("List Comments"),
+			mcp.WithOutputSchema[projects.CommentListResponse](),
 			mcp.WithString("search_term",
 				mcp.Description("A search term to filter comments by name."),
 			),
@@ -292,6 +299,8 @@ func CommentListByFileVersion(engine *twapi.Engine) server.ServerTool {
 			mcp.WithToolAnnotation(mcp.ToolAnnotation{
 				ReadOnlyHint: twapi.Ptr(true),
 			}),
+			mcp.WithTitleAnnotation("List Comments by File Version"),
+			mcp.WithOutputSchema[projects.CommentListResponse](),
 			mcp.WithNumber("file_version_id",
 				mcp.Required(),
 				mcp.Description("The ID of the file version to retrieve comments for. Each file can have multiple versions, "+
@@ -342,6 +351,8 @@ func CommentListByMilestone(engine *twapi.Engine) server.ServerTool {
 			mcp.WithToolAnnotation(mcp.ToolAnnotation{
 				ReadOnlyHint: twapi.Ptr(true),
 			}),
+			mcp.WithTitleAnnotation("List Comments by Milestone"),
+			mcp.WithOutputSchema[projects.CommentListResponse](),
 			mcp.WithNumber("milestone_id",
 				mcp.Required(),
 				mcp.Description("The ID of the milestone to retrieve comments for."),
@@ -391,6 +402,8 @@ func CommentListByNotebook(engine *twapi.Engine) server.ServerTool {
 			mcp.WithToolAnnotation(mcp.ToolAnnotation{
 				ReadOnlyHint: twapi.Ptr(true),
 			}),
+			mcp.WithTitleAnnotation("List Comments by Notebook"),
+			mcp.WithOutputSchema[projects.CommentListResponse](),
 			mcp.WithNumber("notebook_id",
 				mcp.Required(),
 				mcp.Description("The ID of the notebook to retrieve comments for."),
@@ -440,6 +453,8 @@ func CommentListByTask(engine *twapi.Engine) server.ServerTool {
 			mcp.WithToolAnnotation(mcp.ToolAnnotation{
 				ReadOnlyHint: twapi.Ptr(true),
 			}),
+			mcp.WithTitleAnnotation("List Comments by Task"),
+			mcp.WithOutputSchema[projects.CommentListResponse](),
 			mcp.WithNumber("task_id",
 				mcp.Required(),
 				mcp.Description("The ID of the task to retrieve comments for."),

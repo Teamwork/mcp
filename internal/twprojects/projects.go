@@ -47,6 +47,7 @@ func ProjectCreate(engine *twapi.Engine) server.ServerTool {
 	return server.ServerTool{
 		Tool: mcp.NewTool(string(MethodProjectCreate),
 			mcp.WithDescription("Create a new project in Teamwork.com. "+projectDescription),
+			mcp.WithTitleAnnotation("Create Project"),
 			mcp.WithString("name",
 				mcp.Required(),
 				mcp.Description("The name of the project."),
@@ -104,6 +105,7 @@ func ProjectUpdate(engine *twapi.Engine) server.ServerTool {
 	return server.ServerTool{
 		Tool: mcp.NewTool(string(MethodProjectUpdate),
 			mcp.WithDescription("Update an existing project in Teamwork.com. "+projectDescription),
+			mcp.WithTitleAnnotation("Update Project"),
 			mcp.WithNumber("id",
 				mcp.Required(),
 				mcp.Description("The ID of the project to update."),
@@ -165,6 +167,7 @@ func ProjectDelete(engine *twapi.Engine) server.ServerTool {
 	return server.ServerTool{
 		Tool: mcp.NewTool(string(MethodProjectDelete),
 			mcp.WithDescription("Delete an existing project in Teamwork.com. "+projectDescription),
+			mcp.WithTitleAnnotation("Delete Project"),
 			mcp.WithNumber("id",
 				mcp.Required(),
 				mcp.Description("The ID of the project to delete."),
@@ -198,6 +201,8 @@ func ProjectGet(engine *twapi.Engine) server.ServerTool {
 			mcp.WithToolAnnotation(mcp.ToolAnnotation{
 				ReadOnlyHint: twapi.Ptr(true),
 			}),
+			mcp.WithTitleAnnotation("Get Project"),
+			mcp.WithOutputSchema[projects.ProjectGetResponse](),
 			mcp.WithNumber("id",
 				mcp.Required(),
 				mcp.Description("The ID of the project to get."),
@@ -237,6 +242,8 @@ func ProjectList(engine *twapi.Engine) server.ServerTool {
 			mcp.WithToolAnnotation(mcp.ToolAnnotation{
 				ReadOnlyHint: twapi.Ptr(true),
 			}),
+			mcp.WithTitleAnnotation("List Projects"),
+			mcp.WithOutputSchema[projects.ProjectListResponse](),
 			mcp.WithString("search_term",
 				mcp.Description("A search term to filter projects by name or description."),
 			),

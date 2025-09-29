@@ -46,6 +46,7 @@ func NotebookCreate(engine *twapi.Engine) server.ServerTool {
 	return server.ServerTool{
 		Tool: mcp.NewTool(string(MethodNotebookCreate),
 			mcp.WithDescription("Create a new notebook in Teamwork.com. "+notebookDescription),
+			mcp.WithTitleAnnotation("Create Notebook"),
 			mcp.WithString("name",
 				mcp.Required(),
 				mcp.Description("The name of the notebook."),
@@ -109,6 +110,7 @@ func NotebookUpdate(engine *twapi.Engine) server.ServerTool {
 	return server.ServerTool{
 		Tool: mcp.NewTool(string(MethodNotebookUpdate),
 			mcp.WithDescription("Update an existing notebook in Teamwork.com. "+notebookDescription),
+			mcp.WithTitleAnnotation("Update Notebook"),
 			mcp.WithNumber("id",
 				mcp.Required(),
 				mcp.Description("The ID of the notebook to update."),
@@ -168,6 +170,7 @@ func NotebookDelete(engine *twapi.Engine) server.ServerTool {
 	return server.ServerTool{
 		Tool: mcp.NewTool(string(MethodNotebookDelete),
 			mcp.WithDescription("Delete an existing notebook in Teamwork.com. "+notebookDescription),
+			mcp.WithTitleAnnotation("Delete Notebook"),
 			mcp.WithNumber("id",
 				mcp.Required(),
 				mcp.Description("The ID of the notebook to delete."),
@@ -201,6 +204,8 @@ func NotebookGet(engine *twapi.Engine) server.ServerTool {
 			mcp.WithToolAnnotation(mcp.ToolAnnotation{
 				ReadOnlyHint: twapi.Ptr(true),
 			}),
+			mcp.WithTitleAnnotation("Get Notebook"),
+			mcp.WithOutputSchema[projects.NotebookGetResponse](),
 			mcp.WithNumber("id",
 				mcp.Required(),
 				mcp.Description("The ID of the notebook to get."),
@@ -240,6 +245,8 @@ func NotebookList(engine *twapi.Engine) server.ServerTool {
 			mcp.WithToolAnnotation(mcp.ToolAnnotation{
 				ReadOnlyHint: twapi.Ptr(true),
 			}),
+			mcp.WithTitleAnnotation("List Notebooks"),
+			mcp.WithOutputSchema[projects.NotebookListResponse](),
 			mcp.WithArray("project_ids",
 				mcp.Description("A list of project IDs to filter notebooks by projects"),
 				mcp.Items(map[string]any{

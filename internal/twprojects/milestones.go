@@ -48,6 +48,7 @@ func MilestoneCreate(engine *twapi.Engine) server.ServerTool {
 	return server.ServerTool{
 		Tool: mcp.NewTool(string(MethodMilestoneCreate),
 			mcp.WithDescription("Create a new milestone in Teamwork.com. "+milestoneDescription),
+			mcp.WithTitleAnnotation("Create Milestone"),
 			mcp.WithString("name",
 				mcp.Required(),
 				mcp.Description("The name of the milestone."),
@@ -164,6 +165,7 @@ func MilestoneUpdate(engine *twapi.Engine) server.ServerTool {
 	return server.ServerTool{
 		Tool: mcp.NewTool(string(MethodMilestoneUpdate),
 			mcp.WithDescription("Update an existing milestone in Teamwork.com. "+milestoneDescription),
+			mcp.WithTitleAnnotation("Update Milestone"),
 			mcp.WithNumber("id",
 				mcp.Required(),
 				mcp.Description("The ID of the milestone to update."),
@@ -271,6 +273,7 @@ func MilestoneDelete(engine *twapi.Engine) server.ServerTool {
 	return server.ServerTool{
 		Tool: mcp.NewTool(string(MethodMilestoneDelete),
 			mcp.WithDescription("Delete an existing milestone in Teamwork.com. "+milestoneDescription),
+			mcp.WithTitleAnnotation("Delete Milestone"),
 			mcp.WithNumber("id",
 				mcp.Required(),
 				mcp.Description("The ID of the milestone to delete."),
@@ -304,6 +307,8 @@ func MilestoneGet(engine *twapi.Engine) server.ServerTool {
 			mcp.WithToolAnnotation(mcp.ToolAnnotation{
 				ReadOnlyHint: twapi.Ptr(true),
 			}),
+			mcp.WithTitleAnnotation("Get Milestone"),
+			mcp.WithOutputSchema[projects.MilestoneGetResponse](),
 			mcp.WithNumber("id",
 				mcp.Required(),
 				mcp.Description("The ID of the milestone to get."),
@@ -343,6 +348,8 @@ func MilestoneList(engine *twapi.Engine) server.ServerTool {
 			mcp.WithToolAnnotation(mcp.ToolAnnotation{
 				ReadOnlyHint: twapi.Ptr(true),
 			}),
+			mcp.WithTitleAnnotation("List Milestones"),
+			mcp.WithOutputSchema[projects.MilestoneListResponse](),
 			mcp.WithString("search_term",
 				mcp.Description("A search term to filter milestones by name. "+
 					"Each word from the search term is used to match against the milestone name and description. "+
@@ -405,6 +412,8 @@ func MilestoneListByProject(engine *twapi.Engine) server.ServerTool {
 			mcp.WithToolAnnotation(mcp.ToolAnnotation{
 				ReadOnlyHint: twapi.Ptr(true),
 			}),
+			mcp.WithTitleAnnotation("List Milestones by Project"),
+			mcp.WithOutputSchema[projects.MilestoneListResponse](),
 			mcp.WithNumber("project_id",
 				mcp.Required(),
 				mcp.Description("The ID of the project from which to retrieve milestones."),
