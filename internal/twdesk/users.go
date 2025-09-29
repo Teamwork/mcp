@@ -8,7 +8,7 @@ import (
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
 	deskclient "github.com/teamwork/desksdkgo/client"
-	"github.com/teamwork/desksdkgo/models"
+	deskmodels "github.com/teamwork/desksdkgo/models"
 	"github.com/teamwork/mcp/internal/helpers"
 	"github.com/teamwork/mcp/internal/toolsets"
 )
@@ -55,7 +55,7 @@ func UserGet(client *deskclient.Client) server.ServerTool {
 // UserList returns a list of users that apply to the filters in Teamwork Desk
 func UserList(client *deskclient.Client) server.ServerTool {
 	opts := []mcp.ToolOption{
-		mcp.WithOutputSchema[models.UsersResponse](),
+		mcp.WithOutputSchema[deskmodels.UsersResponse](),
 		mcp.WithDescription(
 			"List all users in Teamwork Desk, with optional filters for name, email, inbox, and part-time status. " +
 				"Enables users to audit, analyze, or synchronize user configurations for support management, " +
