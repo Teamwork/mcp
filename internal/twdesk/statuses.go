@@ -59,6 +59,7 @@ func StatusGet(client *deskclient.Client) server.ServerTool {
 // StatusList returns a list of statuses that apply to the filters in Teamwork Desk
 func StatusList(client *deskclient.Client) server.ServerTool {
 	opts := []mcp.ToolOption{
+		mcp.WithOutputSchema[deskmodels.TicketStatusesResponse](),
 		mcp.WithDescription(
 			"List all statuses in Teamwork Desk, with optional filters for name, color, and code. " +
 				"Enables users to audit, analyze, or synchronize status configurations for ticket management, " +

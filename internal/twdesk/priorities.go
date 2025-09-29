@@ -35,6 +35,7 @@ func init() {
 func PriorityGet(client *deskclient.Client) server.ServerTool {
 	return server.ServerTool{
 		Tool: mcp.NewTool(string(MethodPriorityGet),
+			mcp.WithOutputSchema[deskmodels.TicketPriorityResponse](),
 			mcp.WithDescription(
 				"Retrieve detailed information about a specific priority in Teamwork Desk by its ID. "+
 					"Useful for inspecting priority attributes, troubleshooting ticket routing, or "+

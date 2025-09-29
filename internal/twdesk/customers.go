@@ -59,6 +59,7 @@ func CustomerGet(client *deskclient.Client) server.ServerTool {
 // CustomerList returns a list of customers that apply to the filters in Teamwork Desk
 func CustomerList(client *deskclient.Client) server.ServerTool {
 	opts := []mcp.ToolOption{
+		mcp.WithOutputSchema[deskmodels.CustomersResponse](),
 		mcp.WithDescription(
 			"List all customers in Teamwork Desk, with optional filters for company, email, and other attributes. " +
 				"Enables users to audit, analyze, or synchronize customer configurations for ticket management, " +

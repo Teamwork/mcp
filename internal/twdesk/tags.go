@@ -35,6 +35,7 @@ func init() {
 func TagGet(client *deskclient.Client) server.ServerTool {
 	return server.ServerTool{
 		Tool: mcp.NewTool(string(MethodTagGet),
+			mcp.WithOutputSchema[deskmodels.Tag](),
 			mcp.WithDescription(
 				"Retrieve detailed information about a specific tag in Teamwork Desk by its ID. "+
 					"Useful for auditing tag usage, troubleshooting ticket categorization, or "+

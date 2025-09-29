@@ -59,6 +59,7 @@ func TypeGet(client *deskclient.Client) server.ServerTool {
 // TypeList returns a list of types that apply to the filters in Teamwork Desk
 func TypeList(client *deskclient.Client) server.ServerTool {
 	opts := []mcp.ToolOption{
+		mcp.WithOutputSchema[deskmodels.TicketTypesResponse](),
 		mcp.WithDescription(
 			"List all ticket types in Teamwork Desk, with optional filters for name and inbox association. " +
 				"Enables users to audit, analyze, or synchronize type configurations for ticket management, " +

@@ -35,6 +35,7 @@ func init() {
 func CompanyGet(client *deskclient.Client) server.ServerTool {
 	return server.ServerTool{
 		Tool: mcp.NewTool(string(MethodCompanyGet),
+			mcp.WithOutputSchema[deskmodels.CompanyResponse](),
 			mcp.WithDescription(
 				"Retrieve detailed information about a specific company in Teamwork Desk by its ID. "+
 					"Useful for auditing company records, troubleshooting ticket associations, or "+
