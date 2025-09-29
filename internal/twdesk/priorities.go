@@ -35,6 +35,7 @@ func init() {
 func PriorityGet(client *deskclient.Client) server.ServerTool {
 	return server.ServerTool{
 		Tool: mcp.NewTool(string(MethodPriorityGet),
+			mcp.WithTitleAnnotation("Get Priority"),
 			mcp.WithOutputSchema[deskmodels.TicketPriorityResponse](),
 			mcp.WithDescription(
 				"Retrieve detailed information about a specific priority in Teamwork Desk by its ID. "+
@@ -60,6 +61,8 @@ func PriorityGet(client *deskclient.Client) server.ServerTool {
 // PriorityList returns a list of priorities that apply to the filters in Teamwork Desk
 func PriorityList(client *deskclient.Client) server.ServerTool {
 	opts := []mcp.ToolOption{
+		mcp.WithTitleAnnotation("List Priorities"),
+		mcp.WithOutputSchema[deskmodels.TicketPrioritiesResponse](),
 		mcp.WithDescription(
 			"List all available priorities in Teamwork Desk, with optional filters for name and color. " +
 				"Enables users to audit, analyze, or synchronize priority configurations for ticket management, " +
@@ -104,6 +107,7 @@ func PriorityList(client *deskclient.Client) server.ServerTool {
 func PriorityCreate(client *deskclient.Client) server.ServerTool {
 	return server.ServerTool{
 		Tool: mcp.NewTool(string(MethodPriorityCreate),
+			mcp.WithTitleAnnotation("Create Priority"),
 			mcp.WithDescription(
 				"Create a new priority in Teamwork Desk by specifying its name and color. Useful for customizing "+
 					"ticket workflows, introducing new escalation levels, or adapting Desk to evolving support processes."),
@@ -135,6 +139,7 @@ func PriorityCreate(client *deskclient.Client) server.ServerTool {
 func PriorityUpdate(client *deskclient.Client) server.ServerTool {
 	return server.ServerTool{
 		Tool: mcp.NewTool(string(MethodPriorityUpdate),
+			mcp.WithTitleAnnotation("Update Priority"),
 			mcp.WithDescription(
 				"Update an existing priority in Teamwork Desk by ID, allowing changes to its name and color. "+
 					"Supports evolving support policies, rebranding, or correcting priority attributes for improved "+

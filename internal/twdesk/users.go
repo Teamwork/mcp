@@ -31,6 +31,8 @@ func init() {
 func UserGet(client *deskclient.Client) server.ServerTool {
 	return server.ServerTool{
 		Tool: mcp.NewTool(string(MethodUserGet),
+			mcp.WithOutputSchema[deskmodels.UserResponse](),
+			mcp.WithTitleAnnotation("Get User"),
 			mcp.WithDescription(
 				"Retrieve detailed information about a specific user in Teamwork Desk by their ID. "+
 					"Useful for auditing user records, troubleshooting ticket assignments, or "+
@@ -56,6 +58,7 @@ func UserGet(client *deskclient.Client) server.ServerTool {
 func UserList(client *deskclient.Client) server.ServerTool {
 	opts := []mcp.ToolOption{
 		mcp.WithOutputSchema[deskmodels.UsersResponse](),
+		mcp.WithTitleAnnotation("List Users"),
 		mcp.WithDescription(
 			"List all users in Teamwork Desk, with optional filters for name, email, inbox, and part-time status. " +
 				"Enables users to audit, analyze, or synchronize user configurations for support management, " +

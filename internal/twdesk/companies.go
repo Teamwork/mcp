@@ -35,6 +35,7 @@ func init() {
 func CompanyGet(client *deskclient.Client) server.ServerTool {
 	return server.ServerTool{
 		Tool: mcp.NewTool(string(MethodCompanyGet),
+			mcp.WithTitleAnnotation("Get Company"),
 			mcp.WithOutputSchema[deskmodels.CompanyResponse](),
 			mcp.WithDescription(
 				"Retrieve detailed information about a specific company in Teamwork Desk by its ID. "+
@@ -60,6 +61,8 @@ func CompanyGet(client *deskclient.Client) server.ServerTool {
 // CompanyList returns a list of companies that apply to the filters in Teamwork Desk
 func CompanyList(client *deskclient.Client) server.ServerTool {
 	opts := []mcp.ToolOption{
+		mcp.WithTitleAnnotation("List Companies"),
+		mcp.WithOutputSchema[deskmodels.CompaniesResponse](),
 		mcp.WithDescription(
 			"List all companies in Teamwork Desk, with optional filters for name, domains, and kind. " +
 				"Enables users to audit, analyze, or synchronize company configurations for ticket management, " +

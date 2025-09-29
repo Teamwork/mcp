@@ -36,6 +36,7 @@ func TagGet(client *deskclient.Client) server.ServerTool {
 	return server.ServerTool{
 		Tool: mcp.NewTool(string(MethodTagGet),
 			mcp.WithOutputSchema[deskmodels.Tag](),
+			mcp.WithTitleAnnotation("Get Tag"),
 			mcp.WithDescription(
 				"Retrieve detailed information about a specific tag in Teamwork Desk by its ID. "+
 					"Useful for auditing tag usage, troubleshooting ticket categorization, or "+
@@ -60,6 +61,8 @@ func TagGet(client *deskclient.Client) server.ServerTool {
 // TagList returns a list of tags that apply to the filters in Teamwork Desk
 func TagList(client *deskclient.Client) server.ServerTool {
 	opts := []mcp.ToolOption{
+		mcp.WithTitleAnnotation("List Tags"),
+		mcp.WithOutputSchema[deskmodels.TagsResponse](),
 		mcp.WithDescription(
 			"List all tags in Teamwork Desk, with optional filters for name, color, and inbox association. " +
 				"Enables users to audit, analyze, or synchronize tag configurations for ticket management, " +
@@ -109,6 +112,7 @@ func TagList(client *deskclient.Client) server.ServerTool {
 func TagCreate(client *deskclient.Client) server.ServerTool {
 	return server.ServerTool{
 		Tool: mcp.NewTool(string(MethodTagCreate),
+			mcp.WithTitleAnnotation("Create Tag"),
 			mcp.WithDescription(
 				"Create a new tag in Teamwork Desk by specifying its name and color. Useful for customizing "+
 					"ticket workflows, introducing new categories, or adapting Desk to evolving support processes."),
@@ -140,6 +144,7 @@ func TagCreate(client *deskclient.Client) server.ServerTool {
 func TagUpdate(client *deskclient.Client) server.ServerTool {
 	return server.ServerTool{
 		Tool: mcp.NewTool(string(MethodTagUpdate),
+			mcp.WithTitleAnnotation("Update Tag"),
 			mcp.WithDescription(
 				"Update an existing tag in Teamwork Desk by ID, allowing changes to its name and color. "+
 					"Supports evolving support policies, rebranding, or correcting tag attributes for improved "+

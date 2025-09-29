@@ -35,6 +35,8 @@ func init() {
 func TypeGet(client *deskclient.Client) server.ServerTool {
 	return server.ServerTool{
 		Tool: mcp.NewTool(string(MethodTypeGet),
+			mcp.WithOutputSchema[deskmodels.TicketTypeResponse](),
+			mcp.WithTitleAnnotation("Get Type"),
 			mcp.WithDescription(
 				"Retrieve detailed information about a specific ticket type in Teamwork Desk by its ID. "+
 					"Useful for auditing type usage, troubleshooting ticket categorization, or "+
@@ -59,6 +61,7 @@ func TypeGet(client *deskclient.Client) server.ServerTool {
 // TypeList returns a list of types that apply to the filters in Teamwork Desk
 func TypeList(client *deskclient.Client) server.ServerTool {
 	opts := []mcp.ToolOption{
+		mcp.WithTitleAnnotation("List Types"),
 		mcp.WithOutputSchema[deskmodels.TicketTypesResponse](),
 		mcp.WithDescription(
 			"List all ticket types in Teamwork Desk, with optional filters for name and inbox association. " +
@@ -103,6 +106,7 @@ func TypeList(client *deskclient.Client) server.ServerTool {
 func TypeCreate(client *deskclient.Client) server.ServerTool {
 	return server.ServerTool{
 		Tool: mcp.NewTool(string(MethodTypeCreate),
+			mcp.WithTitleAnnotation("Create Type"),
 			mcp.WithDescription(
 				"Create a new ticket type in Teamwork Desk by specifying its name, display order, and future inbox settings. "+
 					"Useful for customizing ticket workflows, introducing new categories, or "+
@@ -137,6 +141,7 @@ func TypeCreate(client *deskclient.Client) server.ServerTool {
 func TypeUpdate(client *deskclient.Client) server.ServerTool {
 	return server.ServerTool{
 		Tool: mcp.NewTool(string(MethodTypeUpdate),
+			mcp.WithTitleAnnotation("Update Type"),
 			mcp.WithDescription(
 				"Update an existing ticket type in Teamwork Desk by ID, allowing changes to its name, display order, "+
 					"and future inbox settings. Supports evolving support policies, rebranding, or correcting "+

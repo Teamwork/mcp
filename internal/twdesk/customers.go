@@ -35,6 +35,7 @@ func init() {
 func CustomerGet(client *deskclient.Client) server.ServerTool {
 	return server.ServerTool{
 		Tool: mcp.NewTool(string(MethodCustomerGet),
+			mcp.WithTitleAnnotation("Get Customer"),
 			mcp.WithDescription(
 				"Retrieve detailed information about a specific customer in Teamwork Desk by their ID. "+
 					"Useful for auditing customer records, troubleshooting ticket associations, or "+
@@ -59,6 +60,7 @@ func CustomerGet(client *deskclient.Client) server.ServerTool {
 // CustomerList returns a list of customers that apply to the filters in Teamwork Desk
 func CustomerList(client *deskclient.Client) server.ServerTool {
 	opts := []mcp.ToolOption{
+		mcp.WithTitleAnnotation("List Customers"),
 		mcp.WithOutputSchema[deskmodels.CustomersResponse](),
 		mcp.WithDescription(
 			"List all customers in Teamwork Desk, with optional filters for company, email, and other attributes. " +
@@ -111,6 +113,7 @@ func CustomerList(client *deskclient.Client) server.ServerTool {
 func CustomerCreate(client *deskclient.Client) server.ServerTool {
 	return server.ServerTool{
 		Tool: mcp.NewTool(string(MethodCustomerCreate),
+			mcp.WithTitleAnnotation("Create Customer"),
 			mcp.WithDescription(
 				"Create a new customer in Teamwork Desk by specifying their name, contact details, and other attributes. "+
 					"Useful for onboarding new clients, customizing Desk for business relationships, or "+
@@ -202,6 +205,7 @@ func CustomerCreate(client *deskclient.Client) server.ServerTool {
 func CustomerUpdate(client *deskclient.Client) server.ServerTool {
 	return server.ServerTool{
 		Tool: mcp.NewTool(string(MethodCustomerUpdate),
+			mcp.WithTitleAnnotation("Update Customer"),
 			mcp.WithDescription(
 				"Update an existing customer in Teamwork Desk by ID, allowing changes to their name, "+
 					"contact details, and other attributes. Supports evolving business relationships, "+

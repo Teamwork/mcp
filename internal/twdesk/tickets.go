@@ -36,6 +36,8 @@ func init() {
 func TicketGet(client *deskclient.Client) server.ServerTool {
 	return server.ServerTool{
 		Tool: mcp.NewTool(string(MethodTicketGet),
+			mcp.WithTitleAnnotation("Get Ticket"),
+			mcp.WithOutputSchema[deskmodels.TicketResponse](),
 			mcp.WithDescription(
 				"Retrieve detailed information about a specific ticket in Teamwork Desk by its ID. "+
 					"Useful for auditing ticket records, troubleshooting support workflows, or "+
@@ -67,6 +69,7 @@ func TicketGet(client *deskclient.Client) server.ServerTool {
 // TicketList returns a list of tickets that apply to the filters in Teamwork Desk
 func TicketList(client *deskclient.Client) server.ServerTool {
 	opts := []mcp.ToolOption{
+		mcp.WithTitleAnnotation("List Tickets"),
 		mcp.WithOutputSchema[deskmodels.TicketsResponse](),
 		mcp.WithDescription(
 			"List all tickets in Teamwork Desk, with extensive filters for inbox, customer, company, tag, status, " +
@@ -208,6 +211,7 @@ func TicketList(client *deskclient.Client) server.ServerTool {
 func TicketCreate(client *deskclient.Client) server.ServerTool {
 	return server.ServerTool{
 		Tool: mcp.NewTool(string(MethodTicketCreate),
+			mcp.WithTitleAnnotation("Create Ticket"),
 			mcp.WithDescription(
 				"Create a new ticket in Teamwork Desk by specifying subject, description, priority, and status. "+
 					"Useful for automating ticket creation, integrating external systems, or customizing support workflows."),
@@ -235,6 +239,7 @@ func TicketCreate(client *deskclient.Client) server.ServerTool {
 func TicketUpdate(client *deskclient.Client) server.ServerTool {
 	return server.ServerTool{
 		Tool: mcp.NewTool(string(MethodTicketUpdate),
+			mcp.WithTitleAnnotation("Update Ticket"),
 			mcp.WithDescription(
 				"Update an existing ticket in Teamwork Desk by ID, allowing changes to its attributes. "+
 					"Supports evolving support processes, correcting ticket records, or integrating with automation "+

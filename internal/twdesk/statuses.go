@@ -35,6 +35,7 @@ func init() {
 func StatusGet(client *deskclient.Client) server.ServerTool {
 	return server.ServerTool{
 		Tool: mcp.NewTool(string(MethodStatusGet),
+			mcp.WithTitleAnnotation("Get Status"),
 			mcp.WithDescription(
 				"Retrieve detailed information about a specific status in Teamwork Desk by its ID. "+
 					"Useful for auditing status usage, troubleshooting ticket workflows, or "+
@@ -59,6 +60,7 @@ func StatusGet(client *deskclient.Client) server.ServerTool {
 // StatusList returns a list of statuses that apply to the filters in Teamwork Desk
 func StatusList(client *deskclient.Client) server.ServerTool {
 	opts := []mcp.ToolOption{
+		mcp.WithTitleAnnotation("List Statuses"),
 		mcp.WithOutputSchema[deskmodels.TicketStatusesResponse](),
 		mcp.WithDescription(
 			"List all statuses in Teamwork Desk, with optional filters for name, color, and code. " +
@@ -109,6 +111,7 @@ func StatusList(client *deskclient.Client) server.ServerTool {
 func StatusCreate(client *deskclient.Client) server.ServerTool {
 	return server.ServerTool{
 		Tool: mcp.NewTool(string(MethodStatusCreate),
+			mcp.WithTitleAnnotation("Create Status"),
 			mcp.WithDescription(
 				"Create a new status in Teamwork Desk by specifying its name, color, and display order. "+
 					"Useful for customizing ticket workflows, introducing new resolution states, or "+
@@ -143,6 +146,7 @@ func StatusCreate(client *deskclient.Client) server.ServerTool {
 func StatusUpdate(client *deskclient.Client) server.ServerTool {
 	return server.ServerTool{
 		Tool: mcp.NewTool(string(MethodStatusUpdate),
+			mcp.WithTitleAnnotation("Update Status"),
 			mcp.WithDescription(
 				"Update an existing status in Teamwork Desk by ID, allowing changes to its name, color, and display order. "+
 					"Supports evolving support policies, rebranding, or correcting status attributes for improved "+
