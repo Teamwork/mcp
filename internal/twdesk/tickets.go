@@ -9,6 +9,7 @@ import (
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
 	deskclient "github.com/teamwork/desksdkgo/client"
+	"github.com/teamwork/desksdkgo/models"
 	deskmodels "github.com/teamwork/desksdkgo/models"
 	"github.com/teamwork/mcp/internal/helpers"
 	"github.com/teamwork/mcp/internal/toolsets"
@@ -67,6 +68,7 @@ func TicketGet(client *deskclient.Client) server.ServerTool {
 // TicketList returns a list of tickets that apply to the filters in Teamwork Desk
 func TicketList(client *deskclient.Client) server.ServerTool {
 	opts := []mcp.ToolOption{
+		mcp.WithOutputSchema[models.TicketsResponse](),
 		mcp.WithDescription(
 			"List all tickets in Teamwork Desk, with extensive filters for inbox, customer, company, tag, status, " +
 				"priority, SLA, user, and more. Enables users to audit, analyze, or synchronize ticket data for support " +
