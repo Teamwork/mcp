@@ -64,11 +64,37 @@ func UserList(client *deskclient.Client) server.ServerTool {
 				"Enables users to audit, analyze, or synchronize user configurations for support management, " +
 				"reporting, or integration scenarios."),
 		mcp.WithReadOnlyHintAnnotation(true),
-		mcp.WithArray("firstName", mcp.Description("The first names of the users to filter by.")),
-		mcp.WithArray("lastName", mcp.Description("The last names of the users to filter by.")),
-		mcp.WithArray("email", mcp.Description("The email addresses of the users to filter by.")),
-		mcp.WithArray("inboxIDs", mcp.Description("The IDs of the inboxes to filter by.")),
-		mcp.WithBoolean("isPartTime", mcp.Description("Whether to include part-time users in the results.")),
+		mcp.WithArray(
+			"firstName",
+			mcp.Description("The first names of the users to filter by."),
+			mcp.Items(map[string]any{
+				"type": "string",
+			}),
+		),
+		mcp.WithArray(
+			"lastName",
+			mcp.Description("The last names of the users to filter by."),
+			mcp.Items(map[string]any{
+				"type": "string",
+			}),
+		),
+		mcp.WithArray(
+			"email",
+			mcp.Description("The email addresses of the users to filter by."),
+			mcp.Items(map[string]any{
+				"type": "string",
+			}),
+		),
+		mcp.WithArray(
+			"inboxIDs",
+			mcp.Description("The IDs of the inboxes to filter by."),
+			mcp.Items(map[string]any{
+				"type": "integer",
+			}),
+		),
+		mcp.WithBoolean(
+			"isPartTime",
+			mcp.Description("Whether to include part-time users in the results.")),
 	}
 
 	opts = append(opts, paginationOptions()...)

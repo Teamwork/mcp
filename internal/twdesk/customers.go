@@ -133,10 +133,6 @@ func CustomerCreate(client *deskclient.Client) server.ServerTool {
 				"Create a new customer in Teamwork Desk by specifying their name, contact details, and other attributes. "+
 					"Useful for onboarding new clients, customizing Desk for business relationships, or "+
 					"adapting support processes."),
-			mcp.WithString("id",
-				mcp.Required(),
-				mcp.Description("The ID of the customer to update."),
-			),
 			mcp.WithString("firstName",
 				mcp.Description("The first name of the customer."),
 			),
