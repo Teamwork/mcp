@@ -263,14 +263,34 @@ func TicketCreate(client *deskclient.Client) server.ServerTool {
 				"Create a new ticket in Teamwork Desk by specifying subject, description, priority, and status. "+
 					"Useful for automating ticket creation, integrating external systems, or customizing support workflows."),
 			mcp.WithString("subject", mcp.Required(), mcp.Description("The subject of the ticket.")),
-			mcp.WithString("description", mcp.Description("The description of the ticket.")),
-			mcp.WithString("priority", mcp.Description("The priority of the ticket.")),
-			mcp.WithString("status", mcp.Description("The status of the ticket.")),
+			mcp.WithString("body", mcp.Required(), mcp.Description("The body of the ticket.")),
+			mcp.WithNumber("priorityId", mcp.Required(), mcp.Description("The priority of the ticket.")),
+			mcp.WithNumber("statusId", mcp.Required(), mcp.Description("The status of the ticket.")),
+			mcp.WithNumber("inboxId", mcp.Required(), mcp.Description("The inbox ID of the ticket.")),
+			mcp.WithNumber("customerId", mcp.Required(), mcp.Description("The customer ID of the ticket.")),
+			mcp.WithNumber("typeId", mcp.Required(), mcp.Description("The type ID of the ticket.")),
+			mcp.WithNumber("agentId", mcp.Required(), mcp.Description("The agent ID that the ticket should be assigned to.")),
 		),
 		Handler: func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 			ticket, err := client.Tickets.Create(ctx, &deskmodels.TicketResponse{
 				Ticket: deskmodels.Ticket{
 					Subject: request.GetString("subject", ""),
+					Body:    request.GetString("body", ""),
+					Status: deskmodels.EntityRef{
+						ID: request.GetInt("statusId", 0),
+					},
+					Inbox: deskmodels.EntityRef{
+						ID: request.GetInt("inboxId", 0),
+					},
+					Customer: deskmodels.EntityRef{
+						ID: request.GetInt("customerId", 0),
+					},
+					Type: deskmodels.EntityRef{
+						ID: request.GetInt("typeId", 0),
+					},
+					Agent: deskmodels.EntityRef{
+						ID: request.GetInt("agentId", 0),
+					},
 				},
 			})
 			if err != nil {
