@@ -32,6 +32,7 @@ func DefaultToolsetGroup(client *deskclient.Client) *toolsets.ToolsetGroup {
 		CompanyUpdate(client),
 		CustomerCreate(client),
 		CustomerUpdate(client),
+		FileCreate(client),
 		MessageCreate(client),
 		PriorityCreate(client),
 		PriorityUpdate(client),
