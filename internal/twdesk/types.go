@@ -68,8 +68,18 @@ func TypeList(client *deskclient.Client) server.ServerTool {
 				"Enables users to audit, analyze, or synchronize type configurations for ticket management, " +
 				"reporting, or integration scenarios."),
 		mcp.WithReadOnlyHintAnnotation(true),
-		mcp.WithArray("name", mcp.Description("The name of the type to filter by.")),
-		mcp.WithArray("inboxIDs", mcp.Description("The inbox IDs of the type to filter by.")),
+		mcp.WithArray("name",
+			mcp.Description("The name of the type to filter by."),
+			mcp.Items(map[string]any{
+				"type": "string",
+			}),
+		),
+		mcp.WithArray("inboxIDs",
+			mcp.Description("The inbox IDs of the type to filter by."),
+			mcp.Items(map[string]any{
+				"type": "string",
+			}),
+		),
 	}
 
 	opts = append(opts, paginationOptions()...)
