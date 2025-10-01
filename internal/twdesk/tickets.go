@@ -262,36 +262,114 @@ func TicketCreate(client *deskclient.Client) server.ServerTool {
 			mcp.WithDescription(
 				"Create a new ticket in Teamwork Desk by specifying subject, description, priority, and status. "+
 					"Useful for automating ticket creation, integrating external systems, or customizing support workflows."),
-			mcp.WithString("subject", mcp.Required(), mcp.Description("The subject of the ticket.")),
-			mcp.WithString("body", mcp.Required(), mcp.Description("The body of the ticket.")),
-			mcp.WithNumber("priorityId", mcp.Required(), mcp.Description("The priority of the ticket.")),
-			mcp.WithNumber("statusId", mcp.Required(), mcp.Description("The status of the ticket.")),
-			mcp.WithNumber("inboxId", mcp.Required(), mcp.Description("The inbox ID of the ticket.")),
-			mcp.WithNumber("customerId", mcp.Required(), mcp.Description("The customer ID of the ticket.")),
-			mcp.WithNumber("typeId", mcp.Required(), mcp.Description("The type ID of the ticket.")),
-			mcp.WithNumber("agentId", mcp.Required(), mcp.Description("The agent ID that the ticket should be assigned to.")),
+			mcp.WithString("subject",
+				mcp.Required(),
+				mcp.Description("The subject of the ticket."),
+			),
+			mcp.WithString("body",
+				mcp.Required(),
+				mcp.Description("The body of the ticket."),
+			),
+			mcp.WithArray("bcc",
+				mcp.Description("An array of email addresses to BCC on ticket creation."),
+				mcp.Items(map[string]any{
+					"type": "string",
+				}),
+			),
+			mcp.WithArray("cc",
+				mcp.Description("An array of email addresses to CC on ticket creation."),
+				mcp.Items(map[string]any{
+					"type": "string",
+				}),
+			),
+			mcp.WithArray("files",
+				mcp.Description(`
+					An array of file IDs to attach to the ticket.  
+					Use the 'twdesk-create_file' tool to upload files.
+				`),
+				mcp.Items(map[string]any{
+					"type": "integer",
+				}),
+			),
+			mcp.WithArray("tags",
+				mcp.Description(`
+					An array of tag IDs to associate with the ticket. 
+					Tag IDs can be found by using the 'twdesk-list_tags' tool.
+				`),
+				mcp.Items(map[string]any{
+					"type": "integer",
+				}),
+			),
+			mcp.WithNumber("priorityId",
+				mcp.Required(),
+				mcp.Description("The priority of the ticket."),
+			),
+			mcp.WithNumber("statusId",
+				mcp.Required(),
+				mcp.Description("The status of the ticket."),
+			),
+			mcp.WithNumber("inboxId",
+				mcp.Required(),
+				mcp.Description("The inbox ID of the ticket."),
+			),
+			mcp.WithNumber("customerId",
+				mcp.Required(),
+				mcp.Description("The customer ID of the ticket."),
+			),
+			mcp.WithNumber("typeId",
+				mcp.Required(),
+				mcp.Description("The type ID of the ticket."),
+			),
+			mcp.WithNumber("agentId",
+				mcp.Required(),
+				mcp.Description("The agent ID that the ticket should be assigned to."),
+			),
 		),
 		Handler: func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-			ticket, err := client.Tickets.Create(ctx, &deskmodels.TicketResponse{
-				Ticket: deskmodels.Ticket{
-					Subject: request.GetString("subject", ""),
-					Body:    request.GetString("body", ""),
-					Status: deskmodels.EntityRef{
-						ID: request.GetInt("statusId", 0),
-					},
-					Inbox: deskmodels.EntityRef{
-						ID: request.GetInt("inboxId", 0),
-					},
-					Customer: deskmodels.EntityRef{
-						ID: request.GetInt("customerId", 0),
-					},
-					Type: deskmodels.EntityRef{
-						ID: request.GetInt("typeId", 0),
-					},
-					Agent: deskmodels.EntityRef{
-						ID: request.GetInt("agentId", 0),
-					},
+			data := deskmodels.Ticket{
+				Subject: request.GetString("subject", ""),
+				Body:    request.GetString("body", ""),
+				Status: deskmodels.EntityRef{
+					ID: request.GetInt("statusId", 0),
 				},
+				Inbox: deskmodels.EntityRef{
+					ID: request.GetInt("inboxId", 0),
+				},
+				Customer: deskmodels.EntityRef{
+					ID: request.GetInt("customerId", 0),
+				},
+				Type: deskmodels.EntityRef{
+					ID: request.GetInt("typeId", 0),
+				},
+				Agent: deskmodels.EntityRef{
+					ID: request.GetInt("agentId", 0),
+				},
+			}
+
+			if len(request.GetIntSlice("files", []int{})) > 0 {
+				data.Files = []deskmodels.EntityRef{}
+				for _, fileID := range request.GetIntSlice("files", []int{}) {
+					data.Files = append(data.Files, deskmodels.EntityRef{ID: fileID})
+				}
+			}
+
+			if len(request.GetIntSlice("tags", []int{})) > 0 {
+				data.Tags = []deskmodels.EntityRef{}
+				for _, tagID := range request.GetIntSlice("tags", []int{}) {
+					data.Tags = append(data.Tags, deskmodels.EntityRef{ID: tagID})
+				}
+			}
+
+			if len(request.GetStringSlice("bcc", []string{})) > 0 {
+				data.BCC = request.GetStringSlice("bcc", []string{})
+			}
+
+			if len(request.GetStringSlice("cc", []string{})) > 0 {
+				data.CC = request.GetStringSlice("cc", []string{})
+			}
+
+			ticket, err := client.Tickets.Create(ctx, &deskmodels.TicketResponse{
+				Ticket: data,
 			})
 			if err != nil {
 				return nil, fmt.Errorf("failed to create ticket: %w", err)
