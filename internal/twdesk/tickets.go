@@ -304,14 +304,12 @@ func TicketCreate(client *deskclient.Client) server.ServerTool {
 				}),
 			),
 			mcp.WithNumber("priorityId",
-				mcp.Required(),
 				mcp.Description(`
 					The priority of the ticket. 
 					Use the 'twdesk-list_priorities' tool to find valid IDs.
 				`),
 			),
 			mcp.WithNumber("statusId",
-				mcp.Required(),
 				mcp.Description(`
 					The status of the ticket. 
 					Use the 'twdesk-list_statuses' tool to find valid IDs.
@@ -325,21 +323,26 @@ func TicketCreate(client *deskclient.Client) server.ServerTool {
 				`),
 			),
 			mcp.WithNumber("customerId",
-				mcp.Required(),
 				mcp.Description(`
 					The customer ID of the ticket. 
 					Use the 'twdesk-list_customers' tool to find valid IDs.
 				`),
 			),
+			mcp.WithString("customerEmail",
+				mcp.Description(`
+				The email address of the customer. 
+				This is used to identify the customer in the system.
+				Either the customerId or customerEmail is required to create a ticket.  
+				If email is provided we will either find or create the customer.
+			`),
+			),
 			mcp.WithNumber("typeId",
-				mcp.Required(),
 				mcp.Description(`
 					The type ID of the ticket. 
 					Use the 'twdesk-list_types' tool to find valid IDs.
 				`),
 			),
 			mcp.WithNumber("agentId",
-				mcp.Required(),
 				mcp.Description(`
 					The agent ID that the ticket should be assigned to. 
 					Use the 'twdesk-list_agents' tool to find valid IDs.
@@ -350,24 +353,72 @@ func TicketCreate(client *deskclient.Client) server.ServerTool {
 			data := deskmodels.Ticket{
 				Subject: request.GetString("subject", ""),
 				Body:    request.GetString("body", ""),
-				Status: deskmodels.EntityRef{
-					ID: request.GetInt("statusId", 0),
-				},
 				Inbox: deskmodels.EntityRef{
 					ID: request.GetInt("inboxId", 0),
 				},
-				Customer: deskmodels.EntityRef{
+			}
+
+			if request.GetInt("customerId", 0) != 0 {
+				data.Customer = deskmodels.EntityRef{
 					ID: request.GetInt("customerId", 0),
-				},
-				Type: deskmodels.EntityRef{
-					ID: request.GetInt("typeId", 0),
-				},
-				Priority: deskmodels.EntityRef{
+				}
+			}
+
+			if email := request.GetString("customerEmail", ""); email != "" {
+				filter := deskclient.NewFilter()
+				filter = filter.Eq("contacts.value", email)
+
+				params := url.Values{}
+				params.Set("filter", filter.Build())
+				setPagination(&params, request)
+
+				customers, err := client.Customers.List(ctx, params)
+				if err != nil {
+					return nil, fmt.Errorf("failed to list customers: %w", err)
+				}
+
+				if len(customers.Customers) > 0 {
+					data.Customer = deskmodels.EntityRef{
+						ID: customers.Customers[0].ID,
+					}
+				} else {
+					// Create the customer
+					customer, err := client.Customers.Create(ctx, &deskmodels.CustomerResponse{
+						Customer: deskmodels.Customer{
+							Email: email,
+						},
+					})
+					if err != nil {
+						return nil, fmt.Errorf("failed to create customer: %w", err)
+					}
+					data.Customer = deskmodels.EntityRef{
+						ID: customer.Customer.ID,
+					}
+				}
+			}
+
+			if request.GetInt("priorityId", 0) != 0 {
+				data.Priority = &deskmodels.EntityRef{
 					ID: request.GetInt("priorityId", 0),
-				},
-				Agent: deskmodels.EntityRef{
+				}
+			}
+
+			if request.GetInt("statusId", 0) != 0 {
+				data.Status = &deskmodels.EntityRef{
+					ID: request.GetInt("statusId", 0),
+				}
+			}
+
+			if request.GetInt("typeId", 0) != 0 {
+				data.Type = &deskmodels.EntityRef{
+					ID: request.GetInt("typeId", 0),
+				}
+			}
+
+			if request.GetInt("agentId", 0) != 0 {
+				data.Agent = &deskmodels.EntityRef{
 					ID: request.GetInt("agentId", 0),
-				},
+				}
 			}
 
 			if request.GetBool("notifyCustomer", false) {
@@ -463,19 +514,16 @@ func TicketUpdate(client *deskclient.Client) server.ServerTool {
 				data.Body = body
 			}
 
-			// Note: Priority handling might need to be implemented differently
-			// as the Ticket model doesn't expose a Priority field directly
-
 			if statusId := request.GetInt("statusId", 0); statusId > 0 {
-				data.Status = deskmodels.EntityRef{ID: statusId}
+				data.Status = &deskmodels.EntityRef{ID: statusId}
 			}
 
 			if typeId := request.GetInt("typeId", 0); typeId > 0 {
-				data.Type = deskmodels.EntityRef{ID: typeId}
+				data.Type = &deskmodels.EntityRef{ID: typeId}
 			}
 
 			if agentId := request.GetInt("agentId", 0); agentId > 0 {
-				data.Agent = deskmodels.EntityRef{ID: agentId}
+				data.Agent = &deskmodels.EntityRef{ID: agentId}
 			}
 
 			ticket, err := client.Tickets.Update(ctx, request.GetInt("id", 0), &deskmodels.TicketResponse{
