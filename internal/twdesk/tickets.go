@@ -305,27 +305,45 @@ func TicketCreate(client *deskclient.Client) server.ServerTool {
 			),
 			mcp.WithNumber("priorityId",
 				mcp.Required(),
-				mcp.Description("The priority of the ticket."),
+				mcp.Description(`
+					The priority of the ticket. 
+					Use the 'twdesk-list_priorities' tool to find valid IDs.
+				`),
 			),
 			mcp.WithNumber("statusId",
 				mcp.Required(),
-				mcp.Description("The status of the ticket."),
+				mcp.Description(`
+					The status of the ticket. 
+					Use the 'twdesk-list_statuses' tool to find valid IDs.
+				`),
 			),
 			mcp.WithNumber("inboxId",
 				mcp.Required(),
-				mcp.Description("The inbox ID of the ticket."),
+				mcp.Description(`
+					The inbox ID of the ticket. 
+					Use the 'twdesk-list_inboxes' tool to find valid IDs.
+				`),
 			),
 			mcp.WithNumber("customerId",
 				mcp.Required(),
-				mcp.Description("The customer ID of the ticket."),
+				mcp.Description(`
+					The customer ID of the ticket. 
+					Use the 'twdesk-list_customers' tool to find valid IDs.
+				`),
 			),
 			mcp.WithNumber("typeId",
 				mcp.Required(),
-				mcp.Description("The type ID of the ticket."),
+				mcp.Description(`
+					The type ID of the ticket. 
+					Use the 'twdesk-list_types' tool to find valid IDs.
+				`),
 			),
 			mcp.WithNumber("agentId",
 				mcp.Required(),
-				mcp.Description("The agent ID that the ticket should be assigned to."),
+				mcp.Description(`
+					The agent ID that the ticket should be assigned to. 
+					Use the 'twdesk-list_agents' tool to find valid IDs.
+				`),
 			),
 		),
 		Handler: func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
