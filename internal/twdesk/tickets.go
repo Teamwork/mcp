@@ -270,6 +270,9 @@ func TicketCreate(client *deskclient.Client) server.ServerTool {
 				mcp.Required(),
 				mcp.Description("The body of the ticket."),
 			),
+			mcp.WithBoolean("notifyCustomer",
+				mcp.Description("Set to true if the the customer should be sent a copy of the ticket."),
+			),
 			mcp.WithArray("bcc",
 				mcp.Description("An array of email addresses to BCC on ticket creation."),
 				mcp.Items(map[string]any{
@@ -344,6 +347,10 @@ func TicketCreate(client *deskclient.Client) server.ServerTool {
 				Agent: deskmodels.EntityRef{
 					ID: request.GetInt("agentId", 0),
 				},
+			}
+
+			if request.GetBool("notifyCustomer", false) {
+				data.NotifyCustomer = true
 			}
 
 			if len(request.GetIntSlice("files", []int{})) > 0 {
