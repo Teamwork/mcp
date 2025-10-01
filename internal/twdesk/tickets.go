@@ -297,7 +297,7 @@ func TicketCreate(client *deskclient.Client) server.ServerTool {
 				return nil, fmt.Errorf("failed to create ticket: %w", err)
 			}
 
-			return mcp.NewToolResultText(fmt.Sprintf("Ticket created successfully with ID %d", ticket.Ticket.ID)), nil
+			return mcp.NewToolResultJSON(ticket)
 		},
 	}
 }
