@@ -13,6 +13,8 @@ func DefaultToolsetGroup(client *deskclient.Client) *toolsets.ToolsetGroup {
 		CompanyList(client),
 		CustomerGet(client),
 		CustomerList(client),
+		InboxGet(client),
+		InboxList(client),
 		PriorityGet(client),
 		PriorityList(client),
 		StatusGet(client),

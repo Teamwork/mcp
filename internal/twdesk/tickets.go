@@ -259,9 +259,10 @@ func TicketCreate(client *deskclient.Client) server.ServerTool {
 	return server.ServerTool{
 		Tool: mcp.NewTool(string(MethodTicketCreate),
 			mcp.WithTitleAnnotation("Create Ticket"),
-			mcp.WithDescription(
-				"Create a new ticket in Teamwork Desk by specifying subject, description, priority, and status. "+
-					"Useful for automating ticket creation, integrating external systems, or customizing support workflows."),
+			mcp.WithDescription(`
+				Create a new ticket in Teamwork Desk by specifying subject, description, priority, and status.
+				"Useful for automating ticket creation, integrating external systems, or customizing support workflows.
+			`),
 			mcp.WithString("subject",
 				mcp.Required(),
 				mcp.Description("The subject of the ticket."),
