@@ -283,8 +283,20 @@ func GetValidTestData() map[string]map[string]map[string]any {
 		},
 		"TicketCreate": {
 			"minimal": {
-				"subject": "Test Ticket",
-				"message": "Test message",
+				"subject":    "Test Ticket",
+				"body":       "Test message",
+				"priorityId": 1,
+				"statusId":   1,
+				"inboxId":    1,
+				"customerId": 1,
+				"typeId":     1,
+				"agentId":    1,
+			},
+		},
+		"TicketUpdate": {
+			"minimal": {
+				"id":      "123",
+				"subject": "Updated Ticket",
 			},
 		},
 		"TicketGet": {
@@ -427,7 +439,12 @@ func GetInvalidTestData() map[string]map[string]map[string]any {
 		},
 		"TicketCreate": {
 			"missing_required_subject": {
-				"message": "Test message",
+				"body": "Test message",
+			},
+		},
+		"TicketUpdate": {
+			"missing_required_id": {
+				"subject": "Updated Ticket",
 			},
 		},
 		"TicketGet": {

@@ -26,12 +26,14 @@ func TestTicketCreate(t *testing.T) {
 	}
 	request.Params.Name = twdesk.MethodTicketCreate.String()
 	request.Params.Arguments = map[string]any{
-		"subject":     "Test Ticket",
-		"message":     "This is a test ticket",
-		"priority_id": "1",
-		"status_id":   "1",
-		"type_id":     "1",
-		"customer_id": "100",
+		"subject":    "Test Ticket",
+		"body":       "This is a test ticket",
+		"priorityId": "1",
+		"statusId":   "1",
+		"typeId":     "1",
+		"customerId": "100",
+		"inboxId":    "1",
+		"agentId":    "1",
 	}
 
 	encodedRequest, err := json.Marshal(request)
@@ -57,11 +59,11 @@ func TestTicketUpdate(t *testing.T) {
 	}
 	request.Params.Name = twdesk.MethodTicketUpdate.String()
 	request.Params.Arguments = map[string]any{
-		"id":          "123",
-		"subject":     "Updated Ticket",
-		"priority_id": "2",
-		"status_id":   "2",
-		"type_id":     "2",
+		"id":         "123",
+		"subject":    "Updated Ticket",
+		"priorityId": "2",
+		"statusId":   "2",
+		"typeId":     "2",
 	}
 
 	encodedRequest, err := json.Marshal(request)
