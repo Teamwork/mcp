@@ -32,8 +32,13 @@ func Bypass(data []byte) (bool, error) {
 	if err := json.Unmarshal(data, &baseMessage); err != nil {
 		return false, fmt.Errorf("parse error: %w", err)
 	}
-	if !slices.Contains(methodsWhitelist, baseMessage.Method) {
+	if !BypassMethod(baseMessage.Method) {
 		return false, errors.New("not authenticated")
 	}
 	return true, nil
+}
+
+// BypassMethod checks if the protocol method can bypass authentication.
+func BypassMethod(method string) bool {
+	return slices.Contains(methodsWhitelist, method)
 }

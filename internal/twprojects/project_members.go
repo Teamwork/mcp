@@ -2,9 +2,11 @@ package twprojects
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
 
-	"github.com/mark3labs/mcp-go/mcp"
-	"github.com/mark3labs/mcp-go/server"
+	"github.com/google/jsonschema-go/jsonschema"
+	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/teamwork/mcp/internal/helpers"
 	"github.com/teamwork/mcp/internal/toolsets"
 	"github.com/teamwork/twapi-go-sdk"
@@ -31,31 +33,45 @@ func init() {
 }
 
 // ProjectMemberAdd adds a user to a project in Teamwork.com.
-func ProjectMemberAdd(engine *twapi.Engine) server.ServerTool {
-	return server.ServerTool{
-		Tool: mcp.NewTool(string(MethodProjectMemberAdd),
-			mcp.WithDescription("Add a user to a project in Teamwork.com. "+projectMemberDescription),
-			mcp.WithTitleAnnotation("Add Project Member"),
-			mcp.WithNumber("project_id",
-				mcp.Required(),
-				mcp.Description("The ID of the project to add the member to."),
-			),
-			mcp.WithArray("user_ids",
-				mcp.Description("A list of user IDs to add to the project."),
-				mcp.Items(map[string]any{
-					"type": "integer",
-				}),
-			),
-		),
-		Handler: func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+func ProjectMemberAdd(engine *twapi.Engine) toolsets.ToolWrapper {
+	return toolsets.ToolWrapper{
+		Tool: &mcp.Tool{
+			Name:        string(MethodProjectMemberAdd),
+			Description: "Add a user to a project in Teamwork.com. " + projectMemberDescription,
+			Annotations: &mcp.ToolAnnotations{
+				Title: "Add Project Member",
+			},
+			InputSchema: &jsonschema.Schema{
+				Type: "object",
+				Properties: map[string]*jsonschema.Schema{
+					"project_id": {
+						Type:        "integer",
+						Description: "The ID of the project to add the member to.",
+					},
+					"user_ids": {
+						Type:        "array",
+						Description: "A list of user IDs to add to the project.",
+						Items: &jsonschema.Schema{
+							Type: "integer",
+						},
+					},
+				},
+				Required: []string{"project_id"},
+			},
+		},
+		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 			var projectMemberAddRequest projects.ProjectMemberAddRequest
 
-			err := helpers.ParamGroup(request.GetArguments(),
+			var arguments map[string]any
+			if err := json.Unmarshal(request.Params.Arguments, &arguments); err != nil {
+				return helpers.NewToolResultTextError(fmt.Sprintf("failed to decode request: %s", err.Error())), nil
+			}
+			err := helpers.ParamGroup(arguments,
 				helpers.RequiredNumericParam(&projectMemberAddRequest.Path.ProjectID, "project_id"),
 				helpers.OptionalNumericListParam(&projectMemberAddRequest.UserIDs, "user_ids"),
 			)
 			if err != nil {
-				return mcp.NewToolResultErrorFromErr("invalid parameters", err), nil
+				return helpers.NewToolResultTextError(fmt.Sprintf("invalid parameters: %s", err.Error())), nil
 			}
 
 			_, err = projects.ProjectMemberAdd(ctx, engine, projectMemberAddRequest)
@@ -63,7 +79,13 @@ func ProjectMemberAdd(engine *twapi.Engine) server.ServerTool {
 				return helpers.HandleAPIError(err, "failed to add project member")
 			}
 
-			return mcp.NewToolResultText("Project member added successfully"), nil
+			return &mcp.CallToolResult{
+				Content: []mcp.Content{
+					&mcp.TextContent{
+						Text: "Project member added successfully",
+					},
+				},
+			}, nil
 		},
 	}
 }

@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"net/url"
 
-	"github.com/mark3labs/mcp-go/mcp"
-	"github.com/mark3labs/mcp-go/server"
+	"github.com/google/jsonschema-go/jsonschema"
+	"github.com/modelcontextprotocol/go-sdk/mcp"
 	deskclient "github.com/teamwork/desksdkgo/client"
 	deskmodels "github.com/teamwork/desksdkgo/models"
 	"github.com/teamwork/mcp/internal/helpers"
@@ -22,91 +22,132 @@ const (
 	MethodUserList toolsets.Method = "twdesk-list_users"
 )
 
+var (
+	userGetOutputSchema  *jsonschema.Schema
+	userListOutputSchema *jsonschema.Schema
+)
+
 func init() {
 	toolsets.RegisterMethod(MethodUserGet)
 	toolsets.RegisterMethod(MethodUserList)
+
+	var err error
+	userGetOutputSchema, err = jsonschema.For[deskmodels.UserResponse](&jsonschema.ForOptions{})
+	if err != nil {
+		panic(fmt.Sprintf("failed to generate JSON schema for UserResponse: %v", err))
+	}
+
+	userListOutputSchema, err = jsonschema.For[deskmodels.UsersResponse](&jsonschema.ForOptions{})
+	if err != nil {
+		panic(fmt.Sprintf("failed to generate JSON schema for UsersResponse: %v", err))
+	}
 }
 
 // UserGet finds a user in Teamwork Desk.  This will find it by ID
-func UserGet(client *deskclient.Client) server.ServerTool {
-	return server.ServerTool{
-		Tool: mcp.NewTool(string(MethodUserGet),
-			mcp.WithOutputSchema[deskmodels.UserResponse](),
-			mcp.WithTitleAnnotation("Get User"),
-			mcp.WithDescription(
-				"Retrieve detailed information about a specific user in Teamwork Desk by their ID. "+
-					"Useful for auditing user records, troubleshooting ticket assignments, or "+
-					"integrating Desk user data into automation workflows."),
-			mcp.WithReadOnlyHintAnnotation(true),
-			mcp.WithNumber("id",
-				mcp.Required(),
-				mcp.Description("The ID of the user to retrieve."),
-			),
-		),
-		Handler: func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-			user, err := client.Users.Get(ctx, request.GetInt("id", 0))
+func UserGet(client *deskclient.Client) toolsets.ToolWrapper {
+	return toolsets.ToolWrapper{
+		Tool: &mcp.Tool{
+			Name: string(MethodUserGet),
+			Annotations: &mcp.ToolAnnotations{
+				Title:        "Get User",
+				ReadOnlyHint: true,
+			},
+			Description: "Retrieve detailed information about a specific user in Teamwork Desk by their ID. " +
+				"Useful for auditing user records, troubleshooting ticket assignments, or " +
+				"integrating Desk user data into automation workflows.",
+			InputSchema: &jsonschema.Schema{
+				Type: "object",
+				Properties: map[string]*jsonschema.Schema{
+					"id": {
+						Type:        "integer",
+						Description: "The ID of the user to retrieve.",
+					},
+				},
+				Required: []string{"id"},
+			},
+			OutputSchema: userGetOutputSchema,
+		},
+		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+			arguments, err := helpers.NewToolArguments(request)
+			if err != nil {
+				return helpers.NewToolResultTextError(err.Error()), nil
+			}
+
+			user, err := client.Users.Get(ctx, arguments.GetInt("id", 0))
 			if err != nil {
 				return nil, fmt.Errorf("failed to get user: %w", err)
 			}
 
-			return mcp.NewToolResultText(fmt.Sprintf("User retrieved successfully: %s", user.User.FirstName)), nil
+			return helpers.NewToolResultText(fmt.Sprintf("User retrieved successfully: %s", user.User.FirstName)), nil
 		},
 	}
 }
 
 // UserList returns a list of users that apply to the filters in Teamwork Desk
-func UserList(client *deskclient.Client) server.ServerTool {
-	opts := []mcp.ToolOption{
-		mcp.WithOutputSchema[deskmodels.UsersResponse](),
-		mcp.WithTitleAnnotation("List Users"),
-		mcp.WithDescription(
-			"List all users in Teamwork Desk, with optional filters for name, email, inbox, and part-time status. " +
-				"Enables users to audit, analyze, or synchronize user configurations for support management, " +
-				"reporting, or integration scenarios."),
-		mcp.WithReadOnlyHintAnnotation(true),
-		mcp.WithArray(
-			"firstName",
-			mcp.Description("The first names of the users to filter by."),
-			mcp.Items(map[string]any{
-				"type": "string",
-			}),
-		),
-		mcp.WithArray(
-			"lastName",
-			mcp.Description("The last names of the users to filter by."),
-			mcp.Items(map[string]any{
-				"type": "string",
-			}),
-		),
-		mcp.WithArray(
-			"email",
-			mcp.Description("The email addresses of the users to filter by."),
-			mcp.Items(map[string]any{
-				"type": "string",
-			}),
-		),
-		mcp.WithArray(
-			"inboxIDs",
-			mcp.Description("The IDs of the inboxes to filter by."),
-			mcp.Items(map[string]any{
-				"type": "integer",
-			}),
-		),
-		mcp.WithBoolean(
-			"isPartTime",
-			mcp.Description("Whether to include part-time users in the results.")),
+func UserList(client *deskclient.Client) toolsets.ToolWrapper {
+	properties := map[string]*jsonschema.Schema{
+		"firstName": {
+			Type:        "array",
+			Description: "The first names of the users to filter by.",
+			Items: &jsonschema.Schema{
+				Type: "string",
+			},
+		},
+		"lastName": {
+			Type:        "array",
+			Description: "The last names of the users to filter by.",
+			Items: &jsonschema.Schema{
+				Type: "string",
+			},
+		},
+		"email": {
+			Type:        "array",
+			Description: "The email addresses of the users to filter by.",
+			Items: &jsonschema.Schema{
+				Type: "string",
+			},
+		},
+		"inboxIDs": {
+			Type:        "array",
+			Description: "The IDs of the inboxes to filter by.",
+			Items: &jsonschema.Schema{
+				Type: "integer",
+			},
+		},
+		"isPartTime": {
+			Type:        "boolean",
+			Description: "Whether to include part-time users in the results.",
+		},
 	}
+	properties = paginationOptions(properties)
 
-	opts = append(opts, paginationOptions()...)
+	return toolsets.ToolWrapper{
+		Tool: &mcp.Tool{
+			Name: string(MethodUserList),
+			Annotations: &mcp.ToolAnnotations{
+				Title:        "List Users",
+				ReadOnlyHint: true,
+			},
+			Description: "List all users in Teamwork Desk, with optional filters for name, email, inbox, and part-time status. " +
+				"Enables users to audit, analyze, or synchronize user configurations for support management, " +
+				"reporting, or integration scenarios.",
+			InputSchema: &jsonschema.Schema{
+				Type:       "object",
+				Properties: properties,
+			},
+			OutputSchema: userListOutputSchema,
+		},
+		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+			arguments, err := helpers.NewToolArguments(request)
+			if err != nil {
+				return helpers.NewToolResultTextError(err.Error()), nil
+			}
 
-	return server.ServerTool{
-		Tool: mcp.NewTool(string(MethodUserList), opts...),
-		Handler: func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 			// Apply filters to the user list
-			firstNames := request.GetStringSlice("firstName", []string{})
-			lastNames := request.GetStringSlice("lastName", []string{})
-			emails := request.GetStringSlice("email", []string{})
-			inboxIDs := request.GetIntSlice("inboxIDs", []int{})
+			firstNames := arguments.GetStringSlice("firstName", []string{})
+			lastNames := arguments.GetStringSlice("lastName", []string{})
+			emails := arguments.GetStringSlice("email", []string{})
+			inboxIDs := arguments.GetIntSlice("inboxIDs", []int{})
 
 			filter := deskclient.NewFilter()
 			if len(firstNames) > 0 {
@@ -122,21 +163,21 @@ func UserList(client *deskclient.Client) server.ServerTool {
 				filter = filter.In("inboxes.id", helpers.SliceToAny(inboxIDs))
 			}
 
-			isPartTime := request.GetBool("isPartTime", false)
+			isPartTime := arguments.GetBool("isPartTime", false)
 			if isPartTime {
 				filter = filter.Eq("isPartTime", true)
 			}
 
 			params := url.Values{}
 			params.Set("filter", filter.Build())
-			setPagination(&params, request)
+			setPagination(&params, arguments)
 
 			users, err := client.Users.List(ctx, params)
 			if err != nil {
 				return nil, fmt.Errorf("failed to list users: %w", err)
 			}
 
-			return mcp.NewToolResultText(fmt.Sprintf("Users retrieved successfully: %v", users)), nil
+			return helpers.NewToolResultText(fmt.Sprintf("Users retrieved successfully: %v", users)), nil
 		},
 	}
 }

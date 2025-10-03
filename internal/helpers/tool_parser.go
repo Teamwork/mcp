@@ -209,7 +209,7 @@ func numericParam[T int8 | int16 | int32 | int64 |
 		}
 		return fmt.Errorf("parameter %s is required", key)
 	}
-	v, ok := value.(float64)
+	v, ok := toFloat64(value)
 	if !ok {
 		return fmt.Errorf("invalid type for %s: expected %T, got %T", key, *target, value)
 	}
@@ -656,7 +656,7 @@ func OptionalNumericListParam[T int8 | int16 | int32 | int64 |
 		}
 		*target = make([]T, 0, len(array))
 		for _, item := range array {
-			v, ok := item.(float64)
+			v, ok := toFloat64(item)
 			if !ok {
 				return fmt.Errorf("invalid type in %s: expected float64, got %T", key, item)
 			}
@@ -681,7 +681,7 @@ func OptionalCustomNumericListParam[T interface{ Add(float64) }](target T, key s
 			return fmt.Errorf("invalid type for %s: expected []any, got %T", key, value)
 		}
 		for _, item := range array {
-			v, ok := item.(float64)
+			v, ok := toFloat64(item)
 			if !ok {
 				return fmt.Errorf("invalid type in %s: expected float64, got %T", key, item)
 			}
@@ -704,4 +704,33 @@ func RestrictValues[T comparable](allowedValues ...T) ParamMiddleware[T] {
 		}
 		return false, fmt.Errorf("value %v is not allowed, must be one of %v", *value, allowedValues)
 	}
+}
+
+func toFloat64(value any) (float64, bool) {
+	var v float64
+	switch n := value.(type) {
+	case int8:
+		v = float64(n)
+	case int16:
+		v = float64(n)
+	case int32:
+		v = float64(n)
+	case int64:
+		v = float64(n)
+	case uint8:
+		v = float64(n)
+	case uint16:
+		v = float64(n)
+	case uint32:
+		v = float64(n)
+	case uint64:
+		v = float64(n)
+	case float32:
+		v = float64(n)
+	case float64:
+		v = n
+	default:
+		return 0, false
+	}
+	return v, true
 }

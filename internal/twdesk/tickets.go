@@ -6,12 +6,18 @@ import (
 	"fmt"
 	"net/url"
 
-	"github.com/mark3labs/mcp-go/mcp"
-	"github.com/mark3labs/mcp-go/server"
+	"github.com/google/jsonschema-go/jsonschema"
+	"github.com/modelcontextprotocol/go-sdk/mcp"
 	deskclient "github.com/teamwork/desksdkgo/client"
 	deskmodels "github.com/teamwork/desksdkgo/models"
 	"github.com/teamwork/mcp/internal/helpers"
 	"github.com/teamwork/mcp/internal/toolsets"
+)
+
+var (
+	ticketGetOutputSchema    *jsonschema.Schema
+	ticketListOutputSchema   *jsonschema.Schema
+	ticketSearchOutputSchema *jsonschema.Schema
 )
 
 // List of methods available in the Teamwork.com MCP service.
@@ -30,26 +36,55 @@ func init() {
 	toolsets.RegisterMethod(MethodTicketUpdate)
 	toolsets.RegisterMethod(MethodTicketGet)
 	toolsets.RegisterMethod(MethodTicketList)
+
+	var err error
+	ticketGetOutputSchema, err = jsonschema.For[deskmodels.TicketResponse](&jsonschema.ForOptions{})
+	if err != nil {
+		panic(fmt.Sprintf("failed to generate JSON schema for TicketResponse: %v", err))
+	}
+
+	ticketListOutputSchema, err = jsonschema.For[deskmodels.TicketsResponse](&jsonschema.ForOptions{})
+	if err != nil {
+		panic(fmt.Sprintf("failed to generate JSON schema for TicketsResponse: %v", err))
+	}
+
+	ticketSearchOutputSchema, err = jsonschema.For[deskmodels.TicketsResponse](&jsonschema.ForOptions{})
+	if err != nil {
+		panic(fmt.Sprintf("failed to generate JSON schema for TicketsResponse (search): %v", err))
+	}
 }
 
 // TicketGet finds a ticket in Teamwork Desk.  This will find it by ID
-func TicketGet(client *deskclient.Client) server.ServerTool {
-	return server.ServerTool{
-		Tool: mcp.NewTool(string(MethodTicketGet),
-			mcp.WithTitleAnnotation("Get Ticket"),
-			mcp.WithOutputSchema[deskmodels.TicketResponse](),
-			mcp.WithDescription(
-				"Retrieve detailed information about a specific ticket in Teamwork Desk by its ID. "+
-					"Useful for auditing ticket records, troubleshooting support workflows, or "+
-					"integrating Desk ticket data into automation and reporting systems."),
-			mcp.WithReadOnlyHintAnnotation(true),
-			mcp.WithNumber("id",
-				mcp.Required(),
-				mcp.Description("The ID of the ticket to retrieve."),
-			),
-		),
-		Handler: func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-			ticket, err := client.Tickets.Get(ctx, request.GetInt("id", 0))
+func TicketGet(client *deskclient.Client) toolsets.ToolWrapper {
+	return toolsets.ToolWrapper{
+		Tool: &mcp.Tool{
+			Name: string(MethodTicketGet),
+			Annotations: &mcp.ToolAnnotations{
+				Title:        "Get Ticket",
+				ReadOnlyHint: true,
+			},
+			Description: "Retrieve detailed information about a specific ticket in Teamwork Desk by its ID. " +
+				"Useful for auditing ticket records, troubleshooting support workflows, or " +
+				"integrating Desk ticket data into automation and reporting systems.",
+			InputSchema: &jsonschema.Schema{
+				Type: "object",
+				Properties: map[string]*jsonschema.Schema{
+					"id": {
+						Type:        "integer",
+						Description: "The ID of the ticket to retrieve.",
+					},
+				},
+				Required: []string{"id"},
+			},
+			OutputSchema: ticketGetOutputSchema,
+		},
+		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+			arguments, err := helpers.NewToolArguments(request)
+			if err != nil {
+				return helpers.NewToolResultTextError(err.Error()), nil
+			}
+
+			ticket, err := client.Tickets.Get(ctx, arguments.GetInt("id", 0))
 			if err != nil {
 				return nil, fmt.Errorf("failed to get ticket: %w", err)
 			}
@@ -59,7 +94,7 @@ func TicketGet(client *deskclient.Client) server.ServerTool {
 				return nil, err
 			}
 
-			return mcp.NewToolResultText(string(helpers.WebLinker(ctx, encoded,
+			return helpers.NewToolResultText(string(helpers.WebLinker(ctx, encoded,
 				helpers.WebLinkerWithIDPathBuilder("/desk/tickets"),
 			))), nil
 		},
@@ -67,128 +102,158 @@ func TicketGet(client *deskclient.Client) server.ServerTool {
 }
 
 // TicketList returns a list of tickets that apply to the filters in Teamwork Desk
-func TicketList(client *deskclient.Client) server.ServerTool {
-	opts := []mcp.ToolOption{
-		mcp.WithTitleAnnotation("List Tickets"),
-		mcp.WithOutputSchema[deskmodels.TicketsResponse](),
-		mcp.WithDescription(
-			"List all tickets in Teamwork Desk, with extensive filters for inbox, customer, company, tag, status, " +
-				"priority, SLA, user, and more. Enables users to audit, analyze, or synchronize ticket data for support " +
-				"management, reporting, or integration scenarios."),
-		mcp.WithReadOnlyHintAnnotation(true),
-		mcp.WithArray("inboxIDs",
-			mcp.Description(`
+func TicketList(client *deskclient.Client) toolsets.ToolWrapper {
+	properties := map[string]*jsonschema.Schema{
+		"inboxIDs": {
+			Type: "array",
+			Description: `
 				The IDs of the inboxes to filter by.
 				Inbox IDs can be found by using the 'twdesk-list_inboxes' tool.
-			`),
-			mcp.Items(map[string]any{
-				"type": "integer",
-			}),
-		),
-		mcp.WithArray("customerIDs", mcp.Description(`
+			`,
+			Items: &jsonschema.Schema{
+				Type: "integer",
+			},
+		},
+		"customerIDs": {
+			Type: "array",
+			Description: `
 			The IDs of the customers to filter by. 
 			Customer IDs can be found by using the 'twdesk-list_customers' tool.
-		`),
-			mcp.Items(map[string]any{
-				"type": "integer",
-			}),
-		),
-		mcp.WithArray("companyIDs", mcp.Description(`
+		`,
+			Items: &jsonschema.Schema{
+				Type: "integer",
+			},
+		},
+		"companyIDs": {
+			Type: "array",
+			Description: `
 			The IDs of the companies to filter by. 
 			Company IDs can be found by using the 'twdesk-list_companies' tool.
-		`),
-			mcp.Items(map[string]any{
-				"type": "integer",
-			}),
-		),
-		mcp.WithArray("tagIDs", mcp.Description(`
+		`,
+			Items: &jsonschema.Schema{
+				Type: "integer",
+			},
+		},
+		"tagIDs": {
+			Type: "array",
+			Description: `
 			The IDs of the tags to filter by. 
 			Tag IDs can be found by using the 'twdesk-list_tags' tool.
-		`),
-			mcp.Items(map[string]any{
-				"type": "integer",
-			}),
-		),
-		mcp.WithArray("taskIDs",
-			mcp.Description(`
+		`,
+			Items: &jsonschema.Schema{
+				Type: "integer",
+			},
+		},
+		"taskIDs": {
+			Type: "array",
+			Description: `
 				The IDs of the tasks to filter by.
 				Task IDs can be found by using the 'twprojects-list_tasks' tool.
-			`),
-			mcp.Items(map[string]any{
-				"type": "integer",
-			}),
-		),
-		mcp.WithArray("projectsIDs",
-			mcp.Description(`
+			`,
+			Items: &jsonschema.Schema{
+				Type: "integer",
+			},
+		},
+		"projectsIDs": {
+			Type: "array",
+			Description: `
 				The IDs of the projects to filter by.
 				Project IDs can be found by using the 'twprojects-list_projects' tool.
-			`),
-			mcp.Items(map[string]any{
-				"type": "integer",
-			}),
-		),
-		mcp.WithArray("statusIDs",
-			mcp.Description(`
+			`,
+			Items: &jsonschema.Schema{
+				Type: "integer",
+			},
+		},
+		"statusIDs": {
+			Type: "array",
+			Description: `
 				The IDs of the statuses to filter by.
 				Status IDs can be found by using the 'twdesk-list_statuses' tool.
-			`),
-			mcp.Items(map[string]any{
-				"type": "integer",
-			}),
-		),
-		mcp.WithArray("priorityIDs",
-			mcp.Description(`
+			`,
+			Items: &jsonschema.Schema{
+				Type: "integer",
+			},
+		},
+		"priorityIDs": {
+			Type: "array",
+			Description: `
 				The IDs of the priorities to filter by.
 				Priority IDs can be found by using the 'twdesk-list_priorities' tool.
-			`),
-			mcp.Items(map[string]any{
-				"type": "integer",
-			}),
-		),
-		mcp.WithArray("slaIDs",
-			mcp.Description(`
+			`,
+			Items: &jsonschema.Schema{
+				Type: "integer",
+			},
+		},
+		"slaIDs": {
+			Type: "array",
+			Description: `
 				The IDs of the SLAs to filter by.
 				SLA IDs can be found by using the 'twdesk-list_slas' tool.
-			`),
-			mcp.Items(map[string]any{
-				"type": "integer",
-			}),
-		),
-		mcp.WithArray("userIDs",
-			mcp.Description(`
+			`,
+			Items: &jsonschema.Schema{
+				Type: "integer",
+			},
+		},
+		"userIDs": {
+			Type: "array",
+			Description: `
 				The IDs of the users to filter by.
 				User IDs can be found by using the 'twdesk-list_users' tool.
-			`),
-			mcp.Items(map[string]any{
-				"type": "integer",
-			}),
-		),
-		mcp.WithBoolean("shared", mcp.Description(`
+			`,
+			Items: &jsonschema.Schema{
+				Type: "integer",
+			},
+		},
+		"shared": {
+			Type: "boolean",
+			Description: `
 			Find tickets shared with me outside of inboxes I have access to
-		`)),
-		mcp.WithBoolean("slaBreached", mcp.Description(`
+		`,
+		},
+		"slaBreached": {
+			Type: "boolean",
+			Description: `
 			Find tickets where the SLA has been breached
-		`)),
+		`,
+		},
 	}
+	properties = paginationOptions(properties)
 
-	opts = append(opts, paginationOptions()...)
+	return toolsets.ToolWrapper{
+		Tool: &mcp.Tool{
+			Name: string(MethodTicketList),
+			Annotations: &mcp.ToolAnnotations{
+				Title:        "List Tickets",
+				ReadOnlyHint: true,
+			},
+			Description: "List all tickets in Teamwork Desk, with extensive filters for inbox, customer, company, " +
+				"tag, status, priority, SLA, user, and more. Enables users to audit, analyze, or synchronize ticket data " +
+				"for support management, reporting, or integration scenarios.",
+			InputSchema: &jsonschema.Schema{
+				Type:       "object",
+				Properties: properties,
+			},
+			OutputSchema: ticketListOutputSchema,
+		},
+		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+			arguments, err := helpers.NewToolArguments(request)
+			if err != nil {
+				return helpers.NewToolResultTextError(err.Error()), nil
+			}
 
-	return server.ServerTool{
-		Tool: mcp.NewTool(string(MethodTicketList), opts...),
-		Handler: func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 			// Apply filters to the ticket list
-			inboxIDs := request.GetIntSlice("inboxIDs", []int{})
-			customerIDs := request.GetIntSlice("customerIDs", []int{})
-			companyIDs := request.GetIntSlice("companyIDs", []int{})
-			tagIDs := request.GetIntSlice("tagIDs", []int{})
-			taskIDs := request.GetIntSlice("taskIDs", []int{})
-			projectsIDs := request.GetIntSlice("projectsIDs", []int{})
-			statusIDs := request.GetIntSlice("statusIDs", []int{})
-			priorityIDs := request.GetIntSlice("priorityIDs", []int{})
-			slaIDs := request.GetIntSlice("slaIDs", []int{})
-			userIDs := request.GetIntSlice("userIDs", []int{})
-			shared := request.GetBool("shared", false)
-			slaBreached := request.GetBool("slaBreached", false)
+			inboxIDs := arguments.GetIntSlice("inboxIDs", []int{})
+			customerIDs := arguments.GetIntSlice("customerIDs", []int{})
+			companyIDs := arguments.GetIntSlice("companyIDs", []int{})
+			tagIDs := arguments.GetIntSlice("tagIDs", []int{})
+			taskIDs := arguments.GetIntSlice("taskIDs", []int{})
+			projectsIDs := arguments.GetIntSlice("projectsIDs", []int{})
+			statusIDs := arguments.GetIntSlice("statusIDs", []int{})
+			priorityIDs := arguments.GetIntSlice("priorityIDs", []int{})
+			slaIDs := arguments.GetIntSlice("slaIDs", []int{})
+			userIDs := arguments.GetIntSlice("userIDs", []int{})
+			shared := arguments.GetBool("shared", false)
+			slaBreached := arguments.GetBool("slaBreached", false)
 
 			filter := deskclient.NewFilter()
 
@@ -242,128 +307,157 @@ func TicketList(client *deskclient.Client) server.ServerTool {
 
 			params := url.Values{}
 			params.Set("filter", filter.Build())
-			setPagination(&params, request)
+			setPagination(&params, arguments)
 
 			tickets, err := client.Tickets.List(ctx, params)
 			if err != nil {
 				return nil, fmt.Errorf("failed to list tickets: %w", err)
 			}
 
-			return mcp.NewToolResultText(fmt.Sprintf("Tickets retrieved successfully: %v", tickets)), nil
+			return helpers.NewToolResultText(fmt.Sprintf("Tickets retrieved successfully: %v", tickets)), nil
 		},
 	}
 }
 
 // TicketSearch uses the search API to find tickets in Teamwork Desk
-func TicketSearch(client *deskclient.Client) server.ServerTool {
-	opts := []mcp.ToolOption{
-		mcp.WithTitleAnnotation("Search Tickets"),
-		mcp.WithOutputSchema[deskmodels.TicketsResponse](),
-		mcp.WithDescription(
-			"Search tickets in Teamwork Desk using various filters including inbox, customer, company, tag, status, " +
-				"priority, SLA, user, and more. This tool enables users to perform targeted searches for tickets, " +
-				"facilitating efficient support management, reporting, and integration with other systems."),
-		mcp.WithReadOnlyHintAnnotation(true),
-		mcp.WithString("search", mcp.Description(`
+func TicketSearch(client *deskclient.Client) toolsets.ToolWrapper {
+	properties := map[string]*jsonschema.Schema{
+		"search": {
+			Type: "string",
+			Description: `
 				The search term to use for finding tickets.
 				This can be part of the subject, body, or other ticket fields.
-			`),
-			mcp.Required(),
-		),
-		mcp.WithArray("inboxIDs",
-			mcp.Description(`
+			`,
+		},
+		"inboxIDs": {
+			Type: "array",
+			Description: `
 				The IDs of the inboxes to filter by.
 				Inbox IDs can be found by using the 'twdesk-list_inboxes' tool.
-			`),
-			mcp.Items(map[string]any{
-				"type": "integer",
-			}),
-		),
-		mcp.WithArray("customerIDs", mcp.Description(`
+			`,
+			Items: &jsonschema.Schema{
+				Type: "integer",
+			},
+		},
+		"customerIDs": {
+			Type: "array",
+			Description: `
 			The IDs of the customers to filter by. 
 			Customer IDs can be found by using the 'twdesk-list_customers' tool.
-		`),
-			mcp.Items(map[string]any{
-				"type": "integer",
-			}),
-		),
-		mcp.WithArray("companyIDs", mcp.Description(`
+		`,
+			Items: &jsonschema.Schema{
+				Type: "integer",
+			},
+		},
+		"companyIDs": {
+			Type: "array",
+			Description: `
 			The IDs of the companies to filter by. 
 			Company IDs can be found by using the 'twdesk-list_companies' tool.
-		`),
-			mcp.Items(map[string]any{
-				"type": "integer",
-			}),
-		),
-		mcp.WithArray("tagIDs", mcp.Description(`
+		`,
+			Items: &jsonschema.Schema{
+				Type: "integer",
+			},
+		},
+		"tagIDs": {
+			Type: "array",
+			Description: `
 			The IDs of the tags to filter by. 
 			Tag IDs can be found by using the 'twdesk-list_tags' tool.
-		`),
-			mcp.Items(map[string]any{
-				"type": "integer",
-			}),
-		),
-		mcp.WithArray("statusIDs",
-			mcp.Description(`
+		`,
+			Items: &jsonschema.Schema{
+				Type: "integer",
+			},
+		},
+		"statusIDs": {
+			Type: "array",
+			Description: `
 				The IDs of the statuses to filter by.
 				Status IDs can be found by using the 'twdesk-list_statuses' tool.
-			`),
-			mcp.Items(map[string]any{
-				"type": "integer",
-			}),
-		),
-		mcp.WithArray("priorityIDs",
-			mcp.Description(`
+			`,
+			Items: &jsonschema.Schema{
+				Type: "integer",
+			},
+		},
+		"priorityIDs": {
+			Type: "array",
+			Description: `
 				The IDs of the priorities to filter by.
 				Priority IDs can be found by using the 'twdesk-list_priorities' tool.
-			`),
-			mcp.Items(map[string]any{
-				"type": "integer",
-			}),
-		),
-		mcp.WithArray("userIDs",
-			mcp.Description(`
+			`,
+			Items: &jsonschema.Schema{
+				Type: "integer",
+			},
+		},
+		"userIDs": {
+			Type: "array",
+			Description: `
 				The IDs of the users to filter by.
 				User IDs can be found by using the 'twdesk-list_users' tool.
-			`),
-			mcp.Items(map[string]any{
-				"type": "integer",
-			}),
-		),
-		mcp.WithBoolean("shared", mcp.Description(`
+			`,
+			Items: &jsonschema.Schema{
+				Type: "integer",
+			},
+		},
+		"shared": {
+			Type: "boolean",
+			Description: `
 			Find tickets shared with me outside of inboxes I have access to
-		`)),
-		mcp.WithBoolean("slaBreached", mcp.Description(`
+		`,
+		},
+		"slaBreached": {
+			Type: "boolean",
+			Description: `
 			Find tickets where the SLA has been breached
-		`)),
+		`,
+		},
 	}
+	properties = paginationOptions(properties)
 
-	opts = append(opts, paginationOptions()...)
+	return toolsets.ToolWrapper{
+		Tool: &mcp.Tool{
+			Name: string(MethodTicketList),
+			Annotations: &mcp.ToolAnnotations{
+				Title:        "Search Tickets",
+				ReadOnlyHint: true,
+			},
+			Description: "Search tickets in Teamwork Desk using various filters including inbox, customer, company, " +
+				"tag, status, priority, SLA, user, and more. This tool enables users to perform targeted searches " +
+				"for tickets, facilitating efficient support management, reporting, and integration with other systems.",
+			InputSchema: &jsonschema.Schema{
+				Type:       "object",
+				Properties: properties,
+				Required:   []string{"search"},
+			},
+			OutputSchema: ticketSearchOutputSchema,
+		},
+		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+			arguments, err := helpers.NewToolArguments(request)
+			if err != nil {
+				return helpers.NewToolResultTextError(err.Error()), nil
+			}
 
-	return server.ServerTool{
-		Tool: mcp.NewTool(string(MethodTicketList), opts...),
-		Handler: func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 			params := &deskmodels.SearchTicketsFilter{}
 
-			params.Search = request.GetString("search", "")
+			params.Search = arguments.GetString("search", "")
 
-			if request.GetIntSlice("customerIDs", nil) != nil {
-				params.Customers = helpers.IntSliceToInt64(request.GetIntSlice("customerIDs", nil))
+			if arguments.GetIntSlice("customerIDs", nil) != nil {
+				params.Customers = helpers.IntSliceToInt64(arguments.GetIntSlice("customerIDs", nil))
 			}
-			if request.GetIntSlice("companyIDs", nil) != nil {
-				params.Companies = helpers.IntSliceToInt64(request.GetIntSlice("companyIDs", nil))
+			if arguments.GetIntSlice("companyIDs", nil) != nil {
+				params.Companies = helpers.IntSliceToInt64(arguments.GetIntSlice("companyIDs", nil))
 			}
-			if request.GetIntSlice("tagIDs", nil) != nil {
-				params.Tags = helpers.IntSliceToInt64(request.GetIntSlice("tagIDs", nil))
+			if arguments.GetIntSlice("tagIDs", nil) != nil {
+				params.Tags = helpers.IntSliceToInt64(arguments.GetIntSlice("tagIDs", nil))
 			}
-			if request.GetIntSlice("statusIDs", nil) != nil {
-				params.Statuses = helpers.IntSliceToInt64(request.GetIntSlice("statusIDs", nil))
+			if arguments.GetIntSlice("statusIDs", nil) != nil {
+				params.Statuses = helpers.IntSliceToInt64(arguments.GetIntSlice("statusIDs", nil))
 			}
-			if request.GetIntSlice("priorityIDs", nil) != nil {
-				params.Priorities = helpers.IntSliceToInt64(request.GetIntSlice("priorityIDs", nil))
+			if arguments.GetIntSlice("priorityIDs", nil) != nil {
+				params.Priorities = helpers.IntSliceToInt64(arguments.GetIntSlice("priorityIDs", nil))
 			}
-			if request.GetIntSlice("userIDs", nil) != nil {
-				params.Agents = helpers.IntSliceToInt64(request.GetIntSlice("userIDs", nil))
+			if arguments.GetIntSlice("userIDs", nil) != nil {
+				params.Agents = helpers.IntSliceToInt64(arguments.GetIntSlice("userIDs", nil))
 			}
 
 			tickets, err := client.Tickets.Search(ctx, params)
@@ -371,129 +465,154 @@ func TicketSearch(client *deskclient.Client) server.ServerTool {
 				return nil, fmt.Errorf("failed to list tickets: %w", err)
 			}
 
-			return mcp.NewToolResultText(fmt.Sprintf("Tickets retrieved successfully: %v", tickets)), nil
+			return helpers.NewToolResultText(fmt.Sprintf("Tickets retrieved successfully: %v", tickets)), nil
 		},
 	}
 }
 
 // TicketCreate creates a ticket in Teamwork Desk
-func TicketCreate(client *deskclient.Client) server.ServerTool {
-	return server.ServerTool{
-		Tool: mcp.NewTool(string(MethodTicketCreate),
-			mcp.WithTitleAnnotation("Create Ticket"),
-			mcp.WithDescription(`
+func TicketCreate(client *deskclient.Client) toolsets.ToolWrapper {
+	return toolsets.ToolWrapper{
+		Tool: &mcp.Tool{
+			Name: string(MethodTicketCreate),
+			Annotations: &mcp.ToolAnnotations{
+				Title: "Create Ticket",
+			},
+			Description: `
 				Create a new ticket in Teamwork Desk by specifying subject, description, priority, and status.
 				"Useful for automating ticket creation, integrating external systems, or customizing support workflows.
-			`),
-			mcp.WithString("subject",
-				mcp.Required(),
-				mcp.Description("The subject of the ticket."),
-			),
-			mcp.WithString("body",
-				mcp.Required(),
-				mcp.Description("The body of the ticket."),
-			),
-			mcp.WithBoolean("notifyCustomer",
-				mcp.Description("Set to true if the the customer should be sent a copy of the ticket."),
-			),
-			mcp.WithArray("bcc",
-				mcp.Description("An array of email addresses to BCC on ticket creation."),
-				mcp.Items(map[string]any{
-					"type": "string",
-				}),
-			),
-			mcp.WithArray("cc",
-				mcp.Description("An array of email addresses to CC on ticket creation."),
-				mcp.Items(map[string]any{
-					"type": "string",
-				}),
-			),
-			mcp.WithArray("files",
-				mcp.Description(`
+			`,
+			InputSchema: &jsonschema.Schema{
+				Type: "object",
+				Properties: map[string]*jsonschema.Schema{
+					"subject": {
+						Type:        "string",
+						Description: "The subject of the ticket.",
+					},
+					"body": {
+						Type:        "string",
+						Description: "The body of the ticket.",
+					},
+					"notifyCustomer": {
+						Type:        "boolean",
+						Description: "Set to true if the the customer should be sent a copy of the ticket.",
+					},
+					"bcc": {
+						Type:        "array",
+						Description: "An array of email addresses to BCC on ticket creation.",
+						Items: &jsonschema.Schema{
+							Type: "string",
+						},
+					},
+					"cc": {
+						Type:        "array",
+						Description: "An array of email addresses to CC on ticket creation.",
+						Items: &jsonschema.Schema{
+							Type: "string",
+						},
+					},
+					"files": {
+						Type: "array",
+						Description: `
 					An array of file IDs to attach to the ticket.  
 					Use the 'twdesk-create_file' tool to upload files.
-				`),
-				mcp.Items(map[string]any{
-					"type": "integer",
-				}),
-			),
-			mcp.WithArray("tags",
-				mcp.Description(`
+				`,
+						Items: &jsonschema.Schema{
+							Type: "integer",
+						},
+					},
+					"tags": {
+						Type: "array",
+						Description: `
 					An array of tag IDs to associate with the ticket. 
 					Tag IDs can be found by using the 'twdesk-list_tags' tool.
-				`),
-				mcp.Items(map[string]any{
-					"type": "integer",
-				}),
-			),
-			mcp.WithNumber("priorityId",
-				mcp.Description(`
+				`,
+						Items: &jsonschema.Schema{
+							Type: "integer",
+						},
+					},
+					"priorityId": {
+						Type: "integer",
+						Description: `
 					The priority of the ticket. 
 					Use the 'twdesk-list_priorities' tool to find valid IDs.
-				`),
-			),
-			mcp.WithNumber("statusId",
-				mcp.Description(`
+				`,
+					},
+					"statusId": {
+						Type: "integer",
+						Description: `
 					The status of the ticket. 
 					Use the 'twdesk-list_statuses' tool to find valid IDs.
-				`),
-			),
-			mcp.WithNumber("inboxId",
-				mcp.Required(),
-				mcp.Description(`
+				`,
+					},
+					"inboxId": {
+						Type: "integer",
+						Description: `
 					The inbox ID of the ticket. 
 					Use the 'twdesk-list_inboxes' tool to find valid IDs.
-				`),
-			),
-			mcp.WithNumber("customerId",
-				mcp.Description(`
+				`,
+					},
+					"customerId": {
+						Type: "integer",
+						Description: `
 					The customer ID of the ticket. 
 					Use the 'twdesk-list_customers' tool to find valid IDs.
-				`),
-			),
-			mcp.WithString("customerEmail",
-				mcp.Description(`
+				`,
+					},
+					"customerEmail": {
+						Type: "string",
+						Description: `
 				The email address of the customer. 
 				This is used to identify the customer in the system.
 				Either the customerId or customerEmail is required to create a ticket.  
 				If email is provided we will either find or create the customer.
-			`),
-			),
-			mcp.WithNumber("typeId",
-				mcp.Description(`
+			`,
+					},
+					"typeId": {
+						Type: "integer",
+						Description: `
 					The type ID of the ticket. 
 					Use the 'twdesk-list_types' tool to find valid IDs.
-				`),
-			),
-			mcp.WithNumber("agentId",
-				mcp.Description(`
+				`,
+					},
+					"agentId": {
+						Type: "integer",
+						Description: `
 					The agent ID that the ticket should be assigned to. 
 					Use the 'twdesk-list_agents' tool to find valid IDs.
-				`),
-			),
-		),
-		Handler: func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+				`,
+					},
+				},
+				Required: []string{"subject", "body", "inboxId"},
+			},
+		},
+		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+			arguments, err := helpers.NewToolArguments(request)
+			if err != nil {
+				return helpers.NewToolResultTextError(err.Error()), nil
+			}
+
 			data := deskmodels.Ticket{
-				Subject: request.GetString("subject", ""),
-				Body:    request.GetString("body", ""),
+				Subject: arguments.GetString("subject", ""),
+				Body:    arguments.GetString("body", ""),
 				Inbox: deskmodels.EntityRef{
-					ID: request.GetInt("inboxId", 0),
+					ID: arguments.GetInt("inboxId", 0),
 				},
 			}
 
-			if request.GetInt("customerId", 0) != 0 {
+			if arguments.GetInt("customerId", 0) != 0 {
 				data.Customer = deskmodels.EntityRef{
-					ID: request.GetInt("customerId", 0),
+					ID: arguments.GetInt("customerId", 0),
 				}
 			}
 
-			if email := request.GetString("customerEmail", ""); email != "" {
+			if email := arguments.GetString("customerEmail", ""); email != "" {
 				filter := deskclient.NewFilter()
 				filter = filter.Eq("contacts.value", email)
 
 				params := url.Values{}
 				params.Set("filter", filter.Build())
-				setPagination(&params, request)
+				setPagination(&params, arguments)
 
 				customers, err := client.Customers.List(ctx, params)
 				if err != nil {
@@ -520,54 +639,54 @@ func TicketCreate(client *deskclient.Client) server.ServerTool {
 				}
 			}
 
-			if request.GetInt("priorityId", 0) != 0 {
+			if arguments.GetInt("priorityId", 0) != 0 {
 				data.Priority = &deskmodels.EntityRef{
-					ID: request.GetInt("priorityId", 0),
+					ID: arguments.GetInt("priorityId", 0),
 				}
 			}
 
-			if request.GetInt("statusId", 0) != 0 {
+			if arguments.GetInt("statusId", 0) != 0 {
 				data.Status = &deskmodels.EntityRef{
-					ID: request.GetInt("statusId", 0),
+					ID: arguments.GetInt("statusId", 0),
 				}
 			}
 
-			if request.GetInt("typeId", 0) != 0 {
+			if arguments.GetInt("typeId", 0) != 0 {
 				data.Type = &deskmodels.EntityRef{
-					ID: request.GetInt("typeId", 0),
+					ID: arguments.GetInt("typeId", 0),
 				}
 			}
 
-			if request.GetInt("agentId", 0) != 0 {
+			if arguments.GetInt("agentId", 0) != 0 {
 				data.Agent = &deskmodels.EntityRef{
-					ID: request.GetInt("agentId", 0),
+					ID: arguments.GetInt("agentId", 0),
 				}
 			}
 
-			if request.GetBool("notifyCustomer", false) {
+			if arguments.GetBool("notifyCustomer", false) {
 				data.NotifyCustomer = true
 			}
 
-			if len(request.GetIntSlice("files", []int{})) > 0 {
+			if len(arguments.GetIntSlice("files", []int{})) > 0 {
 				data.Files = []deskmodels.EntityRef{}
-				for _, fileID := range request.GetIntSlice("files", []int{}) {
+				for _, fileID := range arguments.GetIntSlice("files", []int{}) {
 					data.Files = append(data.Files, deskmodels.EntityRef{ID: fileID})
 				}
 			}
 
-			if len(request.GetIntSlice("tags", []int{})) > 0 {
+			if len(arguments.GetIntSlice("tags", []int{})) > 0 {
 				data.Tags = []deskmodels.EntityRef{}
-				for _, tagID := range request.GetIntSlice("tags", []int{}) {
+				for _, tagID := range arguments.GetIntSlice("tags", []int{}) {
 					data.Tags = append(data.Tags, deskmodels.EntityRef{ID: tagID})
 				}
 			}
 
-			if len(request.GetStringSlice("bcc", []string{})) > 0 {
-				data.BCC = request.GetStringSlice("bcc", []string{})
+			if len(arguments.GetStringSlice("bcc", []string{})) > 0 {
+				data.BCC = arguments.GetStringSlice("bcc", []string{})
 			}
 
-			if len(request.GetStringSlice("cc", []string{})) > 0 {
-				data.CC = request.GetStringSlice("cc", []string{})
+			if len(arguments.GetStringSlice("cc", []string{})) > 0 {
+				data.CC = arguments.GetStringSlice("cc", []string{})
 			}
 
 			ticket, err := client.Tickets.Create(ctx, &deskmodels.TicketResponse{
@@ -577,86 +696,115 @@ func TicketCreate(client *deskclient.Client) server.ServerTool {
 				return nil, fmt.Errorf("failed to create ticket: %w", err)
 			}
 
-			return mcp.NewToolResultJSON(ticket)
+			encoded, err := json.Marshal(ticket)
+			if err != nil {
+				return nil, err
+			}
+
+			return helpers.NewToolResultText(string(encoded)), nil
 		},
 	}
 }
 
 // TicketUpdate updates a ticket in Teamwork Desk
-func TicketUpdate(client *deskclient.Client) server.ServerTool {
-	return server.ServerTool{
-		Tool: mcp.NewTool(string(MethodTicketUpdate),
-			mcp.WithTitleAnnotation("Update Ticket"),
-			mcp.WithDescription(
-				"Update an existing ticket in Teamwork Desk by ID, allowing changes to its attributes. "+
-					"Supports evolving support processes, correcting ticket records, or integrating with automation "+
-					"systems for improved ticket handling."),
-			mcp.WithNumber("id",
-				mcp.Required(),
-				mcp.Description("The ID of the ticket to update."),
-			),
-			mcp.WithString("subject",
-				mcp.Description("The subject of the ticket."),
-			),
-			mcp.WithString("body",
-				mcp.Description("The body of the ticket."),
-			),
-			mcp.WithNumber("priorityId",
-				mcp.Description(`
+func TicketUpdate(client *deskclient.Client) toolsets.ToolWrapper {
+	return toolsets.ToolWrapper{
+		Tool: &mcp.Tool{
+			Name: string(MethodTicketUpdate),
+			Annotations: &mcp.ToolAnnotations{
+				Title: "Update Ticket",
+			},
+			Description: "Update an existing ticket in Teamwork Desk by ID, allowing changes to its attributes. " +
+				"Supports evolving support processes, correcting ticket records, or integrating with automation " +
+				"systems for improved ticket handling.",
+			InputSchema: &jsonschema.Schema{
+				Type: "object",
+				Properties: map[string]*jsonschema.Schema{
+					"id": {
+						Type:        "integer",
+						Description: "The ID of the ticket to update.",
+					},
+					"subject": {
+						Type:        "string",
+						Description: "The subject of the ticket.",
+					},
+					"body": {
+						Type:        "string",
+						Description: "The body of the ticket.",
+					},
+					"priorityId": {
+						Type: "integer",
+						Description: `
 					The priority of the ticket. 
 					Use the 'twdesk-list_priorities' tool to find valid IDs.
-				`),
-			),
-			mcp.WithNumber("statusId",
-				mcp.Description(`
+				`,
+					},
+					"statusId": {
+						Type: "integer",
+						Description: `
 					The status of the ticket. 
 					Use the 'twdesk-list_statuses' tool to find valid IDs.
-				`),
-			),
-			mcp.WithNumber("typeId",
-				mcp.Description(`
+				`,
+					},
+					"typeId": {
+						Type: "integer",
+						Description: `
 					The type ID of the ticket. 
 					Use the 'twdesk-list_types' tool to find valid IDs.
-				`),
-			),
-			mcp.WithNumber("agentId",
-				mcp.Description(`
+				`,
+					},
+					"agentId": {
+						Type: "integer",
+						Description: `
 					The agent ID that the ticket should be assigned to. 
 					Use the 'twdesk-list_agents' tool to find valid IDs.
-				`),
-			),
-		),
-		Handler: func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+				`,
+					},
+				},
+				Required: []string{"id"},
+			},
+		},
+		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+			arguments, err := helpers.NewToolArguments(request)
+			if err != nil {
+				return helpers.NewToolResultTextError(err.Error()), nil
+			}
+
 			data := deskmodels.Ticket{}
 
-			if subject := request.GetString("subject", ""); subject != "" {
+			if subject := arguments.GetString("subject", ""); subject != "" {
 				data.Subject = subject
 			}
 
-			if body := request.GetString("body", ""); body != "" {
+			if body := arguments.GetString("body", ""); body != "" {
 				data.Body = body
 			}
 
-			if statusId := request.GetInt("statusId", 0); statusId > 0 {
+			if statusId := arguments.GetInt("statusId", 0); statusId > 0 {
 				data.Status = &deskmodels.EntityRef{ID: statusId}
 			}
 
-			if typeId := request.GetInt("typeId", 0); typeId > 0 {
+			if typeId := arguments.GetInt("typeId", 0); typeId > 0 {
 				data.Type = &deskmodels.EntityRef{ID: typeId}
 			}
 
-			if agentId := request.GetInt("agentId", 0); agentId > 0 {
+			if agentId := arguments.GetInt("agentId", 0); agentId > 0 {
 				data.Agent = &deskmodels.EntityRef{ID: agentId}
 			}
 
-			ticket, err := client.Tickets.Update(ctx, request.GetInt("id", 0), &deskmodels.TicketResponse{
+			ticket, err := client.Tickets.Update(ctx, arguments.GetInt("id", 0), &deskmodels.TicketResponse{
 				Ticket: data,
 			})
 			if err != nil {
 				return nil, fmt.Errorf("failed to update ticket: %w", err)
 			}
 
-			return mcp.NewToolResultJSON(ticket)
+			encoded, err := json.Marshal(ticket)
+			if err != nil {
+				return nil, err
+			}
+
+			return helpers.NewToolResultText(string(encoded)), nil
 		},
 	}
 }

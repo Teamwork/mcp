@@ -1,29 +1,16 @@
 package twprojects_test
 
 import (
-	"context"
-	"encoding/json"
 	"net/http"
 	"testing"
 
-	"github.com/mark3labs/mcp-go/mcp"
+	"github.com/teamwork/mcp/internal/testutil"
 	"github.com/teamwork/mcp/internal/twprojects"
 )
 
 func TestTaskCreate(t *testing.T) {
 	mcpServer := mcpServerMock(t, http.StatusCreated, []byte(`{"task":{"id":123}}`))
-
-	request := &toolRequest{
-		JSONRPC: mcp.JSONRPC_VERSION,
-		ID:      1,
-		CallToolRequest: mcp.CallToolRequest{
-			Request: mcp.Request{
-				Method: string(mcp.MethodToolsCall),
-			},
-		},
-	}
-	request.Params.Name = twprojects.MethodTaskCreate.String()
-	request.Params.Arguments = map[string]any{
+	testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodTaskCreate.String(), map[string]any{
 		"name":              "Example",
 		"tasklist_id":       float64(123),
 		"description":       "This is an example task.",
@@ -49,30 +36,12 @@ func TestTaskCreate(t *testing.T) {
 				"type":    "complete",
 			},
 		},
-	}
-
-	encodedRequest, err := json.Marshal(request)
-	if err != nil {
-		t.Fatalf("failed to encode request: %v", err)
-	}
-
-	checkMessage(t, mcpServer.HandleMessage(context.Background(), encodedRequest))
+	})
 }
 
 func TestTaskUpdate(t *testing.T) {
 	mcpServer := mcpServerMock(t, http.StatusOK, []byte(`{}`))
-
-	request := &toolRequest{
-		JSONRPC: mcp.JSONRPC_VERSION,
-		ID:      1,
-		CallToolRequest: mcp.CallToolRequest{
-			Request: mcp.Request{
-				Method: string(mcp.MethodToolsCall),
-			},
-		},
-	}
-	request.Params.Name = twprojects.MethodTaskUpdate.String()
-	request.Params.Arguments = map[string]any{
+	testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodTaskUpdate.String(), map[string]any{
 		"id":                float64(123),
 		"name":              "Example",
 		"tasklist_id":       float64(123),
@@ -99,110 +68,38 @@ func TestTaskUpdate(t *testing.T) {
 				"type":    "complete",
 			},
 		},
-	}
-
-	encodedRequest, err := json.Marshal(request)
-	if err != nil {
-		t.Fatalf("failed to encode request: %v", err)
-	}
-
-	checkMessage(t, mcpServer.HandleMessage(context.Background(), encodedRequest))
+	})
 }
 
 func TestTaskDelete(t *testing.T) {
 	mcpServer := mcpServerMock(t, http.StatusOK, []byte(`{}`))
-
-	request := &toolRequest{
-		JSONRPC: mcp.JSONRPC_VERSION,
-		ID:      1,
-		CallToolRequest: mcp.CallToolRequest{
-			Request: mcp.Request{
-				Method: string(mcp.MethodToolsCall),
-			},
-		},
-	}
-	request.Params.Name = twprojects.MethodTaskDelete.String()
-	request.Params.Arguments = map[string]any{
+	testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodTaskDelete.String(), map[string]any{
 		"id": float64(123),
-	}
-
-	encodedRequest, err := json.Marshal(request)
-	if err != nil {
-		t.Fatalf("failed to encode request: %v", err)
-	}
-
-	checkMessage(t, mcpServer.HandleMessage(context.Background(), encodedRequest))
+	})
 }
 
 func TestTaskGet(t *testing.T) {
 	mcpServer := mcpServerMock(t, http.StatusOK, []byte(`{}`))
-
-	request := &toolRequest{
-		JSONRPC: mcp.JSONRPC_VERSION,
-		ID:      1,
-		CallToolRequest: mcp.CallToolRequest{
-			Request: mcp.Request{
-				Method: string(mcp.MethodToolsCall),
-			},
-		},
-	}
-	request.Params.Name = twprojects.MethodTaskGet.String()
-	request.Params.Arguments = map[string]any{
+	testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodTaskGet.String(), map[string]any{
 		"id": float64(123),
-	}
-
-	encodedRequest, err := json.Marshal(request)
-	if err != nil {
-		t.Fatalf("failed to encode request: %v", err)
-	}
-
-	checkMessage(t, mcpServer.HandleMessage(context.Background(), encodedRequest))
+	})
 }
 
 func TestTaskList(t *testing.T) {
 	mcpServer := mcpServerMock(t, http.StatusOK, []byte(`{}`))
-
-	request := &toolRequest{
-		JSONRPC: mcp.JSONRPC_VERSION,
-		ID:      1,
-		CallToolRequest: mcp.CallToolRequest{
-			Request: mcp.Request{
-				Method: string(mcp.MethodToolsCall),
-			},
-		},
-	}
-	request.Params.Name = twprojects.MethodTaskList.String()
-	request.Params.Arguments = map[string]any{
+	testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodTaskList.String(), map[string]any{
 		"search_term":       "test",
 		"tag_ids":           []float64{1, 2, 3},
 		"match_all_tags":    true,
 		"page":              float64(1),
 		"page_size":         float64(10),
 		"assignee_user_ids": []float64{4, 5, 6},
-	}
-
-	encodedRequest, err := json.Marshal(request)
-	if err != nil {
-		t.Fatalf("failed to encode request: %v", err)
-	}
-
-	checkMessage(t, mcpServer.HandleMessage(context.Background(), encodedRequest))
+	})
 }
 
 func TestTaskListByTasklist(t *testing.T) {
 	mcpServer := mcpServerMock(t, http.StatusOK, []byte(`{}`))
-
-	request := &toolRequest{
-		JSONRPC: mcp.JSONRPC_VERSION,
-		ID:      1,
-		CallToolRequest: mcp.CallToolRequest{
-			Request: mcp.Request{
-				Method: string(mcp.MethodToolsCall),
-			},
-		},
-	}
-	request.Params.Name = twprojects.MethodTaskListByTasklist.String()
-	request.Params.Arguments = map[string]any{
+	testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodTaskListByTasklist.String(), map[string]any{
 		"tasklist_id":       float64(123),
 		"search_term":       "test",
 		"tag_ids":           []float64{1, 2, 3},
@@ -210,30 +107,12 @@ func TestTaskListByTasklist(t *testing.T) {
 		"page":              float64(1),
 		"page_size":         float64(10),
 		"assignee_user_ids": []float64{4, 5, 6},
-	}
-
-	encodedRequest, err := json.Marshal(request)
-	if err != nil {
-		t.Fatalf("failed to encode request: %v", err)
-	}
-
-	checkMessage(t, mcpServer.HandleMessage(context.Background(), encodedRequest))
+	})
 }
 
 func TestTaskListByProject(t *testing.T) {
 	mcpServer := mcpServerMock(t, http.StatusOK, []byte(`{}`))
-
-	request := &toolRequest{
-		JSONRPC: mcp.JSONRPC_VERSION,
-		ID:      1,
-		CallToolRequest: mcp.CallToolRequest{
-			Request: mcp.Request{
-				Method: string(mcp.MethodToolsCall),
-			},
-		},
-	}
-	request.Params.Name = twprojects.MethodTaskListByProject.String()
-	request.Params.Arguments = map[string]any{
+	testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodTaskListByProject.String(), map[string]any{
 		"project_id":        float64(123),
 		"search_term":       "test",
 		"tag_ids":           []float64{1, 2, 3},
@@ -241,12 +120,5 @@ func TestTaskListByProject(t *testing.T) {
 		"page":              float64(1),
 		"page_size":         float64(10),
 		"assignee_user_ids": []float64{4, 5, 6},
-	}
-
-	encodedRequest, err := json.Marshal(request)
-	if err != nil {
-		t.Fatalf("failed to encode request: %v", err)
-	}
-
-	checkMessage(t, mcpServer.HandleMessage(context.Background(), encodedRequest))
+	})
 }

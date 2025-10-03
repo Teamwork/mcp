@@ -1,14 +1,13 @@
 package twprojects
 
 import (
-	"github.com/mark3labs/mcp-go/server"
 	"github.com/teamwork/mcp/internal/toolsets"
 	twapi "github.com/teamwork/twapi-go-sdk"
 )
 
 // DefaultToolsetGroup creates a default ToolsetGroup for Teamwork Projects.
 func DefaultToolsetGroup(readOnly, allowDelete bool, engine *twapi.Engine) *toolsets.ToolsetGroup {
-	writeTools := []server.ServerTool{
+	writeTools := []toolsets.ToolWrapper{
 		ProjectCreate(engine),
 		ProjectUpdate(engine),
 		ProjectMemberAdd(engine),
@@ -39,7 +38,7 @@ func DefaultToolsetGroup(readOnly, allowDelete bool, engine *twapi.Engine) *tool
 		NotebookUpdate(engine),
 	}
 	if allowDelete {
-		writeTools = append(writeTools, []server.ServerTool{
+		writeTools = append(writeTools, []toolsets.ToolWrapper{
 			ProjectDelete(engine),
 			TasklistDelete(engine),
 			TaskDelete(engine),

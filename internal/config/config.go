@@ -17,10 +17,7 @@ import (
 	"github.com/DataDog/dd-trace-go/v2/ddtrace/tracer"
 	"github.com/DataDog/dd-trace-go/v2/instrumentation/httptrace"
 	"github.com/getsentry/sentry-go"
-	"github.com/mark3labs/mcp-go/client"
-	"github.com/mark3labs/mcp-go/client/transport"
-	"github.com/mark3labs/mcp-go/mcp"
-	"github.com/mark3labs/mcp-go/server"
+	"github.com/modelcontextprotocol/go-sdk/mcp"
 	desksdk "github.com/teamwork/desksdkgo/client"
 	"github.com/teamwork/mcp/internal/network"
 	"github.com/teamwork/mcp/internal/request"
@@ -167,7 +164,7 @@ func Load(logOutput io.Writer) (Resources, func()) {
 
 // NewMCPServer creates a new MCP server with the given resources and toolset
 // group.
-func NewMCPServer(resources Resources, groups ...*toolsets.ToolsetGroup) *server.MCPServer {
+func NewMCPServer(resources Resources, groups ...*toolsets.ToolsetGroup) *mcp.Server {
 	// Determine if any group has tools
 	hasTools := false
 	for _, group := range groups {
@@ -177,29 +174,41 @@ func NewMCPServer(resources Resources, groups ...*toolsets.ToolsetGroup) *server
 		}
 	}
 
-	var hooks server.Hooks
-	hooks.AddAfterListTools(func(ctx context.Context, _ any, _ *mcp.ListToolsRequest, result *mcp.ListToolsResult) {
-		// filter tools based on scopes
-		scopes := scopes(ctx)
-		if len(scopes) == 0 || len(result.Tools) == 0 {
-			return
-		}
-
-		projectsScope := slices.Contains(scopes, "projects")
-		deskScope := slices.Contains(scopes, "desk")
-
-		result.Tools = slices.DeleteFunc(result.Tools, func(tool mcp.Tool) bool {
-			return (strings.HasPrefix(tool.Name, "twprojects") && !projectsScope) ||
-				(strings.HasPrefix(tool.Name, "twdesk") && !deskScope)
-		})
+	mcpServer := mcp.NewServer(&mcp.Implementation{
+		Name:    mcpName,
+		Title:   "Teamwork.com Model Context Protocol",
+		Version: strings.TrimPrefix(resources.Info.Version, "v"),
+	}, &mcp.ServerOptions{
+		HasTools: hasTools,
 	})
+	mcpServer.AddSendingMiddleware(func(next mcp.MethodHandler) mcp.MethodHandler {
+		return func(ctx context.Context, method string, req mcp.Request) (result mcp.Result, err error) {
+			result, err = next(ctx, method, req)
+			if err != nil {
+				return result, err
+			}
 
-	mcpServer := server.NewMCPServer(mcpName, strings.TrimPrefix(resources.Info.Version, "v"),
-		server.WithRecovery(),
-		server.WithToolCapabilities(hasTools),
-		server.WithLogging(),
-		server.WithHooks(&hooks),
-	)
+			listToolsResult, ok := result.(*mcp.ListToolsResult)
+			if !ok || listToolsResult == nil || len(listToolsResult.Tools) == 0 {
+				return result, nil
+			}
+
+			// filter tools based on scopes
+			scopes := scopes(ctx)
+			if len(scopes) == 0 {
+				return
+			}
+
+			projectsScope := slices.Contains(scopes, "projects")
+			deskScope := slices.Contains(scopes, "desk")
+
+			listToolsResult.Tools = slices.DeleteFunc(listToolsResult.Tools, func(tool *mcp.Tool) bool {
+				return (strings.HasPrefix(tool.Name, "twprojects") && !projectsScope) ||
+					(strings.HasPrefix(tool.Name, "twdesk") && !deskScope)
+			})
+			return listToolsResult, nil
+		}
+	})
 
 	// Register all toolset groups
 	for _, group := range groups {
@@ -213,28 +222,19 @@ func NewMCPServer(resources Resources, groups ...*toolsets.ToolsetGroup) *server
 func NewMCPClient(
 	ctx context.Context,
 	resources Resources,
-	transport transport.Interface,
-	options ...client.ClientOption,
-) (*client.Client, *mcp.InitializeResult, error) {
-	mcpClient := client.NewClient(transport, options...)
+	transport mcp.Transport,
+	options *mcp.ClientOptions,
+) (*mcp.Client, *mcp.ClientSession, error) {
+	mcpClient := mcp.NewClient(&mcp.Implementation{
+		Name:    mcpName,
+		Title:   "Teamwork.com Model Context Protocol",
+		Version: strings.TrimPrefix(resources.Info.Version, "v"),
+	}, options)
 
-	mcpClient.OnNotification(func(notification mcp.JSONRPCNotification) {
-		resources.logger.Info("MCP notification",
-			slog.String("method", notification.Method),
-		)
-	})
-
-	mcpServerInfo, err := mcpClient.Initialize(ctx, mcp.InitializeRequest{
-		Params: mcp.InitializeParams{
-			ProtocolVersion: mcp.LATEST_PROTOCOL_VERSION,
-			ClientInfo: mcp.Implementation{
-				Name:    mcpName,
-				Version: strings.TrimPrefix(resources.Info.Version, "v"),
-			},
-		},
-	})
+	clientSession, err := mcpClient.Connect(ctx, transport, &mcp.ClientSessionOptions{})
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to initialize MCP client: %w", err)
 	}
-	return mcpClient, mcpServerInfo, nil
+
+	return mcpClient, clientSession, nil
 }

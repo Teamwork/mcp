@@ -5,8 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/mark3labs/mcp-go/mcp"
-	"github.com/mark3labs/mcp-go/server"
+	"github.com/google/jsonschema-go/jsonschema"
+	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/teamwork/mcp/internal/helpers"
 	"github.com/teamwork/mcp/internal/toolsets"
 	"github.com/teamwork/twapi-go-sdk"
@@ -34,6 +34,11 @@ const taskDescription = "In Teamwork.com, a task represents an individual unit o
 	"as the building blocks of project management in Teamwork, allowing teams to collaborate, monitor progress, and " +
 	"ensure accountability throughout the project's lifecycle."
 
+var (
+	taskGetOutputSchema  *jsonschema.Schema
+	taskListOutputSchema *jsonschema.Schema
+)
+
 func init() {
 	// register the toolset methods
 	toolsets.RegisterMethod(MethodTaskCreate)
@@ -43,108 +48,143 @@ func init() {
 	toolsets.RegisterMethod(MethodTaskList)
 	toolsets.RegisterMethod(MethodTaskListByTasklist)
 	toolsets.RegisterMethod(MethodTaskListByProject)
+
+	var err error
+
+	// generate the output schemas only once
+	taskGetOutputSchema, err = jsonschema.For[projects.TaskGetResponse](&jsonschema.ForOptions{})
+	if err != nil {
+		panic(fmt.Sprintf("failed to generate JSON schema for TaskGetResponse: %v", err))
+	}
+	taskListOutputSchema, err = jsonschema.For[projects.TaskListResponse](&jsonschema.ForOptions{})
+	if err != nil {
+		panic(fmt.Sprintf("failed to generate JSON schema for TaskListResponse: %v", err))
+	}
 }
 
 // TaskCreate creates a task in Teamwork.com.
-func TaskCreate(engine *twapi.Engine) server.ServerTool {
-	return server.ServerTool{
-		Tool: mcp.NewTool(string(MethodTaskCreate),
-			mcp.WithDescription("Create a new task in Teamwork.com. "+taskDescription),
-			mcp.WithTitleAnnotation("Create Task"),
-			mcp.WithString("name",
-				mcp.Required(),
-				mcp.Description("The name of the task."),
-			),
-			mcp.WithNumber("tasklist_id",
-				mcp.Required(),
-				mcp.Description("The ID of the tasklist."),
-			),
-			mcp.WithString("description",
-				mcp.Description("The description of the task."),
-			),
-			mcp.WithString("priority",
-				mcp.Description("The priority of the task. Possible values are: low, medium, high."),
-			),
-			mcp.WithNumber("progress",
-				mcp.Description("The progress of the task, as a percentage (0-100). Only whole numbers are allowed."),
-			),
-			mcp.WithString("start_date",
-				mcp.Description("The start date of the task in ISO 8601 format (YYYY-MM-DD)."),
-			),
-			mcp.WithString("due_date",
-				mcp.Description("The due date of the task in ISO 8601 format (YYYY-MM-DD). When this is not provided, it "+
-					"will fallback to the milestone due date if a milestone is set."),
-			),
-			mcp.WithNumber("estimated_minutes",
-				mcp.Description("The estimated time to complete the task in minutes."),
-			),
-			mcp.WithNumber("parent_task_id",
-				mcp.Description("The ID of the parent task if creating a subtask."),
-			),
-			mcp.WithObject("assignees",
-				mcp.Description("An object containing assignees for the task."),
-				mcp.Properties(map[string]any{
-					"user_ids": map[string]any{
-						"type":        "array",
-						"description": "List of user IDs assigned to the task.",
-						"items":       map[string]any{"type": "integer"},
-						"minItems":    1,
+func TaskCreate(engine *twapi.Engine) toolsets.ToolWrapper {
+	return toolsets.ToolWrapper{
+		Tool: &mcp.Tool{
+			Name:        string(MethodTaskCreate),
+			Description: "Create a new task in Teamwork.com. " + taskDescription,
+			Annotations: &mcp.ToolAnnotations{
+				Title: "Create Task",
+			},
+			InputSchema: &jsonschema.Schema{
+				Type: "object",
+				Properties: map[string]*jsonschema.Schema{
+					"name": {
+						Type:        "string",
+						Description: "The name of the task.",
 					},
-					"company_ids": map[string]any{
-						"type":        "array",
-						"description": "List of company IDs assigned to the task.",
-						"items":       map[string]any{"type": "integer"},
-						"minItems":    1,
+					"tasklist_id": {
+						Type:        "integer",
+						Description: "The ID of the tasklist.",
 					},
-					"team_ids": map[string]any{
-						"type":        "array",
-						"description": "List of team IDs assigned to the task.",
-						"items":       map[string]any{"type": "integer"},
-						"minItems":    1,
+					"description": {
+						Type:        "string",
+						Description: "The description of the task.",
 					},
-				}),
-				mcp.AdditionalProperties(false),
-				func(schemaMap map[string]any) {
-					schemaMap["minProperties"] = 1
-					schemaMap["maxProperties"] = 3
-					schemaMap["anyOf"] = []map[string]any{
-						{"required": []string{"user_ids"}},
-						{"required": []string{"company_ids"}},
-						{"required": []string{"team_ids"}},
-					}
+					"priority": {
+						Type:        "string",
+						Description: "The priority of the task. Possible values are: low, medium, high.",
+						Enum:        []any{"low", "medium", "high"},
+					},
+					"progress": {
+						Type:        "integer",
+						Description: "The progress of the task, as a percentage (0-100). Only whole numbers are allowed.",
+						Minimum:     twapi.Ptr(float64(0)),
+						Maximum:     twapi.Ptr(float64(100)),
+					},
+					"start_date": {
+						Type:        "string",
+						Format:      "date",
+						Description: "The start date of the task in ISO 8601 format (YYYY-MM-DD).",
+					},
+					"due_date": {
+						Type:   "string",
+						Format: "date",
+						Description: "The due date of the task in ISO 8601 format (YYYY-MM-DD). When this is not provided, it " +
+							"will fallback to the milestone due date if a milestone is set.",
+					},
+					"estimated_minutes": {
+						Type:        "integer",
+						Description: "The estimated time to complete the task in minutes.",
+					},
+					"parent_task_id": {
+						Type:        "integer",
+						Description: "The ID of the parent task if creating a subtask.",
+					},
+					"assignees": {
+						Type:        "object",
+						Description: "An object containing assignees for the task.",
+						Properties: map[string]*jsonschema.Schema{
+							"user_ids": {
+								Type:        "array",
+								Description: "List of user IDs assigned to the task.",
+								Items:       &jsonschema.Schema{Type: "integer"},
+								MinItems:    twapi.Ptr(1),
+							},
+							"company_ids": {
+								Type:        "array",
+								Description: "List of company IDs assigned to the task.",
+								Items:       &jsonschema.Schema{Type: "integer"},
+								MinItems:    twapi.Ptr(1),
+							},
+							"team_ids": {
+								Type:        "array",
+								Description: "List of team IDs assigned to the task.",
+								Items:       &jsonschema.Schema{Type: "integer"},
+								MinItems:    twapi.Ptr(1),
+							},
+						},
+						MinProperties: twapi.Ptr(1),
+						MaxProperties: twapi.Ptr(3),
+						AnyOf: []*jsonschema.Schema{
+							{Required: []string{"user_ids"}},
+							{Required: []string{"company_ids"}},
+							{Required: []string{"team_ids"}},
+						},
+					},
+					"tag_ids": {
+						Type:        "array",
+						Description: "A list of tag IDs to assign to the task.",
+						Items:       &jsonschema.Schema{Type: "integer"},
+					},
+					"predecessors": {
+						Type: "array",
+						Description: "List of task dependencies that must be completed before this task can start, defining its " +
+							"position in the project workflow and ensuring proper sequencing of work.",
+						Items: &jsonschema.Schema{
+							Type: "object",
+							Properties: map[string]*jsonschema.Schema{
+								"task_id": {
+									Type:        "integer",
+									Description: "The ID of the predecessor task.",
+								},
+								"type": {
+									Type: "string",
+									Description: "The type of dependency. Possible values are: start or complete. 'start' means this " +
+										"task can complete when the predecessor starts, 'complete' means this task can complete when " +
+										"the predecessor completes.",
+									Enum: []any{"start", "complete"},
+								},
+							},
+						},
+					},
 				},
-			),
-			mcp.WithArray("tag_ids",
-				mcp.Description("A list of tag IDs to assign to the task."),
-				mcp.Items(map[string]any{
-					"type": "integer",
-				}),
-			),
-			mcp.WithArray("predecessors",
-				mcp.Description("List of task dependencies that must be completed before this task can start, defining its "+
-					"position in the project workflow and ensuring proper sequencing of work."),
-				mcp.Items(map[string]any{
-					"type": "object",
-					"properties": map[string]any{
-						"task_id": map[string]any{
-							"type":        "integer",
-							"description": "The ID of the predecessor task.",
-						},
-						"type": map[string]any{
-							"type": "string",
-							"description": "The type of dependency. Possible values are: start or complete. 'start' means this " +
-								"task can complete when the predecessor starts, 'complete' means this task can complete when the " +
-								"predecessor is completed.",
-							"enum": []string{"start", "complete"},
-						},
-					},
-				}),
-			),
-		),
-		Handler: func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+				Required: []string{"name", "tasklist_id"},
+			},
+		},
+		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 			var taskCreateRequest projects.TaskCreateRequest
 
-			err := helpers.ParamGroup(request.GetArguments(),
+			var arguments map[string]any
+			if err := json.Unmarshal(request.Params.Arguments, &arguments); err != nil {
+				return helpers.NewToolResultTextError(fmt.Sprintf("failed to decode request: %s", err.Error())), nil
+			}
+			err := helpers.ParamGroup(arguments,
 				helpers.RequiredParam(&taskCreateRequest.Name, "name"),
 				helpers.RequiredNumericParam(&taskCreateRequest.Path.TasklistID, "tasklist_id"),
 				helpers.OptionalPointerParam(&taskCreateRequest.Description, "description"),
@@ -159,13 +199,13 @@ func TaskCreate(engine *twapi.Engine) server.ServerTool {
 				helpers.OptionalNumericListParam(&taskCreateRequest.TagIDs, "tag_ids"),
 			)
 			if err != nil {
-				return mcp.NewToolResultErrorFromErr("invalid parameters", err), nil
+				return helpers.NewToolResultTextError(fmt.Sprintf("invalid parameters: %s", err.Error())), nil
 			}
 
-			if assignees, ok := request.GetArguments()["assignees"]; ok {
+			if assignees, ok := arguments["assignees"]; ok {
 				assigneesMap, ok := assignees.(map[string]any)
 				if !ok {
-					return nil, fmt.Errorf("invalid assignees")
+					return helpers.NewToolResultTextError("invalid assignees"), nil
 				} else if assigneesMap != nil {
 					taskCreateRequest.Assignees = new(projects.UserGroups)
 
@@ -175,21 +215,21 @@ func TaskCreate(engine *twapi.Engine) server.ServerTool {
 						helpers.OptionalNumericListParam(&taskCreateRequest.Assignees.TeamIDs, "team_ids"),
 					)
 					if err != nil {
-						return nil, fmt.Errorf("invalid assignees: %w", err)
+						return helpers.NewToolResultTextError(fmt.Sprintf("invalid assignees: %s", err)), nil
 					}
 				}
 			}
 
-			if predecessors, ok := request.GetArguments()["predecessors"]; ok {
+			if predecessors, ok := arguments["predecessors"]; ok {
 				predecessorsSlice, ok := predecessors.([]any)
 				if !ok {
-					return nil, fmt.Errorf("invalid predecessors")
+					return helpers.NewToolResultTextError("invalid predecessors"), nil
 				}
 
 				for _, predecessor := range predecessorsSlice {
 					predecessorMap, ok := predecessor.(map[string]any)
 					if !ok {
-						return nil, fmt.Errorf("invalid predecessor")
+						return helpers.NewToolResultTextError("invalid predecessors"), nil
 					}
 
 					var p projects.TaskPredecessor
@@ -203,7 +243,7 @@ func TaskCreate(engine *twapi.Engine) server.ServerTool {
 						),
 					)
 					if err != nil {
-						return nil, fmt.Errorf("invalid predecessor: %w", err)
+						return helpers.NewToolResultTextError(fmt.Sprintf("invalid predecessor: %s", err)), nil
 					}
 
 					taskCreateRequest.Predecessors = append(taskCreateRequest.Predecessors, p)
@@ -215,113 +255,140 @@ func TaskCreate(engine *twapi.Engine) server.ServerTool {
 				return helpers.HandleAPIError(err, "failed to create task")
 			}
 
-			return mcp.NewToolResultText(fmt.Sprintf("Task created successfully with ID %d", taskResponse.Task.ID)), nil
+			return &mcp.CallToolResult{
+				Content: []mcp.Content{
+					&mcp.TextContent{
+						Text: fmt.Sprintf("Task created successfully with ID %d", taskResponse.Task.ID),
+					},
+				},
+			}, nil
 		},
 	}
 }
 
 // TaskUpdate updates a task in Teamwork.com.
-func TaskUpdate(engine *twapi.Engine) server.ServerTool {
-	return server.ServerTool{
-		Tool: mcp.NewTool(string(MethodTaskUpdate),
-			mcp.WithDescription("Update an existing task in Teamwork.com. "+taskDescription),
-			mcp.WithTitleAnnotation("Update Task"),
-			mcp.WithNumber("id",
-				mcp.Required(),
-				mcp.Description("The ID of the task to update."),
-			),
-			mcp.WithNumber("tasklist_id",
-				mcp.Description("The ID of the tasklist. When provided, the task will be moved to this tasklist."),
-			),
-			mcp.WithString("name",
-				mcp.Description("The name of the task."),
-			),
-			mcp.WithString("description",
-				mcp.Description("The description of the task."),
-			),
-			mcp.WithString("priority",
-				mcp.Description("The priority of the task. Possible values are: low, medium, high."),
-			),
-			mcp.WithNumber("progress",
-				mcp.Description("The progress of the task, as a percentage (0-100). Only whole numbers are allowed."),
-			),
-			mcp.WithString("start_date",
-				mcp.Description("The start date of the task in ISO 8601 format (YYYY-MM-DD)."),
-			),
-			mcp.WithString("due_date",
-				mcp.Description("The due date of the task in ISO 8601 format (YYYY-MM-DD). When this is not provided, it "+
-					"will fallback to the milestone due date if a milestone is set."),
-			),
-			mcp.WithNumber("estimated_minutes",
-				mcp.Description("The estimated time to complete the task in minutes."),
-			),
-			mcp.WithNumber("parent_task_id",
-				mcp.Description("The ID of the parent task if creating a subtask."),
-			),
-			mcp.WithObject("assignees",
-				mcp.Description("An object containing assignees for the task."),
-				mcp.Properties(map[string]any{
-					"user_ids": map[string]any{
-						"type":        "array",
-						"description": "List of user IDs assigned to the task.",
-						"items":       map[string]any{"type": "integer"},
-						"minItems":    1,
+func TaskUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
+	return toolsets.ToolWrapper{
+		Tool: &mcp.Tool{
+			Name:        string(MethodTaskUpdate),
+			Description: "Update an existing task in Teamwork.com. " + taskDescription,
+			Annotations: &mcp.ToolAnnotations{
+				Title: "Update Task",
+			},
+			InputSchema: &jsonschema.Schema{
+				Type: "object",
+				Properties: map[string]*jsonschema.Schema{
+					"id": {
+						Type:        "integer",
+						Description: "The ID of the task to update.",
 					},
-					"company_ids": map[string]any{
-						"type":        "array",
-						"description": "List of company IDs assigned to the task.",
-						"items":       map[string]any{"type": "integer"},
-						"minItems":    1,
+					"tasklist_id": {
+						Type:        "integer",
+						Description: "The ID of the tasklist.",
 					},
-					"team_ids": map[string]any{
-						"type":        "array",
-						"description": "List of team IDs assigned to the task.",
-						"items":       map[string]any{"type": "integer"},
-						"minItems":    1,
+					"description": {
+						Type:        "string",
+						Description: "The description of the task.",
 					},
-				}),
-				mcp.AdditionalProperties(false),
-				func(schemaMap map[string]any) {
-					schemaMap["minProperties"] = 1
-					schemaMap["maxProperties"] = 3
-					schemaMap["anyOf"] = []map[string]any{
-						{"required": []string{"user_ids"}},
-						{"required": []string{"company_ids"}},
-						{"required": []string{"team_ids"}},
-					}
+					"priority": {
+						Type:        "string",
+						Description: "The priority of the task. Possible values are: low, medium, high.",
+						Enum:        []any{"low", "medium", "high"},
+					},
+					"progress": {
+						Type:        "integer",
+						Description: "The progress of the task, as a percentage (0-100). Only whole numbers are allowed.",
+						Minimum:     twapi.Ptr(float64(0)),
+						Maximum:     twapi.Ptr(float64(100)),
+					},
+					"start_date": {
+						Type:        "string",
+						Format:      "date",
+						Description: "The start date of the task in ISO 8601 format (YYYY-MM-DD).",
+					},
+					"due_date": {
+						Type:   "string",
+						Format: "date",
+						Description: "The due date of the task in ISO 8601 format (YYYY-MM-DD). When this is not provided, it " +
+							"will fallback to the milestone due date if a milestone is set.",
+					},
+					"estimated_minutes": {
+						Type:        "integer",
+						Description: "The estimated time to complete the task in minutes.",
+					},
+					"parent_task_id": {
+						Type:        "integer",
+						Description: "The ID of the parent task if creating a subtask.",
+					},
+					"assignees": {
+						Type:        "object",
+						Description: "An object containing assignees for the task.",
+						Properties: map[string]*jsonschema.Schema{
+							"user_ids": {
+								Type:        "array",
+								Description: "List of user IDs assigned to the task.",
+								Items:       &jsonschema.Schema{Type: "integer"},
+								MinItems:    twapi.Ptr(1),
+							},
+							"company_ids": {
+								Type:        "array",
+								Description: "List of company IDs assigned to the task.",
+								Items:       &jsonschema.Schema{Type: "integer"},
+								MinItems:    twapi.Ptr(1),
+							},
+							"team_ids": {
+								Type:        "array",
+								Description: "List of team IDs assigned to the task.",
+								Items:       &jsonschema.Schema{Type: "integer"},
+								MinItems:    twapi.Ptr(1),
+							},
+						},
+						MinProperties: twapi.Ptr(1),
+						MaxProperties: twapi.Ptr(3),
+						AnyOf: []*jsonschema.Schema{
+							{Required: []string{"user_ids"}},
+							{Required: []string{"company_ids"}},
+							{Required: []string{"team_ids"}},
+						},
+					},
+					"tag_ids": {
+						Type:        "array",
+						Description: "A list of tag IDs to assign to the task.",
+						Items:       &jsonschema.Schema{Type: "integer"},
+					},
+					"predecessors": {
+						Type: "array",
+						Description: "List of task dependencies that must be completed before this task can start, defining its " +
+							"position in the project workflow and ensuring proper sequencing of work.",
+						Items: &jsonschema.Schema{
+							Type: "object",
+							Properties: map[string]*jsonschema.Schema{
+								"task_id": {
+									Type:        "integer",
+									Description: "The ID of the predecessor task.",
+								},
+								"type": {
+									Type: "string",
+									Description: "The type of dependency. Possible values are: start or complete. 'start' means this " +
+										"task can complete when the predecessor starts, 'complete' means this task can complete when the " +
+										"predecessor completes.",
+									Enum: []any{"start", "complete"},
+								},
+							},
+						},
+					},
 				},
-			),
-			mcp.WithArray("tag_ids",
-				mcp.Description("A list of tag IDs to assign to the task."),
-				mcp.Items(map[string]any{
-					"type": "integer",
-				}),
-			),
-			mcp.WithArray("predecessors",
-				mcp.Description("List of task dependencies that must be completed before this task can start, defining its "+
-					"position in the project workflow and ensuring proper sequencing of work."),
-				mcp.Items(map[string]any{
-					"type": "object",
-					"properties": map[string]any{
-						"task_id": map[string]any{
-							"type":        "integer",
-							"description": "The ID of the predecessor task.",
-						},
-						"type": map[string]any{
-							"type": "string",
-							"description": "The type of dependency. Possible values are: start or complete. 'start' means this " +
-								"task can complete when the predecessor starts, 'complete' means this task can complete when the " +
-								"predecessor is completed.",
-							"enum": []string{"start", "complete"},
-						},
-					},
-				}),
-			),
-		),
-		Handler: func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+				Required: []string{"id"},
+			},
+		},
+		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 			var taskUpdateRequest projects.TaskUpdateRequest
 
-			err := helpers.ParamGroup(request.GetArguments(),
+			var arguments map[string]any
+			if err := json.Unmarshal(request.Params.Arguments, &arguments); err != nil {
+				return helpers.NewToolResultTextError(fmt.Sprintf("failed to decode request: %s", err.Error())), nil
+			}
+			err := helpers.ParamGroup(arguments,
 				helpers.RequiredNumericParam(&taskUpdateRequest.Path.ID, "id"),
 				helpers.OptionalNumericPointerParam(&taskUpdateRequest.TasklistID, "tasklist_id"),
 				helpers.OptionalPointerParam(&taskUpdateRequest.Name, "name"),
@@ -337,13 +404,13 @@ func TaskUpdate(engine *twapi.Engine) server.ServerTool {
 				helpers.OptionalNumericListParam(&taskUpdateRequest.TagIDs, "tag_ids"),
 			)
 			if err != nil {
-				return mcp.NewToolResultErrorFromErr("invalid parameters", err), nil
+				return helpers.NewToolResultTextError(fmt.Sprintf("invalid parameters: %s", err.Error())), nil
 			}
 
-			if assignees, ok := request.GetArguments()["assignees"]; ok {
+			if assignees, ok := arguments["assignees"]; ok {
 				assigneesMap, ok := assignees.(map[string]any)
 				if !ok {
-					return nil, fmt.Errorf("invalid assignees")
+					return helpers.NewToolResultTextError("invalid assignees"), nil
 				} else if assigneesMap != nil {
 					taskUpdateRequest.Assignees = new(projects.UserGroups)
 
@@ -353,42 +420,35 @@ func TaskUpdate(engine *twapi.Engine) server.ServerTool {
 						helpers.OptionalNumericListParam(&taskUpdateRequest.Assignees.TeamIDs, "team_ids"),
 					)
 					if err != nil {
-						return nil, fmt.Errorf("invalid assignees: %w", err)
+						return helpers.NewToolResultTextError(fmt.Sprintf("invalid assignees: %s", err)), nil
 					}
 				}
 			}
 
-			if predecessors, ok := request.GetArguments()["predecessors"]; ok {
+			if predecessors, ok := arguments["predecessors"]; ok {
 				predecessorsSlice, ok := predecessors.([]any)
 				if !ok {
-					return nil, fmt.Errorf("invalid predecessors")
+					return helpers.NewToolResultTextError("invalid predecessors"), nil
 				}
 
 				for _, predecessor := range predecessorsSlice {
 					predecessorMap, ok := predecessor.(map[string]any)
 					if !ok {
-						return nil, fmt.Errorf("invalid predecessor")
+						return helpers.NewToolResultTextError("invalid predecessors"), nil
 					}
 
 					var p projects.TaskPredecessor
 					err = helpers.ParamGroup(predecessorMap,
 						helpers.RequiredNumericParam(&p.ID, "task_id"),
 						helpers.RequiredParam(&p.Type, "type",
-							func(typ *projects.TaskPredecessorType) (bool, error) {
-								if typ == nil {
-									return false, nil
-								}
-								switch *typ {
-								case projects.TaskPredecessorTypeStart, projects.TaskPredecessorTypeFinish:
-									return true, nil
-								default:
-									return false, fmt.Errorf("invalid type: %s", *typ)
-								}
-							},
+							helpers.RestrictValues(
+								projects.TaskPredecessorTypeStart,
+								projects.TaskPredecessorTypeFinish,
+							),
 						),
 					)
 					if err != nil {
-						return nil, fmt.Errorf("invalid predecessor: %w", err)
+						return helpers.NewToolResultTextError(fmt.Sprintf("invalid predecessor: %s", err)), nil
 					}
 
 					taskUpdateRequest.Predecessors = append(taskUpdateRequest.Predecessors, p)
@@ -400,30 +460,49 @@ func TaskUpdate(engine *twapi.Engine) server.ServerTool {
 				return helpers.HandleAPIError(err, "failed to update task")
 			}
 
-			return mcp.NewToolResultText("Task updated successfully"), nil
+			return &mcp.CallToolResult{
+				Content: []mcp.Content{
+					&mcp.TextContent{
+						Text: "Task updated successfully",
+					},
+				},
+			}, nil
 		},
 	}
 }
 
 // TaskDelete deletes a task in Teamwork.com.
-func TaskDelete(engine *twapi.Engine) server.ServerTool {
-	return server.ServerTool{
-		Tool: mcp.NewTool(string(MethodTaskDelete),
-			mcp.WithDescription("Delete an existing task in Teamwork.com. "+taskDescription),
-			mcp.WithTitleAnnotation("Delete Task"),
-			mcp.WithNumber("id",
-				mcp.Required(),
-				mcp.Description("The ID of the task to delete."),
-			),
-		),
-		Handler: func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+func TaskDelete(engine *twapi.Engine) toolsets.ToolWrapper {
+	return toolsets.ToolWrapper{
+		Tool: &mcp.Tool{
+			Name:        string(MethodTaskDelete),
+			Description: "Delete an existing task in Teamwork.com. " + taskDescription,
+			Annotations: &mcp.ToolAnnotations{
+				Title: "Delete Task",
+			},
+			InputSchema: &jsonschema.Schema{
+				Type: "object",
+				Properties: map[string]*jsonschema.Schema{
+					"id": {
+						Type:        "integer",
+						Description: "The ID of the task to delete.",
+					},
+				},
+				Required: []string{"id"},
+			},
+		},
+		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 			var taskDeleteRequest projects.TaskDeleteRequest
 
-			err := helpers.ParamGroup(request.GetArguments(),
+			var arguments map[string]any
+			if err := json.Unmarshal(request.Params.Arguments, &arguments); err != nil {
+				return helpers.NewToolResultTextError(fmt.Sprintf("failed to decode request: %s", err.Error())), nil
+			}
+			err := helpers.ParamGroup(arguments,
 				helpers.RequiredNumericParam(&taskDeleteRequest.Path.ID, "id"),
 			)
 			if err != nil {
-				return mcp.NewToolResultErrorFromErr("invalid parameters", err), nil
+				return helpers.NewToolResultTextError(fmt.Sprintf("invalid parameters: %s", err.Error())), nil
 			}
 
 			_, err = projects.TaskDelete(ctx, engine, taskDeleteRequest)
@@ -431,34 +510,51 @@ func TaskDelete(engine *twapi.Engine) server.ServerTool {
 				return helpers.HandleAPIError(err, "failed to delete task")
 			}
 
-			return mcp.NewToolResultText("Task deleted successfully"), nil
+			return &mcp.CallToolResult{
+				Content: []mcp.Content{
+					&mcp.TextContent{
+						Text: "Task deleted successfully",
+					},
+				},
+			}, nil
 		},
 	}
 }
 
 // TaskGet retrieves a task in Teamwork.com.
-func TaskGet(engine *twapi.Engine) server.ServerTool {
-	return server.ServerTool{
-		Tool: mcp.NewTool(string(MethodTaskGet),
-			mcp.WithDescription("Get an existing task in Teamwork.com. "+taskDescription),
-			mcp.WithToolAnnotation(mcp.ToolAnnotation{
-				ReadOnlyHint: twapi.Ptr(true),
-			}),
-			mcp.WithTitleAnnotation("Get Task"),
-			mcp.WithOutputSchema[projects.TaskGetResponse](),
-			mcp.WithNumber("id",
-				mcp.Required(),
-				mcp.Description("The ID of the task to get."),
-			),
-		),
-		Handler: func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+func TaskGet(engine *twapi.Engine) toolsets.ToolWrapper {
+	return toolsets.ToolWrapper{
+		Tool: &mcp.Tool{
+			Name:        string(MethodTaskGet),
+			Description: "Get an existing task in Teamwork.com. " + taskDescription,
+			Annotations: &mcp.ToolAnnotations{
+				Title:        "Get Task",
+				ReadOnlyHint: true,
+			},
+			InputSchema: &jsonschema.Schema{
+				Type: "object",
+				Properties: map[string]*jsonschema.Schema{
+					"id": {
+						Type:        "integer",
+						Description: "The ID of the task to get.",
+					},
+				},
+				Required: []string{"id"},
+			},
+			OutputSchema: taskGetOutputSchema,
+		},
+		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 			var taskGetRequest projects.TaskGetRequest
 
-			err := helpers.ParamGroup(request.GetArguments(),
+			var arguments map[string]any
+			if err := json.Unmarshal(request.Params.Arguments, &arguments); err != nil {
+				return helpers.NewToolResultTextError(fmt.Sprintf("failed to decode request: %s", err.Error())), nil
+			}
+			err := helpers.ParamGroup(arguments,
 				helpers.RequiredNumericParam(&taskGetRequest.Path.ID, "id"),
 			)
 			if err != nil {
-				return mcp.NewToolResultErrorFromErr("invalid parameters", err), nil
+				return helpers.NewToolResultTextError(fmt.Sprintf("invalid parameters: %s", err.Error())), nil
 			}
 
 			task, err := projects.TaskGet(ctx, engine, taskGetRequest)
@@ -470,54 +566,71 @@ func TaskGet(engine *twapi.Engine) server.ServerTool {
 			if err != nil {
 				return nil, err
 			}
-			return mcp.NewToolResultText(string(helpers.WebLinker(ctx, encoded,
-				helpers.WebLinkerWithIDPathBuilder("/app/tasks"),
-			))), nil
+			return &mcp.CallToolResult{
+				Content: []mcp.Content{
+					&mcp.TextContent{
+						Text: string(helpers.WebLinker(ctx, encoded,
+							helpers.WebLinkerWithIDPathBuilder("/app/tasks"),
+						)),
+					},
+				},
+			}, nil
 		},
 	}
 }
 
 // TaskList lists tasks in Teamwork.com.
-func TaskList(engine *twapi.Engine) server.ServerTool {
-	return server.ServerTool{
-		Tool: mcp.NewTool(string(MethodTaskList),
-			mcp.WithDescription("List tasks in Teamwork.com. "+taskDescription),
-			mcp.WithToolAnnotation(mcp.ToolAnnotation{
-				ReadOnlyHint: twapi.Ptr(true),
-			}),
-			mcp.WithTitleAnnotation("List Tasks"),
-			mcp.WithOutputSchema[projects.TaskListResponse](),
-			mcp.WithString("search_term",
-				mcp.Description("A search term to filter tasks by name."),
-			),
-			mcp.WithArray("tag_ids",
-				mcp.Description("A list of tag IDs to filter tasks by tags"),
-				mcp.Items(map[string]any{
-					"type": "integer",
-				}),
-			),
-			mcp.WithArray("assignee_user_ids",
-				mcp.Description("A list of user IDs to filter tasks by assigned users"),
-				mcp.Items(map[string]any{
-					"type": "integer",
-				}),
-			),
-			mcp.WithBoolean("match_all_tags",
-				mcp.Description("If true, the search will match tasks that have all the specified tags. "+
-					"If false, the search will match tasks that have any of the specified tags. "+
-					"Defaults to false."),
-			),
-			mcp.WithNumber("page",
-				mcp.Description("Page number for pagination of results."),
-			),
-			mcp.WithNumber("page_size",
-				mcp.Description("Number of results per page for pagination."),
-			),
-		),
-		Handler: func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+func TaskList(engine *twapi.Engine) toolsets.ToolWrapper {
+	return toolsets.ToolWrapper{
+		Tool: &mcp.Tool{
+			Name:        string(MethodTaskList),
+			Description: "List tasks in Teamwork.com. " + taskDescription,
+			Annotations: &mcp.ToolAnnotations{
+				Title:        "List Tasks",
+				ReadOnlyHint: true,
+			},
+			InputSchema: &jsonschema.Schema{
+				Type: "object",
+				Properties: map[string]*jsonschema.Schema{
+					"search_term": {
+						Type:        "string",
+						Description: "A search term to filter tasks by name.",
+					},
+					"tag_ids": {
+						Type:        "array",
+						Description: "A list of tag IDs to filter tasks by tags",
+						Items:       &jsonschema.Schema{Type: "integer"},
+					},
+					"assignee_user_ids": {
+						Type:        "array",
+						Description: "A list of user IDs to filter tasks by assigned users",
+						Items:       &jsonschema.Schema{Type: "integer"},
+					},
+					"match_all_tags": {
+						Type: "boolean",
+						Description: "If true, the search will match tasks that have all the specified tags. If false, the " +
+							"search will match tasks that have any of the specified tags. Defaults to false.",
+					},
+					"page": {
+						Type:        "integer",
+						Description: "Page number for pagination of results.",
+					},
+					"page_size": {
+						Type:        "integer",
+						Description: "Number of results per page for pagination.",
+					},
+				},
+			},
+			OutputSchema: taskListOutputSchema,
+		},
+		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 			var taskListRequest projects.TaskListRequest
 
-			err := helpers.ParamGroup(request.GetArguments(),
+			var arguments map[string]any
+			if err := json.Unmarshal(request.Params.Arguments, &arguments); err != nil {
+				return helpers.NewToolResultTextError(fmt.Sprintf("failed to decode request: %s", err.Error())), nil
+			}
+			err := helpers.ParamGroup(arguments,
 				helpers.OptionalParam(&taskListRequest.Filters.SearchTerm, "search_term"),
 				helpers.OptionalNumericListParam(&taskListRequest.Filters.TagIDs, "tag_ids"),
 				helpers.OptionalNumericListParam(&taskListRequest.Filters.AssigneeUserIDs, "assignee_user_ids"),
@@ -526,7 +639,7 @@ func TaskList(engine *twapi.Engine) server.ServerTool {
 				helpers.OptionalNumericParam(&taskListRequest.Filters.PageSize, "page_size"),
 			)
 			if err != nil {
-				return mcp.NewToolResultErrorFromErr("invalid parameters", err), nil
+				return helpers.NewToolResultTextError(fmt.Sprintf("invalid parameters: %s", err.Error())), nil
 			}
 
 			taskList, err := projects.TaskList(ctx, engine, taskListRequest)
@@ -538,58 +651,76 @@ func TaskList(engine *twapi.Engine) server.ServerTool {
 			if err != nil {
 				return nil, err
 			}
-			return mcp.NewToolResultText(string(helpers.WebLinker(ctx, encoded,
-				helpers.WebLinkerWithIDPathBuilder("/app/tasks"),
-			))), nil
+			return &mcp.CallToolResult{
+				Content: []mcp.Content{
+					&mcp.TextContent{
+						Text: string(helpers.WebLinker(ctx, encoded,
+							helpers.WebLinkerWithIDPathBuilder("/app/tasks"),
+						)),
+					},
+				},
+			}, nil
 		},
 	}
 }
 
 // TaskListByTasklist lists tasks in Teamwork.com by tasklist.
-func TaskListByTasklist(engine *twapi.Engine) server.ServerTool {
-	return server.ServerTool{
-		Tool: mcp.NewTool(string(MethodTaskListByTasklist),
-			mcp.WithDescription("List tasks in Teamwork.com by tasklist. "+taskDescription),
-			mcp.WithToolAnnotation(mcp.ToolAnnotation{
-				ReadOnlyHint: twapi.Ptr(true),
-			}),
-			mcp.WithTitleAnnotation("List Tasks By Tasklist"),
-			mcp.WithOutputSchema[projects.TaskListResponse](),
-			mcp.WithNumber("tasklist_id",
-				mcp.Required(),
-				mcp.Description("The ID of the tasklist from which to retrieve tasks."),
-			),
-			mcp.WithString("search_term",
-				mcp.Description("A search term to filter tasks by name."),
-			),
-			mcp.WithArray("tag_ids",
-				mcp.Description("A list of tag IDs to filter tasks by tags"),
-				mcp.Items(map[string]any{
-					"type": "integer",
-				}),
-			),
-			mcp.WithArray("assignee_user_ids",
-				mcp.Description("A list of user IDs to filter tasks by assigned users"),
-				mcp.Items(map[string]any{
-					"type": "integer",
-				}),
-			),
-			mcp.WithBoolean("match_all_tags",
-				mcp.Description("If true, the search will match tasks that have all the specified tags. "+
-					"If false, the search will match tasks that have any of the specified tags. "+
-					"Defaults to false."),
-			),
-			mcp.WithNumber("page",
-				mcp.Description("Page number for pagination of results."),
-			),
-			mcp.WithNumber("page_size",
-				mcp.Description("Number of results per page for pagination."),
-			),
-		),
-		Handler: func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+func TaskListByTasklist(engine *twapi.Engine) toolsets.ToolWrapper {
+	return toolsets.ToolWrapper{
+		Tool: &mcp.Tool{
+			Name:        string(MethodTaskListByTasklist),
+			Description: "List tasks in Teamwork.com by tasklist. " + taskDescription,
+			Annotations: &mcp.ToolAnnotations{
+				Title:        "List Tasks By Tasklist",
+				ReadOnlyHint: true,
+			},
+			InputSchema: &jsonschema.Schema{
+				Type: "object",
+				Properties: map[string]*jsonschema.Schema{
+					"tasklist_id": {
+						Type:        "integer",
+						Description: "The ID of the tasklist from which to retrieve tasks.",
+					},
+					"search_term": {
+						Type:        "string",
+						Description: "A search term to filter tasks by name.",
+					},
+					"tag_ids": {
+						Type:        "array",
+						Description: "A list of tag IDs to filter tasks by tags",
+						Items:       &jsonschema.Schema{Type: "integer"},
+					},
+					"assignee_user_ids": {
+						Type:        "array",
+						Description: "A list of user IDs to filter tasks by assigned users",
+						Items:       &jsonschema.Schema{Type: "integer"},
+					},
+					"match_all_tags": {
+						Type: "boolean",
+						Description: "If true, the search will match tasks that have all the specified tags. If false, the " +
+							"search will match tasks that have any of the specified tags. Defaults to false.",
+					},
+					"page": {
+						Type:        "integer",
+						Description: "Page number for pagination of results.",
+					},
+					"page_size": {
+						Type:        "integer",
+						Description: "Number of results per page for pagination.",
+					},
+				},
+				Required: []string{"tasklist_id"},
+			},
+			OutputSchema: taskListOutputSchema,
+		},
+		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 			var taskListRequest projects.TaskListRequest
 
-			err := helpers.ParamGroup(request.GetArguments(),
+			var arguments map[string]any
+			if err := json.Unmarshal(request.Params.Arguments, &arguments); err != nil {
+				return helpers.NewToolResultTextError(fmt.Sprintf("failed to decode request: %s", err.Error())), nil
+			}
+			err := helpers.ParamGroup(arguments,
 				helpers.RequiredNumericParam(&taskListRequest.Path.TasklistID, "tasklist_id"),
 				helpers.OptionalParam(&taskListRequest.Filters.SearchTerm, "search_term"),
 				helpers.OptionalNumericListParam(&taskListRequest.Filters.TagIDs, "tag_ids"),
@@ -599,7 +730,7 @@ func TaskListByTasklist(engine *twapi.Engine) server.ServerTool {
 				helpers.OptionalNumericParam(&taskListRequest.Filters.PageSize, "page_size"),
 			)
 			if err != nil {
-				return mcp.NewToolResultErrorFromErr("invalid parameters", err), nil
+				return helpers.NewToolResultTextError(fmt.Sprintf("invalid parameters: %s", err.Error())), nil
 			}
 
 			taskList, err := projects.TaskList(ctx, engine, taskListRequest)
@@ -611,58 +742,76 @@ func TaskListByTasklist(engine *twapi.Engine) server.ServerTool {
 			if err != nil {
 				return nil, err
 			}
-			return mcp.NewToolResultText(string(helpers.WebLinker(ctx, encoded,
-				helpers.WebLinkerWithIDPathBuilder("/app/tasks"),
-			))), nil
+			return &mcp.CallToolResult{
+				Content: []mcp.Content{
+					&mcp.TextContent{
+						Text: string(helpers.WebLinker(ctx, encoded,
+							helpers.WebLinkerWithIDPathBuilder("/app/tasks"),
+						)),
+					},
+				},
+			}, nil
 		},
 	}
 }
 
 // TaskListByProject lists tasks in Teamwork.com by project.
-func TaskListByProject(engine *twapi.Engine) server.ServerTool {
-	return server.ServerTool{
-		Tool: mcp.NewTool(string(MethodTaskListByProject),
-			mcp.WithDescription("List tasks in Teamwork.com by project. "+taskDescription),
-			mcp.WithToolAnnotation(mcp.ToolAnnotation{
-				ReadOnlyHint: twapi.Ptr(true),
-			}),
-			mcp.WithTitleAnnotation("List Tasks By Project"),
-			mcp.WithOutputSchema[projects.TaskListResponse](),
-			mcp.WithNumber("project_id",
-				mcp.Required(),
-				mcp.Description("The ID of the project from which to retrieve tasks."),
-			),
-			mcp.WithString("search_term",
-				mcp.Description("A search term to filter tasks by name."),
-			),
-			mcp.WithArray("tag_ids",
-				mcp.Description("A list of tag IDs to filter tasks by tags"),
-				mcp.Items(map[string]any{
-					"type": "integer",
-				}),
-			),
-			mcp.WithArray("assignee_user_ids",
-				mcp.Description("A list of user IDs to filter tasks by assigned users"),
-				mcp.Items(map[string]any{
-					"type": "integer",
-				}),
-			),
-			mcp.WithBoolean("match_all_tags",
-				mcp.Description("If true, the search will match tasks that have all the specified tags. "+
-					"If false, the search will match tasks that have any of the specified tags. "+
-					"Defaults to false."),
-			),
-			mcp.WithNumber("page",
-				mcp.Description("Page number for pagination of results."),
-			),
-			mcp.WithNumber("page_size",
-				mcp.Description("Number of results per page for pagination."),
-			),
-		),
-		Handler: func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+func TaskListByProject(engine *twapi.Engine) toolsets.ToolWrapper {
+	return toolsets.ToolWrapper{
+		Tool: &mcp.Tool{
+			Name:        string(MethodTaskListByProject),
+			Description: "List tasks in Teamwork.com by project. " + taskDescription,
+			Annotations: &mcp.ToolAnnotations{
+				Title:        "List Tasks By Project",
+				ReadOnlyHint: true,
+			},
+			InputSchema: &jsonschema.Schema{
+				Type: "object",
+				Properties: map[string]*jsonschema.Schema{
+					"project_id": {
+						Type:        "integer",
+						Description: "The ID of the project from which to retrieve tasks.",
+					},
+					"search_term": {
+						Type:        "string",
+						Description: "A search term to filter tasks by name.",
+					},
+					"tag_ids": {
+						Type:        "array",
+						Description: "A list of tag IDs to filter tasks by tags",
+						Items:       &jsonschema.Schema{Type: "integer"},
+					},
+					"assignee_user_ids": {
+						Type:        "array",
+						Description: "A list of user IDs to filter tasks by assigned users",
+						Items:       &jsonschema.Schema{Type: "integer"},
+					},
+					"match_all_tags": {
+						Type: "boolean",
+						Description: "If true, the search will match tasks that have all the specified tags. If false, the " +
+							"search will match tasks that have any of the specified tags. Defaults to false.",
+					},
+					"page": {
+						Type:        "integer",
+						Description: "Page number for pagination of results.",
+					},
+					"page_size": {
+						Type:        "integer",
+						Description: "Number of results per page for pagination.",
+					},
+				},
+				Required: []string{"project_id"},
+			},
+			OutputSchema: taskListOutputSchema,
+		},
+		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 			var taskListRequest projects.TaskListRequest
 
-			err := helpers.ParamGroup(request.GetArguments(),
+			var arguments map[string]any
+			if err := json.Unmarshal(request.Params.Arguments, &arguments); err != nil {
+				return helpers.NewToolResultTextError(fmt.Sprintf("failed to decode request: %s", err.Error())), nil
+			}
+			err := helpers.ParamGroup(arguments,
 				helpers.RequiredNumericParam(&taskListRequest.Path.ProjectID, "project_id"),
 				helpers.OptionalParam(&taskListRequest.Filters.SearchTerm, "search_term"),
 				helpers.OptionalNumericListParam(&taskListRequest.Filters.TagIDs, "tag_ids"),
@@ -672,7 +821,7 @@ func TaskListByProject(engine *twapi.Engine) server.ServerTool {
 				helpers.OptionalNumericParam(&taskListRequest.Filters.PageSize, "page_size"),
 			)
 			if err != nil {
-				return mcp.NewToolResultErrorFromErr("invalid parameters", err), nil
+				return helpers.NewToolResultTextError(fmt.Sprintf("invalid parameters: %s", err.Error())), nil
 			}
 
 			taskList, err := projects.TaskList(ctx, engine, taskListRequest)
@@ -684,9 +833,15 @@ func TaskListByProject(engine *twapi.Engine) server.ServerTool {
 			if err != nil {
 				return nil, err
 			}
-			return mcp.NewToolResultText(string(helpers.WebLinker(ctx, encoded,
-				helpers.WebLinkerWithIDPathBuilder("/app/tasks"),
-			))), nil
+			return &mcp.CallToolResult{
+				Content: []mcp.Content{
+					&mcp.TextContent{
+						Text: string(helpers.WebLinker(ctx, encoded,
+							helpers.WebLinkerWithIDPathBuilder("/app/tasks"),
+						)),
+					},
+				},
+			}, nil
 		},
 	}
 }

@@ -8,8 +8,7 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/mark3labs/mcp-go/mcp"
-	"github.com/mark3labs/mcp-go/server"
+	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
 var (
@@ -79,15 +78,15 @@ func (e *ToolsetDoesNotExistError) Is(target error) bool {
 // ServerResourceTemplate represents a resource template that can be registered
 // with the MCP server.
 type ServerResourceTemplate struct {
-	resourceTemplate mcp.ResourceTemplate
-	handler          server.ResourceTemplateHandlerFunc
+	resourceTemplate *mcp.ResourceTemplate
+	handler          mcp.ResourceHandler
 }
 
 // NewServerResourceTemplate creates a new ServerResourceTemplate with the given
 // resource template and handler function.
 func NewServerResourceTemplate(
-	resourceTemplate mcp.ResourceTemplate,
-	handler server.ResourceTemplateHandlerFunc,
+	resourceTemplate *mcp.ResourceTemplate,
+	handler mcp.ResourceHandler,
 ) ServerResourceTemplate {
 	return ServerResourceTemplate{
 		resourceTemplate: resourceTemplate,
@@ -97,17 +96,29 @@ func NewServerResourceTemplate(
 
 // ServerPrompt represents a prompt that can be registered with the MCP server.
 type ServerPrompt struct {
-	Prompt  mcp.Prompt
-	Handler server.PromptHandlerFunc
+	Prompt  *mcp.Prompt
+	Handler mcp.PromptHandler
 }
 
 // NewServerPrompt creates a new ServerPrompt with the given prompt and handler
 // function.
-func NewServerPrompt(prompt mcp.Prompt, handler server.PromptHandlerFunc) ServerPrompt {
+func NewServerPrompt(prompt *mcp.Prompt, handler mcp.PromptHandler) ServerPrompt {
 	return ServerPrompt{
 		Prompt:  prompt,
 		Handler: handler,
 	}
+}
+
+// ToolWrapper is a simple struct that wraps an MCP tool and its handler.
+type ToolWrapper struct {
+	Tool *mcp.Tool
+
+	// Ideally we would use mcp.TooHandlerFor for easier parsing of parameters and
+	// error handling, but it would require loads of changes from the existing
+	// structure. So for now we just use the raw handler.
+	//
+	// https://pkg.go.dev/github.com/modelcontextprotocol/go-sdk@v1.0.0/mcp#ToolHandlerFor
+	Handler mcp.ToolHandler
 }
 
 // Toolset represents a collection of MCP functionality that can be enabled or
@@ -117,8 +128,8 @@ type Toolset struct {
 	Description string
 	Enabled     bool
 	readOnly    bool
-	writeTools  []server.ServerTool
-	readTools   []server.ServerTool
+	writeTools  []ToolWrapper
+	readTools   []ToolWrapper
 	// resources are not tools, but the community seems to be moving towards
 	// namespaces as a broader concept and in order to have multiple servers
 	// running concurrently, we want to avoid overlapping resources too.
@@ -141,7 +152,7 @@ func NewToolset(method Method, description string) *Toolset {
 // GetActiveTools returns the tools that are currently active in the
 // Toolset. If the Toolset is enabled, it returns both read and write tools.
 // If the Toolset is not enabled, it returns nil.
-func (t *Toolset) GetActiveTools() []server.ServerTool {
+func (t *Toolset) GetActiveTools() []ToolWrapper {
 	if t.Enabled {
 		if t.readOnly {
 			return t.readTools
@@ -152,7 +163,7 @@ func (t *Toolset) GetActiveTools() []server.ServerTool {
 }
 
 // GetAvailableTools returns the tools that are available in the Toolset.
-func (t *Toolset) GetAvailableTools() []server.ServerTool {
+func (t *Toolset) GetAvailableTools() []ToolWrapper {
 	if t.readOnly {
 		return t.readTools
 	}
@@ -160,12 +171,12 @@ func (t *Toolset) GetAvailableTools() []server.ServerTool {
 }
 
 // RegisterTools registers the tools in the Toolset with the MCP server.
-func (t *Toolset) RegisterTools(s *server.MCPServer) {
+func (t *Toolset) RegisterTools(s *mcp.Server) {
 	if !t.Enabled {
 		return
 	}
-	for _, tool := range t.readTools {
-		s.AddTool(tool.Tool, tool.Handler)
+	for _, toolWrapper := range t.readTools {
+		s.AddTool(toolWrapper.Tool, toolWrapper.Handler)
 	}
 	if !t.readOnly {
 		for _, tool := range t.writeTools {
@@ -207,7 +218,7 @@ func (t *Toolset) GetAvailableResourceTemplates() []ServerResourceTemplate {
 
 // RegisterResourcesTemplates registers the resource templates in the Toolset
 // with the MCP server.
-func (t *Toolset) RegisterResourcesTemplates(s *server.MCPServer) {
+func (t *Toolset) RegisterResourcesTemplates(s *mcp.Server) {
 	if !t.Enabled {
 		return
 	}
@@ -217,7 +228,7 @@ func (t *Toolset) RegisterResourcesTemplates(s *server.MCPServer) {
 }
 
 // RegisterPrompts registers the prompts in the Toolset with the MCP server.
-func (t *Toolset) RegisterPrompts(s *server.MCPServer) {
+func (t *Toolset) RegisterPrompts(s *mcp.Server) {
 	if !t.Enabled {
 		return
 	}
@@ -236,10 +247,10 @@ func (t *Toolset) SetReadOnly() {
 // AddWriteTools adds write tools to the Toolset. If the Toolset is read-only,
 // this method will silently ignore the tools to avoid breaching the read-only
 // contract. If a tool is incorrectly annotated as read-only, it will panic.
-func (t *Toolset) AddWriteTools(tools ...server.ServerTool) *Toolset {
+func (t *Toolset) AddWriteTools(tools ...ToolWrapper) *Toolset {
 	// Silently ignore if the toolset is read-only to avoid any breach of that contract
 	for _, tool := range tools {
-		if *tool.Tool.Annotations.ReadOnlyHint {
+		if tool.Tool.Annotations.ReadOnlyHint {
 			panic(fmt.Sprintf("tool (%s) is incorrectly annotated as read-only", tool.Tool.Name))
 		}
 	}
@@ -251,9 +262,9 @@ func (t *Toolset) AddWriteTools(tools ...server.ServerTool) *Toolset {
 
 // AddReadTools adds read tools to the Toolset. It will panic if any tool is not
 // annotated as read-only.
-func (t *Toolset) AddReadTools(tools ...server.ServerTool) *Toolset {
+func (t *Toolset) AddReadTools(tools ...ToolWrapper) *Toolset {
 	for _, tool := range tools {
-		if !*tool.Tool.Annotations.ReadOnlyHint {
+		if !tool.Tool.Annotations.ReadOnlyHint {
 			panic(fmt.Sprintf("tool (%s) must be annotated as read-only", tool.Tool.Name))
 		}
 	}
@@ -343,7 +354,7 @@ func (tg *ToolsetGroup) EnableToolset(method Method) error {
 }
 
 // RegisterAll registers all Toolsets in the ToolsetGroup with the MCP server.
-func (tg *ToolsetGroup) RegisterAll(s *server.MCPServer) {
+func (tg *ToolsetGroup) RegisterAll(s *mcp.Server) {
 	for _, toolset := range tg.Toolsets {
 		toolset.RegisterTools(s)
 		toolset.RegisterResourcesTemplates(s)

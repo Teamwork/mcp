@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"net/url"
 
-	"github.com/mark3labs/mcp-go/mcp"
-	"github.com/mark3labs/mcp-go/server"
+	"github.com/google/jsonschema-go/jsonschema"
+	"github.com/modelcontextprotocol/go-sdk/mcp"
 	deskclient "github.com/teamwork/desksdkgo/client"
 	deskmodels "github.com/teamwork/desksdkgo/models"
 	"github.com/teamwork/mcp/internal/helpers"
@@ -24,71 +24,114 @@ const (
 	MethodTypeList   toolsets.Method = "twdesk-list_types"
 )
 
+var (
+	typeGetOutputSchema  *jsonschema.Schema
+	typeListOutputSchema *jsonschema.Schema
+)
+
 func init() {
 	toolsets.RegisterMethod(MethodTypeCreate)
 	toolsets.RegisterMethod(MethodTypeUpdate)
 	toolsets.RegisterMethod(MethodTypeGet)
 	toolsets.RegisterMethod(MethodTypeList)
+
+	var err error
+	typeGetOutputSchema, err = jsonschema.For[deskmodels.TicketTypeResponse](&jsonschema.ForOptions{})
+	if err != nil {
+		panic(fmt.Sprintf("failed to generate JSON schema for TicketTypeResponse: %v", err))
+	}
+
+	typeListOutputSchema, err = jsonschema.For[deskmodels.TicketTypesResponse](&jsonschema.ForOptions{})
+	if err != nil {
+		panic(fmt.Sprintf("failed to generate JSON schema for TicketTypesResponse: %v", err))
+	}
 }
 
 // TypeGet finds a type in Teamwork Desk.  This will find it by ID
-func TypeGet(client *deskclient.Client) server.ServerTool {
-	return server.ServerTool{
-		Tool: mcp.NewTool(string(MethodTypeGet),
-			mcp.WithOutputSchema[deskmodels.TicketTypeResponse](),
-			mcp.WithTitleAnnotation("Get Type"),
-			mcp.WithDescription(
-				"Retrieve detailed information about a specific ticket type in Teamwork Desk by its ID. "+
-					"Useful for auditing type usage, troubleshooting ticket categorization, or "+
-					"integrating Desk type data into automation workflows."),
-			mcp.WithReadOnlyHintAnnotation(true),
-			mcp.WithNumber("id",
-				mcp.Required(),
-				mcp.Description("The ID of the type to retrieve."),
-			),
-		),
-		Handler: func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-			t, err := client.TicketTypes.Get(ctx, request.GetInt("id", 0))
+func TypeGet(client *deskclient.Client) toolsets.ToolWrapper {
+	return toolsets.ToolWrapper{
+		Tool: &mcp.Tool{
+			Name: string(MethodTypeGet),
+			Annotations: &mcp.ToolAnnotations{
+				Title:        "Get Type",
+				ReadOnlyHint: true,
+			},
+			Description: "Retrieve detailed information about a specific ticket type in Teamwork Desk by its ID. " +
+				"Useful for auditing type usage, troubleshooting ticket categorization, or " +
+				"integrating Desk type data into automation workflows.",
+			InputSchema: &jsonschema.Schema{
+				Type: "object",
+				Properties: map[string]*jsonschema.Schema{
+					"id": {
+						Type:        "integer",
+						Description: "The ID of the type to retrieve.",
+					},
+				},
+				Required: []string{"id"},
+			},
+			OutputSchema: typeGetOutputSchema,
+		},
+		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+			arguments, err := helpers.NewToolArguments(request)
+			if err != nil {
+				return helpers.NewToolResultTextError(err.Error()), nil
+			}
+
+			t, err := client.TicketTypes.Get(ctx, arguments.GetInt("id", 0))
 			if err != nil {
 				return nil, fmt.Errorf("failed to get type: %w", err)
 			}
 
-			return mcp.NewToolResultText(fmt.Sprintf("Type retrieved successfully: %s", t.TicketType.Name)), nil
+			return helpers.NewToolResultText(fmt.Sprintf("Type retrieved successfully: %s", t.TicketType.Name)), nil
 		},
 	}
 }
 
 // TypeList returns a list of types that apply to the filters in Teamwork Desk
-func TypeList(client *deskclient.Client) server.ServerTool {
-	opts := []mcp.ToolOption{
-		mcp.WithTitleAnnotation("List Types"),
-		mcp.WithOutputSchema[deskmodels.TicketTypesResponse](),
-		mcp.WithDescription(
-			"List all ticket types in Teamwork Desk, with optional filters for name and inbox association. " +
-				"Enables users to audit, analyze, or synchronize type configurations for ticket management, " +
-				"reporting, or integration scenarios."),
-		mcp.WithReadOnlyHintAnnotation(true),
-		mcp.WithArray("name",
-			mcp.Description("The name of the type to filter by."),
-			mcp.Items(map[string]any{
-				"type": "string",
-			}),
-		),
-		mcp.WithArray("inboxIDs",
-			mcp.Description("The inbox IDs of the type to filter by."),
-			mcp.Items(map[string]any{
-				"type": "string",
-			}),
-		),
+func TypeList(client *deskclient.Client) toolsets.ToolWrapper {
+	properties := map[string]*jsonschema.Schema{
+		"name": {
+			Type:        "array",
+			Description: "The name of the type to filter by.",
+			Items: &jsonschema.Schema{
+				Type: "string",
+			},
+		},
+		"inboxIDs": {
+			Type:        "array",
+			Description: "The inbox IDs of the type to filter by.",
+			Items: &jsonschema.Schema{
+				Type: "string",
+			},
+		},
 	}
+	properties = paginationOptions(properties)
 
-	opts = append(opts, paginationOptions()...)
-	return server.ServerTool{
-		Tool: mcp.NewTool(string(MethodTypeList), opts...),
-		Handler: func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	return toolsets.ToolWrapper{
+		Tool: &mcp.Tool{
+			Name: string(MethodTypeList),
+			Annotations: &mcp.ToolAnnotations{
+				Title:        "List Types",
+				ReadOnlyHint: true,
+			},
+			Description: "List all ticket types in Teamwork Desk, with optional filters for name and inbox association. " +
+				"Enables users to audit, analyze, or synchronize type configurations for ticket management, " +
+				"reporting, or integration scenarios.",
+			InputSchema: &jsonschema.Schema{
+				Type:       "object",
+				Properties: properties,
+			},
+			OutputSchema: typeListOutputSchema,
+		},
+		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+			arguments, err := helpers.NewToolArguments(request)
+			if err != nil {
+				return helpers.NewToolResultTextError(err.Error()), nil
+			}
+
 			// Apply filters to the type list
-			name := request.GetStringSlice("name", []string{})
-			inboxIDs := request.GetStringSlice("inboxIDs", []string{})
+			name := arguments.GetStringSlice("name", []string{})
+			inboxIDs := arguments.GetStringSlice("inboxIDs", []string{})
 
 			filter := deskclient.NewFilter()
 			if len(name) > 0 {
@@ -100,90 +143,122 @@ func TypeList(client *deskclient.Client) server.ServerTool {
 
 			params := url.Values{}
 			params.Set("filter", filter.Build())
-			setPagination(&params, request)
+			setPagination(&params, arguments)
 
 			types, err := client.TicketTypes.List(ctx, params)
 			if err != nil {
 				return nil, fmt.Errorf("failed to list types: %w", err)
 			}
 
-			return mcp.NewToolResultText(fmt.Sprintf("Types retrieved successfully: %v", types)), nil
+			return helpers.NewToolResultText(fmt.Sprintf("Types retrieved successfully: %v", types)), nil
 		},
 	}
 }
 
 // TypeCreate creates a type in Teamwork Desk
-func TypeCreate(client *deskclient.Client) server.ServerTool {
-	return server.ServerTool{
-		Tool: mcp.NewTool(string(MethodTypeCreate),
-			mcp.WithTitleAnnotation("Create Type"),
-			mcp.WithDescription(
-				"Create a new ticket type in Teamwork Desk by specifying its name, display order, and future inbox settings. "+
-					"Useful for customizing ticket workflows, introducing new categories, or "+
-					"adapting Desk to evolving support processes."),
-			mcp.WithString("name",
-				mcp.Required(),
-				mcp.Description("The name of the type."),
-			),
-			mcp.WithNumber("displayOrder", mcp.Description("The display order of the type.")),
-			mcp.WithBoolean("enabledForFutureInboxes",
-				mcp.Description("Whether the type is enabled for future inboxes."),
-			),
-		),
-		Handler: func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+func TypeCreate(client *deskclient.Client) toolsets.ToolWrapper {
+	return toolsets.ToolWrapper{
+		Tool: &mcp.Tool{
+			Name: string(MethodTypeCreate),
+			Annotations: &mcp.ToolAnnotations{
+				Title: "Create Type",
+			},
+			Description: "Create a new ticket type in Teamwork Desk by specifying its name, display order, and future " +
+				"inbox settings. Useful for customizing ticket workflows, introducing new categories, or " +
+				"adapting Desk to evolving support processes.",
+			InputSchema: &jsonschema.Schema{
+				Type: "object",
+				Properties: map[string]*jsonschema.Schema{
+					"name": {
+						Type:        "string",
+						Description: "The name of the type.",
+					},
+					"displayOrder": {
+						Type:        "integer",
+						Description: "The display order of the type.",
+					},
+					"enabledForFutureInboxes": {
+						Type:        "boolean",
+						Description: "Whether the type is enabled for future inboxes.",
+					},
+				},
+				Required: []string{"name"},
+			},
+		},
+		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+			arguments, err := helpers.NewToolArguments(request)
+			if err != nil {
+				return helpers.NewToolResultTextError(err.Error()), nil
+			}
+
 			t, err := client.TicketTypes.Create(ctx, &deskmodels.TicketTypeResponse{
 				TicketType: deskmodels.TicketType{
-					Name:                    request.GetString("name", ""),
-					DisplayOrder:            request.GetInt("displayOrder", 0),
-					EnabledForFutureInboxes: request.GetBool("enabledForFutureInboxes", false),
+					Name:                    arguments.GetString("name", ""),
+					DisplayOrder:            arguments.GetInt("displayOrder", 0),
+					EnabledForFutureInboxes: arguments.GetBool("enabledForFutureInboxes", false),
 				},
 			})
 			if err != nil {
 				return nil, fmt.Errorf("failed to create type: %w", err)
 			}
 
-			return mcp.NewToolResultText(fmt.Sprintf("Type created successfully with ID %d", t.TicketType.ID)), nil
+			return helpers.NewToolResultText(fmt.Sprintf("Type created successfully with ID %d", t.TicketType.ID)), nil
 		},
 	}
 }
 
 // TypeUpdate updates a type in Teamwork Desk
-func TypeUpdate(client *deskclient.Client) server.ServerTool {
-	return server.ServerTool{
-		Tool: mcp.NewTool(string(MethodTypeUpdate),
-			mcp.WithTitleAnnotation("Update Type"),
-			mcp.WithDescription(
-				"Update an existing ticket type in Teamwork Desk by ID, allowing changes to its name, display order, "+
-					"and future inbox settings. Supports evolving support policies, rebranding, or correcting "+
-					"type attributes for improved "+
-					"ticket handling."),
-			mcp.WithNumber("id",
-				mcp.Required(),
-				mcp.Description("The ID of the type to update."),
-			),
-			mcp.WithString("name",
-				mcp.Description("The new name of the type."),
-			),
-			mcp.WithNumber("displayOrder",
-				mcp.Description("The display order of the type."),
-			),
-			mcp.WithBoolean("enabledForFutureInboxes",
-				mcp.Description("Whether the type is enabled for future inboxes."),
-			),
-		),
-		Handler: func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-			_, err := client.TicketTypes.Update(ctx, request.GetInt("id", 0), &deskmodels.TicketTypeResponse{
+func TypeUpdate(client *deskclient.Client) toolsets.ToolWrapper {
+	return toolsets.ToolWrapper{
+		Tool: &mcp.Tool{
+			Name: string(MethodTypeUpdate),
+			Annotations: &mcp.ToolAnnotations{
+				Title: "Update Type",
+			},
+			Description: "Update an existing ticket type in Teamwork Desk by ID, allowing changes to its name, " +
+				"display order, and future inbox settings. Supports evolving support policies, rebranding, or correcting " +
+				"type attributes for improved ticket handling.",
+			InputSchema: &jsonschema.Schema{
+				Type: "object",
+				Properties: map[string]*jsonschema.Schema{
+					"id": {
+						Type:        "integer",
+						Description: "The ID of the type to update.",
+					},
+					"name": {
+						Type:        "string",
+						Description: "The new name of the type.",
+					},
+					"displayOrder": {
+						Type:        "integer",
+						Description: "The display order of the type.",
+					},
+					"enabledForFutureInboxes": {
+						Type:        "boolean",
+						Description: "Whether the type is enabled for future inboxes.",
+					},
+				},
+				Required: []string{"id"},
+			},
+		},
+		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+			arguments, err := helpers.NewToolArguments(request)
+			if err != nil {
+				return helpers.NewToolResultTextError(err.Error()), nil
+			}
+
+			_, err = client.TicketTypes.Update(ctx, arguments.GetInt("id", 0), &deskmodels.TicketTypeResponse{
 				TicketType: deskmodels.TicketType{
-					Name:                    request.GetString("name", ""),
-					DisplayOrder:            request.GetInt("displayOrder", 0),
-					EnabledForFutureInboxes: request.GetBool("enabledForFutureInboxes", false),
+					Name:                    arguments.GetString("name", ""),
+					DisplayOrder:            arguments.GetInt("displayOrder", 0),
+					EnabledForFutureInboxes: arguments.GetBool("enabledForFutureInboxes", false),
 				},
 			})
 			if err != nil {
 				return nil, fmt.Errorf("failed to create type: %w", err)
 			}
 
-			return mcp.NewToolResultText("Type updated successfully"), nil
+			return helpers.NewToolResultText("Type updated successfully"), nil
 		},
 	}
 }

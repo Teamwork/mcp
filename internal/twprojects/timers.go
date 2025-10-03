@@ -5,8 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/mark3labs/mcp-go/mcp"
-	"github.com/mark3labs/mcp-go/server"
+	"github.com/google/jsonschema-go/jsonschema"
+	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/teamwork/mcp/internal/helpers"
 	"github.com/teamwork/mcp/internal/toolsets"
 	"github.com/teamwork/twapi-go-sdk"
@@ -35,6 +35,11 @@ const timerDescription = "Timer is a built-in tool that allows users to accurate
 	"or project, making it easier to monitor productivity, manage billable hours, and generate detailed reports for " +
 	"both internal tracking and client invoicing."
 
+var (
+	timerGetOutputSchema  *jsonschema.Schema
+	timerListOutputSchema *jsonschema.Schema
+)
+
 func init() {
 	// register the toolset methods
 	toolsets.RegisterMethod(MethodTimerCreate)
@@ -45,41 +50,72 @@ func init() {
 	toolsets.RegisterMethod(MethodTimerDelete)
 	toolsets.RegisterMethod(MethodTimerGet)
 	toolsets.RegisterMethod(MethodTimerList)
+
+	var err error
+
+	// generate the output schemas only once
+	timerGetOutputSchema, err = jsonschema.For[projects.TimerGetResponse](&jsonschema.ForOptions{})
+	if err != nil {
+		panic(fmt.Sprintf("failed to generate JSON schema for TimerGetResponse: %v", err))
+	}
+	timerListOutputSchema, err = jsonschema.For[projects.TimerListResponse](&jsonschema.ForOptions{})
+	if err != nil {
+		panic(fmt.Sprintf("failed to generate JSON schema for TimerListResponse: %v", err))
+	}
 }
 
 // TimerCreate creates a timer in Teamwork.com.
-func TimerCreate(engine *twapi.Engine) server.ServerTool {
-	return server.ServerTool{
-		Tool: mcp.NewTool(string(MethodTimerCreate),
-			mcp.WithDescription("Create a new timer in Teamwork.com. "+timerDescription),
-			mcp.WithTitleAnnotation("Create Timer"),
-			mcp.WithString("description",
-				mcp.Description("A description of the timer."),
-			),
-			mcp.WithBoolean("billable",
-				mcp.Description("If true, the timer is billable. Defaults to false."),
-			),
-			mcp.WithBoolean("running",
-				mcp.Description("If true, the timer will start running immediately."),
-			),
-			mcp.WithNumber("seconds",
-				mcp.Description("The number of seconds to set the timer for."),
-			),
-			mcp.WithBoolean("stop_running_timers",
-				mcp.Description("If true, any other running timers will be stopped when this timer is created."),
-			),
-			mcp.WithNumber("project_id",
-				mcp.Required(),
-				mcp.Description("The ID of the project to associate the timer with."),
-			),
-			mcp.WithNumber("task_id",
-				mcp.Description("The ID of the task to associate the timer with."),
-			),
-		),
-		Handler: func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+func TimerCreate(engine *twapi.Engine) toolsets.ToolWrapper {
+	return toolsets.ToolWrapper{
+		Tool: &mcp.Tool{
+			Name:        string(MethodTimerCreate),
+			Description: "Create a new timer in Teamwork.com. " + timerDescription,
+			Annotations: &mcp.ToolAnnotations{
+				Title: "Create Timer",
+			},
+			InputSchema: &jsonschema.Schema{
+				Type: "object",
+				Properties: map[string]*jsonschema.Schema{
+					"description": {
+						Type:        "string",
+						Description: "A description of the timer.",
+					},
+					"billable": {
+						Type:        "boolean",
+						Description: "If true, the timer is billable. Defaults to false.",
+					},
+					"running": {
+						Type:        "boolean",
+						Description: "If true, the timer will start running immediately.",
+					},
+					"seconds": {
+						Type:        "integer",
+						Description: "The number of seconds to set the timer for.",
+					},
+					"stop_running_timers": {
+						Type:        "boolean",
+						Description: "If true, any other running timers will be stopped when this timer is created.",
+					},
+					"project_id": {
+						Type:        "integer",
+						Description: "The ID of the project to associate the timer with.",
+					},
+					"task_id": {
+						Type:        "integer",
+						Description: "The ID of the task to associate the timer with.",
+					},
+				},
+				Required: []string{"project_id"},
+			},
+		},
+		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 			var timerCreateRequest projects.TimerCreateRequest
 
-			err := helpers.ParamGroup(request.GetArguments(),
+			var arguments map[string]any
+			if err := json.Unmarshal(request.Params.Arguments, &arguments); err != nil {
+				return helpers.NewToolResultTextError(fmt.Sprintf("failed to decode request: %s", err.Error())), nil
+			}
+			err := helpers.ParamGroup(arguments,
 				helpers.OptionalPointerParam(&timerCreateRequest.Description, "description"),
 				helpers.OptionalPointerParam(&timerCreateRequest.Billable, "billable"),
 				helpers.OptionalPointerParam(&timerCreateRequest.Running, "running"),
@@ -89,7 +125,7 @@ func TimerCreate(engine *twapi.Engine) server.ServerTool {
 				helpers.OptionalNumericPointerParam(&timerCreateRequest.TaskID, "task_id"),
 			)
 			if err != nil {
-				return mcp.NewToolResultErrorFromErr("invalid parameters", err), nil
+				return helpers.NewToolResultTextError(fmt.Sprintf("invalid parameters: %s", err.Error())), nil
 			}
 
 			timerResponse, err := projects.TimerCreate(ctx, engine, timerCreateRequest)
@@ -97,41 +133,65 @@ func TimerCreate(engine *twapi.Engine) server.ServerTool {
 				return helpers.HandleAPIError(err, "failed to create timer")
 			}
 
-			return mcp.NewToolResultText(fmt.Sprintf("Timer created successfully with ID %d", timerResponse.Timer.ID)), nil
+			return &mcp.CallToolResult{
+				Content: []mcp.Content{
+					&mcp.TextContent{
+						Text: fmt.Sprintf("Timer created successfully with ID %d", timerResponse.Timer.ID),
+					},
+				},
+			}, nil
 		},
 	}
 }
 
 // TimerUpdate updates a timer in Teamwork.com.
-func TimerUpdate(engine *twapi.Engine) server.ServerTool {
-	return server.ServerTool{
-		Tool: mcp.NewTool(string(MethodTimerUpdate),
-			mcp.WithDescription("Update an existing timer in Teamwork.com. "+timerDescription),
-			mcp.WithTitleAnnotation("Update Timer"),
-			mcp.WithNumber("id",
-				mcp.Required(),
-				mcp.Description("The ID of the timer to update."),
-			),
-			mcp.WithString("description",
-				mcp.Description("A description of the timer."),
-			),
-			mcp.WithBoolean("billable",
-				mcp.Description("If true, the timer is billable."),
-			),
-			mcp.WithBoolean("running",
-				mcp.Description("If true, the timer will start running immediately."),
-			),
-			mcp.WithNumber("project_id",
-				mcp.Description("The ID of the project to associate the timer with."),
-			),
-			mcp.WithNumber("task_id",
-				mcp.Description("The ID of the task to associate the timer with."),
-			),
-		),
-		Handler: func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+func TimerUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
+	return toolsets.ToolWrapper{
+		Tool: &mcp.Tool{
+			Name:        string(MethodTimerUpdate),
+			Description: "Update an existing timer in Teamwork.com. " + timerDescription,
+			Annotations: &mcp.ToolAnnotations{
+				Title: "Update Timer",
+			},
+			InputSchema: &jsonschema.Schema{
+				Type: "object",
+				Properties: map[string]*jsonschema.Schema{
+					"id": {
+						Type:        "integer",
+						Description: "The ID of the timer to update.",
+					},
+					"description": {
+						Type:        "string",
+						Description: "A description of the timer.",
+					},
+					"billable": {
+						Type:        "boolean",
+						Description: "If true, the timer is billable.",
+					},
+					"running": {
+						Type:        "boolean",
+						Description: "If true, the timer will start running immediately.",
+					},
+					"project_id": {
+						Type:        "integer",
+						Description: "The ID of the project to associate the timer with.",
+					},
+					"task_id": {
+						Type:        "integer",
+						Description: "The ID of the task to associate the timer with.",
+					},
+				},
+				Required: []string{"id"},
+			},
+		},
+		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 			var timerUpdateRequest projects.TimerUpdateRequest
 
-			err := helpers.ParamGroup(request.GetArguments(),
+			var arguments map[string]any
+			if err := json.Unmarshal(request.Params.Arguments, &arguments); err != nil {
+				return helpers.NewToolResultTextError(fmt.Sprintf("failed to decode request: %s", err.Error())), nil
+			}
+			err := helpers.ParamGroup(arguments,
 				helpers.RequiredNumericParam(&timerUpdateRequest.Path.ID, "id"),
 				helpers.OptionalPointerParam(&timerUpdateRequest.Description, "description"),
 				helpers.OptionalPointerParam(&timerUpdateRequest.Billable, "billable"),
@@ -140,7 +200,7 @@ func TimerUpdate(engine *twapi.Engine) server.ServerTool {
 				helpers.OptionalNumericPointerParam(&timerUpdateRequest.TaskID, "task_id"),
 			)
 			if err != nil {
-				return mcp.NewToolResultErrorFromErr("invalid parameters", err), nil
+				return helpers.NewToolResultTextError(fmt.Sprintf("invalid parameters: %s", err.Error())), nil
 			}
 
 			_, err = projects.TimerUpdate(ctx, engine, timerUpdateRequest)
@@ -148,30 +208,49 @@ func TimerUpdate(engine *twapi.Engine) server.ServerTool {
 				return helpers.HandleAPIError(err, "failed to update timer")
 			}
 
-			return mcp.NewToolResultText("Timer updated successfully"), nil
+			return &mcp.CallToolResult{
+				Content: []mcp.Content{
+					&mcp.TextContent{
+						Text: "Timer updated successfully",
+					},
+				},
+			}, nil
 		},
 	}
 }
 
 // TimerPause pauses a timer in Teamwork.com.
-func TimerPause(engine *twapi.Engine) server.ServerTool {
-	return server.ServerTool{
-		Tool: mcp.NewTool(string(MethodTimerPause),
-			mcp.WithDescription("Pause an existing timer in Teamwork.com. "+timerDescription),
-			mcp.WithTitleAnnotation("Pause Timer"),
-			mcp.WithNumber("id",
-				mcp.Required(),
-				mcp.Description("The ID of the timer to pause."),
-			),
-		),
-		Handler: func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+func TimerPause(engine *twapi.Engine) toolsets.ToolWrapper {
+	return toolsets.ToolWrapper{
+		Tool: &mcp.Tool{
+			Name:        string(MethodTimerPause),
+			Description: "Pause an existing timer in Teamwork.com. " + timerDescription,
+			Annotations: &mcp.ToolAnnotations{
+				Title: "Pause Timer",
+			},
+			InputSchema: &jsonschema.Schema{
+				Type: "object",
+				Properties: map[string]*jsonschema.Schema{
+					"id": {
+						Type:        "integer",
+						Description: "The ID of the timer to pause.",
+					},
+				},
+				Required: []string{"id"},
+			},
+		},
+		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 			var timerPauseRequest projects.TimerPauseRequest
 
-			err := helpers.ParamGroup(request.GetArguments(),
+			var arguments map[string]any
+			if err := json.Unmarshal(request.Params.Arguments, &arguments); err != nil {
+				return helpers.NewToolResultTextError(fmt.Sprintf("failed to decode request: %s", err.Error())), nil
+			}
+			err := helpers.ParamGroup(arguments,
 				helpers.RequiredNumericParam(&timerPauseRequest.Path.ID, "id"),
 			)
 			if err != nil {
-				return mcp.NewToolResultErrorFromErr("invalid parameters", err), nil
+				return helpers.NewToolResultTextError(fmt.Sprintf("invalid parameters: %s", err.Error())), nil
 			}
 
 			_, err = projects.TimerPause(ctx, engine, timerPauseRequest)
@@ -179,30 +258,49 @@ func TimerPause(engine *twapi.Engine) server.ServerTool {
 				return helpers.HandleAPIError(err, "failed to pause timer")
 			}
 
-			return mcp.NewToolResultText("Timer paused successfully"), nil
+			return &mcp.CallToolResult{
+				Content: []mcp.Content{
+					&mcp.TextContent{
+						Text: "Timer paused successfully",
+					},
+				},
+			}, nil
 		},
 	}
 }
 
 // TimerResume resumes a timer in Teamwork.com.
-func TimerResume(engine *twapi.Engine) server.ServerTool {
-	return server.ServerTool{
-		Tool: mcp.NewTool(string(MethodTimerResume),
-			mcp.WithDescription("Resume an existing timer in Teamwork.com. "+timerDescription),
-			mcp.WithTitleAnnotation("Resume Timer"),
-			mcp.WithNumber("id",
-				mcp.Required(),
-				mcp.Description("The ID of the timer to resume."),
-			),
-		),
-		Handler: func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+func TimerResume(engine *twapi.Engine) toolsets.ToolWrapper {
+	return toolsets.ToolWrapper{
+		Tool: &mcp.Tool{
+			Name:        string(MethodTimerResume),
+			Description: "Resume an existing timer in Teamwork.com. " + timerDescription,
+			Annotations: &mcp.ToolAnnotations{
+				Title: "Resume Timer",
+			},
+			InputSchema: &jsonschema.Schema{
+				Type: "object",
+				Properties: map[string]*jsonschema.Schema{
+					"id": {
+						Type:        "integer",
+						Description: "The ID of the timer to resume.",
+					},
+				},
+				Required: []string{"id"},
+			},
+		},
+		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 			var timerResumeRequest projects.TimerResumeRequest
 
-			err := helpers.ParamGroup(request.GetArguments(),
+			var arguments map[string]any
+			if err := json.Unmarshal(request.Params.Arguments, &arguments); err != nil {
+				return helpers.NewToolResultTextError(fmt.Sprintf("failed to decode request: %s", err.Error())), nil
+			}
+			err := helpers.ParamGroup(arguments,
 				helpers.RequiredNumericParam(&timerResumeRequest.Path.ID, "id"),
 			)
 			if err != nil {
-				return mcp.NewToolResultErrorFromErr("invalid parameters", err), nil
+				return helpers.NewToolResultTextError(fmt.Sprintf("invalid parameters: %s", err.Error())), nil
 			}
 
 			_, err = projects.TimerResume(ctx, engine, timerResumeRequest)
@@ -210,30 +308,49 @@ func TimerResume(engine *twapi.Engine) server.ServerTool {
 				return helpers.HandleAPIError(err, "failed to resume timer")
 			}
 
-			return mcp.NewToolResultText("Timer resumed successfully"), nil
+			return &mcp.CallToolResult{
+				Content: []mcp.Content{
+					&mcp.TextContent{
+						Text: "Timer resumed successfully",
+					},
+				},
+			}, nil
 		},
 	}
 }
 
 // TimerComplete completes a timer in Teamwork.com.
-func TimerComplete(engine *twapi.Engine) server.ServerTool {
-	return server.ServerTool{
-		Tool: mcp.NewTool(string(MethodTimerComplete),
-			mcp.WithDescription("Complete an existing timer in Teamwork.com. "+timerDescription),
-			mcp.WithTitleAnnotation("Complete Timer"),
-			mcp.WithNumber("id",
-				mcp.Required(),
-				mcp.Description("The ID of the timer to complete."),
-			),
-		),
-		Handler: func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+func TimerComplete(engine *twapi.Engine) toolsets.ToolWrapper {
+	return toolsets.ToolWrapper{
+		Tool: &mcp.Tool{
+			Name:        string(MethodTimerComplete),
+			Description: "Complete an existing timer in Teamwork.com. " + timerDescription,
+			Annotations: &mcp.ToolAnnotations{
+				Title: "Complete Timer",
+			},
+			InputSchema: &jsonschema.Schema{
+				Type: "object",
+				Properties: map[string]*jsonschema.Schema{
+					"id": {
+						Type:        "integer",
+						Description: "The ID of the timer to complete.",
+					},
+				},
+				Required: []string{"id"},
+			},
+		},
+		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 			var timerCompleteRequest projects.TimerCompleteRequest
 
-			err := helpers.ParamGroup(request.GetArguments(),
+			var arguments map[string]any
+			if err := json.Unmarshal(request.Params.Arguments, &arguments); err != nil {
+				return helpers.NewToolResultTextError(fmt.Sprintf("failed to decode request: %s", err.Error())), nil
+			}
+			err := helpers.ParamGroup(arguments,
 				helpers.RequiredNumericParam(&timerCompleteRequest.Path.ID, "id"),
 			)
 			if err != nil {
-				return mcp.NewToolResultErrorFromErr("invalid parameters", err), nil
+				return helpers.NewToolResultTextError(fmt.Sprintf("invalid parameters: %s", err.Error())), nil
 			}
 
 			_, err = projects.TimerComplete(ctx, engine, timerCompleteRequest)
@@ -241,30 +358,49 @@ func TimerComplete(engine *twapi.Engine) server.ServerTool {
 				return helpers.HandleAPIError(err, "failed to complete timer")
 			}
 
-			return mcp.NewToolResultText("Timer completed successfully"), nil
+			return &mcp.CallToolResult{
+				Content: []mcp.Content{
+					&mcp.TextContent{
+						Text: "Timer completed successfully",
+					},
+				},
+			}, nil
 		},
 	}
 }
 
 // TimerDelete deletes a timer in Teamwork.com.
-func TimerDelete(engine *twapi.Engine) server.ServerTool {
-	return server.ServerTool{
-		Tool: mcp.NewTool(string(MethodTimerDelete),
-			mcp.WithDescription("Delete an existing timer in Teamwork.com. "+timerDescription),
-			mcp.WithTitleAnnotation("Delete Timer"),
-			mcp.WithNumber("id",
-				mcp.Required(),
-				mcp.Description("The ID of the timer to delete."),
-			),
-		),
-		Handler: func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+func TimerDelete(engine *twapi.Engine) toolsets.ToolWrapper {
+	return toolsets.ToolWrapper{
+		Tool: &mcp.Tool{
+			Name:        string(MethodTimerDelete),
+			Description: "Delete an existing timer in Teamwork.com. " + timerDescription,
+			Annotations: &mcp.ToolAnnotations{
+				Title: "Delete Timer",
+			},
+			InputSchema: &jsonschema.Schema{
+				Type: "object",
+				Properties: map[string]*jsonschema.Schema{
+					"id": {
+						Type:        "integer",
+						Description: "The ID of the timer to delete.",
+					},
+				},
+				Required: []string{"id"},
+			},
+		},
+		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 			var timerDeleteRequest projects.TimerDeleteRequest
 
-			err := helpers.ParamGroup(request.GetArguments(),
+			var arguments map[string]any
+			if err := json.Unmarshal(request.Params.Arguments, &arguments); err != nil {
+				return helpers.NewToolResultTextError(fmt.Sprintf("failed to decode request: %s", err.Error())), nil
+			}
+			err := helpers.ParamGroup(arguments,
 				helpers.RequiredNumericParam(&timerDeleteRequest.Path.ID, "id"),
 			)
 			if err != nil {
-				return mcp.NewToolResultErrorFromErr("invalid parameters", err), nil
+				return helpers.NewToolResultTextError(fmt.Sprintf("invalid parameters: %s", err.Error())), nil
 			}
 
 			_, err = projects.TimerDelete(ctx, engine, timerDeleteRequest)
@@ -272,34 +408,51 @@ func TimerDelete(engine *twapi.Engine) server.ServerTool {
 				return helpers.HandleAPIError(err, "failed to delete timer")
 			}
 
-			return mcp.NewToolResultText("Timer deleted successfully"), nil
+			return &mcp.CallToolResult{
+				Content: []mcp.Content{
+					&mcp.TextContent{
+						Text: "Timer deleted successfully",
+					},
+				},
+			}, nil
 		},
 	}
 }
 
 // TimerGet retrieves a timer in Teamwork.com.
-func TimerGet(engine *twapi.Engine) server.ServerTool {
-	return server.ServerTool{
-		Tool: mcp.NewTool(string(MethodTimerGet),
-			mcp.WithDescription("Get an existing timer in Teamwork.com. "+timerDescription),
-			mcp.WithToolAnnotation(mcp.ToolAnnotation{
-				ReadOnlyHint: twapi.Ptr(true),
-			}),
-			mcp.WithTitleAnnotation("Get Timer"),
-			mcp.WithOutputSchema[projects.TimerGetResponse](),
-			mcp.WithNumber("id",
-				mcp.Required(),
-				mcp.Description("The ID of the timer to get."),
-			),
-		),
-		Handler: func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+func TimerGet(engine *twapi.Engine) toolsets.ToolWrapper {
+	return toolsets.ToolWrapper{
+		Tool: &mcp.Tool{
+			Name:        string(MethodTimerGet),
+			Description: "Get an existing timer in Teamwork.com. " + timerDescription,
+			Annotations: &mcp.ToolAnnotations{
+				Title:        "Get Timer",
+				ReadOnlyHint: true,
+			},
+			InputSchema: &jsonschema.Schema{
+				Type: "object",
+				Properties: map[string]*jsonschema.Schema{
+					"id": {
+						Type:        "integer",
+						Description: "The ID of the timer to get.",
+					},
+				},
+				Required: []string{"id"},
+			},
+			OutputSchema: timerGetOutputSchema,
+		},
+		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 			var timerGetRequest projects.TimerGetRequest
 
-			err := helpers.ParamGroup(request.GetArguments(),
+			var arguments map[string]any
+			if err := json.Unmarshal(request.Params.Arguments, &arguments); err != nil {
+				return helpers.NewToolResultTextError(fmt.Sprintf("failed to decode request: %s", err.Error())), nil
+			}
+			err := helpers.ParamGroup(arguments,
 				helpers.RequiredNumericParam(&timerGetRequest.Path.ID, "id"),
 			)
 			if err != nil {
-				return mcp.NewToolResultErrorFromErr("invalid parameters", err), nil
+				return helpers.NewToolResultTextError(fmt.Sprintf("invalid parameters: %s", err.Error())), nil
 			}
 
 			timer, err := projects.TimerGet(ctx, engine, timerGetRequest)
@@ -311,50 +464,72 @@ func TimerGet(engine *twapi.Engine) server.ServerTool {
 			if err != nil {
 				return nil, err
 			}
-			return mcp.NewToolResultText(string(helpers.WebLinker(ctx, encoded,
-				helpers.WebLinkerWithIDPathBuilder("/app/timers"),
-			))), nil
+			return &mcp.CallToolResult{
+				Content: []mcp.Content{
+					&mcp.TextContent{
+						Text: string(helpers.WebLinker(ctx, encoded,
+							helpers.WebLinkerWithIDPathBuilder("/app/timers"),
+						)),
+					},
+				},
+			}, nil
 		},
 	}
 }
 
 // TimerList lists timers in Teamwork.com.
-func TimerList(engine *twapi.Engine) server.ServerTool {
-	return server.ServerTool{
-		Tool: mcp.NewTool(string(MethodTimerList),
-			mcp.WithDescription("List timers in Teamwork.com. "+timerDescription),
-			mcp.WithToolAnnotation(mcp.ToolAnnotation{
-				ReadOnlyHint: twapi.Ptr(true),
-			}),
-			mcp.WithTitleAnnotation("List Timers"),
-			mcp.WithOutputSchema[projects.TimerListResponse](),
-			mcp.WithNumber("user_id",
-				mcp.Description("The ID of the user to filter timers by. "+
-					"Only timers associated with this user will be returned."),
-			),
-			mcp.WithNumber("task_id",
-				mcp.Description("The ID of the task to filter timers by. "+
-					"Only timers associated with this task will be returned."),
-			),
-			mcp.WithNumber("project_id",
-				mcp.Description("The ID of the project to filter timers by. "+
-					"Only timers associated with this project will be returned."),
-			),
-			mcp.WithBoolean("running_timers_only",
-				mcp.Description("If true, only running timers will be returned. "+
-					"Defaults to false, which returns all timers."),
-			),
-			mcp.WithNumber("page",
-				mcp.Description("Page number for pagination of results."),
-			),
-			mcp.WithNumber("page_size",
-				mcp.Description("Number of results per page for pagination."),
-			),
-		),
-		Handler: func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+func TimerList(engine *twapi.Engine) toolsets.ToolWrapper {
+	return toolsets.ToolWrapper{
+		Tool: &mcp.Tool{
+			Name:        string(MethodTimerList),
+			Description: "List timers in Teamwork.com. " + timerDescription,
+			Annotations: &mcp.ToolAnnotations{
+				Title:        "List Timers",
+				ReadOnlyHint: true,
+			},
+			InputSchema: &jsonschema.Schema{
+				Type: "object",
+				Properties: map[string]*jsonschema.Schema{
+					"user_id": {
+						Type: "integer",
+						Description: "The ID of the user to filter timers by. " +
+							"Only timers associated with this user will be returned.",
+					},
+					"task_id": {
+						Type: "integer",
+						Description: "The ID of the task to filter timers by. " +
+							"Only timers associated with this task will be returned.",
+					},
+					"project_id": {
+						Type: "integer",
+						Description: "The ID of the project to filter timers by. " +
+							"Only timers associated with this project will be returned.",
+					},
+					"running_timers_only": {
+						Type: "boolean",
+						Description: "If true, only running timers will be returned. " +
+							"Defaults to false, which returns all timers.",
+					},
+					"page": {
+						Type:        "integer",
+						Description: "Page number for pagination of results.",
+					},
+					"page_size": {
+						Type:        "integer",
+						Description: "Number of results per page for pagination.",
+					},
+				},
+			},
+			OutputSchema: timerListOutputSchema,
+		},
+		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 			var timerListRequest projects.TimerListRequest
 
-			err := helpers.ParamGroup(request.GetArguments(),
+			var arguments map[string]any
+			if err := json.Unmarshal(request.Params.Arguments, &arguments); err != nil {
+				return helpers.NewToolResultTextError(fmt.Sprintf("failed to decode request: %s", err.Error())), nil
+			}
+			err := helpers.ParamGroup(arguments,
 				helpers.OptionalNumericParam(&timerListRequest.Filters.UserID, "user_id"),
 				helpers.OptionalNumericParam(&timerListRequest.Filters.TaskID, "task_id"),
 				helpers.OptionalNumericParam(&timerListRequest.Filters.ProjectID, "project_id"),
@@ -363,7 +538,7 @@ func TimerList(engine *twapi.Engine) server.ServerTool {
 				helpers.OptionalNumericParam(&timerListRequest.Filters.PageSize, "page_size"),
 			)
 			if err != nil {
-				return mcp.NewToolResultErrorFromErr("invalid parameters", err), nil
+				return helpers.NewToolResultTextError(fmt.Sprintf("invalid parameters: %s", err.Error())), nil
 			}
 
 			timerList, err := projects.TimerList(ctx, engine, timerListRequest)
@@ -375,9 +550,15 @@ func TimerList(engine *twapi.Engine) server.ServerTool {
 			if err != nil {
 				return nil, err
 			}
-			return mcp.NewToolResultText(string(helpers.WebLinker(ctx, encoded,
-				helpers.WebLinkerWithIDPathBuilder("/app/timers"),
-			))), nil
+			return &mcp.CallToolResult{
+				Content: []mcp.Content{
+					&mcp.TextContent{
+						Text: string(helpers.WebLinker(ctx, encoded,
+							helpers.WebLinkerWithIDPathBuilder("/app/timers"),
+						)),
+					},
+				},
+			}, nil
 		},
 	}
 }

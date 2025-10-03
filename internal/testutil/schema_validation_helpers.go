@@ -8,14 +8,14 @@ import (
 	"testing"
 
 	"github.com/google/jsonschema-go/jsonschema"
-	"github.com/mark3labs/mcp-go/server"
 	deskclient "github.com/teamwork/desksdkgo/client"
+	"github.com/teamwork/mcp/internal/toolsets"
 	"github.com/teamwork/mcp/internal/twdesk"
 )
 
 // SchemaValidationTestSuite provides a comprehensive test suite for validating MCP tool JSON schemas
 type SchemaValidationTestSuite struct {
-	tools       map[string]server.ServerTool
+	tools       map[string]toolsets.ToolWrapper
 	validData   map[string]map[string]map[string]any // [toolName][testCase] -> data
 	invalidData map[string]map[string]map[string]any // [toolName][testCase] -> data
 }
@@ -24,7 +24,7 @@ type SchemaValidationTestSuite struct {
 func NewSchemaValidationTestSuite() *SchemaValidationTestSuite {
 	client := &deskclient.Client{}
 
-	tools := map[string]server.ServerTool{
+	tools := map[string]toolsets.ToolWrapper{
 		// Company tools
 		"CompanyCreate": twdesk.CompanyCreate(client),
 		"CompanyUpdate": twdesk.CompanyUpdate(client),
@@ -95,18 +95,18 @@ func (s *SchemaValidationTestSuite) RunAllSchemaValidationTests(t *testing.T) {
 }
 
 // GetTool returns a tool by name if it exists
-func (s *SchemaValidationTestSuite) GetTool(toolName string) (server.ServerTool, bool) {
+func (s *SchemaValidationTestSuite) GetTool(toolName string) (toolsets.ToolWrapper, bool) {
 	tool, exists := s.tools[toolName]
 	return tool, exists
 }
 
 // RunToolSchemaValidation runs schema validation tests for a single tool (exported version)
-func (s *SchemaValidationTestSuite) RunToolSchemaValidation(t *testing.T, toolName string, tool server.ServerTool) {
+func (s *SchemaValidationTestSuite) RunToolSchemaValidation(t *testing.T, toolName string, tool toolsets.ToolWrapper) {
 	s.runToolSchemaValidation(t, toolName, tool)
 }
 
 // runToolSchemaValidation runs schema validation tests for a single tool
-func (s *SchemaValidationTestSuite) runToolSchemaValidation(t *testing.T, toolName string, tool server.ServerTool) {
+func (s *SchemaValidationTestSuite) runToolSchemaValidation(t *testing.T, toolName string, tool toolsets.ToolWrapper) {
 	inputSchema := tool.Tool.InputSchema
 
 	schemaBytes, err := json.Marshal(inputSchema)

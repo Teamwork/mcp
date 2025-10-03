@@ -2,11 +2,11 @@ package twdesk
 
 import (
 	"context"
-	"errors"
 
-	"github.com/mark3labs/mcp-go/mcp"
-	"github.com/mark3labs/mcp-go/server"
+	"github.com/google/jsonschema-go/jsonschema"
+	"github.com/modelcontextprotocol/go-sdk/mcp"
 	deskclient "github.com/teamwork/desksdkgo/client"
+	"github.com/teamwork/mcp/internal/helpers"
 	"github.com/teamwork/mcp/internal/toolsets"
 )
 
@@ -24,28 +24,41 @@ func init() {
 
 // MessageCreate replies to a ticket in Teamwork Desk.  TODO: Still need to
 // define the client for this.
-func MessageCreate(client *deskclient.Client) server.ServerTool {
-	return server.ServerTool{
-		Tool: mcp.NewTool(string(MethodMessageCreate),
-			mcp.WithTitleAnnotation("Create Message"),
-			mcp.WithDescription(
-				"Send a reply message to a ticket in Teamwork Desk by specifying the ticket ID and message body. "+
-					"Useful for automating ticket responses, integrating external communication systems, or "+
-					"customizing support workflows."),
-			mcp.WithNumber("ticketID",
-				mcp.Required(),
-				mcp.Description("The ID of the ticket that the message will be sent to."),
-			),
-			mcp.WithString("body",
-				mcp.Required(),
-				mcp.Description("The body of the message."),
-			),
-		),
-		Handler: func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+func MessageCreate(client *deskclient.Client) toolsets.ToolWrapper {
+	return toolsets.ToolWrapper{
+		Tool: &mcp.Tool{
+			Name: string(MethodMessageCreate),
+			Annotations: &mcp.ToolAnnotations{
+				Title: "Create Message",
+			},
+			Description: "Send a reply message to a ticket in Teamwork Desk by specifying the ticket ID and message body. " +
+				"Useful for automating ticket responses, integrating external communication systems, or " +
+				"customizing support workflows.",
+			InputSchema: &jsonschema.Schema{
+				Type: "object",
+				Properties: map[string]*jsonschema.Schema{
+					"ticketID": {
+						Type:        "integer",
+						Description: "The ID of the ticket that the message will be sent to.",
+					},
+					"body": {
+						Type:        "string",
+						Description: "The body of the message.",
+					},
+				},
+				Required: []string{"ticketID", "body"},
+			},
+		},
+		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+			arguments, err := helpers.NewToolArguments(request)
+			if err != nil {
+				return helpers.NewToolResultTextError(err.Error()), nil
+			}
+
 			_ = client // TODO: use the client to create the message
 			_ = ctx
-			_ = request
-			return nil, errors.New("not implemented")
+			_ = arguments
+			return helpers.NewToolResultTextError("not implemented"), nil
 		},
 	}
 }

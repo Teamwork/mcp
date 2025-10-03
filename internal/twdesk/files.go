@@ -5,10 +5,11 @@ import (
 	"encoding/base64"
 	"fmt"
 
-	"github.com/mark3labs/mcp-go/mcp"
-	"github.com/mark3labs/mcp-go/server"
+	"github.com/google/jsonschema-go/jsonschema"
+	"github.com/modelcontextprotocol/go-sdk/mcp"
 	deskclient "github.com/teamwork/desksdkgo/client"
 	deskmodels "github.com/teamwork/desksdkgo/models"
+	"github.com/teamwork/mcp/internal/helpers"
 	"github.com/teamwork/mcp/internal/toolsets"
 )
 
@@ -20,46 +21,72 @@ const (
 	MethodFileCreate toolsets.Method = "twdesk-create_file"
 )
 
+var (
+	fileCreateOutputSchema *jsonschema.Schema
+)
+
 func init() {
 	toolsets.RegisterMethod(MethodFileCreate)
+
+	var err error
+
+	// generate the output schemas only once
+	fileCreateOutputSchema, err = jsonschema.For[deskmodels.FileResponse](&jsonschema.ForOptions{})
+	if err != nil {
+		panic(fmt.Sprintf("failed to generate JSON schema for FileResponse: %v", err))
+	}
 }
 
 // FileCreate creates a file in Teamwork Desk
-func FileCreate(client *deskclient.Client) server.ServerTool {
-	return server.ServerTool{
-		Tool: mcp.NewTool(string(MethodFileCreate),
-			mcp.WithTitleAnnotation("Create File"),
-			mcp.WithOutputSchema[deskmodels.FileResponse](),
-			mcp.WithDescription(
-				"Upload a new file to Teamwork Desk, enabling attachment to tickets, articles, or "+
-					"other resources."),
-			mcp.WithString("name",
-				mcp.Required(),
-				mcp.Description("The name of the file."),
-			),
-			mcp.WithString("mimeType",
-				mcp.Required(),
-				mcp.Description("The MIME type of the file."),
-			),
-			mcp.WithString("disposition",
-				mcp.Description("The disposition of the file."),
-				mcp.Enum(
-					string(deskmodels.DispositionAttachment),
-					string(deskmodels.DispositionAttachmentInline),
-				),
-			),
-			mcp.WithString("data",
-				mcp.Required(),
-				mcp.Description("The content of the file as a base64-encoded string."),
-			),
-		),
-		Handler: func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+func FileCreate(client *deskclient.Client) toolsets.ToolWrapper {
+	return toolsets.ToolWrapper{
+		Tool: &mcp.Tool{
+			Name: string(MethodFileCreate),
+			Annotations: &mcp.ToolAnnotations{
+				Title: "Create File",
+			},
+			Description: "Upload a new file to Teamwork Desk, enabling attachment to tickets, articles, or " +
+				"other resources.",
+			InputSchema: &jsonschema.Schema{
+				Type: "object",
+				Properties: map[string]*jsonschema.Schema{
+					"name": {
+						Type:        "string",
+						Description: "The name of the file.",
+					},
+					"mimeType": {
+						Type:        "string",
+						Description: "The MIME type of the file.",
+					},
+					"disposition": {
+						Type:        "string",
+						Description: "The disposition of the file.",
+						Enum: []any{
+							string(deskmodels.DispositionAttachment),
+							string(deskmodels.DispositionAttachmentInline),
+						},
+					},
+					"data": {
+						Type:        "string",
+						Description: "The content of the file as a base64-encoded string.",
+					},
+				},
+				Required: []string{"name", "mimeType", "data"},
+			},
+			OutputSchema: fileCreateOutputSchema,
+		},
+		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+			arguments, err := helpers.NewToolArguments(request)
+			if err != nil {
+				return helpers.NewToolResultTextError(err.Error()), nil
+			}
+
 			file, err := client.Files.Create(ctx, &deskmodels.FileResponse{
 				File: deskmodels.File{
-					Filename: request.GetString("name", ""),
-					MIMEType: request.GetString("mimeType", "application/octet-stream"),
+					Filename: arguments.GetString("name", ""),
+					MIMEType: arguments.GetString("mimeType", "application/octet-stream"),
 					Disposition: deskmodels.Disposition(
-						request.GetString(
+						arguments.GetString(
 							"disposition",
 							string(deskmodels.DispositionAttachment),
 						),
@@ -71,7 +98,7 @@ func FileCreate(client *deskclient.Client) server.ServerTool {
 				return nil, fmt.Errorf("failed to create file: %w", err)
 			}
 
-			dataStr := request.GetString("data", "")
+			dataStr := arguments.GetString("data", "")
 			if dataStr == "" {
 				return nil, fmt.Errorf("file data (base64 encoded) is required")
 			}
@@ -86,7 +113,7 @@ func FileCreate(client *deskclient.Client) server.ServerTool {
 				return nil, fmt.Errorf("failed to upload file: %w", err)
 			}
 
-			return mcp.NewToolResultText(fmt.Sprintf("File created successfully with ID %d", file.File.ID)), nil
+			return helpers.NewToolResultText(fmt.Sprintf("File created successfully with ID %d", file.File.ID)), nil
 		},
 	}
 }

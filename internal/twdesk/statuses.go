@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"net/url"
 
-	"github.com/mark3labs/mcp-go/mcp"
-	"github.com/mark3labs/mcp-go/server"
+	"github.com/google/jsonschema-go/jsonschema"
+	"github.com/modelcontextprotocol/go-sdk/mcp"
 	deskclient "github.com/teamwork/desksdkgo/client"
 	deskmodels "github.com/teamwork/desksdkgo/models"
 	"github.com/teamwork/mcp/internal/helpers"
@@ -24,78 +24,115 @@ const (
 	MethodStatusList   toolsets.Method = "twdesk-list_statuses"
 )
 
+var (
+	statusListOutputSchema *jsonschema.Schema
+)
+
 func init() {
 	toolsets.RegisterMethod(MethodStatusCreate)
 	toolsets.RegisterMethod(MethodStatusUpdate)
 	toolsets.RegisterMethod(MethodStatusGet)
 	toolsets.RegisterMethod(MethodStatusList)
+
+	var err error
+	statusListOutputSchema, err = jsonschema.For[deskmodels.TicketStatusesResponse](&jsonschema.ForOptions{})
+	if err != nil {
+		panic(fmt.Sprintf("failed to generate JSON schema for StatusListResponse: %v", err))
+	}
 }
 
 // StatusGet finds a status in Teamwork Desk.  This will find it by ID
-func StatusGet(client *deskclient.Client) server.ServerTool {
-	return server.ServerTool{
-		Tool: mcp.NewTool(string(MethodStatusGet),
-			mcp.WithTitleAnnotation("Get Status"),
-			mcp.WithDescription(
-				"Retrieve detailed information about a specific status in Teamwork Desk by its ID. "+
-					"Useful for auditing status usage, troubleshooting ticket workflows, or "+
-					"integrating Desk status data into automation workflows."),
-			mcp.WithReadOnlyHintAnnotation(true),
-			mcp.WithNumber("id",
-				mcp.Required(),
-				mcp.Description("The ID of the status to retrieve."),
-			),
-		),
-		Handler: func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-			status, err := client.TicketStatuses.Get(ctx, request.GetInt("id", 0))
+func StatusGet(client *deskclient.Client) toolsets.ToolWrapper {
+	return toolsets.ToolWrapper{
+		Tool: &mcp.Tool{
+			Name: string(MethodStatusGet),
+			Annotations: &mcp.ToolAnnotations{
+				Title:        "Get Status",
+				ReadOnlyHint: true,
+			},
+			Description: "Retrieve detailed information about a specific status in Teamwork Desk by its ID. " +
+				"Useful for auditing status usage, troubleshooting ticket workflows, or " +
+				"integrating Desk status data into automation workflows.",
+			InputSchema: &jsonschema.Schema{
+				Type: "object",
+				Properties: map[string]*jsonschema.Schema{
+					"id": {
+						Type:        "integer",
+						Description: "The ID of the status to retrieve.",
+					},
+				},
+				Required: []string{"id"},
+			},
+		},
+		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+			arguments, err := helpers.NewToolArguments(request)
+			if err != nil {
+				return helpers.NewToolResultTextError(err.Error()), nil
+			}
+
+			status, err := client.TicketStatuses.Get(ctx, arguments.GetInt("id", 0))
 			if err != nil {
 				return nil, fmt.Errorf("failed to get status: %w", err)
 			}
 
-			return mcp.NewToolResultText(fmt.Sprintf("Status retrieved successfully: %s", status.TicketStatus.Name)), nil
+			return helpers.NewToolResultText(fmt.Sprintf("Status retrieved successfully: %s", status.TicketStatus.Name)), nil
 		},
 	}
 }
 
 // StatusList returns a list of statuses that apply to the filters in Teamwork Desk
-func StatusList(client *deskclient.Client) server.ServerTool {
-	opts := []mcp.ToolOption{
-		mcp.WithTitleAnnotation("List Statuses"),
-		mcp.WithOutputSchema[deskmodels.TicketStatusesResponse](),
-		mcp.WithDescription(
-			"List all statuses in Teamwork Desk, with optional filters for name, color, and code. " +
-				"Enables users to audit, analyze, or synchronize status configurations for ticket management, " +
-				"reporting, or integration scenarios."),
-		mcp.WithReadOnlyHintAnnotation(true),
-		mcp.WithArray("name",
-			mcp.Description("The name of the status to filter by."),
-			mcp.Items(map[string]any{
-				"type": "string",
-			}),
-		),
-		mcp.WithArray("color",
-			mcp.Description("The color of the status to filter by."),
-			mcp.Items(map[string]any{
-				"type": "string",
-			}),
-		),
-		mcp.WithArray("code",
-			mcp.Description("The code of the status to filter by."),
-			mcp.Items(map[string]any{
-				"type": "string",
-			}),
-		),
+func StatusList(client *deskclient.Client) toolsets.ToolWrapper {
+	properties := map[string]*jsonschema.Schema{
+		"name": {
+			Type:        "array",
+			Description: "The name of the status to filter by.",
+			Items: &jsonschema.Schema{
+				Type: "string",
+			},
+		},
+		"color": {
+			Type:        "array",
+			Description: "The color of the status to filter by.",
+			Items: &jsonschema.Schema{
+				Type: "string",
+			},
+		},
+		"code": {
+			Type:        "array",
+			Description: "The code of the status to filter by.",
+			Items: &jsonschema.Schema{
+				Type: "string",
+			},
+		},
 	}
+	properties = paginationOptions(properties)
 
-	opts = append(opts, paginationOptions()...)
+	return toolsets.ToolWrapper{
+		Tool: &mcp.Tool{
+			Name: string(MethodStatusList),
+			Annotations: &mcp.ToolAnnotations{
+				Title:        "List Statuses",
+				ReadOnlyHint: true,
+			},
+			Description: "List all statuses in Teamwork Desk, with optional filters for name, color, and code. " +
+				"Enables users to audit, analyze, or synchronize status configurations for ticket management, " +
+				"reporting, or integration scenarios.",
+			InputSchema: &jsonschema.Schema{
+				Type:       "object",
+				Properties: properties,
+			},
+			OutputSchema: statusListOutputSchema,
+		},
+		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+			arguments, err := helpers.NewToolArguments(request)
+			if err != nil {
+				return helpers.NewToolResultTextError(err.Error()), nil
+			}
 
-	return server.ServerTool{
-		Tool: mcp.NewTool(string(MethodStatusList), opts...),
-		Handler: func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 			// Apply filters to the status list
-			name := request.GetStringSlice("name", []string{})
-			color := request.GetStringSlice("color", []string{})
-			code := request.GetStringSlice("code", []string{})
+			name := arguments.GetStringSlice("name", []string{})
+			color := arguments.GetStringSlice("color", []string{})
+			code := arguments.GetStringSlice("code", []string{})
 
 			filter := deskclient.NewFilter()
 			if len(name) > 0 {
@@ -110,89 +147,123 @@ func StatusList(client *deskclient.Client) server.ServerTool {
 
 			params := url.Values{}
 			params.Set("filter", filter.Build())
-			setPagination(&params, request)
+			setPagination(&params, arguments)
 
 			statuses, err := client.TicketStatuses.List(ctx, params)
 			if err != nil {
 				return nil, fmt.Errorf("failed to list statuses: %w", err)
 			}
 
-			return mcp.NewToolResultText(fmt.Sprintf("Statuses retrieved successfully: %v", statuses)), nil
+			return helpers.NewToolResultText(fmt.Sprintf("Statuses retrieved successfully: %v", statuses)), nil
 		},
 	}
 }
 
 // StatusCreate creates a status in Teamwork Desk
-func StatusCreate(client *deskclient.Client) server.ServerTool {
-	return server.ServerTool{
-		Tool: mcp.NewTool(string(MethodStatusCreate),
-			mcp.WithTitleAnnotation("Create Status"),
-			mcp.WithDescription(
-				"Create a new status in Teamwork Desk by specifying its name, color, and display order. "+
-					"Useful for customizing ticket workflows, introducing new resolution states, or "+
-					"adapting Desk to evolving support processes."),
-			mcp.WithString("name",
-				mcp.Required(),
-				mcp.Description("The name of the status."),
-			),
-			mcp.WithString("color",
-				mcp.Description("The color of the status."),
-			),
-			mcp.WithNumber("displayOrder", mcp.Description("The display order of the status.")),
-		),
-		Handler: func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+func StatusCreate(client *deskclient.Client) toolsets.ToolWrapper {
+	return toolsets.ToolWrapper{
+		Tool: &mcp.Tool{
+			Name: string(MethodStatusCreate),
+			Annotations: &mcp.ToolAnnotations{
+				Title: "Create Status",
+			},
+			Description: "Create a new status in Teamwork Desk by specifying its name, color, and display order. " +
+				"Useful for customizing ticket workflows, introducing new resolution states, or " +
+				"adapting Desk to evolving support processes.",
+			InputSchema: &jsonschema.Schema{
+				Type: "object",
+				Properties: map[string]*jsonschema.Schema{
+					"name": {
+						Type:        "string",
+						Description: "The name of the status.",
+					},
+					"color": {
+						Type:        "string",
+						Description: "The color of the status.",
+					},
+					"displayOrder": {
+						Type:        "integer",
+						Description: "The display order of the status.",
+					},
+				},
+				Required: []string{"name"},
+			},
+		},
+		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+			arguments, err := helpers.NewToolArguments(request)
+			if err != nil {
+				return helpers.NewToolResultTextError(err.Error()), nil
+			}
+
 			status, err := client.TicketStatuses.Create(ctx, &deskmodels.TicketStatusResponse{
 				TicketStatus: deskmodels.TicketStatus{
-					Name:         request.GetString("name", ""),
-					Color:        request.GetString("color", ""),
-					DisplayOrder: request.GetInt("displayOrder", 0),
+					Name:         arguments.GetString("name", ""),
+					Color:        arguments.GetString("color", ""),
+					DisplayOrder: arguments.GetInt("displayOrder", 0),
 				},
 			})
 			if err != nil {
 				return nil, fmt.Errorf("failed to create status: %w", err)
 			}
 
-			return mcp.NewToolResultText(fmt.Sprintf("Status created successfully with ID %d", status.TicketStatus.ID)), nil
+			id := status.TicketStatus.ID
+			return helpers.NewToolResultText(fmt.Sprintf("Status created successfully with ID %d", id)), nil
 		},
 	}
 }
 
 // StatusUpdate updates a status in Teamwork Desk
-func StatusUpdate(client *deskclient.Client) server.ServerTool {
-	return server.ServerTool{
-		Tool: mcp.NewTool(string(MethodStatusUpdate),
-			mcp.WithTitleAnnotation("Update Status"),
-			mcp.WithDescription(
-				"Update an existing status in Teamwork Desk by ID, allowing changes to its name, color, and display order. "+
-					"Supports evolving support policies, rebranding, or correcting status attributes for improved "+
-					"ticket handling."),
-			mcp.WithNumber("id",
-				mcp.Required(),
-				mcp.Description("The ID of the status to update."),
-			),
-			mcp.WithString("name",
-				mcp.Description("The new name of the status."),
-			),
-			mcp.WithString("color",
-				mcp.Description("The color of the status."),
-			),
-			mcp.WithNumber("displayOrder",
-				mcp.Description("The display order of the status."),
-			),
-		),
-		Handler: func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-			_, err := client.TicketStatuses.Update(ctx, request.GetInt("id", 0), &deskmodels.TicketStatusResponse{
+func StatusUpdate(client *deskclient.Client) toolsets.ToolWrapper {
+	return toolsets.ToolWrapper{
+		Tool: &mcp.Tool{
+			Name: string(MethodStatusUpdate),
+			Annotations: &mcp.ToolAnnotations{
+				Title: "Update Status",
+			},
+			Description: "Update an existing status in Teamwork Desk by ID, allowing changes to its name, color, and " +
+				"display order. Supports evolving support policies, rebranding, or correcting status attributes for improved " +
+				"ticket handling.",
+			InputSchema: &jsonschema.Schema{
+				Type: "object",
+				Properties: map[string]*jsonschema.Schema{
+					"id": {
+						Type:        "integer",
+						Description: "The ID of the status to update.",
+					},
+					"name": {
+						Type:        "string",
+						Description: "The new name of the status.",
+					},
+					"color": {
+						Type:        "string",
+						Description: "The color of the status.",
+					},
+					"displayOrder": {
+						Type:        "integer",
+						Description: "The display order of the status.",
+					},
+				},
+				Required: []string{"id"},
+			},
+		},
+		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+			arguments, err := helpers.NewToolArguments(request)
+			if err != nil {
+				return helpers.NewToolResultTextError(err.Error()), nil
+			}
+
+			_, err = client.TicketStatuses.Update(ctx, arguments.GetInt("id", 0), &deskmodels.TicketStatusResponse{
 				TicketStatus: deskmodels.TicketStatus{
-					Name:         request.GetString("name", ""),
-					Color:        request.GetString("color", ""),
-					DisplayOrder: request.GetInt("displayOrder", 0),
+					Name:         arguments.GetString("name", ""),
+					Color:        arguments.GetString("color", ""),
+					DisplayOrder: arguments.GetInt("displayOrder", 0),
 				},
 			})
 			if err != nil {
 				return nil, fmt.Errorf("failed to create status: %w", err)
 			}
 
-			return mcp.NewToolResultText("Status updated successfully"), nil
+			return helpers.NewToolResultText("Status updated successfully"), nil
 		},
 	}
 }

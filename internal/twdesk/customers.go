@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"net/url"
 
-	"github.com/mark3labs/mcp-go/mcp"
-	"github.com/mark3labs/mcp-go/server"
+	"github.com/google/jsonschema-go/jsonschema"
+	"github.com/modelcontextprotocol/go-sdk/mcp"
 	deskclient "github.com/teamwork/desksdkgo/client"
 	deskmodels "github.com/teamwork/desksdkgo/models"
 	"github.com/teamwork/mcp/internal/helpers"
@@ -24,78 +24,118 @@ const (
 	MethodCustomerList   toolsets.Method = "twdesk-list_customers"
 )
 
+var (
+	customerListOutputSchema *jsonschema.Schema
+)
+
 func init() {
 	toolsets.RegisterMethod(MethodCustomerCreate)
 	toolsets.RegisterMethod(MethodCustomerUpdate)
 	toolsets.RegisterMethod(MethodCustomerGet)
 	toolsets.RegisterMethod(MethodCustomerList)
+
+	var err error
+
+	// generate the output schemas only once
+	customerListOutputSchema, err = jsonschema.For[deskmodels.CustomersResponse](&jsonschema.ForOptions{})
+	if err != nil {
+		panic(fmt.Sprintf("failed to generate JSON schema for CustomerListResponse: %v", err))
+	}
 }
 
 // CustomerGet finds a customer in Teamwork Desk.  This will find it by ID
-func CustomerGet(client *deskclient.Client) server.ServerTool {
-	return server.ServerTool{
-		Tool: mcp.NewTool(string(MethodCustomerGet),
-			mcp.WithTitleAnnotation("Get Customer"),
-			mcp.WithDescription(
-				"Retrieve detailed information about a specific customer in Teamwork Desk by their ID. "+
-					"Useful for auditing customer records, troubleshooting ticket associations, or "+
-					"integrating Desk customer data into automation workflows."),
-			mcp.WithReadOnlyHintAnnotation(true),
-			mcp.WithNumber("id",
-				mcp.Required(),
-				mcp.Description("The ID of the customer to retrieve."),
-			),
-		),
-		Handler: func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-			customer, err := client.Customers.Get(ctx, request.GetInt("id", 0))
+func CustomerGet(client *deskclient.Client) toolsets.ToolWrapper {
+	return toolsets.ToolWrapper{
+		Tool: &mcp.Tool{
+			Name: string(MethodCustomerGet),
+			Annotations: &mcp.ToolAnnotations{
+				Title:        "Get Customer",
+				ReadOnlyHint: true,
+			},
+			Description: "Retrieve detailed information about a specific customer in Teamwork Desk by their ID. " +
+				"Useful for auditing customer records, troubleshooting ticket associations, or " +
+				"integrating Desk customer data into automation workflows.",
+			InputSchema: &jsonschema.Schema{
+				Type: "object",
+				Properties: map[string]*jsonschema.Schema{
+					"id": {
+						Type:        "integer",
+						Description: "The ID of the customer to retrieve.",
+					},
+				},
+				Required: []string{"id"},
+			},
+		},
+		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+			arguments, err := helpers.NewToolArguments(request)
+			if err != nil {
+				return helpers.NewToolResultTextError(err.Error()), nil
+			}
+
+			customer, err := client.Customers.Get(ctx, arguments.GetInt("id", 0))
 			if err != nil {
 				return nil, fmt.Errorf("failed to get customer: %w", err)
 			}
 
-			return mcp.NewToolResultText(fmt.Sprintf("Customer retrieved successfully: %s", customer.Customer.FirstName)), nil
+			firstName := customer.Customer.FirstName
+			return helpers.NewToolResultText(fmt.Sprintf("Customer retrieved successfully: %s", firstName)), nil
 		},
 	}
 }
 
 // CustomerList returns a list of customers that apply to the filters in Teamwork Desk
-func CustomerList(client *deskclient.Client) server.ServerTool {
-	opts := []mcp.ToolOption{
-		mcp.WithTitleAnnotation("List Customers"),
-		mcp.WithOutputSchema[deskmodels.CustomersResponse](),
-		mcp.WithDescription(
-			"List all customers in Teamwork Desk, with optional filters for company, email, and other attributes. " +
-				"Enables users to audit, analyze, or synchronize customer configurations for ticket management, " +
-				"reporting, or integration scenarios."),
-		mcp.WithReadOnlyHintAnnotation(true),
-		mcp.WithArray("companyIDs",
-			mcp.Description("The IDs of the companies to filter by."),
-			mcp.Items(map[string]any{
-				"type": "integer",
-			}),
-		),
-		mcp.WithArray("companyNames",
-			mcp.Description("The names of the companies to filter by."),
-			mcp.Items(map[string]any{
-				"type": "string",
-			}),
-		),
-		mcp.WithArray("emails",
-			mcp.Description("The emails of the customers to filter by."),
-			mcp.Items(map[string]any{
-				"type": "string",
-			}),
-		),
+func CustomerList(client *deskclient.Client) toolsets.ToolWrapper {
+	properties := map[string]*jsonschema.Schema{
+		"companyIDs": {
+			Type:        "array",
+			Description: "The IDs of the companies to filter by.",
+			Items: &jsonschema.Schema{
+				Type: "integer",
+			},
+		},
+		"companyNames": {
+			Type:        "array",
+			Description: "The names of the companies to filter by.",
+			Items: &jsonschema.Schema{
+				Type: "string",
+			},
+		},
+		"emails": {
+			Type:        "array",
+			Description: "The emails of the customers to filter by.",
+			Items: &jsonschema.Schema{
+				Type: "string",
+			},
+		},
 	}
+	properties = paginationOptions(properties)
 
-	opts = append(opts, paginationOptions()...)
+	return toolsets.ToolWrapper{
+		Tool: &mcp.Tool{
+			Name: string(MethodCustomerList),
+			Annotations: &mcp.ToolAnnotations{
+				Title:        "List Customers",
+				ReadOnlyHint: true,
+			},
+			Description: "List all customers in Teamwork Desk, with optional filters for company, email, and other " +
+				"attributes. Enables users to audit, analyze, or synchronize customer configurations for ticket management, " +
+				"reporting, or integration scenarios.",
+			InputSchema: &jsonschema.Schema{
+				Type:       "object",
+				Properties: properties,
+			},
+			OutputSchema: customerListOutputSchema,
+		},
+		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+			arguments, err := helpers.NewToolArguments(request)
+			if err != nil {
+				return helpers.NewToolResultTextError(err.Error()), nil
+			}
 
-	return server.ServerTool{
-		Tool: mcp.NewTool(string(MethodCustomerList), opts...),
-		Handler: func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 			// Apply filters to the customer list
-			companyIDs := request.GetIntSlice("companyIDs", []int{})
-			companyNames := request.GetStringSlice("companyNames", []string{})
-			emails := request.GetStringSlice("emails", []string{})
+			companyIDs := arguments.GetIntSlice("companyIDs", []int{})
+			companyNames := arguments.GetStringSlice("companyNames", []string{})
+			emails := arguments.GetStringSlice("emails", []string{})
 
 			filter := deskclient.NewFilter()
 			if len(companyIDs) > 0 {
@@ -112,69 +152,94 @@ func CustomerList(client *deskclient.Client) server.ServerTool {
 
 			params := url.Values{}
 			params.Set("filter", filter.Build())
-			setPagination(&params, request)
+			setPagination(&params, arguments)
 
 			customers, err := client.Customers.List(ctx, params)
 			if err != nil {
 				return nil, fmt.Errorf("failed to list customers: %w", err)
 			}
 
-			return mcp.NewToolResultText(fmt.Sprintf("Customers retrieved successfully: %v", customers)), nil
+			return helpers.NewToolResultText(fmt.Sprintf("Customers retrieved successfully: %v", customers)), nil
 		},
 	}
 }
 
 // CustomerCreate creates a customer in Teamwork Desk
-func CustomerCreate(client *deskclient.Client) server.ServerTool {
-	return server.ServerTool{
-		Tool: mcp.NewTool(string(MethodCustomerCreate),
-			mcp.WithTitleAnnotation("Create Customer"),
-			mcp.WithDescription(
-				"Create a new customer in Teamwork Desk by specifying their name, contact details, and other attributes. "+
-					"Useful for onboarding new clients, customizing Desk for business relationships, or "+
-					"adapting support processes."),
-			mcp.WithString("firstName",
-				mcp.Description("The first name of the customer."),
-			),
-			mcp.WithString("lastName",
-				mcp.Description("The last name of the customer."),
-			),
-			mcp.WithString("email",
-				mcp.Description("The email of the customer."),
-			),
-			mcp.WithString("organization",
-				mcp.Description("The organization of the customer."),
-			),
-			mcp.WithString("extraData",
-				mcp.Description("The extra data of the customer."),
-			),
-			mcp.WithString("notes",
-				mcp.Description("The notes of the customer."),
-			),
-			mcp.WithString("linkedinURL",
-				mcp.Description("The LinkedIn URL of the customer."),
-			),
-			mcp.WithString("facebookURL",
-				mcp.Description("The Facebook URL of the customer."),
-			),
-			mcp.WithString("twitterHandle",
-				mcp.Description("The Twitter handle of the customer."),
-			),
-			mcp.WithString("jobTitle",
-				mcp.Description("The job title of the customer."),
-			),
-			mcp.WithString("phone",
-				mcp.Description("The phone number of the customer."),
-			),
-			mcp.WithString("mobile",
-				mcp.Description("The mobile number of the customer."),
-			),
-			mcp.WithString("address",
-				mcp.Description("The address of the customer."),
-			),
-		),
-		Handler: func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-			domains := request.GetStringSlice("domains", []string{})
+func CustomerCreate(client *deskclient.Client) toolsets.ToolWrapper {
+	return toolsets.ToolWrapper{
+		Tool: &mcp.Tool{
+			Name: string(MethodCustomerCreate),
+			Annotations: &mcp.ToolAnnotations{
+				Title: "Create Customer",
+			},
+			Description: "Create a new customer in Teamwork Desk by specifying their name, contact details, and other " +
+				"attributes. Useful for onboarding new clients, customizing Desk for business relationships, or " +
+				"adapting support processes.",
+			InputSchema: &jsonschema.Schema{
+				Type: "object",
+				Properties: map[string]*jsonschema.Schema{
+					"firstName": {
+						Type:        "string",
+						Description: "The first name of the customer.",
+					},
+					"lastName": {
+						Type:        "string",
+						Description: "The last name of the customer.",
+					},
+					"email": {
+						Type:        "string",
+						Description: "The email of the customer.",
+					},
+					"organization": {
+						Type:        "string",
+						Description: "The organization of the customer.",
+					},
+					"extraData": {
+						Type:        "string",
+						Description: "The extra data of the customer.",
+					},
+					"notes": {
+						Type:        "string",
+						Description: "The notes of the customer.",
+					},
+					"linkedinURL": {
+						Type:        "string",
+						Description: "The LinkedIn URL of the customer.",
+					},
+					"facebookURL": {
+						Type:        "string",
+						Description: "The Facebook URL of the customer.",
+					},
+					"twitterHandle": {
+						Type:        "string",
+						Description: "The Twitter handle of the customer.",
+					},
+					"jobTitle": {
+						Type:        "string",
+						Description: "The job title of the customer.",
+					},
+					"phone": {
+						Type:        "string",
+						Description: "The phone number of the customer.",
+					},
+					"mobile": {
+						Type:        "string",
+						Description: "The mobile number of the customer.",
+					},
+					"address": {
+						Type:        "string",
+						Description: "The address of the customer.",
+					},
+				},
+			},
+		},
+		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+			arguments, err := helpers.NewToolArguments(request)
+			if err != nil {
+				return helpers.NewToolResultTextError(err.Error()), nil
+			}
+
+			domains := arguments.GetStringSlice("domains", []string{})
 			domainEntities := make([]deskmodels.Domain, len(domains))
 			for i, domain := range domains {
 				domainEntities[i] = deskmodels.Domain{
@@ -184,20 +249,20 @@ func CustomerCreate(client *deskclient.Client) server.ServerTool {
 
 			customer, err := client.Customers.Create(ctx, &deskmodels.CustomerResponse{
 				Customer: deskmodels.Customer{
-					FirstName:     request.GetString("firstName", ""),
-					LastName:      request.GetString("lastName", ""),
-					Email:         request.GetString("email", ""),
-					Organization:  request.GetString("organization", ""),
-					ExtraData:     request.GetString("extraData", ""),
-					Notes:         request.GetString("notes", ""),
-					LinkedinURL:   request.GetString("linkedinURL", ""),
-					FacebookURL:   request.GetString("facebookURL", ""),
-					TwitterHandle: request.GetString("twitterHandle", ""),
-					JobTitle:      request.GetString("jobTitle", ""),
-					Phone:         request.GetString("phone", ""),
-					Mobile:        request.GetString("mobile", ""),
-					Address:       request.GetString("address", ""),
-					Trusted:       request.GetBool("trusted", false),
+					FirstName:     arguments.GetString("firstName", ""),
+					LastName:      arguments.GetString("lastName", ""),
+					Email:         arguments.GetString("email", ""),
+					Organization:  arguments.GetString("organization", ""),
+					ExtraData:     arguments.GetString("extraData", ""),
+					Notes:         arguments.GetString("notes", ""),
+					LinkedinURL:   arguments.GetString("linkedinURL", ""),
+					FacebookURL:   arguments.GetString("facebookURL", ""),
+					TwitterHandle: arguments.GetString("twitterHandle", ""),
+					JobTitle:      arguments.GetString("jobTitle", ""),
+					Phone:         arguments.GetString("phone", ""),
+					Mobile:        arguments.GetString("mobile", ""),
+					Address:       arguments.GetString("address", ""),
+					Trusted:       arguments.GetBool("trusted", false),
 				},
 				Included: deskmodels.IncludedData{
 					Domains: domainEntities,
@@ -207,88 +272,115 @@ func CustomerCreate(client *deskclient.Client) server.ServerTool {
 				return nil, fmt.Errorf("failed to create customer: %w", err)
 			}
 
-			return mcp.NewToolResultText(fmt.Sprintf("Customer created successfully with ID %d", customer.Customer.ID)), nil
+			id := customer.Customer.ID
+			return helpers.NewToolResultText(fmt.Sprintf("Customer created successfully with ID %d", id)), nil
 		},
 	}
 }
 
 // CustomerUpdate updates a customer in Teamwork Desk
-func CustomerUpdate(client *deskclient.Client) server.ServerTool {
-	return server.ServerTool{
-		Tool: mcp.NewTool(string(MethodCustomerUpdate),
-			mcp.WithTitleAnnotation("Update Customer"),
-			mcp.WithDescription(
-				"Update an existing customer in Teamwork Desk by ID, allowing changes to their name, "+
-					"contact details, and other attributes. Supports evolving business relationships, "+
-					"correcting customer records, or improving ticket handling."),
-			mcp.WithNumber("id",
-				mcp.Required(),
-				mcp.Description("The ID of the customer to update."),
-			),
-			mcp.WithString("firstName",
-				mcp.Description("The new first name of the customer."),
-			),
-			mcp.WithString("lastName",
-				mcp.Description("The new last name of the customer."),
-			),
-			mcp.WithString("email",
-				mcp.Description("The new email of the customer."),
-			),
-			mcp.WithString("organization",
-				mcp.Description("The new organization of the customer."),
-			),
-			mcp.WithString("extraData",
-				mcp.Description("The new extra data of the customer."),
-			),
-			mcp.WithString("notes",
-				mcp.Description("The new notes of the customer."),
-			),
-			mcp.WithString("linkedinURL",
-				mcp.Description("The new LinkedIn URL of the customer."),
-			),
-			mcp.WithString("facebookURL",
-				mcp.Description("The new Facebook URL of the customer."),
-			),
-			mcp.WithString("twitterHandle",
-				mcp.Description("The new Twitter handle of the customer."),
-			),
-			mcp.WithString("jobTitle",
-				mcp.Description("The new job title of the customer."),
-			),
-			mcp.WithString("phone",
-				mcp.Description("The new phone number of the customer."),
-			),
-			mcp.WithString("mobile",
-				mcp.Description("The new mobile number of the customer."),
-			),
-			mcp.WithString("address",
-				mcp.Description("The new address of the customer."),
-			),
-		),
-		Handler: func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-			domains := request.GetStringSlice("domains", []string{})
+func CustomerUpdate(client *deskclient.Client) toolsets.ToolWrapper {
+	return toolsets.ToolWrapper{
+		Tool: &mcp.Tool{
+			Name: string(MethodCustomerUpdate),
+			Annotations: &mcp.ToolAnnotations{
+				Title: "Update Customer",
+			},
+			Description: "Update an existing customer in Teamwork Desk by ID, allowing changes to their name, " +
+				"contact details, and other attributes. Supports evolving business relationships, " +
+				"correcting customer records, or improving ticket handling.",
+			InputSchema: &jsonschema.Schema{
+				Type: "object",
+				Properties: map[string]*jsonschema.Schema{
+					"id": {
+						Type:        "integer",
+						Description: "The ID of the customer to update.",
+					},
+					"firstName": {
+						Type:        "string",
+						Description: "The new first name of the customer.",
+					},
+					"lastName": {
+						Type:        "string",
+						Description: "The new last name of the customer.",
+					},
+					"email": {
+						Type:        "string",
+						Description: "The new email of the customer.",
+					},
+					"organization": {
+						Type:        "string",
+						Description: "The new organization of the customer.",
+					},
+					"extraData": {
+						Type:        "string",
+						Description: "The new extra data of the customer.",
+					},
+					"notes": {
+						Type:        "string",
+						Description: "The new notes of the customer.",
+					},
+					"linkedinURL": {
+						Type:        "string",
+						Description: "The new LinkedIn URL of the customer.",
+					},
+					"facebookURL": {
+						Type:        "string",
+						Description: "The new Facebook URL of the customer.",
+					},
+					"twitterHandle": {
+						Type:        "string",
+						Description: "The new Twitter handle of the customer.",
+					},
+					"jobTitle": {
+						Type:        "string",
+						Description: "The new job title of the customer.",
+					},
+					"phone": {
+						Type:        "string",
+						Description: "The new phone number of the customer.",
+					},
+					"mobile": {
+						Type:        "string",
+						Description: "The new mobile number of the customer.",
+					},
+					"address": {
+						Type:        "string",
+						Description: "The new address of the customer.",
+					},
+				},
+				Required: []string{"id"},
+			},
+		},
+		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+			arguments, err := helpers.NewToolArguments(request)
+			if err != nil {
+				return helpers.NewToolResultTextError(err.Error()), nil
+			}
+
+			domains := arguments.GetStringSlice("domains", []string{})
 			domainEntities := make([]deskmodels.Domain, len(domains))
 			for i, domain := range domains {
 				domainEntities[i] = deskmodels.Domain{
 					Name: domain,
 				}
 			}
-			_, err := client.Customers.Update(ctx, request.GetInt("id", 0), &deskmodels.CustomerResponse{
+			_, err = client.Customers.Update(ctx, arguments.GetInt("id", 0), &deskmodels.CustomerResponse{
 				Customer: deskmodels.Customer{
-					FirstName:     request.GetString("firstName", ""),
-					LastName:      request.GetString("lastName", ""),
-					Email:         request.GetString("email", ""),
-					Organization:  request.GetString("organization", ""),
-					ExtraData:     request.GetString("extraData", ""),
-					Notes:         request.GetString("notes", ""),
-					LinkedinURL:   request.GetString("linkedinURL", ""),
-					FacebookURL:   request.GetString("facebookURL", ""),
-					TwitterHandle: request.GetString("twitterHandle", ""),
-					JobTitle:      request.GetString("jobTitle", ""),
-					Phone:         request.GetString("phone", ""),
-					Mobile:        request.GetString("mobile", ""),
-					Address:       request.GetString("address", ""),
-					Trusted:       request.GetBool("trusted", false),
+					FirstName:     arguments.GetString("firstName", ""),
+					LastName:      arguments.GetString("lastName", ""),
+					Email:         arguments.GetString("email", ""),
+					Organization:  arguments.GetString("organization", ""),
+					ExtraData:     arguments.GetString("extraData", ""),
+					Notes:         arguments.GetString("notes", ""),
+					LinkedinURL:   arguments.GetString("linkedinURL", ""),
+					FacebookURL:   arguments.GetString("facebookURL", ""),
+					TwitterHandle: arguments.GetString("twitterHandle", ""),
+					JobTitle:      arguments.GetString("jobTitle", ""),
+					Phone:         arguments.GetString("phone", ""),
+					Mobile:        arguments.GetString("mobile", ""),
+					Address:       arguments.GetString("address", ""),
+					Trusted:       arguments.GetBool("trusted", false),
 				},
 				Included: deskmodels.IncludedData{
 					Domains: domainEntities,
@@ -298,7 +390,7 @@ func CustomerUpdate(client *deskclient.Client) server.ServerTool {
 				return nil, fmt.Errorf("failed to create customer: %w", err)
 			}
 
-			return mcp.NewToolResultText("Customer updated successfully"), nil
+			return helpers.NewToolResultText("Customer updated successfully"), nil
 		},
 	}
 }

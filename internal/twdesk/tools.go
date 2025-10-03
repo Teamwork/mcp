@@ -1,14 +1,13 @@
 package twdesk
 
 import (
-	"github.com/mark3labs/mcp-go/server"
 	deskclient "github.com/teamwork/desksdkgo/client"
 	"github.com/teamwork/mcp/internal/toolsets"
 )
 
 // DefaultToolsetGroup creates a default ToolsetGroup for Teamwork Projects.
 func DefaultToolsetGroup(client *deskclient.Client) *toolsets.ToolsetGroup {
-	readTools := []server.ServerTool{
+	readTools := []toolsets.ToolWrapper{
 		CompanyGet(client),
 		CompanyList(client),
 		CustomerGet(client),
@@ -30,7 +29,7 @@ func DefaultToolsetGroup(client *deskclient.Client) *toolsets.ToolsetGroup {
 		UserList(client),
 	}
 
-	writeTools := []server.ServerTool{
+	writeTools := []toolsets.ToolWrapper{
 		CompanyCreate(client),
 		CompanyUpdate(client),
 		CustomerCreate(client),

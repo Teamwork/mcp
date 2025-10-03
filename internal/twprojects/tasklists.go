@@ -5,8 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/mark3labs/mcp-go/mcp"
-	"github.com/mark3labs/mcp-go/server"
+	"github.com/google/jsonschema-go/jsonschema"
+	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/teamwork/mcp/internal/helpers"
 	"github.com/teamwork/mcp/internal/toolsets"
 	"github.com/teamwork/twapi-go-sdk"
@@ -33,6 +33,11 @@ const tasklistDescription = "In the context of Teamwork.com, a task list is a wa
 	"can view or interact with the tasks they contain. This structure helps teams manage progress, assign " +
 	"responsibilities, and maintain clarity across complex projects."
 
+var (
+	tasklistGetOutputSchema  *jsonschema.Schema
+	tasklistListOutputSchema *jsonschema.Schema
+)
+
 func init() {
 	// register the toolset methods
 	toolsets.RegisterMethod(MethodTasklistCreate)
@@ -41,40 +46,67 @@ func init() {
 	toolsets.RegisterMethod(MethodTasklistGet)
 	toolsets.RegisterMethod(MethodTasklistList)
 	toolsets.RegisterMethod(MethodTasklistListByProject)
+
+	var err error
+
+	// generate the output schemas only once
+	tasklistGetOutputSchema, err = jsonschema.For[projects.TasklistGetResponse](&jsonschema.ForOptions{})
+	if err != nil {
+		panic(fmt.Sprintf("failed to generate JSON schema for TasklistGetResponse: %v", err))
+	}
+	tasklistListOutputSchema, err = jsonschema.For[projects.TasklistListResponse](&jsonschema.ForOptions{})
+	if err != nil {
+		panic(fmt.Sprintf("failed to generate JSON schema for TasklistListResponse: %v", err))
+	}
 }
 
 // TasklistCreate creates a tasklist in Teamwork.com.
-func TasklistCreate(engine *twapi.Engine) server.ServerTool {
-	return server.ServerTool{
-		Tool: mcp.NewTool(string(MethodTasklistCreate),
-			mcp.WithDescription("Create a new tasklist in Teamwork.com. "+tasklistDescription),
-			mcp.WithTitleAnnotation("Create Tasklist"),
-			mcp.WithString("name",
-				mcp.Required(),
-				mcp.Description("The name of the tasklist."),
-			),
-			mcp.WithNumber("project_id",
-				mcp.Required(),
-				mcp.Description("The ID of the project to create the tasklist in."),
-			),
-			mcp.WithString("description",
-				mcp.Description("The description of the tasklist."),
-			),
-			mcp.WithNumber("milestone_id",
-				mcp.Description("The ID of the milestone to associate with the tasklist."),
-			),
-		),
-		Handler: func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+func TasklistCreate(engine *twapi.Engine) toolsets.ToolWrapper {
+	return toolsets.ToolWrapper{
+		Tool: &mcp.Tool{
+			Name:        string(MethodTasklistCreate),
+			Description: "Create a new tasklist in Teamwork.com. " + tasklistDescription,
+			Annotations: &mcp.ToolAnnotations{
+				Title: "Create Tasklist",
+			},
+			InputSchema: &jsonschema.Schema{
+				Type: "object",
+				Properties: map[string]*jsonschema.Schema{
+					"name": {
+						Type:        "string",
+						Description: "The name of the tasklist.",
+					},
+					"project_id": {
+						Type:        "integer",
+						Description: "The ID of the project to create the tasklist in.",
+					},
+					"description": {
+						Type:        "string",
+						Description: "The description of the tasklist.",
+					},
+					"milestone_id": {
+						Type:        "integer",
+						Description: "The ID of the milestone to associate with the tasklist.",
+					},
+				},
+				Required: []string{"name", "project_id"},
+			},
+		},
+		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 			var tasklistCreateRequest projects.TasklistCreateRequest
 
-			err := helpers.ParamGroup(request.GetArguments(),
+			var arguments map[string]any
+			if err := json.Unmarshal(request.Params.Arguments, &arguments); err != nil {
+				return helpers.NewToolResultTextError(fmt.Sprintf("failed to decode request: %s", err.Error())), nil
+			}
+			err := helpers.ParamGroup(arguments,
 				helpers.RequiredParam(&tasklistCreateRequest.Name, "name"),
 				helpers.RequiredNumericParam(&tasklistCreateRequest.Path.ProjectID, "project_id"),
 				helpers.OptionalPointerParam(&tasklistCreateRequest.Description, "description"),
 				helpers.OptionalNumericPointerParam(&tasklistCreateRequest.MilestoneID, "milestone_id"),
 			)
 			if err != nil {
-				return mcp.NewToolResultErrorFromErr("invalid parameters", err), nil
+				return helpers.NewToolResultTextError(fmt.Sprintf("invalid parameters: %s", err.Error())), nil
 			}
 
 			tasklist, err := projects.TasklistCreate(ctx, engine, tasklistCreateRequest)
@@ -82,42 +114,64 @@ func TasklistCreate(engine *twapi.Engine) server.ServerTool {
 				return helpers.HandleAPIError(err, "failed to create tasklist")
 			}
 
-			return mcp.NewToolResultText(fmt.Sprintf("Tasklist created successfully with ID %d", tasklist.ID)), nil
+			return &mcp.CallToolResult{
+				Content: []mcp.Content{
+					&mcp.TextContent{
+						Text: fmt.Sprintf("Tasklist created successfully with ID %d", tasklist.ID),
+					},
+				},
+			}, nil
 		},
 	}
 }
 
 // TasklistUpdate updates a tasklist in Teamwork.com.
-func TasklistUpdate(engine *twapi.Engine) server.ServerTool {
-	return server.ServerTool{
-		Tool: mcp.NewTool(string(MethodTasklistUpdate),
-			mcp.WithDescription("Update an existing tasklist in Teamwork.com. "+tasklistDescription),
-			mcp.WithTitleAnnotation("Update Tasklist"),
-			mcp.WithNumber("id",
-				mcp.Required(),
-				mcp.Description("The ID of the tasklist to update."),
-			),
-			mcp.WithString("name",
-				mcp.Description("The name of the tasklist."),
-			),
-			mcp.WithString("description",
-				mcp.Description("The description of the tasklist."),
-			),
-			mcp.WithNumber("milestone_id",
-				mcp.Description("The ID of the milestone to associate with the tasklist."),
-			),
-		),
-		Handler: func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+func TasklistUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
+	return toolsets.ToolWrapper{
+		Tool: &mcp.Tool{
+			Name:        string(MethodTasklistUpdate),
+			Description: "Update an existing tasklist in Teamwork.com. " + tasklistDescription,
+			Annotations: &mcp.ToolAnnotations{
+				Title: "Update Tasklist",
+			},
+			InputSchema: &jsonschema.Schema{
+				Type: "object",
+				Properties: map[string]*jsonschema.Schema{
+					"id": {
+						Type:        "integer",
+						Description: "The ID of the tasklist to update.",
+					},
+					"name": {
+						Type:        "string",
+						Description: "The name of the tasklist.",
+					},
+					"description": {
+						Type:        "string",
+						Description: "The description of the tasklist.",
+					},
+					"milestone_id": {
+						Type:        "integer",
+						Description: "The ID of the milestone to associate with the tasklist.",
+					},
+				},
+				Required: []string{"id"},
+			},
+		},
+		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 			var tasklistUpdateRequest projects.TasklistUpdateRequest
 
-			err := helpers.ParamGroup(request.GetArguments(),
+			var arguments map[string]any
+			if err := json.Unmarshal(request.Params.Arguments, &arguments); err != nil {
+				return helpers.NewToolResultTextError(fmt.Sprintf("failed to decode request: %s", err.Error())), nil
+			}
+			err := helpers.ParamGroup(arguments,
 				helpers.RequiredNumericParam(&tasklistUpdateRequest.Path.ID, "id"),
 				helpers.OptionalPointerParam(&tasklistUpdateRequest.Name, "name"),
 				helpers.OptionalPointerParam(&tasklistUpdateRequest.Description, "description"),
 				helpers.OptionalNumericPointerParam(&tasklistUpdateRequest.MilestoneID, "milestone_id"),
 			)
 			if err != nil {
-				return mcp.NewToolResultErrorFromErr("invalid parameters", err), nil
+				return helpers.NewToolResultTextError(fmt.Sprintf("invalid parameters: %s", err.Error())), nil
 			}
 
 			_, err = projects.TasklistUpdate(ctx, engine, tasklistUpdateRequest)
@@ -125,30 +179,49 @@ func TasklistUpdate(engine *twapi.Engine) server.ServerTool {
 				return helpers.HandleAPIError(err, "failed to update tasklist")
 			}
 
-			return mcp.NewToolResultText("Tasklist updated successfully"), nil
+			return &mcp.CallToolResult{
+				Content: []mcp.Content{
+					&mcp.TextContent{
+						Text: "Tasklist updated successfully",
+					},
+				},
+			}, nil
 		},
 	}
 }
 
 // TasklistDelete deletes a tasklist in Teamwork.com.
-func TasklistDelete(engine *twapi.Engine) server.ServerTool {
-	return server.ServerTool{
-		Tool: mcp.NewTool(string(MethodTasklistDelete),
-			mcp.WithDescription("Delete an existing tasklist in Teamwork.com. "+tasklistDescription),
-			mcp.WithTitleAnnotation("Delete Tasklist"),
-			mcp.WithNumber("id",
-				mcp.Required(),
-				mcp.Description("The ID of the tasklist to delete."),
-			),
-		),
-		Handler: func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+func TasklistDelete(engine *twapi.Engine) toolsets.ToolWrapper {
+	return toolsets.ToolWrapper{
+		Tool: &mcp.Tool{
+			Name:        string(MethodTasklistDelete),
+			Description: "Delete an existing tasklist in Teamwork.com. " + tasklistDescription,
+			Annotations: &mcp.ToolAnnotations{
+				Title: "Delete Tasklist",
+			},
+			InputSchema: &jsonschema.Schema{
+				Type: "object",
+				Properties: map[string]*jsonschema.Schema{
+					"id": {
+						Type:        "integer",
+						Description: "The ID of the tasklist to delete.",
+					},
+				},
+				Required: []string{"id"},
+			},
+		},
+		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 			var tasklistDeleteRequest projects.TasklistDeleteRequest
 
-			err := helpers.ParamGroup(request.GetArguments(),
+			var arguments map[string]any
+			if err := json.Unmarshal(request.Params.Arguments, &arguments); err != nil {
+				return helpers.NewToolResultTextError(fmt.Sprintf("failed to decode request: %s", err.Error())), nil
+			}
+			err := helpers.ParamGroup(arguments,
 				helpers.RequiredNumericParam(&tasklistDeleteRequest.Path.ID, "id"),
 			)
 			if err != nil {
-				return mcp.NewToolResultErrorFromErr("invalid parameters", err), nil
+				return helpers.NewToolResultTextError(fmt.Sprintf("invalid parameters: %s", err.Error())), nil
 			}
 
 			_, err = projects.TasklistDelete(ctx, engine, tasklistDeleteRequest)
@@ -156,34 +229,51 @@ func TasklistDelete(engine *twapi.Engine) server.ServerTool {
 				return helpers.HandleAPIError(err, "failed to delete tasklist")
 			}
 
-			return mcp.NewToolResultText("Tasklist deleted successfully"), nil
+			return &mcp.CallToolResult{
+				Content: []mcp.Content{
+					&mcp.TextContent{
+						Text: "Tasklist deleted successfully",
+					},
+				},
+			}, nil
 		},
 	}
 }
 
 // TasklistGet retrieves a tasklist in Teamwork.com.
-func TasklistGet(engine *twapi.Engine) server.ServerTool {
-	return server.ServerTool{
-		Tool: mcp.NewTool(string(MethodTasklistGet),
-			mcp.WithDescription("Get an existing tasklist in Teamwork.com. "+tasklistDescription),
-			mcp.WithToolAnnotation(mcp.ToolAnnotation{
-				ReadOnlyHint: twapi.Ptr(true),
-			}),
-			mcp.WithTitleAnnotation("Get Tasklist"),
-			mcp.WithOutputSchema[projects.TasklistGetResponse](),
-			mcp.WithNumber("id",
-				mcp.Required(),
-				mcp.Description("The ID of the tasklist to get."),
-			),
-		),
-		Handler: func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+func TasklistGet(engine *twapi.Engine) toolsets.ToolWrapper {
+	return toolsets.ToolWrapper{
+		Tool: &mcp.Tool{
+			Name:        string(MethodTasklistGet),
+			Description: "Get an existing tasklist in Teamwork.com. " + tasklistDescription,
+			Annotations: &mcp.ToolAnnotations{
+				Title:        "Get Tasklist",
+				ReadOnlyHint: true,
+			},
+			InputSchema: &jsonschema.Schema{
+				Type: "object",
+				Properties: map[string]*jsonschema.Schema{
+					"id": {
+						Type:        "integer",
+						Description: "The ID of the tasklist to get.",
+					},
+				},
+				Required: []string{"id"},
+			},
+			OutputSchema: tasklistGetOutputSchema,
+		},
+		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 			var tasklistGetRequest projects.TasklistGetRequest
 
-			err := helpers.ParamGroup(request.GetArguments(),
+			var arguments map[string]any
+			if err := json.Unmarshal(request.Params.Arguments, &arguments); err != nil {
+				return helpers.NewToolResultTextError(fmt.Sprintf("failed to decode request: %s", err.Error())), nil
+			}
+			err := helpers.ParamGroup(arguments,
 				helpers.RequiredNumericParam(&tasklistGetRequest.Path.ID, "id"),
 			)
 			if err != nil {
-				return mcp.NewToolResultErrorFromErr("invalid parameters", err), nil
+				return helpers.NewToolResultTextError(fmt.Sprintf("invalid parameters: %s", err.Error())), nil
 			}
 
 			tasklist, err := projects.TasklistGet(ctx, engine, tasklistGetRequest)
@@ -195,43 +285,62 @@ func TasklistGet(engine *twapi.Engine) server.ServerTool {
 			if err != nil {
 				return nil, err
 			}
-			return mcp.NewToolResultText(string(helpers.WebLinker(ctx, encoded,
-				helpers.WebLinkerWithIDPathBuilder("/app/tasklists"),
-			))), nil
+			return &mcp.CallToolResult{
+				Content: []mcp.Content{
+					&mcp.TextContent{
+						Text: string(helpers.WebLinker(ctx, encoded,
+							helpers.WebLinkerWithIDPathBuilder("/app/tasklists"),
+						)),
+					},
+				},
+			}, nil
 		},
 	}
 }
 
 // TasklistList lists tasklists in Teamwork.com.
-func TasklistList(engine *twapi.Engine) server.ServerTool {
-	return server.ServerTool{
-		Tool: mcp.NewTool(string(MethodTasklistList),
-			mcp.WithDescription("List tasklists in Teamwork.com. "+tasklistDescription),
-			mcp.WithToolAnnotation(mcp.ToolAnnotation{
-				ReadOnlyHint: twapi.Ptr(true),
-			}),
-			mcp.WithTitleAnnotation("List Tasklists"),
-			mcp.WithOutputSchema[projects.TasklistListResponse](),
-			mcp.WithString("search_term",
-				mcp.Description("A search term to filter tasklists by name."),
-			),
-			mcp.WithNumber("page",
-				mcp.Description("Page number for pagination of results."),
-			),
-			mcp.WithNumber("page_size",
-				mcp.Description("Number of results per page for pagination."),
-			),
-		),
-		Handler: func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+func TasklistList(engine *twapi.Engine) toolsets.ToolWrapper {
+	return toolsets.ToolWrapper{
+		Tool: &mcp.Tool{
+			Name:        string(MethodTasklistList),
+			Description: "List tasklists in Teamwork.com. " + tasklistDescription,
+			Annotations: &mcp.ToolAnnotations{
+				Title:        "List Tasklists",
+				ReadOnlyHint: true,
+			},
+			InputSchema: &jsonschema.Schema{
+				Type: "object",
+				Properties: map[string]*jsonschema.Schema{
+					"search_term": {
+						Type:        "string",
+						Description: "A search term to filter tasklists by name.",
+					},
+					"page": {
+						Type:        "integer",
+						Description: "Page number for pagination of results.",
+					},
+					"page_size": {
+						Type:        "integer",
+						Description: "Number of results per page for pagination.",
+					},
+				},
+			},
+			OutputSchema: tasklistListOutputSchema,
+		},
+		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 			var tasklistListRequest projects.TasklistListRequest
 
-			err := helpers.ParamGroup(request.GetArguments(),
+			var arguments map[string]any
+			if err := json.Unmarshal(request.Params.Arguments, &arguments); err != nil {
+				return helpers.NewToolResultTextError(fmt.Sprintf("failed to decode request: %s", err.Error())), nil
+			}
+			err := helpers.ParamGroup(arguments,
 				helpers.OptionalParam(&tasklistListRequest.Filters.SearchTerm, "search_term"),
 				helpers.OptionalNumericParam(&tasklistListRequest.Filters.Page, "page"),
 				helpers.OptionalNumericParam(&tasklistListRequest.Filters.PageSize, "page_size"),
 			)
 			if err != nil {
-				return mcp.NewToolResultErrorFromErr("invalid parameters", err), nil
+				return helpers.NewToolResultTextError(fmt.Sprintf("invalid parameters: %s", err.Error())), nil
 			}
 
 			tasklistList, err := projects.TasklistList(ctx, engine, tasklistListRequest)
@@ -243,48 +352,68 @@ func TasklistList(engine *twapi.Engine) server.ServerTool {
 			if err != nil {
 				return nil, err
 			}
-			return mcp.NewToolResultText(string(helpers.WebLinker(ctx, encoded,
-				helpers.WebLinkerWithIDPathBuilder("/app/tasklists"),
-			))), nil
+			return &mcp.CallToolResult{
+				Content: []mcp.Content{
+					&mcp.TextContent{
+						Text: string(helpers.WebLinker(ctx, encoded,
+							helpers.WebLinkerWithIDPathBuilder("/app/tasklists"),
+						)),
+					},
+				},
+			}, nil
 		},
 	}
 }
 
 // TasklistListByProject lists tasklists in Teamwork.com by project.
-func TasklistListByProject(engine *twapi.Engine) server.ServerTool {
-	return server.ServerTool{
-		Tool: mcp.NewTool(string(MethodTasklistListByProject),
-			mcp.WithDescription("List tasklists in Teamwork.com by project. "+tasklistDescription),
-			mcp.WithToolAnnotation(mcp.ToolAnnotation{
-				ReadOnlyHint: twapi.Ptr(true),
-			}),
-			mcp.WithTitleAnnotation("List Tasklists By Project"),
-			mcp.WithOutputSchema[projects.TasklistListResponse](),
-			mcp.WithNumber("project_id",
-				mcp.Required(),
-				mcp.Description("The ID of the project from which to retrieve tasklists."),
-			),
-			mcp.WithString("search_term",
-				mcp.Description("A search term to filter tasklists by name."),
-			),
-			mcp.WithNumber("page",
-				mcp.Description("Page number for pagination of results."),
-			),
-			mcp.WithNumber("page_size",
-				mcp.Description("Number of results per page for pagination."),
-			),
-		),
-		Handler: func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+func TasklistListByProject(engine *twapi.Engine) toolsets.ToolWrapper {
+	return toolsets.ToolWrapper{
+		Tool: &mcp.Tool{
+			Name:        string(MethodTasklistListByProject),
+			Description: "List tasklists in Teamwork.com by project. " + tasklistDescription,
+			Annotations: &mcp.ToolAnnotations{
+				Title:        "List Tasklists By Project",
+				ReadOnlyHint: true,
+			},
+			InputSchema: &jsonschema.Schema{
+				Type: "object",
+				Properties: map[string]*jsonschema.Schema{
+					"project_id": {
+						Type:        "integer",
+						Description: "The ID of the project from which to retrieve tasklists.",
+					},
+					"search_term": {
+						Type:        "string",
+						Description: "A search term to filter tasklists by name.",
+					},
+					"page": {
+						Type:        "integer",
+						Description: "Page number for pagination of results.",
+					},
+					"page_size": {
+						Type:        "integer",
+						Description: "Number of results per page for pagination.",
+					},
+				},
+				Required: []string{"project_id"},
+			},
+			OutputSchema: tasklistListOutputSchema,
+		},
+		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 			var tasklistListRequest projects.TasklistListRequest
 
-			err := helpers.ParamGroup(request.GetArguments(),
+			var arguments map[string]any
+			if err := json.Unmarshal(request.Params.Arguments, &arguments); err != nil {
+				return helpers.NewToolResultTextError(fmt.Sprintf("failed to decode request: %s", err.Error())), nil
+			}
+			err := helpers.ParamGroup(arguments,
 				helpers.RequiredNumericParam(&tasklistListRequest.Path.ProjectID, "project_id"),
 				helpers.OptionalParam(&tasklistListRequest.Filters.SearchTerm, "search_term"),
 				helpers.OptionalNumericParam(&tasklistListRequest.Filters.Page, "page"),
 				helpers.OptionalNumericParam(&tasklistListRequest.Filters.PageSize, "page_size"),
 			)
 			if err != nil {
-				return mcp.NewToolResultErrorFromErr("invalid parameters", err), nil
+				return helpers.NewToolResultTextError(fmt.Sprintf("invalid parameters: %s", err.Error())), nil
 			}
 
 			tasklistList, err := projects.TasklistList(ctx, engine, tasklistListRequest)
@@ -296,9 +425,15 @@ func TasklistListByProject(engine *twapi.Engine) server.ServerTool {
 			if err != nil {
 				return nil, err
 			}
-			return mcp.NewToolResultText(string(helpers.WebLinker(ctx, encoded,
-				helpers.WebLinkerWithIDPathBuilder("/app/tasklists"),
-			))), nil
+			return &mcp.CallToolResult{
+				Content: []mcp.Content{
+					&mcp.TextContent{
+						Text: string(helpers.WebLinker(ctx, encoded,
+							helpers.WebLinkerWithIDPathBuilder("/app/tasklists"),
+						)),
+					},
+				},
+			}, nil
 		},
 	}
 }

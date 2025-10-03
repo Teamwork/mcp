@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"net/url"
 
-	"github.com/mark3labs/mcp-go/mcp"
-	"github.com/mark3labs/mcp-go/server"
+	"github.com/google/jsonschema-go/jsonschema"
+	"github.com/modelcontextprotocol/go-sdk/mcp"
 	deskclient "github.com/teamwork/desksdkgo/client"
 	deskmodels "github.com/teamwork/desksdkgo/models"
 	"github.com/teamwork/mcp/internal/helpers"
@@ -24,69 +24,116 @@ const (
 	MethodTagList   toolsets.Method = "twdesk-list_tags"
 )
 
+var (
+	tagGetOutputSchema  *jsonschema.Schema
+	tagListOutputSchema *jsonschema.Schema
+)
+
 func init() {
 	toolsets.RegisterMethod(MethodTagCreate)
 	toolsets.RegisterMethod(MethodTagUpdate)
 	toolsets.RegisterMethod(MethodTagGet)
 	toolsets.RegisterMethod(MethodTagList)
+
+	var err error
+	tagGetOutputSchema, err = jsonschema.For[deskmodels.Tag](&jsonschema.ForOptions{})
+	if err != nil {
+		panic(fmt.Sprintf("failed to generate JSON schema for Tag: %v", err))
+	}
+
+	tagListOutputSchema, err = jsonschema.For[deskmodels.TagsResponse](&jsonschema.ForOptions{})
+	if err != nil {
+		panic(fmt.Sprintf("failed to generate JSON schema for TagsResponse: %v", err))
+	}
 }
 
 // TagGet finds a tag in Teamwork Desk.  This will find it by ID
-func TagGet(client *deskclient.Client) server.ServerTool {
-	return server.ServerTool{
-		Tool: mcp.NewTool(string(MethodTagGet),
-			mcp.WithOutputSchema[deskmodels.Tag](),
-			mcp.WithTitleAnnotation("Get Tag"),
-			mcp.WithDescription(
-				"Retrieve detailed information about a specific tag in Teamwork Desk by its ID. "+
-					"Useful for auditing tag usage, troubleshooting ticket categorization, or "+
-					"integrating Desk tag data into automation workflows."),
-			mcp.WithReadOnlyHintAnnotation(true),
-			mcp.WithNumber("id",
-				mcp.Required(),
-				mcp.Description("The ID of the tag to retrieve."),
-			),
-		),
-		Handler: func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-			tag, err := client.Tags.Get(ctx, request.GetInt("id", 0))
+func TagGet(client *deskclient.Client) toolsets.ToolWrapper {
+	return toolsets.ToolWrapper{
+		Tool: &mcp.Tool{
+			Name: string(MethodTagGet),
+			Annotations: &mcp.ToolAnnotations{
+				Title:        "Get Tag",
+				ReadOnlyHint: true,
+			},
+			Description: "Retrieve detailed information about a specific tag in Teamwork Desk by its ID. " +
+				"Useful for auditing tag usage, troubleshooting ticket categorization, or " +
+				"integrating Desk tag data into automation workflows.",
+			InputSchema: &jsonschema.Schema{
+				Type: "object",
+				Properties: map[string]*jsonschema.Schema{
+					"id": {
+						Type:        "integer",
+						Description: "The ID of the tag to retrieve.",
+					},
+				},
+				Required: []string{"id"},
+			},
+			OutputSchema: tagGetOutputSchema,
+		},
+		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+			arguments, err := helpers.NewToolArguments(request)
+			if err != nil {
+				return helpers.NewToolResultTextError(err.Error()), nil
+			}
+
+			tag, err := client.Tags.Get(ctx, arguments.GetInt("id", 0))
 			if err != nil {
 				return nil, fmt.Errorf("failed to get tag: %w", err)
 			}
 
-			return mcp.NewToolResultText(fmt.Sprintf("Tag retrieved successfully: %s", tag.Tag.Name)), nil
+			return helpers.NewToolResultText(fmt.Sprintf("Tag retrieved successfully: %s", tag.Tag.Name)), nil
 		},
 	}
 }
 
 // TagList returns a list of tags that apply to the filters in Teamwork Desk
-func TagList(client *deskclient.Client) server.ServerTool {
-	opts := []mcp.ToolOption{
-		mcp.WithTitleAnnotation("List Tags"),
-		mcp.WithOutputSchema[deskmodels.TagsResponse](),
-		mcp.WithDescription(
-			"List all tags in Teamwork Desk, with optional filters for name, color, and inbox association. " +
-				"Enables users to audit, analyze, or synchronize tag configurations for ticket management, " +
-				"reporting, or integration scenarios."),
-		mcp.WithReadOnlyHintAnnotation(true),
-		mcp.WithString("name", mcp.Description("The name of the tag to filter by.")),
-		mcp.WithString("color", mcp.Description("The color of the tag to filter by.")),
-		mcp.WithArray("inboxIDs",
-			mcp.Description("The IDs of the inboxes to filter by."),
-			mcp.Items(map[string]any{
-				"type": "integer",
-			}),
-		),
+func TagList(client *deskclient.Client) toolsets.ToolWrapper {
+	properties := map[string]*jsonschema.Schema{
+		"name": {
+			Type:        "string",
+			Description: "The name of the tag to filter by.",
+		},
+		"color": {
+			Type:        "string",
+			Description: "The color of the tag to filter by.",
+		},
+		"inboxIDs": {
+			Type:        "array",
+			Description: "The IDs of the inboxes to filter by.",
+			Items: &jsonschema.Schema{
+				Type: "integer",
+			},
+		},
 	}
+	properties = paginationOptions(properties)
 
-	opts = append(opts, paginationOptions()...)
+	return toolsets.ToolWrapper{
+		Tool: &mcp.Tool{
+			Name: string(MethodTagList),
+			Annotations: &mcp.ToolAnnotations{
+				Title:        "List Tags",
+				ReadOnlyHint: true,
+			},
+			Description: "List all tags in Teamwork Desk, with optional filters for name, color, and inbox association. " +
+				"Enables users to audit, analyze, or synchronize tag configurations for ticket management, " +
+				"reporting, or integration scenarios.",
+			InputSchema: &jsonschema.Schema{
+				Type:       "object",
+				Properties: properties,
+			},
+			OutputSchema: tagListOutputSchema,
+		},
+		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+			arguments, err := helpers.NewToolArguments(request)
+			if err != nil {
+				return helpers.NewToolResultTextError(err.Error()), nil
+			}
 
-	return server.ServerTool{
-		Tool: mcp.NewTool(string(MethodTagList), opts...),
-		Handler: func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 			// Apply filters to the tag list
-			name := request.GetString("name", "")
-			color := request.GetString("color", "")
-			inboxIDs := request.GetIntSlice("inboxIDs", []int{})
+			name := arguments.GetString("name", "")
+			color := arguments.GetString("color", "")
+			inboxIDs := arguments.GetIntSlice("inboxIDs", []int{})
 
 			filter := deskclient.NewFilter()
 			if name != "" {
@@ -101,82 +148,111 @@ func TagList(client *deskclient.Client) server.ServerTool {
 
 			params := url.Values{}
 			params.Set("filter", filter.Build())
-			setPagination(&params, request)
+			setPagination(&params, arguments)
 
 			tags, err := client.Tags.List(ctx, params)
 			if err != nil {
 				return nil, fmt.Errorf("failed to list tags: %w", err)
 			}
 
-			return mcp.NewToolResultText(fmt.Sprintf("Tags retrieved successfully: %v", tags)), nil
+			return helpers.NewToolResultText(fmt.Sprintf("Tags retrieved successfully: %v", tags)), nil
 		},
 	}
 }
 
 // TagCreate creates a tag in Teamwork Desk
-func TagCreate(client *deskclient.Client) server.ServerTool {
-	return server.ServerTool{
-		Tool: mcp.NewTool(string(MethodTagCreate),
-			mcp.WithTitleAnnotation("Create Tag"),
-			mcp.WithDescription(
-				"Create a new tag in Teamwork Desk by specifying its name and color. Useful for customizing "+
-					"ticket workflows, introducing new categories, or adapting Desk to evolving support processes."),
-			mcp.WithString("name",
-				mcp.Required(),
-				mcp.Description("The name of the tag."),
-			),
-			mcp.WithString("color",
-				mcp.Description("The color of the tag."),
-			),
-		),
-		Handler: func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+func TagCreate(client *deskclient.Client) toolsets.ToolWrapper {
+	return toolsets.ToolWrapper{
+		Tool: &mcp.Tool{
+			Name: string(MethodTagCreate),
+			Annotations: &mcp.ToolAnnotations{
+				Title: "Create Tag",
+			},
+			Description: "Create a new tag in Teamwork Desk by specifying its name and color. Useful for customizing " +
+				"ticket workflows, introducing new categories, or adapting Desk to evolving support processes.",
+			InputSchema: &jsonschema.Schema{
+				Type: "object",
+				Properties: map[string]*jsonschema.Schema{
+					"name": {
+						Type:        "string",
+						Description: "The name of the tag.",
+					},
+					"color": {
+						Type:        "string",
+						Description: "The color of the tag.",
+					},
+				},
+				Required: []string{"name"},
+			},
+		},
+		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+			arguments, err := helpers.NewToolArguments(request)
+			if err != nil {
+				return helpers.NewToolResultTextError(err.Error()), nil
+			}
+
 			tag, err := client.Tags.Create(ctx, &deskmodels.TagResponse{
 				Tag: deskmodels.Tag{
-					Name:  request.GetString("name", ""),
-					Color: request.GetString("color", ""),
+					Name:  arguments.GetString("name", ""),
+					Color: arguments.GetString("color", ""),
 				},
 			})
 			if err != nil {
 				return nil, fmt.Errorf("failed to create tag: %w", err)
 			}
 
-			return mcp.NewToolResultText(fmt.Sprintf("Tag created successfully with ID %d", tag.Tag.ID)), nil
+			return helpers.NewToolResultText(fmt.Sprintf("Tag created successfully with ID %d", tag.Tag.ID)), nil
 		},
 	}
 }
 
 // TagUpdate updates a tag in Teamwork Desk
-func TagUpdate(client *deskclient.Client) server.ServerTool {
-	return server.ServerTool{
-		Tool: mcp.NewTool(string(MethodTagUpdate),
-			mcp.WithTitleAnnotation("Update Tag"),
-			mcp.WithDescription(
-				"Update an existing tag in Teamwork Desk by ID, allowing changes to its name and color. "+
-					"Supports evolving support policies, rebranding, or correcting tag attributes for improved "+
-					"ticket handling."),
-			mcp.WithNumber("id",
-				mcp.Required(),
-				mcp.Description("The ID of the tag to update."),
-			),
-			mcp.WithString("name",
-				mcp.Description("The new name of the tag."),
-			),
-			mcp.WithString("color",
-				mcp.Description("The color of the tag."),
-			),
-		),
-		Handler: func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-			_, err := client.Tags.Update(ctx, request.GetInt("id", 0), &deskmodels.TagResponse{
+func TagUpdate(client *deskclient.Client) toolsets.ToolWrapper {
+	return toolsets.ToolWrapper{
+		Tool: &mcp.Tool{
+			Name: string(MethodTagUpdate),
+			Annotations: &mcp.ToolAnnotations{
+				Title: "Update Tag",
+			},
+			Description: "Update an existing tag in Teamwork Desk by ID, allowing changes to its name and color. " +
+				"Supports evolving support policies, rebranding, or correcting tag attributes for improved " +
+				"ticket handling.",
+			InputSchema: &jsonschema.Schema{
+				Type: "object",
+				Properties: map[string]*jsonschema.Schema{
+					"id": {
+						Type:        "integer",
+						Description: "The ID of the tag to update.",
+					},
+					"name": {
+						Type:        "string",
+						Description: "The new name of the tag.",
+					},
+					"color": {
+						Type:        "string",
+						Description: "The color of the tag.",
+					},
+				},
+				Required: []string{"id"},
+			},
+		},
+		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+			arguments, err := helpers.NewToolArguments(request)
+			if err != nil {
+				return helpers.NewToolResultTextError(err.Error()), nil
+			}
+
+			_, err = client.Tags.Update(ctx, arguments.GetInt("id", 0), &deskmodels.TagResponse{
 				Tag: deskmodels.Tag{
-					Name:  request.GetString("name", ""),
-					Color: request.GetString("color", ""),
+					Name:  arguments.GetString("name", ""),
+					Color: arguments.GetString("color", ""),
 				},
 			})
 			if err != nil {
 				return nil, fmt.Errorf("failed to create tag: %w", err)
 			}
 
-			return mcp.NewToolResultText("Tag updated successfully"), nil
+			return helpers.NewToolResultText("Tag updated successfully"), nil
 		},
 	}
 }

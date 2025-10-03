@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -11,8 +10,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/mark3labs/mcp-go/mcp"
-	"github.com/mark3labs/mcp-go/server"
+	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/teamwork/mcp/internal/auth"
 	"github.com/teamwork/mcp/internal/config"
 	"github.com/teamwork/mcp/internal/toolsets"
@@ -69,18 +67,25 @@ func main() {
 
 	mcpServer, err := newMCPServer(resources)
 	if err != nil {
-		mcpError(resources.Logger(), fmt.Errorf("failed to create MCP server: %s", err), mcp.INTERNAL_ERROR)
+		mcpError(resources.Logger(), fmt.Errorf("failed to create MCP server: %s", err), jsonRPCErrorCodeInternalError)
 		exit(exitCodeSetupFailure)
 	}
-	mcpSTDIOServer := server.NewStdioServer(mcpServer)
-	stdinWrapper := newStdinWrapper(resources.Logger(), authenticated)
-	if err := mcpSTDIOServer.Listen(ctx, &stdinWrapper, os.Stdout); err != nil {
-		mcpError(resources.Logger(), fmt.Errorf("failed to serve: %s", err), mcp.INTERNAL_ERROR)
+	mcpServer.AddReceivingMiddleware(func(next mcp.MethodHandler) mcp.MethodHandler {
+		return func(ctx context.Context, method string, req mcp.Request) (result mcp.Result, err error) {
+			if !authenticated && !auth.BypassMethod(method) {
+				return nil, errors.New("not authenticated")
+			}
+			return next(ctx, method, req)
+		}
+	})
+
+	if err := mcpServer.Run(ctx, &mcp.StdioTransport{}); err != nil {
+		mcpError(resources.Logger(), fmt.Errorf("failed to serve: %s", err), jsonRPCErrorCodeInternalError)
 		exit(exitCodeSetupFailure)
 	}
 }
 
-func newMCPServer(resources config.Resources) (*server.MCPServer, error) {
+func newMCPServer(resources config.Resources) (*mcp.Server, error) {
 	projectsGroup := twprojects.DefaultToolsetGroup(readOnly, false, resources.TeamworkEngine())
 	if err := projectsGroup.EnableToolsets(methods...); err != nil {
 		return nil, fmt.Errorf("failed to enable projects toolsets: %w", err)
@@ -94,9 +99,11 @@ func newMCPServer(resources config.Resources) (*server.MCPServer, error) {
 	return config.NewMCPServer(resources, projectsGroup, deskGroup), nil
 }
 
-func mcpError(logger *slog.Logger, err error, code int) {
-	mcpError := mcp.NewJSONRPCError(mcp.NewRequestId("startup"), code, err.Error(), nil)
-	encoded, err := json.Marshal(mcpError)
+func mcpError(logger *slog.Logger, err error, code jsonRPCErrorCode) {
+	encoded, err := json.Marshal(jsonRPCError{
+		Code:    code,
+		Message: err.Error(),
+	})
 	if err != nil {
 		logger.Error("failed to encode error",
 			slog.String("error", err.Error()),
@@ -133,55 +140,31 @@ func (t *methodsInput) Set(value string) error {
 	return errs
 }
 
-type stdinWrapper struct {
-	logger        *slog.Logger
-	buffer        []byte
-	authenticated bool
-}
+type jsonRPCErrorCode int64
 
-func newStdinWrapper(logger *slog.Logger, authenticated bool) stdinWrapper {
-	return stdinWrapper{
-		logger:        logger,
-		authenticated: authenticated,
-	}
-}
+const (
+	jsonRPCErrorCodeParse          jsonRPCErrorCode = -32700
+	jsonRPCErrorCodeInvalidRequest jsonRPCErrorCode = -32600
+	jsonRPCErrorCodeMethodNotFound jsonRPCErrorCode = -32601
+	jsonRPCErrorCodeInvalidParams  jsonRPCErrorCode = -32602
+	jsonRPCErrorCodeInternalError  jsonRPCErrorCode = -32603
+)
 
-func (s *stdinWrapper) Read(p []byte) (n int, err error) {
-	if s.authenticated {
-		return os.Stdin.Read(p)
-	}
-
-	buffer := make([]byte, len(p))
-	n, err = os.Stdin.Read(buffer)
-	if err != nil {
-		return n, err
-	}
-	content := buffer[:n]
-	s.buffer = append(s.buffer, content...)
-
-	for {
-		lineBreakPos := bytes.Index(s.buffer, []byte("\n"))
-		if lineBreakPos == -1 {
-			break
-		}
-		var remaining []byte
-		if lineBreakPos+1 > len(s.buffer) {
-			remaining = s.buffer[lineBreakPos+1:]
-		}
-		content = s.buffer[:lineBreakPos]
-		s.buffer = remaining
-
-		if len(content) > 0 {
-			if bypass, err := auth.Bypass(content); err != nil {
-				return 0, err
-			} else if !bypass {
-				return 0, errors.New("not authenticated")
-			}
-		}
-	}
-
-	copy(p, buffer)
-	return n, err
+// jsonRPCError represents a JSON-RPC level error.
+//
+// https://www.jsonrpc.org/specification#error_object
+//
+// The library does not export this type, so we need to redefine it here.
+// https://github.com/modelcontextprotocol/go-sdk/blob/1dcbf62661fc9c54ae364e0af80433db347e2fc4/internal/jsonrpc2/wire.go#L66-L74
+//
+//nolint:lll
+type jsonRPCError struct {
+	// Code is an error code indicating the type of failure.
+	Code jsonRPCErrorCode `json:"code"`
+	// Message is a short description of the error.
+	Message string `json:"message"`
+	// Data is optional structured data containing additional information about the error.
+	Data json.RawMessage `json:"data,omitempty"`
 }
 
 type exitCode int

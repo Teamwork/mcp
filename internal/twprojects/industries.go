@@ -3,9 +3,10 @@ package twprojects
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 
-	"github.com/mark3labs/mcp-go/mcp"
-	"github.com/mark3labs/mcp-go/server"
+	"github.com/google/jsonschema-go/jsonschema"
+	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/teamwork/mcp/internal/helpers"
 	"github.com/teamwork/mcp/internal/toolsets"
 	"github.com/teamwork/twapi-go-sdk"
@@ -27,23 +28,37 @@ const industryDescription = "Industry refers to the business sector or market ca
 	"and segment information in ways that make it easier to manage relationships and understand the broader business " +
 	"landscape in which their clients and partners operate."
 
+var (
+	industryListOutputSchema *jsonschema.Schema
+)
+
 func init() {
 	// register the toolset methods
 	toolsets.RegisterMethod(MethodIndustryList)
+
+	var err error
+
+	// generate the output schemas only once
+	industryListOutputSchema, err = jsonschema.For[projects.IndustryListResponse](&jsonschema.ForOptions{})
+	if err != nil {
+		panic(fmt.Sprintf("failed to generate JSON schema for IndustryListResponse: %v", err))
+	}
 }
 
 // IndustryList lists projects in Teamwork.com.
-func IndustryList(engine *twapi.Engine) server.ServerTool {
-	return server.ServerTool{
-		Tool: mcp.NewTool(string(MethodIndustryList),
-			mcp.WithDescription("List industries in Teamwork.com. "+industryDescription),
-			mcp.WithToolAnnotation(mcp.ToolAnnotation{
-				ReadOnlyHint: twapi.Ptr(true),
-			}),
-			mcp.WithTitleAnnotation("List Industries"),
-			mcp.WithOutputSchema[projects.IndustryListResponse](),
-		),
-		Handler: func(ctx context.Context, _ mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+func IndustryList(engine *twapi.Engine) toolsets.ToolWrapper {
+	return toolsets.ToolWrapper{
+		Tool: &mcp.Tool{
+			Name:        string(MethodIndustryList),
+			Description: "List industries in Teamwork.com. " + industryDescription,
+			Annotations: &mcp.ToolAnnotations{
+				Title:        "List Industries",
+				ReadOnlyHint: true,
+			},
+			InputSchema:  &jsonschema.Schema{Type: "object"},
+			OutputSchema: industryListOutputSchema,
+		},
+		Handler: func(ctx context.Context, _ *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 			var industryListRequest projects.IndustryListRequest
 
 			industryList, err := projects.IndustryList(ctx, engine, industryListRequest)
@@ -55,7 +70,13 @@ func IndustryList(engine *twapi.Engine) server.ServerTool {
 			if err != nil {
 				return nil, err
 			}
-			return mcp.NewToolResultText(string(encoded)), nil
+			return &mcp.CallToolResult{
+				Content: []mcp.Content{
+					&mcp.TextContent{
+						Text: string(encoded),
+					},
+				},
+			}, nil
 		},
 	}
 }

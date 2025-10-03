@@ -3,7 +3,6 @@ package testutil
 
 import (
 	"context"
-	"encoding/json"
 	"io"
 	"log/slog"
 	"net/http"
@@ -11,8 +10,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/mark3labs/mcp-go/mcp"
-	"github.com/mark3labs/mcp-go/server"
+	"github.com/modelcontextprotocol/go-sdk/mcp"
 	deskclient "github.com/teamwork/desksdkgo/client"
 	"github.com/teamwork/mcp/internal/toolsets"
 	"github.com/teamwork/mcp/internal/twdesk"
@@ -65,8 +63,11 @@ func DeskClientMock(status int, response []byte) (*deskclient.Client, *httptest.
 }
 
 // ProjectsMCPServerMock creates a mock MCP server for twprojects testing
-func ProjectsMCPServerMock(t *testing.T, status int, response []byte) *server.MCPServer {
-	mcpServer := server.NewMCPServer("test-server", "1.0.0")
+func ProjectsMCPServerMock(t *testing.T, status int, response []byte) *mcp.Server {
+	mcpServer := mcp.NewServer(&mcp.Implementation{
+		Name:    "test-server",
+		Version: "1.0.0",
+	}, &mcp.ServerOptions{})
 
 	toolsetGroup := twprojects.DefaultToolsetGroup(false, true, ProjectsEngineMock(status, response))
 	if err := toolsetGroup.EnableToolsets(toolsets.MethodAll); err != nil {
@@ -78,8 +79,11 @@ func ProjectsMCPServerMock(t *testing.T, status int, response []byte) *server.MC
 }
 
 // DeskMCPServerMock creates a mock MCP server for twdesk testing
-func DeskMCPServerMock(t *testing.T, status int, response []byte) (*server.MCPServer, func()) {
-	mcpServer := server.NewMCPServer("test-server", "1.0.0")
+func DeskMCPServerMock(t *testing.T, status int, response []byte) (*mcp.Server, func()) {
+	mcpServer := mcp.NewServer(&mcp.Implementation{
+		Name:    "test-server",
+		Version: "1.0.0",
+	}, &mcp.ServerOptions{})
 
 	client, testServer := DeskClientMock(status, response)
 	cleanup := func() {
@@ -105,45 +109,79 @@ type ToolRequest struct {
 }
 
 // CheckMessage validates that a message represents a successful tool execution
-func CheckMessage(t *testing.T, message mcp.JSONRPCMessage) {
+func CheckMessage(t *testing.T, result mcp.Result) {
 	t.Helper()
 
-	switch m := message.(type) {
-	case mcp.JSONRPCError:
-		t.Errorf("tool failed to execute: %v", m.Error)
-	case mcp.JSONRPCResponse:
-		if toolResult, ok := m.Result.(mcp.CallToolResult); ok {
-			if toolResult.IsError {
-				t.Errorf("tool failed to execute: %v", toolResult.Content)
-			}
-		} else {
-			t.Errorf("unexpected result type: %T", m.Result)
+	toolResult, ok := result.(*mcp.CallToolResult)
+	if !ok {
+		t.Errorf("unexpected result type: %T", result)
+		return
+	}
+	if toolResult.IsError {
+		t.Errorf("tool failed to execute: %v", toolResult.Content)
+	}
+}
+
+// ExecuteToolRequestOptions represents options for ExecuteToolRequest.
+type ExecuteToolRequestOptions struct {
+	checkMessage func(t *testing.T, result mcp.Result)
+}
+
+// ExecuteToolRequestOption is a function that modifies
+// ExecuteToolRequestOptions.
+type ExecuteToolRequestOption func(*ExecuteToolRequestOptions)
+
+// ExecuteToolRequestWithCheckMessage executes a tool request and validates the
+// response with a custom check function. Any nil function will be ignored.
+func ExecuteToolRequestWithCheckMessage(f func(t *testing.T, result mcp.Result)) ExecuteToolRequestOption {
+	return func(opts *ExecuteToolRequestOptions) {
+		if f != nil {
+			opts.checkMessage = f
 		}
-	default:
-		t.Errorf("unexpected message type: %T", m)
 	}
 }
 
 // ExecuteToolRequest executes a tool request and validates the response
-func ExecuteToolRequest(t *testing.T, mcpServer *server.MCPServer, toolName string, args map[string]any) {
+func ExecuteToolRequest(
+	t *testing.T,
+	mcpServer *mcp.Server,
+	toolName string,
+	args map[string]any,
+	optFuncs ...ExecuteToolRequestOption,
+) {
 	t.Helper()
 
-	request := &ToolRequest{
-		JSONRPC: mcp.JSONRPC_VERSION,
-		ID:      1,
-		CallToolRequest: mcp.CallToolRequest{
-			Request: mcp.Request{
-				Method: string(mcp.MethodToolsCall),
-			},
-		},
+	options := &ExecuteToolRequestOptions{
+		checkMessage: CheckMessage,
 	}
-	request.Params.Name = toolName
-	request.Params.Arguments = args
+	for _, fn := range optFuncs {
+		fn(options)
+	}
 
-	encodedRequest, err := json.Marshal(request)
+	clientTransport, serverTransport := mcp.NewInMemoryTransports()
+	_, err := mcpServer.Connect(t.Context(), serverTransport, nil)
 	if err != nil {
-		t.Fatalf("failed to encode request: %v", err)
+		t.Fatalf("failed to connect to server: %v", err)
 	}
 
-	CheckMessage(t, mcpServer.HandleMessage(context.Background(), encodedRequest))
+	client := mcp.NewClient(&mcp.Implementation{
+		Name:    "test-client",
+		Version: "1.0.0",
+	}, nil)
+
+	clientSession, err := client.Connect(t.Context(), clientTransport, nil)
+	if err != nil {
+		t.Fatalf("failed to connect to client: %v", err)
+	}
+	defer clientSession.Close() //nolint:errcheck
+
+	result, err := clientSession.CallTool(t.Context(), &mcp.CallToolParams{
+		Name:      toolName,
+		Arguments: args,
+	})
+	if err != nil {
+		t.Fatalf("failed to call tool: %v", err)
+	}
+
+	options.checkMessage(t, result)
 }
