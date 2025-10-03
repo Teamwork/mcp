@@ -1,12 +1,12 @@
 package twprojects_test
 
 import (
-	"context"
 	"encoding/json"
 	"net/http"
 	"testing"
 
 	"github.com/mark3labs/mcp-go/mcp"
+	"github.com/teamwork/mcp/internal/testutil"
 	"github.com/teamwork/mcp/internal/twprojects"
 )
 
@@ -56,7 +56,7 @@ func TestTaskCreate(t *testing.T) {
 		t.Fatalf("failed to encode request: %v", err)
 	}
 
-	checkMessage(t, mcpServer.HandleMessage(context.Background(), encodedRequest))
+	testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodActivityList.String(), map[string]any{})
 }
 
 func TestTaskUpdate(t *testing.T) {
@@ -106,7 +106,7 @@ func TestTaskUpdate(t *testing.T) {
 		t.Fatalf("failed to encode request: %v", err)
 	}
 
-	checkMessage(t, mcpServer.HandleMessage(context.Background(), encodedRequest))
+	testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodActivityList.String(), map[string]any{})
 }
 
 func TestTaskDelete(t *testing.T) {
@@ -131,7 +131,7 @@ func TestTaskDelete(t *testing.T) {
 		t.Fatalf("failed to encode request: %v", err)
 	}
 
-	checkMessage(t, mcpServer.HandleMessage(context.Background(), encodedRequest))
+	testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodActivityList.String(), map[string]any{})
 }
 
 func TestTaskGet(t *testing.T) {
@@ -156,7 +156,7 @@ func TestTaskGet(t *testing.T) {
 		t.Fatalf("failed to encode request: %v", err)
 	}
 
-	checkMessage(t, mcpServer.HandleMessage(context.Background(), encodedRequest))
+	testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodActivityList.String(), map[string]any{})
 }
 
 func TestTaskList(t *testing.T) {
@@ -186,7 +186,7 @@ func TestTaskList(t *testing.T) {
 		t.Fatalf("failed to encode request: %v", err)
 	}
 
-	checkMessage(t, mcpServer.HandleMessage(context.Background(), encodedRequest))
+	testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodActivityList.String(), map[string]any{})
 }
 
 func TestTaskListByTasklist(t *testing.T) {
@@ -217,7 +217,7 @@ func TestTaskListByTasklist(t *testing.T) {
 		t.Fatalf("failed to encode request: %v", err)
 	}
 
-	checkMessage(t, mcpServer.HandleMessage(context.Background(), encodedRequest))
+	testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodActivityList.String(), map[string]any{})
 }
 
 func TestTaskListByProject(t *testing.T) {
@@ -248,5 +248,5 @@ func TestTaskListByProject(t *testing.T) {
 		t.Fatalf("failed to encode request: %v", err)
 	}
 
-	checkMessage(t, mcpServer.HandleMessage(context.Background(), encodedRequest))
+	testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodActivityList.String(), map[string]any{})
 }

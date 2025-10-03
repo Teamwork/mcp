@@ -5,10 +5,10 @@ import (
 	"encoding/json"
 	"flag"
 	"log/slog"
+	"net/http"
 	"os"
 
-	"github.com/mark3labs/mcp-go/client/transport"
-	"github.com/mark3labs/mcp-go/mcp"
+	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/teamwork/mcp/internal/config"
 )
 
@@ -37,36 +37,37 @@ func main() {
 		exit(exitCodeSetupFailure)
 	}
 
-	var options []transport.StreamableHTTPCOption
+	httpClient := resources.TeamworkHTTPClient()
 	if *mcpToken != "" {
-		options = append(options, transport.WithHTTPHeaders(map[string]string{
-			"Authorization": "Bearer " + *mcpToken,
-		}))
+		httpClient.Transport = newAuthRoundTripper(*mcpToken, httpClient.Transport)
 	}
 
-	options = append(options, transport.WithHTTPBasicClient(resources.TeamworkHTTPClient()))
-
-	mcpTransport, err := transport.NewStreamableHTTP(*mcpURL, options...)
-	if err != nil {
-		resources.Logger().Error("failed to create MCP transport",
-			slog.String("error", err.Error()),
-		)
-		exit(exitCodeSetupFailure)
+	mcpTransport := &mcp.SSEClientTransport{
+		Endpoint:   *mcpURL,
+		HTTPClient: httpClient,
 	}
 
 	ctx := context.Background()
-	mcpClient, mcpServerInfo, err := config.NewMCPClient(ctx, resources, mcpTransport)
+	_, mcpClientSession, err := config.NewMCPClient(ctx, resources, mcpTransport, &mcp.ClientOptions{})
 	if err != nil {
 		resources.Logger().Error("failed to create MCP client",
 			slog.String("error", err.Error()),
 		)
 		exit(exitCodeSetupFailure)
 	}
+	defer func() {
+		if err := mcpClientSession.Close(); err != nil {
+			resources.Logger().Error("failed to close MCP client session",
+				slog.String("error", err.Error()),
+			)
+		}
+	}()
 
+	initResult := mcpClientSession.InitializeResult()
 	resources.Logger().Info("MCP client created successfully",
-		slog.String("server_name", mcpServerInfo.ServerInfo.Name),
-		slog.String("server_version", mcpServerInfo.ServerInfo.Version),
-		slog.String("protocol_version", mcpServerInfo.ProtocolVersion),
+		slog.String("server_name", initResult.ServerInfo.Name),
+		slog.String("server_version", initResult.ServerInfo.Version),
+		slog.String("protocol_version", initResult.ProtocolVersion),
 	)
 
 	args := flag.CommandLine.Args()
@@ -77,7 +78,7 @@ func main() {
 
 	switch args[0] {
 	case "list-tools":
-		toolsResult, err := mcpClient.ListTools(ctx, mcp.ListToolsRequest{})
+		toolsResult, err := mcpClientSession.ListTools(ctx, &mcp.ListToolsParams{})
 		if err != nil {
 			resources.Logger().Error("failed to list tools",
 				slog.String("error", err.Error()),
@@ -108,14 +109,9 @@ func main() {
 			}
 		}
 
-		toolResult, err := mcpClient.CallTool(ctx, mcp.CallToolRequest{
-			Request: mcp.Request{
-				Method: toolName,
-			},
-			Params: mcp.CallToolParams{
-				Name:      toolName,
-				Arguments: toolParams,
-			},
+		toolResult, err := mcpClientSession.CallTool(ctx, &mcp.CallToolParams{
+			Name:      toolName,
+			Arguments: toolParams,
 		})
 		if err != nil {
 			resources.Logger().Error("failed to run tool",
@@ -145,6 +141,24 @@ func main() {
 		)
 		exit(exitCodeSetupFailure)
 	}
+}
+
+type authRoundTripper struct {
+	token string
+	next  http.RoundTripper
+}
+
+func newAuthRoundTripper(token string, next http.RoundTripper) http.RoundTripper {
+	return &authRoundTripper{
+		token: token,
+		next:  next,
+	}
+}
+
+func (a *authRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
+	req = req.Clone(req.Context())
+	req.Header.Set("Authorization", "Bearer "+a.token)
+	return a.next.RoundTrip(req)
 }
 
 type exitCode int

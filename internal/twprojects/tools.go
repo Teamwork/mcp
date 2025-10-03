@@ -8,7 +8,7 @@ import (
 
 // DefaultToolsetGroup creates a default ToolsetGroup for Teamwork Projects.
 func DefaultToolsetGroup(readOnly, allowDelete bool, engine *twapi.Engine) *toolsets.ToolsetGroup {
-	writeTools := []server.ServerTool{
+	writeTools := []toolsets.ToolWrapper{
 		ProjectCreate(engine),
 		ProjectUpdate(engine),
 		ProjectMemberAdd(engine),

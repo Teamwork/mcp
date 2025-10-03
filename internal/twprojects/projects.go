@@ -5,8 +5,11 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/google/jsonschema-go/jsonschema"
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
+	mcp2 "github.com/modelcontextprotocol/go-sdk/mcp"
+	"github.com/pkg/errors"
 	"github.com/teamwork/mcp/internal/helpers"
 	"github.com/teamwork/mcp/internal/toolsets"
 	"github.com/teamwork/twapi-go-sdk"
@@ -43,41 +46,60 @@ func init() {
 }
 
 // ProjectCreate creates a project in Teamwork.com.
-func ProjectCreate(engine *twapi.Engine) server.ServerTool {
-	return server.ServerTool{
-		Tool: mcp.NewTool(string(MethodProjectCreate),
-			mcp.WithDescription("Create a new project in Teamwork.com. "+projectDescription),
-			mcp.WithTitleAnnotation("Create Project"),
-			mcp.WithString("name",
-				mcp.Required(),
-				mcp.Description("The name of the project."),
-			),
-			mcp.WithString("description",
-				mcp.Description("The description of the project."),
-			),
-			mcp.WithString("start_at",
-				mcp.Description("The start date of the project in the format YYYYMMDD."),
-			),
-			mcp.WithString("end_at",
-				mcp.Description("The end date of the project in the format YYYYMMDD."),
-			),
-			mcp.WithNumber("company_id",
-				mcp.Description("The ID of the company associated with the project."),
-			),
-			mcp.WithNumber("owned_id",
-				mcp.Description("The ID of the user who owns the project."),
-			),
-			mcp.WithArray("tag_ids",
-				mcp.Description("A list of tag IDs to associate with the project."),
-				mcp.Items(map[string]any{
-					"type": "integer",
-				}),
-			),
-		),
-		Handler: func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+func ProjectCreate(engine *twapi.Engine) toolsets.ToolWrapper {
+	return toolsets.ToolWrapper{
+		Tool: &mcp2.Tool{
+			Name:        string(MethodProjectCreate),
+			Description: "Create a new project in Teamwork.com. " + projectDescription,
+			Annotations: &mcp2.ToolAnnotations{
+				Title: "Create Project",
+			},
+			InputSchema: jsonschema.Schema{
+				Type: "object",
+				Properties: map[string]*jsonschema.Schema{
+					"name": {
+						Type:        "string",
+						Description: "The name of the project.",
+					},
+					"description": {
+						Type:        "string",
+						Description: "The description of the project.",
+					},
+					"start_at": {
+						Type:        "string",
+						Description: "The start date of the project in the format YYYYMMDD.",
+					},
+					"end_at": {
+						Type:        "string",
+						Description: "The end date of the project in the format YYYYMMDD.",
+					},
+					"company_id": {
+						Type:        "number",
+						Description: "The ID of the company associated with the project.",
+					},
+					"owned_id": {
+						Type:        "number",
+						Description: "The ID of the user who owns the project.",
+					},
+					"tag_ids": {
+						Type:        "array",
+						Description: "A list of tag IDs to associate with the project.",
+						Items: &jsonschema.Schema{
+							Type: "integer",
+						},
+					},
+				},
+				Required: []string{"name"},
+			},
+		},
+		Handler: func(ctx context.Context, request *mcp2.CallToolRequest) (*mcp2.CallToolResult, error) {
 			var projectCreateRequest projects.ProjectCreateRequest
 
-			err := helpers.ParamGroup(request.GetArguments(),
+			var arguments map[string]any
+			if err := json.Unmarshal(request.Params.Arguments, &arguments); err != nil {
+				return nil, errors.Errorf("failed to decode request: %w", err)
+			}
+			err := helpers.ParamGroup(arguments,
 				helpers.RequiredParam(&projectCreateRequest.Name, "name"),
 				helpers.OptionalPointerParam(&projectCreateRequest.Description, "description"),
 				helpers.OptionalLegacyDatePointerParam(&projectCreateRequest.StartAt, "start_at"),
@@ -87,7 +109,14 @@ func ProjectCreate(engine *twapi.Engine) server.ServerTool {
 				helpers.OptionalNumericListParam(&projectCreateRequest.TagIDs, "tag_ids"),
 			)
 			if err != nil {
-				return mcp.NewToolResultErrorFromErr("invalid parameters", err), nil
+				return &mcp2.CallToolResult{
+					IsError: true,
+					Content: []mcp2.Content{
+						&mcp2.TextContent{
+							Text: fmt.Sprintf("invalid parameters: %s", err.Error()),
+						},
+					},
+				}, nil
 			}
 
 			project, err := projects.ProjectCreate(ctx, engine, projectCreateRequest)
@@ -95,7 +124,13 @@ func ProjectCreate(engine *twapi.Engine) server.ServerTool {
 				return helpers.HandleAPIError(err, "failed to create project")
 			}
 
-			return mcp.NewToolResultText(fmt.Sprintf("Project created successfully with ID %d", project.ID)), nil
+			return &mcp2.CallToolResult{
+				Content: []mcp2.Content{
+					&mcp2.TextContent{
+						Text: fmt.Sprintf("Project created successfully with ID %d", project.ID),
+					},
+				},
+			}, nil
 		},
 	}
 }
@@ -194,28 +229,53 @@ func ProjectDelete(engine *twapi.Engine) server.ServerTool {
 }
 
 // ProjectGet retrieves a project in Teamwork.com.
-func ProjectGet(engine *twapi.Engine) server.ServerTool {
-	return server.ServerTool{
-		Tool: mcp.NewTool(string(MethodProjectGet),
-			mcp.WithDescription("Get an existing project in Teamwork.com. "+projectDescription),
-			mcp.WithToolAnnotation(mcp.ToolAnnotation{
-				ReadOnlyHint: twapi.Ptr(true),
-			}),
-			mcp.WithTitleAnnotation("Get Project"),
-			mcp.WithOutputSchema[projects.ProjectGetResponse](),
-			mcp.WithNumber("id",
-				mcp.Required(),
-				mcp.Description("The ID of the project to get."),
-			),
-		),
-		Handler: func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+func ProjectGet(engine *twapi.Engine) toolsets.ToolWrapper {
+	// TODO: run this only once!
+	outputSchema, err := jsonschema.For[projects.ProjectGetResponse](&jsonschema.ForOptions{})
+	if err != nil {
+		// This should never happen, but if it does, we want to know about it.
+		panic(fmt.Sprintf("failed to generate JSON schema for ProjectGetResponse: %v", err))
+	}
+
+	return toolsets.ToolWrapper{
+		Tool: &mcp2.Tool{
+			Name:        string(MethodProjectGet),
+			Description: "Get an existing project in Teamwork.com. " + projectDescription,
+			Annotations: &mcp2.ToolAnnotations{
+				Title:        "Get Project",
+				ReadOnlyHint: true,
+			},
+			InputSchema: jsonschema.Schema{
+				Type: "object",
+				Properties: map[string]*jsonschema.Schema{
+					"id": {
+						Type:        "integer",
+						Description: "The ID of the project to get.",
+					},
+				},
+				Required: []string{"id"},
+			},
+			OutputSchema: outputSchema,
+		},
+		Handler: func(ctx context.Context, request *mcp2.CallToolRequest) (*mcp2.CallToolResult, error) {
 			var projectGetRequest projects.ProjectGetRequest
 
-			err := helpers.ParamGroup(request.GetArguments(),
+			var arguments map[string]any
+			if err := json.Unmarshal(request.Params.Arguments, &arguments); err != nil {
+				return nil, errors.Errorf("failed to decode request: %w", err)
+			}
+			err := helpers.ParamGroup(arguments,
 				helpers.RequiredNumericParam(&projectGetRequest.Path.ID, "id"),
 			)
 			if err != nil {
-				return mcp.NewToolResultErrorFromErr("invalid parameters", err), nil
+				return &mcp2.CallToolResult{
+					IsError: true,
+					Content: []mcp2.Content{
+						&mcp2.TextContent{
+							Text: fmt.Sprintf("invalid parameters: %s", err.Error()),
+						},
+					},
+				}, nil
 			}
 
 			project, err := projects.ProjectGet(ctx, engine, projectGetRequest)
@@ -227,9 +287,15 @@ func ProjectGet(engine *twapi.Engine) server.ServerTool {
 			if err != nil {
 				return nil, err
 			}
-			return mcp.NewToolResultText(string(helpers.WebLinker(ctx, encoded,
-				helpers.WebLinkerWithIDPathBuilder("/app/projects"),
-			))), nil
+			return &mcp2.CallToolResult{
+				Content: []mcp2.Content{
+					&mcp2.TextContent{
+						Text: string(helpers.WebLinker(ctx, encoded,
+							helpers.WebLinkerWithIDPathBuilder("/app/projects"),
+						)),
+					},
+				},
+			}, nil
 		},
 	}
 }

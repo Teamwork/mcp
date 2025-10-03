@@ -1,12 +1,12 @@
 package twprojects_test
 
 import (
-	"context"
 	"encoding/json"
 	"net/http"
 	"testing"
 
 	"github.com/mark3labs/mcp-go/mcp"
+	"github.com/teamwork/mcp/internal/testutil"
 	"github.com/teamwork/mcp/internal/twprojects"
 )
 
@@ -33,7 +33,7 @@ func TestTagCreate(t *testing.T) {
 		t.Fatalf("failed to encode request: %v", err)
 	}
 
-	checkMessage(t, mcpServer.HandleMessage(context.Background(), encodedRequest))
+	testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodActivityList.String(), map[string]any{})
 }
 
 func TestTagUpdate(t *testing.T) {
@@ -60,7 +60,7 @@ func TestTagUpdate(t *testing.T) {
 		t.Fatalf("failed to encode request: %v", err)
 	}
 
-	checkMessage(t, mcpServer.HandleMessage(context.Background(), encodedRequest))
+	testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodActivityList.String(), map[string]any{})
 }
 
 func TestTagDelete(t *testing.T) {
@@ -85,7 +85,7 @@ func TestTagDelete(t *testing.T) {
 		t.Fatalf("failed to encode request: %v", err)
 	}
 
-	checkMessage(t, mcpServer.HandleMessage(context.Background(), encodedRequest))
+	testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodActivityList.String(), map[string]any{})
 }
 
 func TestTagGet(t *testing.T) {
@@ -110,7 +110,7 @@ func TestTagGet(t *testing.T) {
 		t.Fatalf("failed to encode request: %v", err)
 	}
 
-	checkMessage(t, mcpServer.HandleMessage(context.Background(), encodedRequest))
+	testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodActivityList.String(), map[string]any{})
 }
 
 func TestTagList(t *testing.T) {
@@ -139,5 +139,5 @@ func TestTagList(t *testing.T) {
 		t.Fatalf("failed to encode request: %v", err)
 	}
 
-	checkMessage(t, mcpServer.HandleMessage(context.Background(), encodedRequest))
+	testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodActivityList.String(), map[string]any{})
 }

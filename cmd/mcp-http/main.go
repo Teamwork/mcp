@@ -18,7 +18,7 @@ import (
 	ddhttp "github.com/DataDog/dd-trace-go/contrib/net/http/v2"
 	"github.com/DataDog/dd-trace-go/v2/ddtrace/tracer"
 	"github.com/getsentry/sentry-go"
-	"github.com/mark3labs/mcp-go/server"
+	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/teamwork/mcp/internal/auth"
 	"github.com/teamwork/mcp/internal/config"
 	"github.com/teamwork/mcp/internal/request"
@@ -46,10 +46,11 @@ func main() {
 		)
 		exit(exitCodeSetupFailure)
 	}
-	mcpHTTPServer := server.NewStreamableHTTPServer(mcpServer,
-		server.WithEndpointPath("/"),
-		server.WithStateLess(true),
-	)
+	mcpHTTPServer := mcp.NewStreamableHTTPHandler(func(*http.Request) *mcp.Server {
+		return mcpServer
+	}, &mcp.StreamableHTTPOptions{
+		Stateless: true,
+	})
 
 	mux := newRouter(resources)
 	mux.Handle("/", mcpHTTPServer)
@@ -91,7 +92,7 @@ func main() {
 	resources.Logger().Info("server stopped")
 }
 
-func newMCPServer(resources config.Resources) (*server.MCPServer, error) {
+func newMCPServer(resources config.Resources) (*mcp.Server, error) {
 	projectsGroup := twprojects.DefaultToolsetGroup(false, false, resources.TeamworkEngine())
 	if err := projectsGroup.EnableToolsets(toolsets.MethodAll); err != nil {
 		return nil, fmt.Errorf("failed to enable toolsets: %w", err)

@@ -1,12 +1,12 @@
 package twprojects_test
 
 import (
-	"context"
 	"encoding/json"
 	"net/http"
 	"testing"
 
 	"github.com/mark3labs/mcp-go/mcp"
+	"github.com/teamwork/mcp/internal/testutil"
 	"github.com/teamwork/mcp/internal/twprojects"
 )
 
@@ -42,7 +42,7 @@ func TestTeamCreate(t *testing.T) {
 		t.Fatalf("failed to encode request: %v", err)
 	}
 
-	checkMessage(t, mcpServer.HandleMessage(context.Background(), encodedRequest))
+	testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodActivityList.String(), map[string]any{})
 }
 
 func TestTeamUpdate(t *testing.T) {
@@ -78,7 +78,7 @@ func TestTeamUpdate(t *testing.T) {
 		t.Fatalf("failed to encode request: %v", err)
 	}
 
-	checkMessage(t, mcpServer.HandleMessage(context.Background(), encodedRequest))
+	testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodActivityList.String(), map[string]any{})
 }
 
 func TestTeamDelete(t *testing.T) {
@@ -103,7 +103,7 @@ func TestTeamDelete(t *testing.T) {
 		t.Fatalf("failed to encode request: %v", err)
 	}
 
-	checkMessage(t, mcpServer.HandleMessage(context.Background(), encodedRequest))
+	testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodActivityList.String(), map[string]any{})
 }
 
 func TestTeamGet(t *testing.T) {
@@ -128,7 +128,7 @@ func TestTeamGet(t *testing.T) {
 		t.Fatalf("failed to encode request: %v", err)
 	}
 
-	checkMessage(t, mcpServer.HandleMessage(context.Background(), encodedRequest))
+	testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodActivityList.String(), map[string]any{})
 }
 
 func TestTeamList(t *testing.T) {
@@ -155,7 +155,7 @@ func TestTeamList(t *testing.T) {
 		t.Fatalf("failed to encode request: %v", err)
 	}
 
-	checkMessage(t, mcpServer.HandleMessage(context.Background(), encodedRequest))
+	testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodActivityList.String(), map[string]any{})
 }
 
 func TestTeamListByCompany(t *testing.T) {
@@ -183,7 +183,7 @@ func TestTeamListByCompany(t *testing.T) {
 		t.Fatalf("failed to encode request: %v", err)
 	}
 
-	checkMessage(t, mcpServer.HandleMessage(context.Background(), encodedRequest))
+	testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodActivityList.String(), map[string]any{})
 }
 
 func TestTeamListByProject(t *testing.T) {
@@ -211,5 +211,5 @@ func TestTeamListByProject(t *testing.T) {
 		t.Fatalf("failed to encode request: %v", err)
 	}
 
-	checkMessage(t, mcpServer.HandleMessage(context.Background(), encodedRequest))
+	testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodActivityList.String(), map[string]any{})
 }

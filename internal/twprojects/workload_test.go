@@ -1,12 +1,12 @@
 package twprojects_test
 
 import (
-	"context"
 	"encoding/json"
 	"net/http"
 	"testing"
 
 	"github.com/mark3labs/mcp-go/mcp"
+	"github.com/teamwork/mcp/internal/testutil"
 	"github.com/teamwork/mcp/internal/twprojects"
 )
 
@@ -39,5 +39,5 @@ func TestUsersWorkload(t *testing.T) {
 		t.Fatalf("failed to encode request: %v", err)
 	}
 
-	checkMessage(t, mcpServer.HandleMessage(context.Background(), encodedRequest))
+	testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodActivityList.String(), map[string]any{})
 }

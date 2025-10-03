@@ -1,12 +1,12 @@
 package twprojects_test
 
 import (
-	"context"
 	"encoding/json"
 	"net/http"
 	"testing"
 
 	"github.com/mark3labs/mcp-go/mcp"
+	"github.com/teamwork/mcp/internal/testutil"
 	"github.com/teamwork/mcp/internal/twprojects"
 )
 
@@ -38,7 +38,7 @@ func TestTimerCreate(t *testing.T) {
 		t.Fatalf("failed to encode request: %v", err)
 	}
 
-	checkMessage(t, mcpServer.HandleMessage(context.Background(), encodedRequest))
+	testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodActivityList.String(), map[string]any{})
 }
 
 func TestTimerUpdate(t *testing.T) {
@@ -68,7 +68,7 @@ func TestTimerUpdate(t *testing.T) {
 		t.Fatalf("failed to encode request: %v", err)
 	}
 
-	checkMessage(t, mcpServer.HandleMessage(context.Background(), encodedRequest))
+	testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodActivityList.String(), map[string]any{})
 }
 
 func TestTimerPause(t *testing.T) {
@@ -93,7 +93,7 @@ func TestTimerPause(t *testing.T) {
 		t.Fatalf("failed to encode request: %v", err)
 	}
 
-	checkMessage(t, mcpServer.HandleMessage(context.Background(), encodedRequest))
+	testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodActivityList.String(), map[string]any{})
 }
 
 func TestTimerResume(t *testing.T) {
@@ -118,7 +118,7 @@ func TestTimerResume(t *testing.T) {
 		t.Fatalf("failed to encode request: %v", err)
 	}
 
-	checkMessage(t, mcpServer.HandleMessage(context.Background(), encodedRequest))
+	testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodActivityList.String(), map[string]any{})
 }
 
 func TestTimerComplete(t *testing.T) {
@@ -143,7 +143,7 @@ func TestTimerComplete(t *testing.T) {
 		t.Fatalf("failed to encode request: %v", err)
 	}
 
-	checkMessage(t, mcpServer.HandleMessage(context.Background(), encodedRequest))
+	testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodActivityList.String(), map[string]any{})
 }
 
 func TestTimerDelete(t *testing.T) {
@@ -168,7 +168,7 @@ func TestTimerDelete(t *testing.T) {
 		t.Fatalf("failed to encode request: %v", err)
 	}
 
-	checkMessage(t, mcpServer.HandleMessage(context.Background(), encodedRequest))
+	testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodActivityList.String(), map[string]any{})
 }
 
 func TestTimerGet(t *testing.T) {
@@ -193,7 +193,7 @@ func TestTimerGet(t *testing.T) {
 		t.Fatalf("failed to encode request: %v", err)
 	}
 
-	checkMessage(t, mcpServer.HandleMessage(context.Background(), encodedRequest))
+	testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodActivityList.String(), map[string]any{})
 }
 
 func TestTimerList(t *testing.T) {
@@ -223,5 +223,5 @@ func TestTimerList(t *testing.T) {
 		t.Fatalf("failed to encode request: %v", err)
 	}
 
-	checkMessage(t, mcpServer.HandleMessage(context.Background(), encodedRequest))
+	testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodActivityList.String(), map[string]any{})
 }
