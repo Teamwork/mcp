@@ -34,7 +34,7 @@ func TestSomething(t *testing.T) {
 
     // Use testutil.ExecuteToolRequest for simple cases
     testutil.ExecuteToolRequest(t, mcpServer, "twdesk-get_priority", map[string]any{
-        "id": "123",
+        "id": 123,
     })
 }
 ```
