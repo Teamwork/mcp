@@ -27,6 +27,7 @@ func init() {
 func MessageCreate(client *deskclient.Client) server.ServerTool {
 	return server.ServerTool{
 		Tool: mcp.NewTool(string(MethodMessageCreate),
+			mcp.WithTitleAnnotation("Create Message"),
 			mcp.WithDescription(
 				"Send a reply message to a ticket in Teamwork Desk by specifying the ticket ID and message body. "+
 					"Useful for automating ticket responses, integrating external communication systems, or "+

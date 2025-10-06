@@ -119,6 +119,7 @@ func CompanyList(client *deskclient.Client) server.ServerTool {
 func CompanyCreate(client *deskclient.Client) server.ServerTool {
 	return server.ServerTool{
 		Tool: mcp.NewTool(string(MethodCompanyCreate),
+			mcp.WithTitleAnnotation("Create Company"),
 			mcp.WithDescription(
 				"Create a new company in Teamwork Desk by specifying its name, domains, and other attributes. "+
 					"Useful for onboarding new organizations, customizing Desk for business relationships, or "+
@@ -194,6 +195,7 @@ func CompanyCreate(client *deskclient.Client) server.ServerTool {
 func CompanyUpdate(client *deskclient.Client) server.ServerTool {
 	return server.ServerTool{
 		Tool: mcp.NewTool(string(MethodCompanyUpdate),
+			mcp.WithTitleAnnotation("Update Company"),
 			mcp.WithDescription(
 				"Update an existing company in Teamwork Desk by ID, allowing changes to its name, domains, and other attributes. "+
 					"Supports evolving business relationships, rebranding, or correcting company records for improved "+
