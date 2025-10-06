@@ -152,3 +152,33 @@ func TestTicketListMinimal(t *testing.T) {
 
 	checkMessage(t, mcpServer.HandleMessage(context.Background(), encodedRequest))
 }
+
+func TestTicketSearch(t *testing.T) {
+	mcpServer, cleanup := mcpServerMock(t, http.StatusOK, []byte(`{"tickets":[{"id":123,"subject":"Ticket 1"},{"id":124,"subject":"Ticket 2"}]}`))
+	defer cleanup()
+
+	request := &toolRequest{
+		JSONRPC: mcp.JSONRPC_VERSION,
+		ID:      1,
+		CallToolRequest: mcp.CallToolRequest{
+			Request: mcp.Request{
+				Method: string(mcp.MethodToolsCall),
+			},
+		},
+	}
+	request.Params.Name = twdesk.MethodTicketList.String()
+	request.Params.Arguments = map[string]any{
+		"search":       "Testing 123",
+		"status_ids":   []float64{1, 2},
+		"priority_ids": []float64{1, 2, 3},
+		"page":         float64(1),
+		"page_size":    float64(10),
+	}
+
+	encodedRequest, err := json.Marshal(request)
+	if err != nil {
+		t.Fatalf("failed to encode request: %v", err)
+	}
+
+	checkMessage(t, mcpServer.HandleMessage(context.Background(), encodedRequest))
+}
