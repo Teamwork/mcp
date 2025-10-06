@@ -42,7 +42,7 @@ func TypeGet(client *deskclient.Client) server.ServerTool {
 					"Useful for auditing type usage, troubleshooting ticket categorization, or "+
 					"integrating Desk type data into automation workflows."),
 			mcp.WithReadOnlyHintAnnotation(true),
-			mcp.WithString("id",
+			mcp.WithNumber("id",
 				mcp.Required(),
 				mcp.Description("The ID of the type to retrieve."),
 			),
@@ -157,7 +157,7 @@ func TypeUpdate(client *deskclient.Client) server.ServerTool {
 					"and future inbox settings. Supports evolving support policies, rebranding, or correcting "+
 					"type attributes for improved "+
 					"ticket handling."),
-			mcp.WithString("id",
+			mcp.WithNumber("id",
 				mcp.Required(),
 				mcp.Description("The ID of the type to update."),
 			),

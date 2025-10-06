@@ -43,7 +43,7 @@ func TicketGet(client *deskclient.Client) server.ServerTool {
 					"Useful for auditing ticket records, troubleshooting support workflows, or "+
 					"integrating Desk ticket data into automation and reporting systems."),
 			mcp.WithReadOnlyHintAnnotation(true),
-			mcp.WithString("id",
+			mcp.WithNumber("id",
 				mcp.Required(),
 				mcp.Description("The ID of the ticket to retrieve."),
 			),
@@ -591,7 +591,7 @@ func TicketUpdate(client *deskclient.Client) server.ServerTool {
 				"Update an existing ticket in Teamwork Desk by ID, allowing changes to its attributes. "+
 					"Supports evolving support processes, correcting ticket records, or integrating with automation "+
 					"systems for improved ticket handling."),
-			mcp.WithString("id",
+			mcp.WithNumber("id",
 				mcp.Required(),
 				mcp.Description("The ID of the ticket to update."),
 			),

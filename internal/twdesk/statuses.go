@@ -41,7 +41,7 @@ func StatusGet(client *deskclient.Client) server.ServerTool {
 					"Useful for auditing status usage, troubleshooting ticket workflows, or "+
 					"integrating Desk status data into automation workflows."),
 			mcp.WithReadOnlyHintAnnotation(true),
-			mcp.WithString("id",
+			mcp.WithNumber("id",
 				mcp.Required(),
 				mcp.Description("The ID of the status to retrieve."),
 			),
@@ -166,7 +166,7 @@ func StatusUpdate(client *deskclient.Client) server.ServerTool {
 				"Update an existing status in Teamwork Desk by ID, allowing changes to its name, color, and display order. "+
 					"Supports evolving support policies, rebranding, or correcting status attributes for improved "+
 					"ticket handling."),
-			mcp.WithString("id",
+			mcp.WithNumber("id",
 				mcp.Required(),
 				mcp.Description("The ID of the status to update."),
 			),

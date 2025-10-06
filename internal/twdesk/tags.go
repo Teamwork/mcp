@@ -42,7 +42,7 @@ func TagGet(client *deskclient.Client) server.ServerTool {
 					"Useful for auditing tag usage, troubleshooting ticket categorization, or "+
 					"integrating Desk tag data into automation workflows."),
 			mcp.WithReadOnlyHintAnnotation(true),
-			mcp.WithString("id",
+			mcp.WithNumber("id",
 				mcp.Required(),
 				mcp.Description("The ID of the tag to retrieve."),
 			),
@@ -154,7 +154,7 @@ func TagUpdate(client *deskclient.Client) server.ServerTool {
 				"Update an existing tag in Teamwork Desk by ID, allowing changes to its name and color. "+
 					"Supports evolving support policies, rebranding, or correcting tag attributes for improved "+
 					"ticket handling."),
-			mcp.WithString("id",
+			mcp.WithNumber("id",
 				mcp.Required(),
 				mcp.Description("The ID of the tag to update."),
 			),

@@ -38,7 +38,7 @@ func UserGet(client *deskclient.Client) server.ServerTool {
 					"Useful for auditing user records, troubleshooting ticket assignments, or "+
 					"integrating Desk user data into automation workflows."),
 			mcp.WithReadOnlyHintAnnotation(true),
-			mcp.WithString("id",
+			mcp.WithNumber("id",
 				mcp.Required(),
 				mcp.Description("The ID of the user to retrieve."),
 			),

@@ -41,7 +41,7 @@ func CustomerGet(client *deskclient.Client) server.ServerTool {
 					"Useful for auditing customer records, troubleshooting ticket associations, or "+
 					"integrating Desk customer data into automation workflows."),
 			mcp.WithReadOnlyHintAnnotation(true),
-			mcp.WithString("id",
+			mcp.WithNumber("id",
 				mcp.Required(),
 				mcp.Description("The ID of the customer to retrieve."),
 			),
@@ -221,7 +221,7 @@ func CustomerUpdate(client *deskclient.Client) server.ServerTool {
 				"Update an existing customer in Teamwork Desk by ID, allowing changes to their name, "+
 					"contact details, and other attributes. Supports evolving business relationships, "+
 					"correcting customer records, or improving ticket handling."),
-			mcp.WithString("id",
+			mcp.WithNumber("id",
 				mcp.Required(),
 				mcp.Description("The ID of the customer to update."),
 			),

@@ -36,7 +36,7 @@ func InboxGet(client *deskclient.Client) server.ServerTool {
 				Retrieve detailed information about a specific inbox in Teamwork Desk by its ID
 			`),
 			mcp.WithReadOnlyHintAnnotation(true),
-			mcp.WithString("id",
+			mcp.WithNumber("id",
 				mcp.Required(),
 				mcp.Description("The ID of the inbox to retrieve."),
 			),

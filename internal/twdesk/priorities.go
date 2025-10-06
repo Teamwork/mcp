@@ -42,7 +42,7 @@ func PriorityGet(client *deskclient.Client) server.ServerTool {
 					"Useful for inspecting priority attributes, troubleshooting ticket routing, or "+
 					"integrating Desk priority data into automation workflows."),
 			mcp.WithReadOnlyHintAnnotation(true),
-			mcp.WithString("id",
+			mcp.WithNumber("id",
 				mcp.Required(),
 				mcp.Description("The ID of the priority to retrieve."),
 			),
@@ -154,7 +154,7 @@ func PriorityUpdate(client *deskclient.Client) server.ServerTool {
 				"Update an existing priority in Teamwork Desk by ID, allowing changes to its name and color. "+
 					"Supports evolving support policies, rebranding, or correcting priority attributes for improved "+
 					"ticket handling."),
-			mcp.WithString("id",
+			mcp.WithNumber("id",
 				mcp.Required(),
 				mcp.Description("The ID of the priority to update."),
 			),

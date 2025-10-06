@@ -42,7 +42,7 @@ func CompanyGet(client *deskclient.Client) server.ServerTool {
 					"Useful for auditing company records, troubleshooting ticket associations, or "+
 					"integrating Desk company data into automation workflows."),
 			mcp.WithReadOnlyHintAnnotation(true),
-			mcp.WithString("id",
+			mcp.WithNumber("id",
 				mcp.Required(),
 				mcp.Description("The ID of the company to retrieve."),
 			),
@@ -200,7 +200,7 @@ func CompanyUpdate(client *deskclient.Client) server.ServerTool {
 				"Update an existing company in Teamwork Desk by ID, allowing changes to its name, domains, and other attributes. "+
 					"Supports evolving business relationships, rebranding, or correcting company records for improved "+
 					"ticket handling."),
-			mcp.WithString("id",
+			mcp.WithNumber("id",
 				mcp.Required(),
 				mcp.Description("The ID of the company to update."),
 			),
