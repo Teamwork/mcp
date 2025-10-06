@@ -254,6 +254,128 @@ func TicketList(client *deskclient.Client) server.ServerTool {
 	}
 }
 
+// TicketSearch uses the search API to find tickets in Teamwork Desk
+func TicketSearch(client *deskclient.Client) server.ServerTool {
+	opts := []mcp.ToolOption{
+		mcp.WithTitleAnnotation("Search Tickets"),
+		mcp.WithOutputSchema[deskmodels.TicketsResponse](),
+		mcp.WithDescription(
+			"Search tickets in Teamwork Desk using various filters including inbox, customer, company, tag, status, " +
+				"priority, SLA, user, and more. This tool enables users to perform targeted searches for tickets, " +
+				"facilitating efficient support management, reporting, and integration with other systems."),
+		mcp.WithReadOnlyHintAnnotation(true),
+		mcp.WithString("search", mcp.Description(`
+				The search term to use for finding tickets.
+				This can be part of the subject, body, or other ticket fields.
+			`),
+			mcp.Required(),
+		),
+		mcp.WithArray("inboxIDs",
+			mcp.Description(`
+				The IDs of the inboxes to filter by.
+				Inbox IDs can be found by using the 'twdesk-list_inboxes' tool.
+			`),
+			mcp.Items(map[string]any{
+				"type": "integer",
+			}),
+		),
+		mcp.WithArray("customerIDs", mcp.Description(`
+			The IDs of the customers to filter by. 
+			Customer IDs can be found by using the 'twdesk-list_customers' tool.
+		`),
+			mcp.Items(map[string]any{
+				"type": "integer",
+			}),
+		),
+		mcp.WithArray("companyIDs", mcp.Description(`
+			The IDs of the companies to filter by. 
+			Company IDs can be found by using the 'twdesk-list_companies' tool.
+		`),
+			mcp.Items(map[string]any{
+				"type": "integer",
+			}),
+		),
+		mcp.WithArray("tagIDs", mcp.Description(`
+			The IDs of the tags to filter by. 
+			Tag IDs can be found by using the 'twdesk-list_tags' tool.
+		`),
+			mcp.Items(map[string]any{
+				"type": "integer",
+			}),
+		),
+		mcp.WithArray("statusIDs",
+			mcp.Description(`
+				The IDs of the statuses to filter by.
+				Status IDs can be found by using the 'twdesk-list_statuses' tool.
+			`),
+			mcp.Items(map[string]any{
+				"type": "integer",
+			}),
+		),
+		mcp.WithArray("priorityIDs",
+			mcp.Description(`
+				The IDs of the priorities to filter by.
+				Priority IDs can be found by using the 'twdesk-list_priorities' tool.
+			`),
+			mcp.Items(map[string]any{
+				"type": "integer",
+			}),
+		),
+		mcp.WithArray("userIDs",
+			mcp.Description(`
+				The IDs of the users to filter by.
+				User IDs can be found by using the 'twdesk-list_users' tool.
+			`),
+			mcp.Items(map[string]any{
+				"type": "integer",
+			}),
+		),
+		mcp.WithBoolean("shared", mcp.Description(`
+			Find tickets shared with me outside of inboxes I have access to
+		`)),
+		mcp.WithBoolean("slaBreached", mcp.Description(`
+			Find tickets where the SLA has been breached
+		`)),
+	}
+
+	opts = append(opts, paginationOptions()...)
+
+	return server.ServerTool{
+		Tool: mcp.NewTool(string(MethodTicketList), opts...),
+		Handler: func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+			params := &deskmodels.SearchTicketsFilter{}
+
+			params.Search = request.GetString("search", "")
+
+			if request.GetIntSlice("customerIDs", nil) != nil {
+				params.Customers = helpers.IntSliceToInt64(request.GetIntSlice("customerIDs", nil))
+			}
+			if request.GetIntSlice("companyIDs", nil) != nil {
+				params.Companies = helpers.IntSliceToInt64(request.GetIntSlice("companyIDs", nil))
+			}
+			if request.GetIntSlice("tagIDs", nil) != nil {
+				params.Tags = helpers.IntSliceToInt64(request.GetIntSlice("tagIDs", nil))
+			}
+			if request.GetIntSlice("statusIDs", nil) != nil {
+				params.Statuses = helpers.IntSliceToInt64(request.GetIntSlice("statusIDs", nil))
+			}
+			if request.GetIntSlice("priorityIDs", nil) != nil {
+				params.Priorities = helpers.IntSliceToInt64(request.GetIntSlice("priorityIDs", nil))
+			}
+			if request.GetIntSlice("userIDs", nil) != nil {
+				params.Agents = helpers.IntSliceToInt64(request.GetIntSlice("userIDs", nil))
+			}
+
+			tickets, err := client.Tickets.Search(ctx, params)
+			if err != nil {
+				return nil, fmt.Errorf("failed to list tickets: %w", err)
+			}
+
+			return mcp.NewToolResultText(fmt.Sprintf("Tickets retrieved successfully: %v", tickets)), nil
+		},
+	}
+}
+
 // TicketCreate creates a ticket in Teamwork Desk
 func TicketCreate(client *deskclient.Client) server.ServerTool {
 	return server.ServerTool{

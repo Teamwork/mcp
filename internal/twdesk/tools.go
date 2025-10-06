@@ -23,6 +23,7 @@ func DefaultToolsetGroup(client *deskclient.Client) *toolsets.ToolsetGroup {
 		TagList(client),
 		TicketGet(client),
 		TicketList(client),
+		TicketSearch(client),
 		TypeGet(client),
 		TypeList(client),
 		UserGet(client),

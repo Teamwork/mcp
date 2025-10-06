@@ -8,3 +8,12 @@ func SliceToAny[T any](slice []T) []any {
 	}
 	return result
 }
+
+// IntSliceToInt64 converts a slice of int to a slice of int64
+func IntSliceToInt64(slice []int) []int64 {
+	result := make([]int64, len(slice))
+	for i, v := range slice {
+		result[i] = int64(v)
+	}
+	return result
+}
