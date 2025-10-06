@@ -43,8 +43,6 @@ github.com/Microsoft/go-winio v0.6.2 h1:F2VQgta7ecxGYO8k3ZZz3RS8fVIXVxONVUPlNERo
 github.com/Microsoft/go-winio v0.6.2/go.mod h1:yd8OoFMLzJbo9gZq8j5qaps8bJ9aShtEA8Ipt1oGCvU=
 github.com/bahlo/generic-list-go v0.2.0 h1:5sz/EEAK+ls5wF+NeqDpk5+iNdMDXrh3z3nPnH1Wvgk=
 github.com/bahlo/generic-list-go v0.2.0/go.mod h1:2KvAjgMlE5NNynlg/5iLrrCCZ2+5xWbdbCW3pNTGyYg=
-github.com/brianvoe/gofakeit/v7 v7.2.1 h1:AGojgaaCdgq4Adzrd2uWdbGNDyX6MWNhHdQBraNfOHI=
-github.com/brianvoe/gofakeit/v7 v7.2.1/go.mod h1:QXuPeBw164PJCzCUZVmgpgHJ3Llj49jSLVkKPMtxtxA=
 github.com/buger/jsonparser v1.1.1 h1:2PnMjfWD7wBILjqQbt530v576A/cAbQvEW9gGIpYMUs=
 github.com/buger/jsonparser v1.1.1/go.mod h1:6RYKKt7H4d4+iWqouImQ9R2FZql3VbhNgx27UK13J/0=
 github.com/cespare/xxhash/v2 v2.1.1/go.mod h1:VGX0DQ3Q6kWi7AoAeZDth3/j3BFtOZR5XLFGgcrjCOs=
@@ -107,8 +105,6 @@ github.com/hashicorp/go-version v1.7.0 h1:5tqGy27NaOTB8yJKUZELlFAS/LTKJkrmONwQKe
 github.com/hashicorp/go-version v1.7.0/go.mod h1:fltr4n8CU8Ke44wwGCBoEymUuxUHl09ZGVZPK5anwXA=
 github.com/invopop/jsonschema v0.13.0 h1:KvpoAJWEjR3uD9Kbm2HWJmqsEaHt8lBUpd0qHcIi21E=
 github.com/invopop/jsonschema v0.13.0/go.mod h1:ffZ5Km5SWWRAIN6wbDXItl95euhFz2uON45H2qjYt+0=
-github.com/joho/godotenv v1.5.1 h1:7eLL/+HRGLY0ldzfGMeQkb7vMd0as4CfYvUVzLqw0N0=
-github.com/joho/godotenv v1.5.1/go.mod h1:f4LDr5Voq0i2e/R5DDNOoa2zzDfwtkZa6DnEwAbqwq4=
 github.com/josharian/intern v1.0.0/go.mod h1:5DoeVV0s6jJacbCEi61lwdGj/aVlrQvzHFFd8Hwg//Y=
 github.com/json-iterator/go v1.1.12 h1:PV8peI4a0ysnczrg+LtxykD8LfKY9ML6u2jnxaEnrnM=
 github.com/json-iterator/go v1.1.12/go.mod h1:e30LSqwooZae/UwlEbR2852Gd8hjQvJoHmT4TnhNGBo=
@@ -124,8 +120,8 @@ github.com/lufia/plan9stats v0.0.0-20240909124753-873cd0166683 h1:7UMa6KCCMjZEMD
 github.com/lufia/plan9stats v0.0.0-20240909124753-873cd0166683/go.mod h1:ilwx/Dta8jXAgpFYFvSWEMwxmbWXyiUHkd5FwyKhb5k=
 github.com/mailru/easyjson v0.7.7 h1:UGYAvKxe3sBsEDzO8ZeWOSlIQfWFlxbzLZe7hwFURr0=
 github.com/mailru/easyjson v0.7.7/go.mod h1:xzfreul335JAWq5oZzymOObrkdz5UnU4kGfJJLY9Nlc=
-github.com/mark3labs/mcp-go v0.41.0 h1:IFfJaovCet65F3av00bE1HzSnmHpMRWM1kz96R98I70=
-github.com/mark3labs/mcp-go v0.41.0/go.mod h1:T7tUa2jO6MavG+3P25Oy/jR7iCeJPHImCZHRymCn39g=
+github.com/mark3labs/mcp-go v0.41.1 h1:w78eWfiQam2i8ICL7AL0WFiq7KHNJQ6UB53ZVtH4KGA=
+github.com/mark3labs/mcp-go v0.41.1/go.mod h1:T7tUa2jO6MavG+3P25Oy/jR7iCeJPHImCZHRymCn39g=
 github.com/modern-go/concurrent v0.0.0-20180228061459-e0a39a4cb421/go.mod h1:6dJC0mAP4ikYIbvyc7fijjWJddQyLn8Ig3JB5CqoB9Q=
 github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd h1:TRLaZ9cD/w8PVh93nsPXa1VrQ6jlwL5oN8l14QlcNfg=
 github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd/go.mod h1:6dJC0mAP4ikYIbvyc7fijjWJddQyLn8Ig3JB5CqoB9Q=
@@ -179,14 +175,6 @@ github.com/stretchr/testify v1.8.0/go.mod h1:yNjHg4UonilssWZ8iaSj1OCr/vHnekPRkoO
 github.com/stretchr/testify v1.8.1/go.mod h1:w2LPCIKwWwSfY2zedu0+kehJoqGctiVI29o6fzry7u4=
 github.com/stretchr/testify v1.10.0 h1:Xv5erBjTwe/5IxqUQTdXv5kgmIvbHo3QQyRwhJsOfJA=
 github.com/stretchr/testify v1.10.0/go.mod h1:r2ic/lqez/lEtzL7wO/rwa5dbSLXVDPFyf8C91i36aY=
-github.com/teamwork/desksdkgo v0.0.0-20250929211500-ca36cbdf08eb h1:SfMo8teNL3mBsvpSyxoP3u60htTC7rTI1TZjIzwPM60=
-github.com/teamwork/desksdkgo v0.0.0-20250929211500-ca36cbdf08eb/go.mod h1:6P8Kni1Kbngl2ZF/P+zZWcrnq30iJgTqW6nbjocN5fI=
-github.com/teamwork/desksdkgo v0.0.0-20250930210058-3418119359c3 h1:8DFttxHW5l0ezooaXPB93OgeOtjc8gs3IJUNVvnYeXA=
-github.com/teamwork/desksdkgo v0.0.0-20250930210058-3418119359c3/go.mod h1:6P8Kni1Kbngl2ZF/P+zZWcrnq30iJgTqW6nbjocN5fI=
-github.com/teamwork/desksdkgo v0.0.0-20251001134327-c1de59729eb7 h1:ia1IAaaQccOPqrnnDCgvDU7dtMcSfZL0IqoI07jN+gw=
-github.com/teamwork/desksdkgo v0.0.0-20251001134327-c1de59729eb7/go.mod h1:6P8Kni1Kbngl2ZF/P+zZWcrnq30iJgTqW6nbjocN5fI=
-github.com/teamwork/desksdkgo v0.0.0-20251001141540-06cb08c38d60 h1:z11RVqvDMB5vnOG+8Vhi+OeOXAtZrCUKMZvJ6Ik9NG4=
-github.com/teamwork/desksdkgo v0.0.0-20251001141540-06cb08c38d60/go.mod h1:6P8Kni1Kbngl2ZF/P+zZWcrnq30iJgTqW6nbjocN5fI=
 github.com/teamwork/desksdkgo v0.0.0-20251001144546-7dd02759cac3 h1:boJnEIUqYZHnxOAlPXm5DxwN5sryY+bOCBNcL6RhwnU=
 github.com/teamwork/desksdkgo v0.0.0-20251001144546-7dd02759cac3/go.mod h1:6P8Kni1Kbngl2ZF/P+zZWcrnq30iJgTqW6nbjocN5fI=
 github.com/teamwork/twapi-go-sdk v1.5.0 h1:ExlQz2WJPKKlBiGtm5l+Gtp5zp5U3InKVDtBx7AbYAc=
