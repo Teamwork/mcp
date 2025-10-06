@@ -242,10 +242,10 @@ func GetValidTestData() map[string]map[string]map[string]any {
 		},
 		"CompanyUpdate": {
 			"minimal": {
-				"id": "123",
+				"id": 123,
 			},
 			"complete": {
-				"id":          "123",
+				"id":          123,
 				"name":        "Updated Company",
 				"description": "Updated description",
 				"domains":     []string{"updated.com"},
@@ -253,7 +253,7 @@ func GetValidTestData() map[string]map[string]map[string]any {
 		},
 		"CompanyGet": {
 			"valid": {
-				"id": "123",
+				"id": 123,
 			},
 		},
 		"CompanyList": {
@@ -275,7 +275,7 @@ func GetValidTestData() map[string]map[string]map[string]any {
 		},
 		"CustomerGet": {
 			"valid": {
-				"id": "123",
+				"id": 123,
 			},
 		},
 		"CustomerList": {
@@ -295,13 +295,13 @@ func GetValidTestData() map[string]map[string]map[string]any {
 		},
 		"TicketUpdate": {
 			"minimal": {
-				"id":      "123",
+				"id":      123,
 				"subject": "Updated Ticket",
 			},
 		},
 		"TicketGet": {
 			"valid": {
-				"id": "123",
+				"id": 123,
 			},
 		},
 		"TicketList": {
@@ -314,7 +314,7 @@ func GetValidTestData() map[string]map[string]map[string]any {
 		},
 		"PriorityGet": {
 			"valid": {
-				"id": "123",
+				"id": 123,
 			},
 		},
 		"PriorityList": {
@@ -327,7 +327,7 @@ func GetValidTestData() map[string]map[string]map[string]any {
 		},
 		"StatusGet": {
 			"valid": {
-				"id": "123",
+				"id": 123,
 			},
 		},
 		"StatusList": {
@@ -340,7 +340,7 @@ func GetValidTestData() map[string]map[string]map[string]any {
 		},
 		"TagGet": {
 			"valid": {
-				"id": "123",
+				"id": 123,
 			},
 		},
 		"TagList": {
@@ -353,7 +353,7 @@ func GetValidTestData() map[string]map[string]map[string]any {
 		},
 		"TypeGet": {
 			"valid": {
-				"id": "123",
+				"id": 123,
 			},
 		},
 		"TypeList": {
@@ -361,7 +361,7 @@ func GetValidTestData() map[string]map[string]map[string]any {
 		},
 		"UserGet": {
 			"valid": {
-				"id": "123",
+				"id": 123,
 			},
 		},
 		"UserList": {
@@ -412,7 +412,7 @@ func GetInvalidTestData() map[string]map[string]map[string]any {
 				"name": "Updated Company",
 			},
 			"invalid_domains_type": {
-				"id":      "123",
+				"id":      123,
 				"domains": "should_be_array",
 			},
 		},
