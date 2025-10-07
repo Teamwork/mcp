@@ -81,9 +81,7 @@ func PriorityGet(client *deskclient.Client) toolsets.ToolWrapper {
 			if err != nil {
 				return nil, fmt.Errorf("failed to get priority: %w", err)
 			}
-
-			name := priority.TicketPriority.Name
-			return helpers.NewToolResultText(fmt.Sprintf("Priority retrieved successfully: %s", name)), nil
+			return helpers.NewToolResultJSON(priority)
 		},
 	}
 }
@@ -150,8 +148,7 @@ func PriorityList(client *deskclient.Client) toolsets.ToolWrapper {
 			if err != nil {
 				return nil, fmt.Errorf("failed to list priorities: %w", err)
 			}
-
-			return helpers.NewToolResultText(fmt.Sprintf("Priorities retrieved successfully: %v", priorities)), nil
+			return helpers.NewToolResultJSON(priorities)
 		},
 	}
 }
@@ -196,9 +193,7 @@ func PriorityCreate(client *deskclient.Client) toolsets.ToolWrapper {
 			if err != nil {
 				return nil, fmt.Errorf("failed to create priority: %w", err)
 			}
-
-			id := priority.TicketPriority.ID
-			return helpers.NewToolResultText(fmt.Sprintf("Priority created successfully with ID %d", id)), nil
+			return helpers.NewToolResultText("Priority created successfully with ID %d", priority.TicketPriority.ID), nil
 		},
 	}
 }

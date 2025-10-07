@@ -170,14 +170,7 @@ func CommentCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 			if err != nil {
 				return helpers.HandleAPIError(err, "failed to create comment")
 			}
-
-			return &mcp.CallToolResult{
-				Content: []mcp.Content{
-					&mcp.TextContent{
-						Text: fmt.Sprintf("Comment created successfully with ID %d", comment.ID),
-					},
-				},
-			}, nil
+			return helpers.NewToolResultText("Comment created successfully with ID %d", comment.ID), nil
 		},
 	}
 }
@@ -234,14 +227,7 @@ func CommentUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 			if err != nil {
 				return helpers.HandleAPIError(err, "failed to update comment")
 			}
-
-			return &mcp.CallToolResult{
-				Content: []mcp.Content{
-					&mcp.TextContent{
-						Text: "Comment updated successfully",
-					},
-				},
-			}, nil
+			return helpers.NewToolResultText("Comment updated successfully"), nil
 		},
 	}
 }
@@ -284,14 +270,7 @@ func CommentDelete(engine *twapi.Engine) toolsets.ToolWrapper {
 			if err != nil {
 				return helpers.HandleAPIError(err, "failed to delete comment")
 			}
-
-			return &mcp.CallToolResult{
-				Content: []mcp.Content{
-					&mcp.TextContent{
-						Text: "Comment deleted successfully",
-					},
-				},
-			}, nil
+			return helpers.NewToolResultText("Comment deleted successfully"), nil
 		},
 	}
 }
@@ -347,6 +326,7 @@ func CommentGet(engine *twapi.Engine) toolsets.ToolWrapper {
 						Text: string(helpers.WebLinker(ctx, encoded, commentPathBuilder)),
 					},
 				},
+				StructuredContent: comment,
 			}, nil
 		},
 	}
@@ -412,6 +392,7 @@ func CommentList(engine *twapi.Engine) toolsets.ToolWrapper {
 						Text: string(helpers.WebLinker(ctx, encoded, commentPathBuilder)),
 					},
 				},
+				StructuredContent: commentList,
 			}, nil
 		},
 	}
@@ -484,6 +465,7 @@ func CommentListByFileVersion(engine *twapi.Engine) toolsets.ToolWrapper {
 						Text: string(helpers.WebLinker(ctx, encoded, commentPathBuilder)),
 					},
 				},
+				StructuredContent: commentList,
 			}, nil
 		},
 	}
@@ -555,6 +537,7 @@ func CommentListByMilestone(engine *twapi.Engine) toolsets.ToolWrapper {
 						Text: string(helpers.WebLinker(ctx, encoded, commentPathBuilder)),
 					},
 				},
+				StructuredContent: commentList,
 			}, nil
 		},
 	}
@@ -626,6 +609,7 @@ func CommentListByNotebook(engine *twapi.Engine) toolsets.ToolWrapper {
 						Text: string(helpers.WebLinker(ctx, encoded, commentPathBuilder)),
 					},
 				},
+				StructuredContent: commentList,
 			}, nil
 		},
 	}
@@ -697,6 +681,7 @@ func CommentListByTask(engine *twapi.Engine) toolsets.ToolWrapper {
 						Text: string(helpers.WebLinker(ctx, encoded, commentPathBuilder)),
 					},
 				},
+				StructuredContent: commentList,
 			}, nil
 		},
 	}

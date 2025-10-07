@@ -70,8 +70,7 @@ func InboxGet(client *deskclient.Client) toolsets.ToolWrapper {
 			if err != nil {
 				return nil, fmt.Errorf("failed to get inbox: %w", err)
 			}
-
-			return helpers.NewToolResultText(fmt.Sprintf("Inbox retrieved successfully: %s", inbox.Inbox.Name)), nil
+			return helpers.NewToolResultText("Inbox retrieved successfully: %s", inbox.Inbox.Name), nil
 		},
 	}
 }
@@ -136,8 +135,7 @@ func InboxList(client *deskclient.Client) toolsets.ToolWrapper {
 			if err != nil {
 				return nil, fmt.Errorf("failed to list inboxes: %w", err)
 			}
-
-			return helpers.NewToolResultText(fmt.Sprintf("Inboxes retrieved successfully: %v", inboxes)), nil
+			return helpers.NewToolResultJSON(inboxes)
 		},
 	}
 }

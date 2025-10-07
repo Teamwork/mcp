@@ -78,7 +78,7 @@ func CustomerGet(client *deskclient.Client) toolsets.ToolWrapper {
 			}
 
 			firstName := customer.Customer.FirstName
-			return helpers.NewToolResultText(fmt.Sprintf("Customer retrieved successfully: %s", firstName)), nil
+			return helpers.NewToolResultText("Customer retrieved successfully: %s", firstName), nil
 		},
 	}
 }
@@ -159,7 +159,7 @@ func CustomerList(client *deskclient.Client) toolsets.ToolWrapper {
 				return nil, fmt.Errorf("failed to list customers: %w", err)
 			}
 
-			return helpers.NewToolResultText(fmt.Sprintf("Customers retrieved successfully: %v", customers)), nil
+			return helpers.NewToolResultJSON(customers)
 		},
 	}
 }
@@ -271,9 +271,7 @@ func CustomerCreate(client *deskclient.Client) toolsets.ToolWrapper {
 			if err != nil {
 				return nil, fmt.Errorf("failed to create customer: %w", err)
 			}
-
-			id := customer.Customer.ID
-			return helpers.NewToolResultText(fmt.Sprintf("Customer created successfully with ID %d", id)), nil
+			return helpers.NewToolResultText("Customer created successfully with ID %d", customer.Customer.ID), nil
 		},
 	}
 }

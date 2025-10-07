@@ -81,8 +81,7 @@ func TagGet(client *deskclient.Client) toolsets.ToolWrapper {
 			if err != nil {
 				return nil, fmt.Errorf("failed to get tag: %w", err)
 			}
-
-			return helpers.NewToolResultText(fmt.Sprintf("Tag retrieved successfully: %s", tag.Tag.Name)), nil
+			return helpers.NewToolResultJSON(tag)
 		},
 	}
 }
@@ -154,8 +153,7 @@ func TagList(client *deskclient.Client) toolsets.ToolWrapper {
 			if err != nil {
 				return nil, fmt.Errorf("failed to list tags: %w", err)
 			}
-
-			return helpers.NewToolResultText(fmt.Sprintf("Tags retrieved successfully: %v", tags)), nil
+			return helpers.NewToolResultJSON(tags)
 		},
 	}
 }
@@ -200,8 +198,7 @@ func TagCreate(client *deskclient.Client) toolsets.ToolWrapper {
 			if err != nil {
 				return nil, fmt.Errorf("failed to create tag: %w", err)
 			}
-
-			return helpers.NewToolResultText(fmt.Sprintf("Tag created successfully with ID %d", tag.Tag.ID)), nil
+			return helpers.NewToolResultText("Tag created successfully with ID %d", tag.Tag.ID), nil
 		},
 	}
 }

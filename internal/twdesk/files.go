@@ -21,20 +21,8 @@ const (
 	MethodFileCreate toolsets.Method = "twdesk-create_file"
 )
 
-var (
-	fileCreateOutputSchema *jsonschema.Schema
-)
-
 func init() {
 	toolsets.RegisterMethod(MethodFileCreate)
-
-	var err error
-
-	// generate the output schemas only once
-	fileCreateOutputSchema, err = jsonschema.For[deskmodels.FileResponse](&jsonschema.ForOptions{})
-	if err != nil {
-		panic(fmt.Sprintf("failed to generate JSON schema for FileResponse: %v", err))
-	}
 }
 
 // FileCreate creates a file in Teamwork Desk
@@ -73,7 +61,6 @@ func FileCreate(client *deskclient.Client) toolsets.ToolWrapper {
 				},
 				Required: []string{"name", "mimeType", "data"},
 			},
-			OutputSchema: fileCreateOutputSchema,
 		},
 		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 			arguments, err := helpers.NewToolArguments(request)
@@ -112,8 +99,7 @@ func FileCreate(client *deskclient.Client) toolsets.ToolWrapper {
 			if err != nil {
 				return nil, fmt.Errorf("failed to upload file: %w", err)
 			}
-
-			return helpers.NewToolResultText(fmt.Sprintf("File created successfully with ID %d", file.File.ID)), nil
+			return helpers.NewToolResultText("File created successfully with ID %d", file.File.ID), nil
 		},
 	}
 }

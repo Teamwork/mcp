@@ -2,7 +2,6 @@ package twprojects
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 
 	"github.com/google/jsonschema-go/jsonschema"
@@ -65,18 +64,7 @@ func IndustryList(engine *twapi.Engine) toolsets.ToolWrapper {
 			if err != nil {
 				return helpers.HandleAPIError(err, "failed to list industries")
 			}
-
-			encoded, err := json.Marshal(industryList)
-			if err != nil {
-				return nil, err
-			}
-			return &mcp.CallToolResult{
-				Content: []mcp.Content{
-					&mcp.TextContent{
-						Text: string(encoded),
-					},
-				},
-			}, nil
+			return helpers.NewToolResultJSON(industryList)
 		},
 	}
 }

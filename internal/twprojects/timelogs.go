@@ -159,15 +159,7 @@ func TimelogCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 			if err != nil {
 				return helpers.HandleAPIError(err, "failed to create timelog")
 			}
-
-			id := timelogResponse.Timelog.ID
-			return &mcp.CallToolResult{
-				Content: []mcp.Content{
-					&mcp.TextContent{
-						Text: fmt.Sprintf("Timelog created successfully with ID %d", id),
-					},
-				},
-			}, nil
+			return helpers.NewToolResultText("Timelog created successfully with ID %d", timelogResponse.Timelog.ID), nil
 		},
 	}
 }
@@ -272,14 +264,7 @@ func TimelogUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 			if err != nil {
 				return helpers.HandleAPIError(err, "failed to update timelog")
 			}
-
-			return &mcp.CallToolResult{
-				Content: []mcp.Content{
-					&mcp.TextContent{
-						Text: "Timelog updated successfully",
-					},
-				},
-			}, nil
+			return helpers.NewToolResultText("Timelog updated successfully"), nil
 		},
 	}
 }
@@ -322,14 +307,7 @@ func TimelogDelete(engine *twapi.Engine) toolsets.ToolWrapper {
 			if err != nil {
 				return helpers.HandleAPIError(err, "failed to delete timelog")
 			}
-
-			return &mcp.CallToolResult{
-				Content: []mcp.Content{
-					&mcp.TextContent{
-						Text: "Timelog deleted successfully",
-					},
-				},
-			}, nil
+			return helpers.NewToolResultText("Timelog deleted successfully"), nil
 		},
 	}
 }
@@ -374,18 +352,7 @@ func TimelogGet(engine *twapi.Engine) toolsets.ToolWrapper {
 			if err != nil {
 				return helpers.HandleAPIError(err, "failed to get timelog")
 			}
-
-			encoded, err := json.Marshal(timelog)
-			if err != nil {
-				return nil, err
-			}
-			return &mcp.CallToolResult{
-				Content: []mcp.Content{
-					&mcp.TextContent{
-						Text: string(encoded),
-					},
-				},
-			}, nil
+			return helpers.NewToolResultJSON(timelog)
 		},
 	}
 }
@@ -484,18 +451,7 @@ func TimelogList(engine *twapi.Engine) toolsets.ToolWrapper {
 			if err != nil {
 				return helpers.HandleAPIError(err, "failed to list timelogs")
 			}
-
-			encoded, err := json.Marshal(timelogList)
-			if err != nil {
-				return nil, err
-			}
-			return &mcp.CallToolResult{
-				Content: []mcp.Content{
-					&mcp.TextContent{
-						Text: string(encoded),
-					},
-				},
-			}, nil
+			return helpers.NewToolResultJSON(timelogList)
 		},
 	}
 }
@@ -600,18 +556,7 @@ func TimelogListByProject(engine *twapi.Engine) toolsets.ToolWrapper {
 			if err != nil {
 				return helpers.HandleAPIError(err, "failed to list timelogs")
 			}
-
-			encoded, err := json.Marshal(timelogList)
-			if err != nil {
-				return nil, err
-			}
-			return &mcp.CallToolResult{
-				Content: []mcp.Content{
-					&mcp.TextContent{
-						Text: string(encoded),
-					},
-				},
-			}, nil
+			return helpers.NewToolResultJSON(timelogList)
 		},
 	}
 }
@@ -716,18 +661,7 @@ func TimelogListByTask(engine *twapi.Engine) toolsets.ToolWrapper {
 			if err != nil {
 				return helpers.HandleAPIError(err, "failed to list timelogs")
 			}
-
-			encoded, err := json.Marshal(timelogList)
-			if err != nil {
-				return nil, err
-			}
-			return &mcp.CallToolResult{
-				Content: []mcp.Content{
-					&mcp.TextContent{
-						Text: string(encoded),
-					},
-				},
-			}, nil
+			return helpers.NewToolResultJSON(timelogList)
 		},
 	}
 }

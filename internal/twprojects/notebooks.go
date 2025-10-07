@@ -130,16 +130,7 @@ func NotebookCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 			if err != nil {
 				return helpers.HandleAPIError(err, "failed to create notebook")
 			}
-			id := notebookResponse.Notebook.ID
-
-			msg := fmt.Sprintf("Notebook created successfully with ID %d", id)
-			return &mcp.CallToolResult{
-				Content: []mcp.Content{
-					&mcp.TextContent{
-						Text: msg,
-					},
-				},
-			}, nil
+			return helpers.NewToolResultText("Notebook created successfully with ID %d", notebookResponse.Notebook.ID), nil
 		},
 	}
 }
@@ -216,14 +207,7 @@ func NotebookUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 			if err != nil {
 				return helpers.HandleAPIError(err, "failed to update notebook")
 			}
-
-			return &mcp.CallToolResult{
-				Content: []mcp.Content{
-					&mcp.TextContent{
-						Text: "Notebook updated successfully",
-					},
-				},
-			}, nil
+			return helpers.NewToolResultText("Notebook updated successfully"), nil
 		},
 	}
 }
@@ -266,14 +250,7 @@ func NotebookDelete(engine *twapi.Engine) toolsets.ToolWrapper {
 			if err != nil {
 				return helpers.HandleAPIError(err, "failed to delete notebook")
 			}
-
-			return &mcp.CallToolResult{
-				Content: []mcp.Content{
-					&mcp.TextContent{
-						Text: "Notebook deleted successfully",
-					},
-				},
-			}, nil
+			return helpers.NewToolResultText("Notebook deleted successfully"), nil
 		},
 	}
 }
@@ -331,6 +308,7 @@ func NotebookGet(engine *twapi.Engine) toolsets.ToolWrapper {
 						)),
 					},
 				},
+				StructuredContent: notebook,
 			}, nil
 		},
 	}
@@ -430,6 +408,7 @@ func NotebookList(engine *twapi.Engine) toolsets.ToolWrapper {
 						)),
 					},
 				},
+				StructuredContent: notebookList,
 			}, nil
 		},
 	}

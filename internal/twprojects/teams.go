@@ -133,14 +133,7 @@ func TeamCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 			if err != nil {
 				return helpers.HandleAPIError(err, "failed to create team")
 			}
-
-			return &mcp.CallToolResult{
-				Content: []mcp.Content{
-					&mcp.TextContent{
-						Text: fmt.Sprintf("Team created successfully with ID %d", team.ID),
-					},
-				},
-			}, nil
+			return helpers.NewToolResultText("Team created successfully with ID %d", team.ID), nil
 		},
 	}
 }
@@ -221,14 +214,7 @@ func TeamUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 			if err != nil {
 				return helpers.HandleAPIError(err, "failed to update team")
 			}
-
-			return &mcp.CallToolResult{
-				Content: []mcp.Content{
-					&mcp.TextContent{
-						Text: "Team updated successfully",
-					},
-				},
-			}, nil
+			return helpers.NewToolResultText("Team updated successfully"), nil
 		},
 	}
 }
@@ -271,14 +257,7 @@ func TeamDelete(engine *twapi.Engine) toolsets.ToolWrapper {
 			if err != nil {
 				return helpers.HandleAPIError(err, "failed to delete team")
 			}
-
-			return &mcp.CallToolResult{
-				Content: []mcp.Content{
-					&mcp.TextContent{
-						Text: "Team deleted successfully",
-					},
-				},
-			}, nil
+			return helpers.NewToolResultText("Team deleted successfully"), nil
 		},
 	}
 }
@@ -336,6 +315,7 @@ func TeamGet(engine *twapi.Engine) toolsets.ToolWrapper {
 						)),
 					},
 				},
+				StructuredContent: team,
 			}, nil
 		},
 	}
@@ -408,6 +388,7 @@ func TeamList(engine *twapi.Engine) toolsets.ToolWrapper {
 						)),
 					},
 				},
+				StructuredContent: teamList,
 			}, nil
 		},
 	}
@@ -481,6 +462,7 @@ func TeamListByCompany(engine *twapi.Engine) toolsets.ToolWrapper {
 						)),
 					},
 				},
+				StructuredContent: teamList,
 			}, nil
 		},
 	}
@@ -554,6 +536,7 @@ func TeamListByProject(engine *twapi.Engine) toolsets.ToolWrapper {
 						)),
 					},
 				},
+				StructuredContent: teamList,
 			}, nil
 		},
 	}

@@ -81,8 +81,7 @@ func TypeGet(client *deskclient.Client) toolsets.ToolWrapper {
 			if err != nil {
 				return nil, fmt.Errorf("failed to get type: %w", err)
 			}
-
-			return helpers.NewToolResultText(fmt.Sprintf("Type retrieved successfully: %s", t.TicketType.Name)), nil
+			return helpers.NewToolResultJSON(t)
 		},
 	}
 }
@@ -149,8 +148,7 @@ func TypeList(client *deskclient.Client) toolsets.ToolWrapper {
 			if err != nil {
 				return nil, fmt.Errorf("failed to list types: %w", err)
 			}
-
-			return helpers.NewToolResultText(fmt.Sprintf("Types retrieved successfully: %v", types)), nil
+			return helpers.NewToolResultJSON(types)
 		},
 	}
 }
@@ -201,8 +199,7 @@ func TypeCreate(client *deskclient.Client) toolsets.ToolWrapper {
 			if err != nil {
 				return nil, fmt.Errorf("failed to create type: %w", err)
 			}
-
-			return helpers.NewToolResultText(fmt.Sprintf("Type created successfully with ID %d", t.TicketType.ID)), nil
+			return helpers.NewToolResultText("Type created successfully with ID %d", t.TicketType.ID), nil
 		},
 	}
 }

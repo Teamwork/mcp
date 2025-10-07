@@ -180,15 +180,7 @@ func CompanyCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 			if err != nil {
 				return helpers.HandleAPIError(err, "failed to create company")
 			}
-
-			msg := fmt.Sprintf("Company created successfully with ID %d", companyResponse.Company.ID)
-			return &mcp.CallToolResult{
-				Content: []mcp.Content{
-					&mcp.TextContent{
-						Text: msg,
-					},
-				},
-			}, nil
+			return helpers.NewToolResultText("Company created successfully with ID %d", companyResponse.Company.ID), nil
 		},
 	}
 }
@@ -319,14 +311,7 @@ func CompanyUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 			if err != nil {
 				return helpers.HandleAPIError(err, "failed to update company")
 			}
-
-			return &mcp.CallToolResult{
-				Content: []mcp.Content{
-					&mcp.TextContent{
-						Text: "Company updated successfully",
-					},
-				},
-			}, nil
+			return helpers.NewToolResultText("Company updated successfully"), nil
 		},
 	}
 }
@@ -369,14 +354,7 @@ func CompanyDelete(engine *twapi.Engine) toolsets.ToolWrapper {
 			if err != nil {
 				return helpers.HandleAPIError(err, "failed to delete company")
 			}
-
-			return &mcp.CallToolResult{
-				Content: []mcp.Content{
-					&mcp.TextContent{
-						Text: "Company deleted successfully",
-					},
-				},
-			}, nil
+			return helpers.NewToolResultText("Company deleted successfully"), nil
 		},
 	}
 }
@@ -434,6 +412,7 @@ func CompanyGet(engine *twapi.Engine) toolsets.ToolWrapper {
 						)),
 					},
 				},
+				StructuredContent: company,
 			}, nil
 		},
 	}
@@ -517,6 +496,7 @@ func CompanyList(engine *twapi.Engine) toolsets.ToolWrapper {
 						)),
 					},
 				},
+				StructuredContent: companyList,
 			}, nil
 		},
 	}

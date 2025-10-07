@@ -113,14 +113,7 @@ func TasklistCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 			if err != nil {
 				return helpers.HandleAPIError(err, "failed to create tasklist")
 			}
-
-			return &mcp.CallToolResult{
-				Content: []mcp.Content{
-					&mcp.TextContent{
-						Text: fmt.Sprintf("Tasklist created successfully with ID %d", tasklist.ID),
-					},
-				},
-			}, nil
+			return helpers.NewToolResultText("Tasklist created successfully with ID %d", tasklist.ID), nil
 		},
 	}
 }
@@ -178,14 +171,7 @@ func TasklistUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 			if err != nil {
 				return helpers.HandleAPIError(err, "failed to update tasklist")
 			}
-
-			return &mcp.CallToolResult{
-				Content: []mcp.Content{
-					&mcp.TextContent{
-						Text: "Tasklist updated successfully",
-					},
-				},
-			}, nil
+			return helpers.NewToolResultText("Tasklist updated successfully"), nil
 		},
 	}
 }
@@ -228,14 +214,7 @@ func TasklistDelete(engine *twapi.Engine) toolsets.ToolWrapper {
 			if err != nil {
 				return helpers.HandleAPIError(err, "failed to delete tasklist")
 			}
-
-			return &mcp.CallToolResult{
-				Content: []mcp.Content{
-					&mcp.TextContent{
-						Text: "Tasklist deleted successfully",
-					},
-				},
-			}, nil
+			return helpers.NewToolResultText("Tasklist deleted successfully"), nil
 		},
 	}
 }
@@ -293,6 +272,7 @@ func TasklistGet(engine *twapi.Engine) toolsets.ToolWrapper {
 						)),
 					},
 				},
+				StructuredContent: tasklist,
 			}, nil
 		},
 	}
@@ -360,6 +340,7 @@ func TasklistList(engine *twapi.Engine) toolsets.ToolWrapper {
 						)),
 					},
 				},
+				StructuredContent: tasklistList,
 			}, nil
 		},
 	}
@@ -433,6 +414,7 @@ func TasklistListByProject(engine *twapi.Engine) toolsets.ToolWrapper {
 						)),
 					},
 				},
+				StructuredContent: tasklistList,
 			}, nil
 		},
 	}

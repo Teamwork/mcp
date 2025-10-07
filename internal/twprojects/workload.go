@@ -139,18 +139,7 @@ func UsersWorkload(engine *twapi.Engine) toolsets.ToolWrapper {
 			if err != nil {
 				return helpers.HandleAPIError(err, "failed to get workload")
 			}
-
-			encoded, err := json.Marshal(workload)
-			if err != nil {
-				return nil, err
-			}
-			return &mcp.CallToolResult{
-				Content: []mcp.Content{
-					&mcp.TextContent{
-						Text: string(encoded),
-					},
-				},
-			}, nil
+			return helpers.NewToolResultJSON(workload)
 		},
 	}
 }

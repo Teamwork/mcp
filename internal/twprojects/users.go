@@ -137,14 +137,7 @@ func UserCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 			if err != nil {
 				return helpers.HandleAPIError(err, "failed to create user")
 			}
-
-			return &mcp.CallToolResult{
-				Content: []mcp.Content{
-					&mcp.TextContent{
-						Text: fmt.Sprintf("User created successfully with ID %d", user.ID),
-					},
-				},
-			}, nil
+			return helpers.NewToolResultText("User created successfully with ID %d", user.ID), nil
 		},
 	}
 }
@@ -224,14 +217,7 @@ func UserUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 			if err != nil {
 				return helpers.HandleAPIError(err, "failed to update user")
 			}
-
-			return &mcp.CallToolResult{
-				Content: []mcp.Content{
-					&mcp.TextContent{
-						Text: "User updated successfully",
-					},
-				},
-			}, nil
+			return helpers.NewToolResultText("User updated successfully"), nil
 		},
 	}
 }
@@ -274,14 +260,7 @@ func UserDelete(engine *twapi.Engine) toolsets.ToolWrapper {
 			if err != nil {
 				return helpers.HandleAPIError(err, "failed to delete user")
 			}
-
-			return &mcp.CallToolResult{
-				Content: []mcp.Content{
-					&mcp.TextContent{
-						Text: "User deleted successfully",
-					},
-				},
-			}, nil
+			return helpers.NewToolResultText("User deleted successfully"), nil
 		},
 	}
 }
@@ -339,6 +318,7 @@ func UserGet(engine *twapi.Engine) toolsets.ToolWrapper {
 						)),
 					},
 				},
+				StructuredContent: user,
 			}, nil
 		},
 	}
@@ -376,6 +356,7 @@ func UserGetMe(engine *twapi.Engine) toolsets.ToolWrapper {
 						)),
 					},
 				},
+				StructuredContent: user,
 			}, nil
 		},
 	}
@@ -452,6 +433,7 @@ func UserList(engine *twapi.Engine) toolsets.ToolWrapper {
 						)),
 					},
 				},
+				StructuredContent: userList,
 			}, nil
 		},
 	}
@@ -534,6 +516,7 @@ func UserListByProject(engine *twapi.Engine) toolsets.ToolWrapper {
 						)),
 					},
 				},
+				StructuredContent: userList,
 			}, nil
 		},
 	}

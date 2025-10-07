@@ -77,7 +77,7 @@ func CompanyGet(client *deskclient.Client) toolsets.ToolWrapper {
 				return nil, fmt.Errorf("failed to get company: %w", err)
 			}
 
-			return helpers.NewToolResultText(fmt.Sprintf("Company retrieved successfully: %s", company.Company.Name)), nil
+			return helpers.NewToolResultText("Company retrieved successfully: %s", company.Company.Name), nil
 		},
 	}
 }
@@ -152,8 +152,7 @@ func CompanyList(client *deskclient.Client) toolsets.ToolWrapper {
 			if err != nil {
 				return nil, fmt.Errorf("failed to list companies: %w", err)
 			}
-
-			return helpers.NewToolResultText(fmt.Sprintf("Companies retrieved successfully: %v", companies)), nil
+			return helpers.NewToolResultJSON(companies)
 		},
 	}
 }
@@ -249,8 +248,7 @@ func CompanyCreate(client *deskclient.Client) toolsets.ToolWrapper {
 			if err != nil {
 				return nil, fmt.Errorf("failed to create company: %w", err)
 			}
-
-			return helpers.NewToolResultText(fmt.Sprintf("Company created successfully with ID %d", company.Company.ID)), nil
+			return helpers.NewToolResultText("Company created successfully with ID %d", company.Company.ID), nil
 		},
 	}
 }

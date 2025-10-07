@@ -94,9 +94,16 @@ func TicketGet(client *deskclient.Client) toolsets.ToolWrapper {
 				return nil, err
 			}
 
-			return helpers.NewToolResultText(string(helpers.WebLinker(ctx, encoded,
-				helpers.WebLinkerWithIDPathBuilder("/desk/tickets"),
-			))), nil
+			return &mcp.CallToolResult{
+				Content: []mcp.Content{
+					&mcp.TextContent{
+						Text: string(helpers.WebLinker(ctx, encoded,
+							helpers.WebLinkerWithIDPathBuilder("/desk/tickets"),
+						)),
+					},
+				},
+				StructuredContent: ticket,
+			}, nil
 		},
 	}
 }
@@ -313,8 +320,7 @@ func TicketList(client *deskclient.Client) toolsets.ToolWrapper {
 			if err != nil {
 				return nil, fmt.Errorf("failed to list tickets: %w", err)
 			}
-
-			return helpers.NewToolResultText(fmt.Sprintf("Tickets retrieved successfully: %v", tickets)), nil
+			return helpers.NewToolResultJSON(tickets)
 		},
 	}
 }
@@ -464,8 +470,7 @@ func TicketSearch(client *deskclient.Client) toolsets.ToolWrapper {
 			if err != nil {
 				return nil, fmt.Errorf("failed to list tickets: %w", err)
 			}
-
-			return helpers.NewToolResultText(fmt.Sprintf("Tickets retrieved successfully: %v", tickets)), nil
+			return helpers.NewToolResultJSON(tickets)
 		},
 	}
 }
@@ -585,6 +590,7 @@ func TicketCreate(client *deskclient.Client) toolsets.ToolWrapper {
 				},
 				Required: []string{"subject", "body", "inboxId"},
 			},
+			OutputSchema: ticketGetOutputSchema,
 		},
 		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 			arguments, err := helpers.NewToolArguments(request)
@@ -695,13 +701,7 @@ func TicketCreate(client *deskclient.Client) toolsets.ToolWrapper {
 			if err != nil {
 				return nil, fmt.Errorf("failed to create ticket: %w", err)
 			}
-
-			encoded, err := json.Marshal(ticket)
-			if err != nil {
-				return nil, err
-			}
-
-			return helpers.NewToolResultText(string(encoded)), nil
+			return helpers.NewToolResultJSON(ticket)
 		},
 	}
 }
@@ -763,6 +763,7 @@ func TicketUpdate(client *deskclient.Client) toolsets.ToolWrapper {
 				},
 				Required: []string{"id"},
 			},
+			OutputSchema: ticketGetOutputSchema,
 		},
 		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 			arguments, err := helpers.NewToolArguments(request)
@@ -798,13 +799,7 @@ func TicketUpdate(client *deskclient.Client) toolsets.ToolWrapper {
 			if err != nil {
 				return nil, fmt.Errorf("failed to update ticket: %w", err)
 			}
-
-			encoded, err := json.Marshal(ticket)
-			if err != nil {
-				return nil, err
-			}
-
-			return helpers.NewToolResultText(string(encoded)), nil
+			return helpers.NewToolResultJSON(ticket)
 		},
 	}
 }

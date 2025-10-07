@@ -132,14 +132,7 @@ func TimerCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 			if err != nil {
 				return helpers.HandleAPIError(err, "failed to create timer")
 			}
-
-			return &mcp.CallToolResult{
-				Content: []mcp.Content{
-					&mcp.TextContent{
-						Text: fmt.Sprintf("Timer created successfully with ID %d", timerResponse.Timer.ID),
-					},
-				},
-			}, nil
+			return helpers.NewToolResultText("Timer created successfully with ID %d", timerResponse.Timer.ID), nil
 		},
 	}
 }
@@ -207,14 +200,7 @@ func TimerUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 			if err != nil {
 				return helpers.HandleAPIError(err, "failed to update timer")
 			}
-
-			return &mcp.CallToolResult{
-				Content: []mcp.Content{
-					&mcp.TextContent{
-						Text: "Timer updated successfully",
-					},
-				},
-			}, nil
+			return helpers.NewToolResultText("Timer updated successfully"), nil
 		},
 	}
 }
@@ -257,14 +243,7 @@ func TimerPause(engine *twapi.Engine) toolsets.ToolWrapper {
 			if err != nil {
 				return helpers.HandleAPIError(err, "failed to pause timer")
 			}
-
-			return &mcp.CallToolResult{
-				Content: []mcp.Content{
-					&mcp.TextContent{
-						Text: "Timer paused successfully",
-					},
-				},
-			}, nil
+			return helpers.NewToolResultText("Timer paused successfully"), nil
 		},
 	}
 }
@@ -307,14 +286,7 @@ func TimerResume(engine *twapi.Engine) toolsets.ToolWrapper {
 			if err != nil {
 				return helpers.HandleAPIError(err, "failed to resume timer")
 			}
-
-			return &mcp.CallToolResult{
-				Content: []mcp.Content{
-					&mcp.TextContent{
-						Text: "Timer resumed successfully",
-					},
-				},
-			}, nil
+			return helpers.NewToolResultText("Timer resumed successfully"), nil
 		},
 	}
 }
@@ -357,14 +329,7 @@ func TimerComplete(engine *twapi.Engine) toolsets.ToolWrapper {
 			if err != nil {
 				return helpers.HandleAPIError(err, "failed to complete timer")
 			}
-
-			return &mcp.CallToolResult{
-				Content: []mcp.Content{
-					&mcp.TextContent{
-						Text: "Timer completed successfully",
-					},
-				},
-			}, nil
+			return helpers.NewToolResultText("Timer completed successfully"), nil
 		},
 	}
 }
@@ -407,14 +372,7 @@ func TimerDelete(engine *twapi.Engine) toolsets.ToolWrapper {
 			if err != nil {
 				return helpers.HandleAPIError(err, "failed to delete timer")
 			}
-
-			return &mcp.CallToolResult{
-				Content: []mcp.Content{
-					&mcp.TextContent{
-						Text: "Timer deleted successfully",
-					},
-				},
-			}, nil
+			return helpers.NewToolResultText("Timer deleted successfully"), nil
 		},
 	}
 }
@@ -472,6 +430,7 @@ func TimerGet(engine *twapi.Engine) toolsets.ToolWrapper {
 						)),
 					},
 				},
+				StructuredContent: timer,
 			}, nil
 		},
 	}
@@ -558,6 +517,7 @@ func TimerList(engine *twapi.Engine) toolsets.ToolWrapper {
 						)),
 					},
 				},
+				StructuredContent: timerList,
 			}, nil
 		},
 	}

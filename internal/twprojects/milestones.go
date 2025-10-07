@@ -190,15 +190,7 @@ func MilestoneCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 			if err != nil {
 				return helpers.HandleAPIError(err, "failed to create milestone")
 			}
-
-			msg := fmt.Sprintf("Milestone created successfully with ID %d", milestone.ID)
-			return &mcp.CallToolResult{
-				Content: []mcp.Content{
-					&mcp.TextContent{
-						Text: msg,
-					},
-				},
-			}, nil
+			return helpers.NewToolResultText("Milestone created successfully with ID %d", milestone.ID), nil
 		},
 	}
 }
@@ -327,14 +319,7 @@ func MilestoneUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 			if err != nil {
 				return helpers.HandleAPIError(err, "failed to update milestone")
 			}
-
-			return &mcp.CallToolResult{
-				Content: []mcp.Content{
-					&mcp.TextContent{
-						Text: "Milestone updated successfully",
-					},
-				},
-			}, nil
+			return helpers.NewToolResultText("Milestone updated successfully"), nil
 		},
 	}
 }
@@ -377,14 +362,7 @@ func MilestoneDelete(engine *twapi.Engine) toolsets.ToolWrapper {
 			if err != nil {
 				return helpers.HandleAPIError(err, "failed to delete milestone")
 			}
-
-			return &mcp.CallToolResult{
-				Content: []mcp.Content{
-					&mcp.TextContent{
-						Text: "Milestone deleted successfully",
-					},
-				},
-			}, nil
+			return helpers.NewToolResultText("Milestone deleted successfully"), nil
 		},
 	}
 }
@@ -442,6 +420,7 @@ func MilestoneGet(engine *twapi.Engine) toolsets.ToolWrapper {
 						)),
 					},
 				},
+				StructuredContent: milestone,
 			}, nil
 		},
 	}
@@ -527,6 +506,7 @@ func MilestoneList(engine *twapi.Engine) toolsets.ToolWrapper {
 						)),
 					},
 				},
+				StructuredContent: milestoneList,
 			}, nil
 		},
 	}
@@ -618,6 +598,7 @@ func MilestoneListByProject(engine *twapi.Engine) toolsets.ToolWrapper {
 						)),
 					},
 				},
+				StructuredContent: milestoneList,
 			}, nil
 		},
 	}

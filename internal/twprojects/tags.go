@@ -100,14 +100,7 @@ func TagCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 			if err != nil {
 				return helpers.HandleAPIError(err, "failed to create tag")
 			}
-
-			return &mcp.CallToolResult{
-				Content: []mcp.Content{
-					&mcp.TextContent{
-						Text: fmt.Sprintf("Tag created successfully with ID %d", tagResponse.Tag.ID),
-					},
-				},
-			}, nil
+			return helpers.NewToolResultText("Tag created successfully with ID %d", tagResponse.Tag.ID), nil
 		},
 	}
 }
@@ -160,14 +153,7 @@ func TagUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 			if err != nil {
 				return helpers.HandleAPIError(err, "failed to update tag")
 			}
-
-			return &mcp.CallToolResult{
-				Content: []mcp.Content{
-					&mcp.TextContent{
-						Text: "Tag updated successfully",
-					},
-				},
-			}, nil
+			return helpers.NewToolResultText("Tag updated successfully"), nil
 		},
 	}
 }
@@ -210,14 +196,7 @@ func TagDelete(engine *twapi.Engine) toolsets.ToolWrapper {
 			if err != nil {
 				return helpers.HandleAPIError(err, "failed to delete tag")
 			}
-
-			return &mcp.CallToolResult{
-				Content: []mcp.Content{
-					&mcp.TextContent{
-						Text: "Tag deleted successfully",
-					},
-				},
-			}, nil
+			return helpers.NewToolResultText("Tag deleted successfully"), nil
 		},
 	}
 }
@@ -232,7 +211,6 @@ func TagGet(engine *twapi.Engine) toolsets.ToolWrapper {
 				Title:        "Get Tag",
 				ReadOnlyHint: true,
 			},
-			OutputSchema: tagGetOutputSchema,
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
 				Properties: map[string]*jsonschema.Schema{
@@ -243,6 +221,7 @@ func TagGet(engine *twapi.Engine) toolsets.ToolWrapper {
 				},
 				Required: []string{"id"},
 			},
+			OutputSchema: tagGetOutputSchema,
 		},
 		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 			var tagGetRequest projects.TagGetRequest
@@ -262,18 +241,7 @@ func TagGet(engine *twapi.Engine) toolsets.ToolWrapper {
 			if err != nil {
 				return helpers.HandleAPIError(err, "failed to get tag")
 			}
-
-			encoded, err := json.Marshal(tag)
-			if err != nil {
-				return nil, err
-			}
-			return &mcp.CallToolResult{
-				Content: []mcp.Content{
-					&mcp.TextContent{
-						Text: string(encoded),
-					},
-				},
-			}, nil
+			return helpers.NewToolResultJSON(tag)
 		},
 	}
 }
@@ -357,18 +325,7 @@ func TagList(engine *twapi.Engine) toolsets.ToolWrapper {
 			if err != nil {
 				return helpers.HandleAPIError(err, "failed to list tags")
 			}
-
-			encoded, err := json.Marshal(tagList)
-			if err != nil {
-				return nil, err
-			}
-			return &mcp.CallToolResult{
-				Content: []mcp.Content{
-					&mcp.TextContent{
-						Text: string(encoded),
-					},
-				},
-			}, nil
+			return helpers.NewToolResultJSON(tagList)
 		},
 	}
 }

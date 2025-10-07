@@ -78,14 +78,7 @@ func ProjectMemberAdd(engine *twapi.Engine) toolsets.ToolWrapper {
 			if err != nil {
 				return helpers.HandleAPIError(err, "failed to add project member")
 			}
-
-			return &mcp.CallToolResult{
-				Content: []mcp.Content{
-					&mcp.TextContent{
-						Text: "Project member added successfully",
-					},
-				},
-			}, nil
+			return helpers.NewToolResultText("Project member added successfully"), nil
 		},
 	}
 }

@@ -130,14 +130,7 @@ func ProjectCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 			if err != nil {
 				return helpers.HandleAPIError(err, "failed to create project")
 			}
-
-			return &mcp.CallToolResult{
-				Content: []mcp.Content{
-					&mcp.TextContent{
-						Text: fmt.Sprintf("Project created successfully with ID %d", project.ID),
-					},
-				},
-			}, nil
+			return helpers.NewToolResultText("Project created successfully with ID %d", project.ID), nil
 		},
 	}
 }
@@ -218,14 +211,7 @@ func ProjectUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 			if err != nil {
 				return helpers.HandleAPIError(err, "failed to update project")
 			}
-
-			return &mcp.CallToolResult{
-				Content: []mcp.Content{
-					&mcp.TextContent{
-						Text: "Project updated successfully",
-					},
-				},
-			}, nil
+			return helpers.NewToolResultText("Project updated successfully"), nil
 		},
 	}
 }
@@ -268,14 +254,7 @@ func ProjectDelete(engine *twapi.Engine) toolsets.ToolWrapper {
 			if err != nil {
 				return helpers.HandleAPIError(err, "failed to delete project")
 			}
-
-			return &mcp.CallToolResult{
-				Content: []mcp.Content{
-					&mcp.TextContent{
-						Text: "Project deleted successfully",
-					},
-				},
-			}, nil
+			return helpers.NewToolResultText("Project deleted successfully"), nil
 		},
 	}
 }
@@ -333,6 +312,7 @@ func ProjectGet(engine *twapi.Engine) toolsets.ToolWrapper {
 						)),
 					},
 				},
+				StructuredContent: project,
 			}, nil
 		},
 	}
@@ -414,6 +394,7 @@ func ProjectList(engine *twapi.Engine) toolsets.ToolWrapper {
 						)),
 					},
 				},
+				StructuredContent: projectList,
 			}, nil
 		},
 	}

@@ -75,7 +75,7 @@ func StatusGet(client *deskclient.Client) toolsets.ToolWrapper {
 				return nil, fmt.Errorf("failed to get status: %w", err)
 			}
 
-			return helpers.NewToolResultText(fmt.Sprintf("Status retrieved successfully: %s", status.TicketStatus.Name)), nil
+			return helpers.NewToolResultText("Status retrieved successfully: %s", status.TicketStatus.Name), nil
 		},
 	}
 }
@@ -153,8 +153,7 @@ func StatusList(client *deskclient.Client) toolsets.ToolWrapper {
 			if err != nil {
 				return nil, fmt.Errorf("failed to list statuses: %w", err)
 			}
-
-			return helpers.NewToolResultText(fmt.Sprintf("Statuses retrieved successfully: %v", statuses)), nil
+			return helpers.NewToolResultJSON(statuses)
 		},
 	}
 }
@@ -205,9 +204,7 @@ func StatusCreate(client *deskclient.Client) toolsets.ToolWrapper {
 			if err != nil {
 				return nil, fmt.Errorf("failed to create status: %w", err)
 			}
-
-			id := status.TicketStatus.ID
-			return helpers.NewToolResultText(fmt.Sprintf("Status created successfully with ID %d", id)), nil
+			return helpers.NewToolResultText("Status created successfully with ID %d", status.TicketStatus.ID), nil
 		},
 	}
 }

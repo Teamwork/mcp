@@ -77,8 +77,7 @@ func UserGet(client *deskclient.Client) toolsets.ToolWrapper {
 			if err != nil {
 				return nil, fmt.Errorf("failed to get user: %w", err)
 			}
-
-			return helpers.NewToolResultText(fmt.Sprintf("User retrieved successfully: %s", user.User.FirstName)), nil
+			return helpers.NewToolResultJSON(user)
 		},
 	}
 }
@@ -176,8 +175,7 @@ func UserList(client *deskclient.Client) toolsets.ToolWrapper {
 			if err != nil {
 				return nil, fmt.Errorf("failed to list users: %w", err)
 			}
-
-			return helpers.NewToolResultText(fmt.Sprintf("Users retrieved successfully: %v", users)), nil
+			return helpers.NewToolResultJSON(users)
 		},
 	}
 }

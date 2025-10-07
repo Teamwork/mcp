@@ -135,18 +135,7 @@ func ActivityList(engine *twapi.Engine) toolsets.ToolWrapper {
 			if err != nil {
 				return helpers.HandleAPIError(err, "failed to list activities")
 			}
-
-			encoded, err := json.Marshal(activityList)
-			if err != nil {
-				return nil, err
-			}
-			return &mcp.CallToolResult{
-				Content: []mcp.Content{
-					&mcp.TextContent{
-						Text: string(encoded),
-					},
-				},
-			}, nil
+			return helpers.NewToolResultJSON(activityList)
 		},
 	}
 }
@@ -244,18 +233,7 @@ func ActivityListByProject(engine *twapi.Engine) toolsets.ToolWrapper {
 			if err != nil {
 				return helpers.HandleAPIError(err, "failed to list activities")
 			}
-
-			encoded, err := json.Marshal(activityList)
-			if err != nil {
-				return nil, err
-			}
-			return &mcp.CallToolResult{
-				Content: []mcp.Content{
-					&mcp.TextContent{
-						Text: string(encoded),
-					},
-				},
-			}, nil
+			return helpers.NewToolResultJSON(activityList)
 		},
 	}
 }
