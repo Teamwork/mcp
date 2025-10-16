@@ -1,5 +1,5 @@
 {
-  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-09-29/server.schema.json",
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-10-11/server.schema.json",
   "name": "com.teamwork/mcp",
   "description": "The Teamwork.com official MCP server helps teams efficiently manage client projects with AI.",
   "repository": {
@@ -36,9 +36,7 @@
   "packages": [
     {
       "registryType": "oci",
-      "registryBaseUrl": "https://docker.io",
-      "identifier": "teamwork/mcp",
-      "version": "v1.0.0",
+      "identifier": "docker.io/teamwork/mcp:v1.0.0",
       "transport": {
         "type": "stdio"
       },
