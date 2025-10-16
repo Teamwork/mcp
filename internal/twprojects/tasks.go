@@ -80,10 +80,10 @@ func TaskCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 					},
 					"tasklist_id": {
 						Type: "integer",
-						Description: "The ID of the tasklist. If you only have the project_name, use the " +
+						Description: "The ID of the tasklist. If you only have the project's name, use the " +
 							string(MethodProjectList) + " method with the search_term parameter to find the project ID, and " +
 							"then the " + string(MethodTasklistList) + " method with the project_id to choose the tasklist ID. If " +
-							"you know the tasklist name, you may also use the search_term parameter with the " +
+							"you know the tasklist's name, you may also use the search_term parameter with the " +
 							string(MethodTasklistList) + " method to find the tasklist ID.",
 					},
 					"description": {
