@@ -5,8 +5,8 @@ go 1.25.1
 require (
 	github.com/DataDog/dd-trace-go/contrib/net/http/v2 v2.2.3
 	github.com/DataDog/dd-trace-go/v2 v2.2.3
-	github.com/getsentry/sentry-go v0.35.3
-	github.com/getsentry/sentry-go/slog v0.35.3
+	github.com/getsentry/sentry-go v0.36.0
+	github.com/getsentry/sentry-go/slog v0.36.0
 	github.com/google/jsonschema-go v0.3.0
 	github.com/modelcontextprotocol/go-sdk v1.0.0
 	github.com/teamwork/desksdkgo v0.0.0-20251003022928-49eb7d63fe81
