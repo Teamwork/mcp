@@ -3,6 +3,7 @@ package config
 import (
 	"context"
 	"crypto/tls"
+	"encoding/json"
 	"fmt"
 	"io"
 	"log/slog"
@@ -186,6 +187,29 @@ func NewMCPServer(resources Resources, groups ...*toolsets.ToolsetGroup) *mcp.Se
 			result, err = next(ctx, method, req)
 			if err != nil {
 				return result, err
+			}
+
+			// populate Datadog APM trace with more information about the MCP
+			// request/response
+			if resources.Info.DatadogAPM.Enabled {
+				if span, ok := tracer.SpanFromContext(ctx); ok {
+					span.SetTag("mcp.method", method)
+					if callToolParams, ok := req.GetParams().(*mcp.CallToolParams); ok {
+						span.SetTag("mcp.tool.name", callToolParams.Name)
+						if encoded, err := json.Marshal(callToolParams.Arguments); err == nil {
+							span.SetTag("mcp.tool.arguments", string(encoded))
+						}
+					}
+					if callToolResult, ok := result.(*mcp.CallToolResult); ok {
+						if callToolResult.IsError {
+							if encoded, err := json.Marshal(callToolResult.Content); err == nil {
+								span.SetTag(ext.Error, encoded)
+							} else {
+								span.SetTag(ext.Error, "failed to execute tool")
+							}
+						}
+					}
+				}
 			}
 
 			listToolsResult, ok := result.(*mcp.ListToolsResult)
