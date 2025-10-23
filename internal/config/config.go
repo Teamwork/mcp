@@ -220,7 +220,7 @@ func NewMCPServer(resources Resources, groups ...*toolsets.ToolsetGroup) *mcp.Se
 			// filter tools based on scopes
 			scopes := scopes(ctx)
 			if len(scopes) == 0 {
-				return
+				return result, err
 			}
 
 			projectsScope := slices.Contains(scopes, "projects")
