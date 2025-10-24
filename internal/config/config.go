@@ -182,23 +182,20 @@ func NewMCPServer(resources Resources, groups ...*toolsets.ToolsetGroup) *mcp.Se
 	}, &mcp.ServerOptions{
 		HasTools: hasTools,
 	})
-	mcpServer.AddSendingMiddleware(func(next mcp.MethodHandler) mcp.MethodHandler {
+	mcpServer.AddReceivingMiddleware(func(next mcp.MethodHandler) mcp.MethodHandler {
 		return func(ctx context.Context, method string, req mcp.Request) (result mcp.Result, err error) {
 			result, err = next(ctx, method, req)
 			if err != nil {
 				return result, err
 			}
 
-			// populate Datadog APM trace with more information about the MCP
-			// request/response
+			// populate Datadog APM trace with more MCP information
 			if resources.Info.DatadogAPM.Enabled {
 				if span, ok := tracer.SpanFromContext(ctx); ok {
 					span.SetTag("mcp.method", method)
-					if callToolParams, ok := req.GetParams().(*mcp.CallToolParams); ok {
+					if callToolParams, ok := req.GetParams().(*mcp.CallToolParamsRaw); ok {
 						span.SetTag("mcp.tool.name", callToolParams.Name)
-						if encoded, err := json.Marshal(callToolParams.Arguments); err == nil {
-							span.SetTag("mcp.tool.arguments", string(encoded))
-						}
+						span.SetTag("mcp.tool.arguments", string(callToolParams.Arguments))
 					}
 					if callToolResult, ok := result.(*mcp.CallToolResult); ok {
 						if callToolResult.IsError {
