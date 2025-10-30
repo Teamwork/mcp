@@ -382,7 +382,7 @@ func UserList(engine *twapi.Engine) toolsets.ToolWrapper {
 							"requiring that the word matches are in the same field.",
 					},
 					"type": {
-						Type:        "integer",
+						Type:        "string",
 						Description: "Type of user to filter by. The available options are account, collaborator or contact.",
 					},
 					"page": {
@@ -463,7 +463,7 @@ func UserListByProject(engine *twapi.Engine) toolsets.ToolWrapper {
 							"requiring that the word matches are in the same field.",
 					},
 					"type": {
-						Type:        "integer",
+						Type:        "string",
 						Description: "Type of user to filter by. The available options are account, collaborator or contact.",
 					},
 					"page": {
