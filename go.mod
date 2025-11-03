@@ -6,7 +6,7 @@ require (
 	github.com/DataDog/dd-trace-go/contrib/net/http/v2 v2.3.0
 	github.com/DataDog/dd-trace-go/v2 v2.3.0
 	github.com/getsentry/sentry-go v0.36.2
-	github.com/getsentry/sentry-go/slog v0.36.1
+	github.com/getsentry/sentry-go/slog v0.36.2
 	github.com/google/jsonschema-go v0.3.0
 	github.com/modelcontextprotocol/go-sdk v1.1.0
 	github.com/teamwork/desksdkgo v0.0.0-20251003022928-49eb7d63fe81
