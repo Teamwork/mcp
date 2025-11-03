@@ -3,8 +3,8 @@ module github.com/teamwork/mcp
 go 1.25.1
 
 require (
-	github.com/DataDog/dd-trace-go/contrib/net/http/v2 v2.3.0
-	github.com/DataDog/dd-trace-go/v2 v2.3.0
+	github.com/DataDog/dd-trace-go/contrib/net/http/v2 v2.3.1
+	github.com/DataDog/dd-trace-go/v2 v2.3.1
 	github.com/getsentry/sentry-go v0.36.2
 	github.com/getsentry/sentry-go/slog v0.36.2
 	github.com/google/jsonschema-go v0.3.0
