@@ -163,8 +163,8 @@ github.com/stretchr/testify v1.11.1 h1:7s2iGBzp5EwR7/aIZr8ao5+dra3wiQyKjjFuvgVKu
 github.com/stretchr/testify v1.11.1/go.mod h1:wZwfW3scLgRK+23gO65QZefKpKQRnfz6sD981Nm4B6U=
 github.com/teamwork/desksdkgo v0.0.0-20251003022928-49eb7d63fe81 h1:Qn2ImqRPM/wuDibaVUMwiEVPAOfK7SrMsMznkgjBFYg=
 github.com/teamwork/desksdkgo v0.0.0-20251003022928-49eb7d63fe81/go.mod h1:nAQ9TiITo1WqNnLsifExR7SH/64rGemPIb7yi7KbQ5I=
-github.com/teamwork/twapi-go-sdk v1.5.0 h1:ExlQz2WJPKKlBiGtm5l+Gtp5zp5U3InKVDtBx7AbYAc=
-github.com/teamwork/twapi-go-sdk v1.5.0/go.mod h1:PTxcuGSCYS5UXWbSZEbXalWnVttScOr+ia5rM3uulRM=
+github.com/teamwork/twapi-go-sdk v1.5.1 h1:37BQQ3VmMqNIBENLDQvPzKo7s9Ft6PCoMQc9bdyfIOc=
+github.com/teamwork/twapi-go-sdk v1.5.1/go.mod h1:4VZyEJ9+67cwqIg8mGd8zdDvPEeJOmtia1JBH41h5Xg=
 github.com/theckman/httpforwarded v0.4.0 h1:N55vGJT+6ojTnLY3LQCNliJC4TW0P0Pkeys1G1WpX2w=
 github.com/theckman/httpforwarded v0.4.0/go.mod h1:GVkFynv6FJreNbgH/bpOU9ITDZ7a5WuzdNCtIMI1pVI=
 github.com/tinylib/msgp v1.4.0 h1:SYOeDRiydzOw9kSiwdYp9UcBgPFtLU2WDHaJXyHruf8=
@@ -286,8 +286,8 @@ golang.org/x/sys v0.0.0-20210330210617-4fbd30eecc44/go.mod h1:h1NjWce9XRLGQEsW7w
 golang.org/x/sys v0.0.0-20210510120138-977fb7262007/go.mod h1:oPkhp1MJrh7nUepCBck5+mAzfO9JrbApNNgaTdGDITg=
 golang.org/x/sys v0.0.0-20220627191245-f75cf1eec38b/go.mod h1:oPkhp1MJrh7nUepCBck5+mAzfO9JrbApNNgaTdGDITg=
 golang.org/x/sys v0.1.0/go.mod h1:oPkhp1MJrh7nUepCBck5+mAzfO9JrbApNNgaTdGDITg=
-golang.org/x/sys v0.36.0 h1:KVRy2GtZBrk1cBYA7MKu5bEZFxQk4NIDV6RLVcC8o0k=
-golang.org/x/sys v0.36.0/go.mod h1:OgkHotnGiDImocRcuBABYBEXf8A9a87e/uXjp9XT3ks=
+golang.org/x/sys v0.38.0 h1:3yZWxaJjBmCWXqhN1qh02AkOnCQ1poK6oF+a7xWL6Gc=
+golang.org/x/sys v0.38.0/go.mod h1:OgkHotnGiDImocRcuBABYBEXf8A9a87e/uXjp9XT3ks=
 golang.org/x/term v0.0.0-20201126162022-7de9c90e9dd1/go.mod h1:bj7SfCRtBDWHUb9snDiAeCFNEtKQo2Wmx5Cou7ajbmo=
 golang.org/x/text v0.3.0/go.mod h1:NqM8EUOU14njkJ3fqMW+pc6Ldnwhi/IjpwHt7yyuwOQ=
 golang.org/x/text v0.3.3/go.mod h1:5Zoc/QRtKVWzQhOtBMvqHzDpF6irO9z98xDceosuGiQ=

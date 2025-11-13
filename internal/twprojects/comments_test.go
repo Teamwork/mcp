@@ -46,9 +46,10 @@ func TestCommentGet(t *testing.T) {
 func TestCommentList(t *testing.T) {
 	mcpServer := mcpServerMock(t, http.StatusOK, []byte(`{}`))
 	testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodCommentList.String(), map[string]any{
-		"search_term": "test",
-		"page":        float64(1),
-		"page_size":   float64(10),
+		"search_term":   "test",
+		"updated_after": "2025-01-01T00:00:00Z",
+		"page":          float64(1),
+		"page_size":     float64(10),
 	})
 }
 
@@ -57,6 +58,7 @@ func TestCommentListByFileVersion(t *testing.T) {
 	testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodCommentListByFileVersion.String(), map[string]any{
 		"search_term":     "test",
 		"file_version_id": float64(123),
+		"updated_after":   "2025-01-01T00:00:00Z",
 		"page":            float64(1),
 		"page_size":       float64(10),
 	})
@@ -65,29 +67,32 @@ func TestCommentListByFileVersion(t *testing.T) {
 func TestCommentListByMilestone(t *testing.T) {
 	mcpServer := mcpServerMock(t, http.StatusOK, []byte(`{}`))
 	testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodCommentListByMilestone.String(), map[string]any{
-		"search_term":  "test",
-		"milestone_id": float64(123),
-		"page":         float64(1),
-		"page_size":    float64(10),
+		"search_term":   "test",
+		"milestone_id":  float64(123),
+		"updated_after": "2025-01-01T00:00:00Z",
+		"page":          float64(1),
+		"page_size":     float64(10),
 	})
 }
 
 func TestCommentListByNotebook(t *testing.T) {
 	mcpServer := mcpServerMock(t, http.StatusOK, []byte(`{}`))
 	testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodCommentListByNotebook.String(), map[string]any{
-		"search_term": "test",
-		"notebook_id": float64(123),
-		"page":        float64(1),
-		"page_size":   float64(10),
+		"search_term":   "test",
+		"notebook_id":   float64(123),
+		"updated_after": "2025-01-01T00:00:00Z",
+		"page":          float64(1),
+		"page_size":     float64(10),
 	})
 }
 
 func TestCommentListByTask(t *testing.T) {
 	mcpServer := mcpServerMock(t, http.StatusOK, []byte(`{}`))
 	testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodCommentListByTask.String(), map[string]any{
-		"search_term": "test",
-		"task_id":     float64(123),
-		"page":        float64(1),
-		"page_size":   float64(10),
+		"search_term":   "test",
+		"task_id":       float64(123),
+		"updated_after": "2025-01-01T00:00:00Z",
+		"page":          float64(1),
+		"page_size":     float64(10),
 	})
 }
