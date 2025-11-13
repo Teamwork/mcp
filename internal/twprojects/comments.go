@@ -7,6 +7,7 @@ import (
 	"math"
 	"reflect"
 	"strings"
+	"time"
 
 	"github.com/google/jsonschema-go/jsonschema"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
@@ -349,6 +350,13 @@ func CommentList(engine *twapi.Engine) toolsets.ToolWrapper {
 						Type:        "string",
 						Description: "A search term to filter comments by name.",
 					},
+					"updated_after": {
+						Type:   "string",
+						Format: "date-time",
+						Description: "Filter comments updated after this date and time. " +
+							"The date format follows RFC3339 - YYYY-MM-DDTHH:MM:SSZ. By default it will only return comments " +
+							"updated on the last 3 months.",
+					},
 					"page": {
 						Type:        "integer",
 						Description: "Page number for pagination of results.",
@@ -370,11 +378,17 @@ func CommentList(engine *twapi.Engine) toolsets.ToolWrapper {
 			}
 			err := helpers.ParamGroup(arguments,
 				helpers.OptionalParam(&commentListRequest.Filters.SearchTerm, "search_term"),
+				helpers.OptionalTimeParam(&commentListRequest.Filters.UpdatedAfter, "updated_after"),
 				helpers.OptionalNumericParam(&commentListRequest.Filters.Page, "page"),
 				helpers.OptionalNumericParam(&commentListRequest.Filters.PageSize, "page_size"),
 			)
 			if err != nil {
 				return helpers.NewToolResultTextError(fmt.Sprintf("invalid parameters: %s", err.Error())), nil
+			}
+
+			if commentListRequest.Filters.UpdatedAfter.IsZero() {
+				// default to last 3 months to improve performance
+				commentListRequest.Filters.UpdatedAfter = time.Now().AddDate(0, -3, 0)
 			}
 
 			commentList, err := projects.CommentList(ctx, engine, commentListRequest)
@@ -420,6 +434,13 @@ func CommentListByFileVersion(engine *twapi.Engine) toolsets.ToolWrapper {
 						Type:        "string",
 						Description: "A search term to filter comments by name.",
 					},
+					"updated_after": {
+						Type:   "string",
+						Format: "date-time",
+						Description: "Filter comments updated after this date and time. " +
+							"The date format follows RFC3339 - YYYY-MM-DDTHH:MM:SSZ. By default it will only return comments " +
+							"updated on the last 3 months.",
+					},
 					"page": {
 						Type:        "integer",
 						Description: "Page number for pagination of results.",
@@ -443,11 +464,17 @@ func CommentListByFileVersion(engine *twapi.Engine) toolsets.ToolWrapper {
 			err := helpers.ParamGroup(arguments,
 				helpers.RequiredNumericParam(&commentListRequest.Path.FileVersionID, "file_version_id"),
 				helpers.OptionalParam(&commentListRequest.Filters.SearchTerm, "search_term"),
+				helpers.OptionalTimeParam(&commentListRequest.Filters.UpdatedAfter, "updated_after"),
 				helpers.OptionalNumericParam(&commentListRequest.Filters.Page, "page"),
 				helpers.OptionalNumericParam(&commentListRequest.Filters.PageSize, "page_size"),
 			)
 			if err != nil {
 				return helpers.NewToolResultTextError(fmt.Sprintf("invalid parameters: %s", err.Error())), nil
+			}
+
+			if commentListRequest.Filters.UpdatedAfter.IsZero() {
+				// default to last 3 months to improve performance
+				commentListRequest.Filters.UpdatedAfter = time.Now().AddDate(0, -3, 0)
 			}
 
 			commentList, err := projects.CommentList(ctx, engine, commentListRequest)
@@ -492,6 +519,13 @@ func CommentListByMilestone(engine *twapi.Engine) toolsets.ToolWrapper {
 						Type:        "string",
 						Description: "A search term to filter comments by name.",
 					},
+					"updated_after": {
+						Type:   "string",
+						Format: "date-time",
+						Description: "Filter comments updated after this date and time. " +
+							"The date format follows RFC3339 - YYYY-MM-DDTHH:MM:SSZ. By default it will only return comments " +
+							"updated on the last 3 months.",
+					},
 					"page": {
 						Type:        "integer",
 						Description: "Page number for pagination of results.",
@@ -515,11 +549,17 @@ func CommentListByMilestone(engine *twapi.Engine) toolsets.ToolWrapper {
 			err := helpers.ParamGroup(arguments,
 				helpers.RequiredNumericParam(&commentListRequest.Path.MilestoneID, "milestone_id"),
 				helpers.OptionalParam(&commentListRequest.Filters.SearchTerm, "search_term"),
+				helpers.OptionalTimeParam(&commentListRequest.Filters.UpdatedAfter, "updated_after"),
 				helpers.OptionalNumericParam(&commentListRequest.Filters.Page, "page"),
 				helpers.OptionalNumericParam(&commentListRequest.Filters.PageSize, "page_size"),
 			)
 			if err != nil {
 				return helpers.NewToolResultTextError(fmt.Sprintf("invalid parameters: %s", err.Error())), nil
+			}
+
+			if commentListRequest.Filters.UpdatedAfter.IsZero() {
+				// default to last 3 months to improve performance
+				commentListRequest.Filters.UpdatedAfter = time.Now().AddDate(0, -3, 0)
 			}
 
 			commentList, err := projects.CommentList(ctx, engine, commentListRequest)
@@ -564,6 +604,13 @@ func CommentListByNotebook(engine *twapi.Engine) toolsets.ToolWrapper {
 						Type:        "string",
 						Description: "A search term to filter comments by name.",
 					},
+					"updated_after": {
+						Type:   "string",
+						Format: "date-time",
+						Description: "Filter comments updated after this date and time. " +
+							"The date format follows RFC3339 - YYYY-MM-DDTHH:MM:SSZ. By default it will only return comments " +
+							"updated on the last 3 months.",
+					},
 					"page": {
 						Type:        "integer",
 						Description: "Page number for pagination of results.",
@@ -587,11 +634,17 @@ func CommentListByNotebook(engine *twapi.Engine) toolsets.ToolWrapper {
 			err := helpers.ParamGroup(arguments,
 				helpers.RequiredNumericParam(&commentListRequest.Path.NotebookID, "notebook_id"),
 				helpers.OptionalParam(&commentListRequest.Filters.SearchTerm, "search_term"),
+				helpers.OptionalTimeParam(&commentListRequest.Filters.UpdatedAfter, "updated_after"),
 				helpers.OptionalNumericParam(&commentListRequest.Filters.Page, "page"),
 				helpers.OptionalNumericParam(&commentListRequest.Filters.PageSize, "page_size"),
 			)
 			if err != nil {
 				return helpers.NewToolResultTextError(fmt.Sprintf("invalid parameters: %s", err.Error())), nil
+			}
+
+			if commentListRequest.Filters.UpdatedAfter.IsZero() {
+				// default to last 3 months to improve performance
+				commentListRequest.Filters.UpdatedAfter = time.Now().AddDate(0, -3, 0)
 			}
 
 			commentList, err := projects.CommentList(ctx, engine, commentListRequest)
@@ -636,6 +689,13 @@ func CommentListByTask(engine *twapi.Engine) toolsets.ToolWrapper {
 						Type:        "string",
 						Description: "A search term to filter comments by name.",
 					},
+					"updated_after": {
+						Type:   "string",
+						Format: "date-time",
+						Description: "Filter comments updated after this date and time. " +
+							"The date format follows RFC3339 - YYYY-MM-DDTHH:MM:SSZ. By default it will only return comments " +
+							"updated on the last 3 months.",
+					},
 					"page": {
 						Type:        "integer",
 						Description: "Page number for pagination of results.",
@@ -659,11 +719,17 @@ func CommentListByTask(engine *twapi.Engine) toolsets.ToolWrapper {
 			err := helpers.ParamGroup(arguments,
 				helpers.RequiredNumericParam(&commentListRequest.Path.TaskID, "task_id"),
 				helpers.OptionalParam(&commentListRequest.Filters.SearchTerm, "search_term"),
+				helpers.OptionalTimeParam(&commentListRequest.Filters.UpdatedAfter, "updated_after"),
 				helpers.OptionalNumericParam(&commentListRequest.Filters.Page, "page"),
 				helpers.OptionalNumericParam(&commentListRequest.Filters.PageSize, "page_size"),
 			)
 			if err != nil {
 				return helpers.NewToolResultTextError(fmt.Sprintf("invalid parameters: %s", err.Error())), nil
+			}
+
+			if commentListRequest.Filters.UpdatedAfter.IsZero() {
+				// default to last 3 months to improve performance
+				commentListRequest.Filters.UpdatedAfter = time.Now().AddDate(0, -3, 0)
 			}
 
 			commentList, err := projects.CommentList(ctx, engine, commentListRequest)
