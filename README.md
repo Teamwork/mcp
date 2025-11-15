@@ -6,6 +6,10 @@
 [![Go](https://img.shields.io/badge/Go-1.25.1-blue.svg)](https://golang.org/)
 [![MCP](https://img.shields.io/badge/MCP-Compatible-green.svg)](https://modelcontextprotocol.io/)
 
+<a href="https://glama.ai/mcp/servers/@Teamwork/mcp">
+  <img width="380" height="200" src="https://glama.ai/mcp/servers/@Teamwork/mcp/badge" alt="Teamwork MCP server" />
+</a>
+
 > 📌 Are you a Teamwork.com user wanting to connect AI tools (Claude Desktop, VS
 > Code Copilot Chat, Gemini, etc.) to your Teamwork.com site right now? Jump
 > straight to the **[Usage Guide (How to Connect)](usage.md)** for tokens,
