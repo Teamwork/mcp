@@ -11,6 +11,8 @@ func DefaultToolsetGroup(readOnly, allowDelete bool, engine *twapi.Engine) *tool
 		ProjectCreate(engine),
 		ProjectUpdate(engine),
 		ProjectMemberAdd(engine),
+		ProjectCategoryCreate(engine),
+		ProjectCategoryUpdate(engine),
 		TasklistCreate(engine),
 		TasklistUpdate(engine),
 		TaskCreate(engine),
@@ -40,6 +42,7 @@ func DefaultToolsetGroup(readOnly, allowDelete bool, engine *twapi.Engine) *tool
 	if allowDelete {
 		writeTools = append(writeTools, []toolsets.ToolWrapper{
 			ProjectDelete(engine),
+			ProjectCategoryDelete(engine),
 			TasklistDelete(engine),
 			TaskDelete(engine),
 			UserDelete(engine),
@@ -60,6 +63,8 @@ func DefaultToolsetGroup(readOnly, allowDelete bool, engine *twapi.Engine) *tool
 		AddReadTools(
 			ProjectGet(engine),
 			ProjectList(engine),
+			ProjectCategoryGet(engine),
+			ProjectCategoryList(engine),
 			TasklistGet(engine),
 			TasklistList(engine),
 			TasklistListByProject(engine),

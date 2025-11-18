@@ -87,6 +87,10 @@ func ProjectCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 						Type:        "string",
 						Description: "The end date of the project in the format YYYYMMDD.",
 					},
+					"category_id": {
+						Type:        "integer",
+						Description: "The ID of the category to which the project belongs.",
+					},
 					"company_id": {
 						Type:        "integer",
 						Description: "The ID of the company associated with the project.",
@@ -118,6 +122,7 @@ func ProjectCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 				helpers.OptionalPointerParam(&projectCreateRequest.Description, "description"),
 				helpers.OptionalLegacyDatePointerParam(&projectCreateRequest.StartAt, "start_at"),
 				helpers.OptionalLegacyDatePointerParam(&projectCreateRequest.EndAt, "end_at"),
+				helpers.OptionalNumericPointerParam(&projectCreateRequest.CategoryID, "category_id"),
 				helpers.OptionalNumericParam(&projectCreateRequest.CompanyID, "company_id"),
 				helpers.OptionalNumericPointerParam(&projectCreateRequest.OwnerID, "owned_id"),
 				helpers.OptionalNumericListParam(&projectCreateRequest.TagIDs, "tag_ids"),
@@ -167,6 +172,10 @@ func ProjectUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 						Type:        "string",
 						Description: "The end date of the project in the format YYYYMMDD.",
 					},
+					"category_id": {
+						Type:        "integer",
+						Description: "The ID of the category to which the project belongs.",
+					},
 					"company_id": {
 						Type:        "integer",
 						Description: "The ID of the company associated with the project.",
@@ -199,6 +208,7 @@ func ProjectUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 				helpers.OptionalPointerParam(&projectUpdateRequest.Description, "description"),
 				helpers.OptionalLegacyDatePointerParam(&projectUpdateRequest.StartAt, "start_at"),
 				helpers.OptionalLegacyDatePointerParam(&projectUpdateRequest.EndAt, "end_at"),
+				helpers.OptionalNumericPointerParam(&projectUpdateRequest.CategoryID, "category_id"),
 				helpers.OptionalNumericPointerParam(&projectUpdateRequest.CompanyID, "company_id"),
 				helpers.OptionalNumericPointerParam(&projectUpdateRequest.OwnerID, "owned_id"),
 				helpers.OptionalNumericListParam(&projectUpdateRequest.TagIDs, "tag_ids"),
@@ -331,6 +341,13 @@ func ProjectList(engine *twapi.Engine) toolsets.ToolWrapper {
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
 				Properties: map[string]*jsonschema.Schema{
+					"project_category_ids": {
+						Type:        "array",
+						Description: "A list of project category IDs to filter projects by categories.",
+						Items: &jsonschema.Schema{
+							Type: "integer",
+						},
+					},
 					"search_term": {
 						Type:        "string",
 						Description: "A search term to filter projects by name or description.",
@@ -367,6 +384,7 @@ func ProjectList(engine *twapi.Engine) toolsets.ToolWrapper {
 				return helpers.NewToolResultTextError(fmt.Sprintf("failed to decode request: %s", err.Error())), nil
 			}
 			err := helpers.ParamGroup(arguments,
+				helpers.OptionalNumericListParam(&projectListRequest.Filters.ProjectCategoryIDs, "project_category_ids"),
 				helpers.OptionalParam(&projectListRequest.Filters.SearchTerm, "search_term"),
 				helpers.OptionalNumericListParam(&projectListRequest.Filters.TagIDs, "tag_ids"),
 				helpers.OptionalPointerParam(&projectListRequest.Filters.MatchAllTags, "match_all_tags"),
