@@ -15,7 +15,7 @@ require (
 	github.com/google/jsonschema-go v0.3.1-0.20251107220952-2196fedd778d
 	github.com/modelcontextprotocol/go-sdk v1.1.0
 	github.com/teamwork/desksdkgo v0.0.0-20251003022928-49eb7d63fe81
-	github.com/teamwork/twapi-go-sdk v1.5.1
+	github.com/teamwork/twapi-go-sdk v1.6.0
 )
 
 require (
