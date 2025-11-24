@@ -5,8 +5,8 @@ go 1.25.1
 require (
 	github.com/DataDog/dd-trace-go/contrib/net/http/v2 v2.3.1
 	github.com/DataDog/dd-trace-go/v2 v2.3.1
-	github.com/getsentry/sentry-go v0.36.2
-	github.com/getsentry/sentry-go/slog v0.36.2
+	github.com/getsentry/sentry-go v0.39.0
+	github.com/getsentry/sentry-go/slog v0.39.0
 	// using a specific commit until a new version is released with the null types
 	// fix.
 	//
