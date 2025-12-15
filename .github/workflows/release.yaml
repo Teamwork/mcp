@@ -80,7 +80,7 @@ jobs:
           GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} go build -ldflags="-X 'github.com/teamwork/mcp/internal/config.Version=$version'" -o releases/tw-mcp-${{ matrix.goos }}-${{ matrix.goarch }} ./cmd/mcp-stdio
 
       - name: Upload binaries artifact
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: mcp-binaries-${{ matrix.goos }}-${{ matrix.goarch }}
           path: releases/tw-mcp-${{ matrix.goos }}-${{ matrix.goarch }}
