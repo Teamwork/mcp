@@ -3,8 +3,8 @@ module github.com/teamwork/mcp
 go 1.25.1
 
 require (
-	github.com/DataDog/dd-trace-go/contrib/net/http/v2 v2.4.0
-	github.com/DataDog/dd-trace-go/v2 v2.4.0
+	github.com/DataDog/dd-trace-go/contrib/net/http/v2 v2.4.1
+	github.com/DataDog/dd-trace-go/v2 v2.4.1
 	github.com/getsentry/sentry-go v0.40.0
 	github.com/getsentry/sentry-go/slog v0.40.0
 	// using a specific commit until a new version is released with null types
