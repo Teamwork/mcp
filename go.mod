@@ -20,7 +20,7 @@ require (
 	github.com/google/jsonschema-go v0.3.1-0.20251202234540-11a93dca6d93
 	github.com/modelcontextprotocol/go-sdk v1.1.0
 	github.com/teamwork/desksdkgo v0.0.0-20251003022928-49eb7d63fe81
-	github.com/teamwork/twapi-go-sdk v1.6.0
+	github.com/teamwork/twapi-go-sdk v1.7.0
 )
 
 require (
@@ -95,7 +95,7 @@ require (
 	golang.org/x/mod v0.28.0 // indirect
 	golang.org/x/net v0.44.0 // indirect
 	golang.org/x/oauth2 v0.30.0 // indirect
-	golang.org/x/sys v0.38.0 // indirect
+	golang.org/x/sys v0.39.0 // indirect
 	golang.org/x/text v0.29.0 // indirect
 	golang.org/x/time v0.13.0 // indirect
 	golang.org/x/xerrors v0.0.0-20240903120638-7835f813f4da // indirect
