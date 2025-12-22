@@ -17,7 +17,7 @@ require (
 	// Patches:
 	// https://github.com/google/jsonschema-go/pull/42
 	// https://github.com/google/jsonschema-go/pull/49
-	github.com/google/jsonschema-go v0.3.1-0.20251202234540-11a93dca6d93
+	github.com/google/jsonschema-go v0.4.2
 	github.com/modelcontextprotocol/go-sdk v1.1.0
 	github.com/teamwork/desksdkgo v0.0.0-20251003022928-49eb7d63fe81
 	github.com/teamwork/twapi-go-sdk v1.7.0
