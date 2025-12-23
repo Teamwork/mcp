@@ -26,7 +26,7 @@ jsonschema==4.25.0
 jsonschema-specifications==2025.4.1
 langchain==0.3.27
 langchain-anthropic==0.3.17
-langchain-core==0.3.80
+langchain-core==0.3.81
 langchain-google-genai==2.1.8
 langchain-mcp-adapters==0.1.9
 langchain-openai==0.3.28
