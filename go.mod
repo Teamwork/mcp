@@ -7,16 +7,6 @@ require (
 	github.com/DataDog/dd-trace-go/v2 v2.4.1
 	github.com/getsentry/sentry-go v0.40.0
 	github.com/getsentry/sentry-go/slog v0.40.0
-	// using a specific commit until a new version is released with null types
-	// fixes.
-	//
-	// Issues:
-	// https://github.com/google/jsonschema-go/issues/41
-	// https://github.com/google/jsonschema-go/issues/48
-	//
-	// Patches:
-	// https://github.com/google/jsonschema-go/pull/42
-	// https://github.com/google/jsonschema-go/pull/49
 	github.com/google/jsonschema-go v0.4.2
 	github.com/modelcontextprotocol/go-sdk v1.1.0
 	github.com/teamwork/desksdkgo v0.0.0-20251003022928-49eb7d63fe81
