@@ -324,9 +324,7 @@ func SkillList(engine *twapi.Engine) toolsets.ToolWrapper {
 			return &mcp.CallToolResult{
 				Content: []mcp.Content{
 					&mcp.TextContent{
-						Text: string(helpers.WebLinker(ctx, encoded,
-							helpers.WebLinkerWithIDPathBuilder("/app/people"),
-						)),
+						Text: string(encoded),
 					},
 				},
 				StructuredContent: skillList,
