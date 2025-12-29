@@ -118,7 +118,13 @@ func CheckMessage(t *testing.T, result mcp.Result) {
 		return
 	}
 	if toolResult.IsError {
-		t.Errorf("tool failed to execute: %v", toolResult.Content)
+		var msg any = toolResult.Content
+		if len(toolResult.Content) == 1 {
+			if textContent, ok := toolResult.Content[0].(*mcp.TextContent); ok {
+				msg = textContent.Text
+			}
+		}
+		t.Errorf("tool failed to execute: %v", msg)
 	}
 }
 
