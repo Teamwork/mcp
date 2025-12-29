@@ -40,6 +40,8 @@ func DefaultToolsetGroup(readOnly, allowDelete bool, engine *twapi.Engine) *tool
 		NotebookUpdate(engine),
 		SkillCreate(engine),
 		SkillUpdate(engine),
+		JobRoleCreate(engine),
+		JobRoleUpdate(engine),
 	}
 	if allowDelete {
 		writeTools = append(writeTools, []toolsets.ToolWrapper{
@@ -57,6 +59,7 @@ func DefaultToolsetGroup(readOnly, allowDelete bool, engine *twapi.Engine) *tool
 			TimerDelete(engine),
 			NotebookDelete(engine),
 			SkillDelete(engine),
+			JobRoleDelete(engine),
 		}...)
 	}
 
@@ -110,6 +113,8 @@ func DefaultToolsetGroup(readOnly, allowDelete bool, engine *twapi.Engine) *tool
 			IndustryList(engine),
 			SkillGet(engine),
 			SkillList(engine),
+			JobRoleGet(engine),
+			JobRoleList(engine),
 		))
 	return group
 }
