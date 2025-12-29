@@ -115,6 +115,9 @@ func DefaultToolsetGroup(readOnly, allowDelete bool, engine *twapi.Engine) *tool
 			SkillList(engine),
 			JobRoleGet(engine),
 			JobRoleList(engine),
+		).
+		AddPrompts(
+			TaskSkillsAndRolesPrompt(engine),
 		))
 	return group
 }

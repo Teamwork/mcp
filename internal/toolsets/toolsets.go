@@ -383,3 +383,15 @@ func (tg *ToolsetGroup) HasTools() bool {
 	}
 	return false
 }
+
+// HasPrompts checks if the ToolsetGroup has any enabled Toolsets with available
+// prompts. It returns true if at least one Toolset is enabled and has prompts,
+// otherwise it returns false.
+func (tg *ToolsetGroup) HasPrompts() bool {
+	for _, toolset := range tg.Toolsets {
+		if toolset.Enabled && len(toolset.prompts) > 0 {
+			return true
+		}
+	}
+	return false
+}
