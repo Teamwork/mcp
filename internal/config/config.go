@@ -167,21 +167,35 @@ func Load(logOutput io.Writer) (Resources, func()) {
 // group.
 func NewMCPServer(resources Resources, groups ...*toolsets.ToolsetGroup) *mcp.Server {
 	// Determine if any group has tools
-	hasTools := false
+	var hasTools, hasPrompts bool
 	for _, group := range groups {
 		if group.HasTools() {
 			hasTools = true
-			break
 		}
+		if group.HasPrompts() {
+			hasPrompts = true
+		}
+	}
+
+	serverOptions := &mcp.ServerOptions{
+		HasTools:   hasTools,
+		HasPrompts: hasPrompts,
+		Capabilities: &mcp.ServerCapabilities{
+			Logging: &mcp.LoggingCapabilities{},
+		},
+	}
+	if hasTools {
+		serverOptions.Capabilities.Tools = &mcp.ToolCapabilities{}
+	}
+	if hasPrompts {
+		serverOptions.Capabilities.Prompts = &mcp.PromptCapabilities{}
 	}
 
 	mcpServer := mcp.NewServer(&mcp.Implementation{
 		Name:    mcpName,
 		Title:   "Teamwork.com Model Context Protocol",
 		Version: strings.TrimPrefix(resources.Info.Version, "v"),
-	}, &mcp.ServerOptions{
-		HasTools: hasTools,
-	})
+	}, serverOptions)
 	mcpServer.AddReceivingMiddleware(func(next mcp.MethodHandler) mcp.MethodHandler {
 		return func(ctx context.Context, method string, req mcp.Request) (result mcp.Result, err error) {
 			result, err = next(ctx, method, req)
