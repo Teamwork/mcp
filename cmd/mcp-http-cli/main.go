@@ -42,7 +42,7 @@ func main() {
 		httpClient.Transport = newAuthRoundTripper(*mcpToken, httpClient.Transport)
 	}
 
-	mcpTransport := &mcp.SSEClientTransport{
+	mcpTransport := &mcp.StreamableClientTransport{
 		Endpoint:   *mcpURL,
 		HTTPClient: httpClient,
 	}
