@@ -176,7 +176,7 @@ Please send back a JSON object with the skills and job role IDs. The format MUST
 
 {
   "skillIds": [1, 2],
-  "jobRoleIds": [3, 4]
+  "jobRoleIds": [3, 4],
   "reasoning": "The reasoning behind the suggestions"
 }
 
@@ -213,7 +213,7 @@ Here is the JSON schema for the response:
 }
 
 You MUST NOT send anything else, just the JSON object. If there are no skills or job roles, send an empty array. Do not
-allucinate or make up any skills or job roles.
+hallucinate or make up any skills or job roles.
 `
 
 const taskSkillsAndRolesUserPrompt = `
