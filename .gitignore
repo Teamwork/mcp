@@ -30,3 +30,21 @@ go.work.sum
 # Editor/IDE
 # .idea/
 # .vscode/
+# macOS system files
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Windows system files
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Linux system files
+.directory
+
+# General OS artifacts
+*.swp
+*.swo
+*~
+.#*
