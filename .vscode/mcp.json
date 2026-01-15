@@ -1,17 +1,8 @@
 {
-  "inputs": [
-    {
-      "id": "tw-mcp-token",
-      "type": "promptString",
-      "description": "Teamwork Bearer token"
-    }
-  ],
   "servers": {
     "Teamwork": {
-      "url": "https://mcp.ai.teamwork.com/",
-      "headers": {
-        "Authorization": "Bearer ${input:tw-mcp-token}"
-      }
+      "type": "http",
+      "url": "https://mcp.ai.teamwork.com/"
     }
   }
 }
