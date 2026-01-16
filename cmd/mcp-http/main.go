@@ -64,9 +64,7 @@ func main() {
 		slog.String("address", resources.Info.ServerAddress),
 	)
 	go func() {
-		slog.Info("http server listening", slog.String("address", resources.Info.ServerAddress))
 		if err := httpServer.ListenAndServe(); err != nil {
-			slog.Info("http server stopped")
 			if err != http.ErrServerClosed {
 				resources.Logger().Error("failed to start server",
 					slog.String("address", resources.Info.ServerAddress),
@@ -100,7 +98,7 @@ func newMCPServer(resources config.Resources) (*mcp.Server, error) {
 		return nil, fmt.Errorf("failed to enable toolsets: %w", err)
 	}
 
-	deskGroup := twdesk.DefaultToolsetGroup(resources.TeamworkHTTPClient())
+	deskGroup := twdesk.DefaultToolsetGroup(resources.DeskClient())
 	if err := deskGroup.EnableToolsets(toolsets.MethodAll); err != nil {
 		return nil, fmt.Errorf("failed to enable desk toolsets: %w", err)
 	}
