@@ -4,13 +4,11 @@
 package testutil
 
 import (
-	"context"
 	"encoding/json"
 	"net/http"
 	"testing"
 
 	"github.com/google/jsonschema-go/jsonschema"
-	"github.com/teamwork/mcp/internal/config"
 	"github.com/teamwork/mcp/internal/toolsets"
 	"github.com/teamwork/mcp/internal/twdesk"
 )
@@ -25,10 +23,6 @@ type SchemaValidationTestSuite struct {
 // NewSchemaValidationTestSuite creates a new test suite with all twdesk tools
 func NewSchemaValidationTestSuite() *SchemaValidationTestSuite {
 	httpClient := &http.Client{}
-
-	// Create a context with a test customer URL to ensure context-aware routing is tested
-	ctx := context.Background()
-	ctx = config.WithCustomerURL(ctx, "https://test.teamwork.com")
 
 	tools := map[string]toolsets.ToolWrapper{
 		// Company tools
