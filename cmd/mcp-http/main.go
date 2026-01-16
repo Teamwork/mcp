@@ -98,7 +98,7 @@ func newMCPServer(resources config.Resources) (*mcp.Server, error) {
 		return nil, fmt.Errorf("failed to enable toolsets: %w", err)
 	}
 
-	deskGroup := twdesk.DefaultToolsetGroup(resources.DeskClient())
+	deskGroup := twdesk.DefaultToolsetGroup(resources.TeamworkHTTPClient())
 	if err := deskGroup.EnableToolsets(toolsets.MethodAll); err != nil {
 		return nil, fmt.Errorf("failed to enable desk toolsets: %w", err)
 	}
