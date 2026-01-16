@@ -3,6 +3,7 @@ package twdesk
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"net/url"
 
 	"github.com/google/jsonschema-go/jsonschema"
@@ -24,25 +25,15 @@ const (
 	MethodStatusList   toolsets.Method = "twdesk-list_statuses"
 )
 
-var (
-	statusListOutputSchema *jsonschema.Schema
-)
-
 func init() {
 	toolsets.RegisterMethod(MethodStatusCreate)
 	toolsets.RegisterMethod(MethodStatusUpdate)
 	toolsets.RegisterMethod(MethodStatusGet)
 	toolsets.RegisterMethod(MethodStatusList)
-
-	var err error
-	statusListOutputSchema, err = jsonschema.For[deskmodels.TicketStatusesResponse](&jsonschema.ForOptions{})
-	if err != nil {
-		panic(fmt.Sprintf("failed to generate JSON schema for StatusListResponse: %v", err))
-	}
 }
 
 // StatusGet finds a status in Teamwork Desk.  This will find it by ID
-func StatusGet(client *deskclient.Client) toolsets.ToolWrapper {
+func StatusGet(httpClient *http.Client) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
 			Name: string(MethodStatusGet),
@@ -65,6 +56,7 @@ func StatusGet(client *deskclient.Client) toolsets.ToolWrapper {
 			},
 		},
 		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+			client := ClientFromContext(ctx, httpClient)
 			arguments, err := helpers.NewToolArguments(request)
 			if err != nil {
 				return helpers.NewToolResultTextError(err.Error()), nil
@@ -81,7 +73,7 @@ func StatusGet(client *deskclient.Client) toolsets.ToolWrapper {
 }
 
 // StatusList returns a list of statuses that apply to the filters in Teamwork Desk
-func StatusList(client *deskclient.Client) toolsets.ToolWrapper {
+func StatusList(httpClient *http.Client) toolsets.ToolWrapper {
 	properties := map[string]*jsonschema.Schema{
 		"name": {
 			Type:        "array",
@@ -121,9 +113,9 @@ func StatusList(client *deskclient.Client) toolsets.ToolWrapper {
 				Type:       "object",
 				Properties: properties,
 			},
-			OutputSchema: statusListOutputSchema,
 		},
 		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+			client := ClientFromContext(ctx, httpClient)
 			arguments, err := helpers.NewToolArguments(request)
 			if err != nil {
 				return helpers.NewToolResultTextError(err.Error()), nil
@@ -159,7 +151,7 @@ func StatusList(client *deskclient.Client) toolsets.ToolWrapper {
 }
 
 // StatusCreate creates a status in Teamwork Desk
-func StatusCreate(client *deskclient.Client) toolsets.ToolWrapper {
+func StatusCreate(httpClient *http.Client) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
 			Name: string(MethodStatusCreate),
@@ -189,6 +181,7 @@ func StatusCreate(client *deskclient.Client) toolsets.ToolWrapper {
 			},
 		},
 		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+			client := ClientFromContext(ctx, httpClient)
 			arguments, err := helpers.NewToolArguments(request)
 			if err != nil {
 				return helpers.NewToolResultTextError(err.Error()), nil
@@ -210,7 +203,7 @@ func StatusCreate(client *deskclient.Client) toolsets.ToolWrapper {
 }
 
 // StatusUpdate updates a status in Teamwork Desk
-func StatusUpdate(client *deskclient.Client) toolsets.ToolWrapper {
+func StatusUpdate(httpClient *http.Client) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
 			Name: string(MethodStatusUpdate),
@@ -244,6 +237,7 @@ func StatusUpdate(client *deskclient.Client) toolsets.ToolWrapper {
 			},
 		},
 		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+			client := ClientFromContext(ctx, httpClient)
 			arguments, err := helpers.NewToolArguments(request)
 			if err != nil {
 				return helpers.NewToolResultTextError(err.Error()), nil

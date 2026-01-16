@@ -12,6 +12,7 @@ import (
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	deskclient "github.com/teamwork/desksdkgo/client"
+	"github.com/teamwork/mcp/internal/config"
 	"github.com/teamwork/mcp/internal/toolsets"
 	"github.com/teamwork/mcp/internal/twdesk"
 	"github.com/teamwork/mcp/internal/twprojects"
@@ -79,23 +80,35 @@ func ProjectsMCPServerMock(t *testing.T, status int, response []byte) *mcp.Serve
 }
 
 // DeskMCPServerMock creates a mock MCP server for twdesk testing
+// It injects the test server URL into the request context so handlers use the correct endpoint
 func DeskMCPServerMock(t *testing.T, status int, response []byte) (*mcp.Server, func()) {
 	mcpServer := mcp.NewServer(&mcp.Implementation{
 		Name:    "test-server",
 		Version: "1.0.0",
 	}, &mcp.ServerOptions{})
 
-	client, testServer := DeskClientMock(status, response)
+	_, testServer := DeskClientMock(status, response)
+	testServerURL := testServer.URL
 	cleanup := func() {
 		testServer.Close()
 	}
 
-	toolsetGroup := twdesk.DefaultToolsetGroup(client)
+	httpClient := testServer.Client()
+	toolsetGroup := twdesk.DefaultToolsetGroup(httpClient)
 	if err := toolsetGroup.EnableToolsets(toolsets.MethodAll); err != nil {
 		cleanup()
 		t.Fatalf("failed to enable toolsets: %v", err)
 	}
 	toolsetGroup.RegisterAll(mcpServer)
+
+	// Add middleware to inject test server URL into context so handlers route correctly
+	mcpServer.AddReceivingMiddleware(func(next mcp.MethodHandler) mcp.MethodHandler {
+		return func(ctx context.Context, method string, req mcp.Request) (result mcp.Result, err error) {
+			// Inject the test server URL as the customer URL
+			ctx = config.WithCustomerURL(ctx, testServerURL)
+			return next(ctx, method, req)
+		}
+	})
 
 	return mcpServer, cleanup
 }

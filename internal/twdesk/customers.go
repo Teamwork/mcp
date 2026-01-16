@@ -3,6 +3,7 @@ package twdesk
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"net/url"
 
 	"github.com/google/jsonschema-go/jsonschema"
@@ -24,27 +25,15 @@ const (
 	MethodCustomerList   toolsets.Method = "twdesk-list_customers"
 )
 
-var (
-	customerListOutputSchema *jsonschema.Schema
-)
-
 func init() {
 	toolsets.RegisterMethod(MethodCustomerCreate)
 	toolsets.RegisterMethod(MethodCustomerUpdate)
 	toolsets.RegisterMethod(MethodCustomerGet)
 	toolsets.RegisterMethod(MethodCustomerList)
-
-	var err error
-
-	// generate the output schemas only once
-	customerListOutputSchema, err = jsonschema.For[deskmodels.CustomersResponse](&jsonschema.ForOptions{})
-	if err != nil {
-		panic(fmt.Sprintf("failed to generate JSON schema for CustomerListResponse: %v", err))
-	}
 }
 
 // CustomerGet finds a customer in Teamwork Desk.  This will find it by ID
-func CustomerGet(client *deskclient.Client) toolsets.ToolWrapper {
+func CustomerGet(httpClient *http.Client) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
 			Name: string(MethodCustomerGet),
@@ -67,6 +56,7 @@ func CustomerGet(client *deskclient.Client) toolsets.ToolWrapper {
 			},
 		},
 		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+			client := ClientFromContext(ctx, httpClient)
 			arguments, err := helpers.NewToolArguments(request)
 			if err != nil {
 				return helpers.NewToolResultTextError(err.Error()), nil
@@ -84,7 +74,7 @@ func CustomerGet(client *deskclient.Client) toolsets.ToolWrapper {
 }
 
 // CustomerList returns a list of customers that apply to the filters in Teamwork Desk
-func CustomerList(client *deskclient.Client) toolsets.ToolWrapper {
+func CustomerList(httpClient *http.Client) toolsets.ToolWrapper {
 	properties := map[string]*jsonschema.Schema{
 		"companyIDs": {
 			Type:        "array",
@@ -124,9 +114,9 @@ func CustomerList(client *deskclient.Client) toolsets.ToolWrapper {
 				Type:       "object",
 				Properties: properties,
 			},
-			OutputSchema: customerListOutputSchema,
 		},
 		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+			client := ClientFromContext(ctx, httpClient)
 			arguments, err := helpers.NewToolArguments(request)
 			if err != nil {
 				return helpers.NewToolResultTextError(err.Error()), nil
@@ -165,7 +155,7 @@ func CustomerList(client *deskclient.Client) toolsets.ToolWrapper {
 }
 
 // CustomerCreate creates a customer in Teamwork Desk
-func CustomerCreate(client *deskclient.Client) toolsets.ToolWrapper {
+func CustomerCreate(httpClient *http.Client) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
 			Name: string(MethodCustomerCreate),
@@ -234,6 +224,7 @@ func CustomerCreate(client *deskclient.Client) toolsets.ToolWrapper {
 			},
 		},
 		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+			client := ClientFromContext(ctx, httpClient)
 			arguments, err := helpers.NewToolArguments(request)
 			if err != nil {
 				return helpers.NewToolResultTextError(err.Error()), nil
@@ -277,7 +268,7 @@ func CustomerCreate(client *deskclient.Client) toolsets.ToolWrapper {
 }
 
 // CustomerUpdate updates a customer in Teamwork Desk
-func CustomerUpdate(client *deskclient.Client) toolsets.ToolWrapper {
+func CustomerUpdate(httpClient *http.Client) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
 			Name: string(MethodCustomerUpdate),
@@ -351,6 +342,7 @@ func CustomerUpdate(client *deskclient.Client) toolsets.ToolWrapper {
 			},
 		},
 		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+			client := ClientFromContext(ctx, httpClient)
 			arguments, err := helpers.NewToolArguments(request)
 			if err != nil {
 				return helpers.NewToolResultTextError(err.Error()), nil

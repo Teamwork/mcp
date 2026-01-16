@@ -1,51 +1,52 @@
 package twdesk
 
 import (
-	deskclient "github.com/teamwork/desksdkgo/client"
+	"net/http"
+
 	"github.com/teamwork/mcp/internal/toolsets"
 )
 
-// DefaultToolsetGroup creates a default ToolsetGroup for Teamwork Projects.
-func DefaultToolsetGroup(client *deskclient.Client) *toolsets.ToolsetGroup {
+// DefaultToolsetGroup creates a default ToolsetGroup for Teamwork Desk.
+func DefaultToolsetGroup(httpClient *http.Client) *toolsets.ToolsetGroup {
 	readTools := []toolsets.ToolWrapper{
-		CompanyGet(client),
-		CompanyList(client),
-		CustomerGet(client),
-		CustomerList(client),
-		InboxGet(client),
-		InboxList(client),
-		PriorityGet(client),
-		PriorityList(client),
-		StatusGet(client),
-		StatusList(client),
-		TagGet(client),
-		TagList(client),
-		TicketGet(client),
-		TicketList(client),
-		TicketSearch(client),
-		TypeGet(client),
-		TypeList(client),
-		UserGet(client),
-		UserList(client),
+		CompanyGet(httpClient),
+		CompanyList(httpClient),
+		CustomerGet(httpClient),
+		CustomerList(httpClient),
+		InboxGet(httpClient),
+		InboxList(httpClient),
+		PriorityGet(httpClient),
+		PriorityList(httpClient),
+		StatusGet(httpClient),
+		StatusList(httpClient),
+		TagGet(httpClient),
+		TagList(httpClient),
+		TicketGet(httpClient),
+		TicketList(httpClient),
+		TicketSearch(httpClient),
+		TypeGet(httpClient),
+		TypeList(httpClient),
+		UserGet(httpClient),
+		UserList(httpClient),
 	}
 
 	writeTools := []toolsets.ToolWrapper{
-		CompanyCreate(client),
-		CompanyUpdate(client),
-		CustomerCreate(client),
-		CustomerUpdate(client),
-		FileCreate(client),
-		MessageCreate(client),
-		PriorityCreate(client),
-		PriorityUpdate(client),
-		StatusCreate(client),
-		StatusUpdate(client),
-		TagCreate(client),
-		TagUpdate(client),
-		TicketCreate(client),
-		TicketUpdate(client),
-		TypeCreate(client),
-		TypeUpdate(client),
+		CompanyCreate(httpClient),
+		CompanyUpdate(httpClient),
+		CustomerCreate(httpClient),
+		CustomerUpdate(httpClient),
+		FileCreate(httpClient),
+		MessageCreate(httpClient),
+		PriorityCreate(httpClient),
+		PriorityUpdate(httpClient),
+		StatusCreate(httpClient),
+		StatusUpdate(httpClient),
+		TagCreate(httpClient),
+		TagUpdate(httpClient),
+		TicketCreate(httpClient),
+		TicketUpdate(httpClient),
+		TypeCreate(httpClient),
+		TypeUpdate(httpClient),
 	}
 
 	group := toolsets.NewToolsetGroup(false)

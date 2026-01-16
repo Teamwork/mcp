@@ -3,6 +3,7 @@ package twdesk
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"net/url"
 
 	"github.com/google/jsonschema-go/jsonschema"
@@ -24,31 +25,15 @@ const (
 	MethodTagList   toolsets.Method = "twdesk-list_tags"
 )
 
-var (
-	tagGetOutputSchema  *jsonschema.Schema
-	tagListOutputSchema *jsonschema.Schema
-)
-
 func init() {
 	toolsets.RegisterMethod(MethodTagCreate)
 	toolsets.RegisterMethod(MethodTagUpdate)
 	toolsets.RegisterMethod(MethodTagGet)
 	toolsets.RegisterMethod(MethodTagList)
-
-	var err error
-	tagGetOutputSchema, err = jsonschema.For[deskmodels.Tag](&jsonschema.ForOptions{})
-	if err != nil {
-		panic(fmt.Sprintf("failed to generate JSON schema for Tag: %v", err))
-	}
-
-	tagListOutputSchema, err = jsonschema.For[deskmodels.TagsResponse](&jsonschema.ForOptions{})
-	if err != nil {
-		panic(fmt.Sprintf("failed to generate JSON schema for TagsResponse: %v", err))
-	}
 }
 
 // TagGet finds a tag in Teamwork Desk.  This will find it by ID
-func TagGet(client *deskclient.Client) toolsets.ToolWrapper {
+func TagGet(httpClient *http.Client) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
 			Name: string(MethodTagGet),
@@ -69,9 +54,9 @@ func TagGet(client *deskclient.Client) toolsets.ToolWrapper {
 				},
 				Required: []string{"id"},
 			},
-			OutputSchema: tagGetOutputSchema,
 		},
 		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+			client := ClientFromContext(ctx, httpClient)
 			arguments, err := helpers.NewToolArguments(request)
 			if err != nil {
 				return helpers.NewToolResultTextError(err.Error()), nil
@@ -87,7 +72,7 @@ func TagGet(client *deskclient.Client) toolsets.ToolWrapper {
 }
 
 // TagList returns a list of tags that apply to the filters in Teamwork Desk
-func TagList(client *deskclient.Client) toolsets.ToolWrapper {
+func TagList(httpClient *http.Client) toolsets.ToolWrapper {
 	properties := map[string]*jsonschema.Schema{
 		"name": {
 			Type:        "string",
@@ -121,9 +106,9 @@ func TagList(client *deskclient.Client) toolsets.ToolWrapper {
 				Type:       "object",
 				Properties: properties,
 			},
-			OutputSchema: tagListOutputSchema,
 		},
 		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+			client := ClientFromContext(ctx, httpClient)
 			arguments, err := helpers.NewToolArguments(request)
 			if err != nil {
 				return helpers.NewToolResultTextError(err.Error()), nil
@@ -159,7 +144,7 @@ func TagList(client *deskclient.Client) toolsets.ToolWrapper {
 }
 
 // TagCreate creates a tag in Teamwork Desk
-func TagCreate(client *deskclient.Client) toolsets.ToolWrapper {
+func TagCreate(httpClient *http.Client) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
 			Name: string(MethodTagCreate),
@@ -184,6 +169,7 @@ func TagCreate(client *deskclient.Client) toolsets.ToolWrapper {
 			},
 		},
 		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+			client := ClientFromContext(ctx, httpClient)
 			arguments, err := helpers.NewToolArguments(request)
 			if err != nil {
 				return helpers.NewToolResultTextError(err.Error()), nil
@@ -204,7 +190,7 @@ func TagCreate(client *deskclient.Client) toolsets.ToolWrapper {
 }
 
 // TagUpdate updates a tag in Teamwork Desk
-func TagUpdate(client *deskclient.Client) toolsets.ToolWrapper {
+func TagUpdate(httpClient *http.Client) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
 			Name: string(MethodTagUpdate),
@@ -234,6 +220,7 @@ func TagUpdate(client *deskclient.Client) toolsets.ToolWrapper {
 			},
 		},
 		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+			client := ClientFromContext(ctx, httpClient)
 			arguments, err := helpers.NewToolArguments(request)
 			if err != nil {
 				return helpers.NewToolResultTextError(err.Error()), nil

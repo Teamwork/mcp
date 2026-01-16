@@ -5,10 +5,10 @@ package testutil
 
 import (
 	"encoding/json"
+	"net/http"
 	"testing"
 
 	"github.com/google/jsonschema-go/jsonschema"
-	deskclient "github.com/teamwork/desksdkgo/client"
 	"github.com/teamwork/mcp/internal/toolsets"
 	"github.com/teamwork/mcp/internal/twdesk"
 )
@@ -22,60 +22,60 @@ type SchemaValidationTestSuite struct {
 
 // NewSchemaValidationTestSuite creates a new test suite with all twdesk tools
 func NewSchemaValidationTestSuite() *SchemaValidationTestSuite {
-	client := &deskclient.Client{}
+	httpClient := &http.Client{}
 
 	tools := map[string]toolsets.ToolWrapper{
 		// Company tools
-		"CompanyCreate": twdesk.CompanyCreate(client),
-		"CompanyUpdate": twdesk.CompanyUpdate(client),
-		"CompanyGet":    twdesk.CompanyGet(client),
-		"CompanyList":   twdesk.CompanyList(client),
+		"CompanyCreate": twdesk.CompanyCreate(httpClient),
+		"CompanyUpdate": twdesk.CompanyUpdate(httpClient),
+		"CompanyGet":    twdesk.CompanyGet(httpClient),
+		"CompanyList":   twdesk.CompanyList(httpClient),
 
 		// Customer tools
-		"CustomerCreate": twdesk.CustomerCreate(client),
-		"CustomerUpdate": twdesk.CustomerUpdate(client),
-		"CustomerGet":    twdesk.CustomerGet(client),
-		"CustomerList":   twdesk.CustomerList(client),
+		"CustomerCreate": twdesk.CustomerCreate(httpClient),
+		"CustomerUpdate": twdesk.CustomerUpdate(httpClient),
+		"CustomerGet":    twdesk.CustomerGet(httpClient),
+		"CustomerList":   twdesk.CustomerList(httpClient),
 
 		// Ticket tools
-		"TicketCreate": twdesk.TicketCreate(client),
-		"TicketUpdate": twdesk.TicketUpdate(client),
-		"TicketGet":    twdesk.TicketGet(client),
-		"TicketList":   twdesk.TicketList(client),
+		"TicketCreate": twdesk.TicketCreate(httpClient),
+		"TicketUpdate": twdesk.TicketUpdate(httpClient),
+		"TicketGet":    twdesk.TicketGet(httpClient),
+		"TicketList":   twdesk.TicketList(httpClient),
 
 		// Priority tools
-		"PriorityCreate": twdesk.PriorityCreate(client),
-		"PriorityUpdate": twdesk.PriorityUpdate(client),
-		"PriorityGet":    twdesk.PriorityGet(client),
-		"PriorityList":   twdesk.PriorityList(client),
+		"PriorityCreate": twdesk.PriorityCreate(httpClient),
+		"PriorityUpdate": twdesk.PriorityUpdate(httpClient),
+		"PriorityGet":    twdesk.PriorityGet(httpClient),
+		"PriorityList":   twdesk.PriorityList(httpClient),
 
 		// Status tools
-		"StatusCreate": twdesk.StatusCreate(client),
-		"StatusUpdate": twdesk.StatusUpdate(client),
-		"StatusGet":    twdesk.StatusGet(client),
-		"StatusList":   twdesk.StatusList(client),
+		"StatusCreate": twdesk.StatusCreate(httpClient),
+		"StatusUpdate": twdesk.StatusUpdate(httpClient),
+		"StatusGet":    twdesk.StatusGet(httpClient),
+		"StatusList":   twdesk.StatusList(httpClient),
 
 		// Tag tools
-		"TagCreate": twdesk.TagCreate(client),
-		"TagUpdate": twdesk.TagUpdate(client),
-		"TagGet":    twdesk.TagGet(client),
-		"TagList":   twdesk.TagList(client),
+		"TagCreate": twdesk.TagCreate(httpClient),
+		"TagUpdate": twdesk.TagUpdate(httpClient),
+		"TagGet":    twdesk.TagGet(httpClient),
+		"TagList":   twdesk.TagList(httpClient),
 
 		// Type tools
-		"TypeCreate": twdesk.TypeCreate(client),
-		"TypeUpdate": twdesk.TypeUpdate(client),
-		"TypeGet":    twdesk.TypeGet(client),
-		"TypeList":   twdesk.TypeList(client),
+		"TypeCreate": twdesk.TypeCreate(httpClient),
+		"TypeUpdate": twdesk.TypeUpdate(httpClient),
+		"TypeGet":    twdesk.TypeGet(httpClient),
+		"TypeList":   twdesk.TypeList(httpClient),
 
 		// User tools
-		"UserGet":  twdesk.UserGet(client),
-		"UserList": twdesk.UserList(client),
+		"UserGet":  twdesk.UserGet(httpClient),
+		"UserList": twdesk.UserList(httpClient),
 
 		// Message tools
-		"MessageCreate": twdesk.MessageCreate(client),
+		"MessageCreate": twdesk.MessageCreate(httpClient),
 
 		// File tools
-		"FileCreate": twdesk.FileCreate(client),
+		"FileCreate": twdesk.FileCreate(httpClient),
 	}
 
 	return &SchemaValidationTestSuite{
