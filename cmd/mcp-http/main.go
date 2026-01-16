@@ -114,7 +114,7 @@ func newRouter(resources config.Resources) *http.ServeMux {
 			return
 		}
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("OK")) // nolint:errcheck
+		w.Write([]byte("OK")) //nolint:errcheck
 	})
 	mux.HandleFunc("/.well-known/oauth-protected-resource", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet && r.Method != http.MethodOptions {
