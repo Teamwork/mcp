@@ -3,6 +3,7 @@ package twdesk
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"net/url"
 
 	"github.com/google/jsonschema-go/jsonschema"
@@ -24,31 +25,15 @@ const (
 	MethodPriorityList   toolsets.Method = "twdesk-list_priorities"
 )
 
-var (
-	priorityGetOutputSchema  *jsonschema.Schema
-	priorityListOutputSchema *jsonschema.Schema
-)
-
 func init() {
 	toolsets.RegisterMethod(MethodPriorityCreate)
 	toolsets.RegisterMethod(MethodPriorityUpdate)
 	toolsets.RegisterMethod(MethodPriorityGet)
 	toolsets.RegisterMethod(MethodPriorityList)
-
-	var err error
-	priorityGetOutputSchema, err = jsonschema.For[deskmodels.TicketPriorityResponse](&jsonschema.ForOptions{})
-	if err != nil {
-		panic(fmt.Sprintf("failed to generate JSON schema for PriorityGetResponse: %v", err))
-	}
-
-	priorityListOutputSchema, err = jsonschema.For[deskmodels.TicketPrioritiesResponse](&jsonschema.ForOptions{})
-	if err != nil {
-		panic(fmt.Sprintf("failed to generate JSON schema for PriorityListResponse: %v", err))
-	}
 }
 
 // PriorityGet finds a priority in Teamwork Desk.  This will find it by ID
-func PriorityGet(client *deskclient.Client) toolsets.ToolWrapper {
+func PriorityGet(httpClient *http.Client) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
 			Name: string(MethodPriorityGet),
@@ -69,9 +54,9 @@ func PriorityGet(client *deskclient.Client) toolsets.ToolWrapper {
 				},
 				Required: []string{"id"},
 			},
-			OutputSchema: priorityGetOutputSchema,
 		},
 		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+			client := ClientFromContext(ctx, httpClient)
 			arguments, err := helpers.NewToolArguments(request)
 			if err != nil {
 				return helpers.NewToolResultTextError(err.Error()), nil
@@ -87,7 +72,7 @@ func PriorityGet(client *deskclient.Client) toolsets.ToolWrapper {
 }
 
 // PriorityList returns a list of priorities that apply to the filters in Teamwork Desk
-func PriorityList(client *deskclient.Client) toolsets.ToolWrapper {
+func PriorityList(httpClient *http.Client) toolsets.ToolWrapper {
 	properties := map[string]*jsonschema.Schema{
 		"name": {
 			Type:        "array",
@@ -120,9 +105,9 @@ func PriorityList(client *deskclient.Client) toolsets.ToolWrapper {
 				Type:       "object",
 				Properties: properties,
 			},
-			OutputSchema: priorityListOutputSchema,
 		},
 		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+			client := ClientFromContext(ctx, httpClient)
 			arguments, err := helpers.NewToolArguments(request)
 			if err != nil {
 				return helpers.NewToolResultTextError(err.Error()), nil
@@ -154,7 +139,7 @@ func PriorityList(client *deskclient.Client) toolsets.ToolWrapper {
 }
 
 // PriorityCreate creates a priority in Teamwork Desk
-func PriorityCreate(client *deskclient.Client) toolsets.ToolWrapper {
+func PriorityCreate(httpClient *http.Client) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
 			Name: string(MethodPriorityCreate),
@@ -179,6 +164,7 @@ func PriorityCreate(client *deskclient.Client) toolsets.ToolWrapper {
 			},
 		},
 		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+			client := ClientFromContext(ctx, httpClient)
 			arguments, err := helpers.NewToolArguments(request)
 			if err != nil {
 				return helpers.NewToolResultTextError(err.Error()), nil
@@ -199,7 +185,7 @@ func PriorityCreate(client *deskclient.Client) toolsets.ToolWrapper {
 }
 
 // PriorityUpdate updates a priority in Teamwork Desk
-func PriorityUpdate(client *deskclient.Client) toolsets.ToolWrapper {
+func PriorityUpdate(httpClient *http.Client) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
 			Name: string(MethodPriorityUpdate),
@@ -229,6 +215,7 @@ func PriorityUpdate(client *deskclient.Client) toolsets.ToolWrapper {
 			},
 		},
 		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+			client := ClientFromContext(ctx, httpClient)
 			arguments, err := helpers.NewToolArguments(request)
 			if err != nil {
 				return helpers.NewToolResultTextError(err.Error()), nil

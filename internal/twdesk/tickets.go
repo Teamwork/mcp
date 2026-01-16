@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"net/url"
 
 	"github.com/google/jsonschema-go/jsonschema"
@@ -12,12 +13,6 @@ import (
 	deskmodels "github.com/teamwork/desksdkgo/models"
 	"github.com/teamwork/mcp/internal/helpers"
 	"github.com/teamwork/mcp/internal/toolsets"
-)
-
-var (
-	ticketGetOutputSchema    *jsonschema.Schema
-	ticketListOutputSchema   *jsonschema.Schema
-	ticketSearchOutputSchema *jsonschema.Schema
 )
 
 // List of methods available in the Teamwork.com MCP service.
@@ -36,26 +31,10 @@ func init() {
 	toolsets.RegisterMethod(MethodTicketUpdate)
 	toolsets.RegisterMethod(MethodTicketGet)
 	toolsets.RegisterMethod(MethodTicketList)
-
-	var err error
-	ticketGetOutputSchema, err = jsonschema.For[deskmodels.TicketResponse](&jsonschema.ForOptions{})
-	if err != nil {
-		panic(fmt.Sprintf("failed to generate JSON schema for TicketResponse: %v", err))
-	}
-
-	ticketListOutputSchema, err = jsonschema.For[deskmodels.TicketsResponse](&jsonschema.ForOptions{})
-	if err != nil {
-		panic(fmt.Sprintf("failed to generate JSON schema for TicketsResponse: %v", err))
-	}
-
-	ticketSearchOutputSchema, err = jsonschema.For[deskmodels.TicketsResponse](&jsonschema.ForOptions{})
-	if err != nil {
-		panic(fmt.Sprintf("failed to generate JSON schema for TicketsResponse (search): %v", err))
-	}
 }
 
 // TicketGet finds a ticket in Teamwork Desk.  This will find it by ID
-func TicketGet(client *deskclient.Client) toolsets.ToolWrapper {
+func TicketGet(httpClient *http.Client) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
 			Name: string(MethodTicketGet),
@@ -76,9 +55,9 @@ func TicketGet(client *deskclient.Client) toolsets.ToolWrapper {
 				},
 				Required: []string{"id"},
 			},
-			OutputSchema: ticketGetOutputSchema,
 		},
 		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+			client := ClientFromContext(ctx, httpClient)
 			arguments, err := helpers.NewToolArguments(request)
 			if err != nil {
 				return helpers.NewToolResultTextError(err.Error()), nil
@@ -109,7 +88,7 @@ func TicketGet(client *deskclient.Client) toolsets.ToolWrapper {
 }
 
 // TicketList returns a list of tickets that apply to the filters in Teamwork Desk
-func TicketList(client *deskclient.Client) toolsets.ToolWrapper {
+func TicketList(httpClient *http.Client) toolsets.ToolWrapper {
 	properties := map[string]*jsonschema.Schema{
 		"inboxIDs": {
 			Type: "array",
@@ -240,9 +219,9 @@ func TicketList(client *deskclient.Client) toolsets.ToolWrapper {
 				Type:       "object",
 				Properties: properties,
 			},
-			OutputSchema: ticketListOutputSchema,
 		},
 		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+			client := ClientFromContext(ctx, httpClient)
 			arguments, err := helpers.NewToolArguments(request)
 			if err != nil {
 				return helpers.NewToolResultTextError(err.Error()), nil
@@ -326,7 +305,7 @@ func TicketList(client *deskclient.Client) toolsets.ToolWrapper {
 }
 
 // TicketSearch uses the search API to find tickets in Teamwork Desk
-func TicketSearch(client *deskclient.Client) toolsets.ToolWrapper {
+func TicketSearch(httpClient *http.Client) toolsets.ToolWrapper {
 	properties := map[string]*jsonschema.Schema{
 		"search": {
 			Type: "string",
@@ -435,9 +414,9 @@ func TicketSearch(client *deskclient.Client) toolsets.ToolWrapper {
 				Properties: properties,
 				Required:   []string{"search"},
 			},
-			OutputSchema: ticketSearchOutputSchema,
 		},
 		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+			client := ClientFromContext(ctx, httpClient)
 			arguments, err := helpers.NewToolArguments(request)
 			if err != nil {
 				return helpers.NewToolResultTextError(err.Error()), nil
@@ -476,7 +455,7 @@ func TicketSearch(client *deskclient.Client) toolsets.ToolWrapper {
 }
 
 // TicketCreate creates a ticket in Teamwork Desk
-func TicketCreate(client *deskclient.Client) toolsets.ToolWrapper {
+func TicketCreate(httpClient *http.Client) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
 			Name: string(MethodTicketCreate),
@@ -590,9 +569,9 @@ func TicketCreate(client *deskclient.Client) toolsets.ToolWrapper {
 				},
 				Required: []string{"subject", "body", "inboxId"},
 			},
-			OutputSchema: ticketGetOutputSchema,
 		},
 		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+			client := ClientFromContext(ctx, httpClient)
 			arguments, err := helpers.NewToolArguments(request)
 			if err != nil {
 				return helpers.NewToolResultTextError(err.Error()), nil
@@ -707,7 +686,7 @@ func TicketCreate(client *deskclient.Client) toolsets.ToolWrapper {
 }
 
 // TicketUpdate updates a ticket in Teamwork Desk
-func TicketUpdate(client *deskclient.Client) toolsets.ToolWrapper {
+func TicketUpdate(httpClient *http.Client) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
 			Name: string(MethodTicketUpdate),
@@ -763,9 +742,9 @@ func TicketUpdate(client *deskclient.Client) toolsets.ToolWrapper {
 				},
 				Required: []string{"id"},
 			},
-			OutputSchema: ticketGetOutputSchema,
 		},
 		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+			client := ClientFromContext(ctx, httpClient)
 			arguments, err := helpers.NewToolArguments(request)
 			if err != nil {
 				return helpers.NewToolResultTextError(err.Error()), nil

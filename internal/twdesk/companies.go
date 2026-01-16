@@ -3,6 +3,7 @@ package twdesk
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"net/url"
 
 	"github.com/google/jsonschema-go/jsonschema"
@@ -24,27 +25,15 @@ const (
 	MethodCompanyList   toolsets.Method = "twdesk-list_companies"
 )
 
-var (
-	companyListOutputSchema *jsonschema.Schema
-)
-
 func init() {
 	toolsets.RegisterMethod(MethodCompanyCreate)
 	toolsets.RegisterMethod(MethodCompanyUpdate)
 	toolsets.RegisterMethod(MethodCompanyGet)
 	toolsets.RegisterMethod(MethodCompanyList)
-
-	var err error
-
-	// generate the output schemas only once
-	companyListOutputSchema, err = jsonschema.For[deskmodels.CompaniesResponse](&jsonschema.ForOptions{})
-	if err != nil {
-		panic(fmt.Sprintf("failed to generate JSON schema for CompanyListResponse: %v", err))
-	}
 }
 
 // CompanyGet finds a company in Teamwork Desk.  This will find it by ID
-func CompanyGet(client *deskclient.Client) toolsets.ToolWrapper {
+func CompanyGet(httpClient *http.Client) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
 			Name: string(MethodCompanyGet),
@@ -67,6 +56,7 @@ func CompanyGet(client *deskclient.Client) toolsets.ToolWrapper {
 			},
 		},
 		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+			client := ClientFromContext(ctx, httpClient)
 			arguments, err := helpers.NewToolArguments(request)
 			if err != nil {
 				return helpers.NewToolResultTextError(err.Error()), nil
@@ -83,7 +73,7 @@ func CompanyGet(client *deskclient.Client) toolsets.ToolWrapper {
 }
 
 // CompanyList returns a list of companies that apply to the filters in Teamwork Desk
-func CompanyList(client *deskclient.Client) toolsets.ToolWrapper {
+func CompanyList(httpClient *http.Client) toolsets.ToolWrapper {
 	properties := map[string]*jsonschema.Schema{
 		"name": {
 			Type:        "string",
@@ -118,9 +108,9 @@ func CompanyList(client *deskclient.Client) toolsets.ToolWrapper {
 				Type:       "object",
 				Properties: properties,
 			},
-			OutputSchema: companyListOutputSchema,
 		},
 		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+			client := ClientFromContext(ctx, httpClient)
 			arguments, err := helpers.NewToolArguments(request)
 			if err != nil {
 				return helpers.NewToolResultTextError(err.Error()), nil
@@ -158,7 +148,7 @@ func CompanyList(client *deskclient.Client) toolsets.ToolWrapper {
 }
 
 // CompanyCreate creates a company in Teamwork Desk
-func CompanyCreate(client *deskclient.Client) toolsets.ToolWrapper {
+func CompanyCreate(httpClient *http.Client) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
 			Name: string(MethodCompanyCreate),
@@ -217,6 +207,7 @@ func CompanyCreate(client *deskclient.Client) toolsets.ToolWrapper {
 			},
 		},
 		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+			client := ClientFromContext(ctx, httpClient)
 			arguments, err := helpers.NewToolArguments(request)
 			if err != nil {
 				return helpers.NewToolResultTextError(err.Error()), nil
@@ -254,7 +245,7 @@ func CompanyCreate(client *deskclient.Client) toolsets.ToolWrapper {
 }
 
 // CompanyUpdate updates a company in Teamwork Desk
-func CompanyUpdate(client *deskclient.Client) toolsets.ToolWrapper {
+func CompanyUpdate(httpClient *http.Client) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
 			Name: string(MethodCompanyUpdate),
@@ -317,6 +308,7 @@ func CompanyUpdate(client *deskclient.Client) toolsets.ToolWrapper {
 			},
 		},
 		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+			client := ClientFromContext(ctx, httpClient)
 			arguments, err := helpers.NewToolArguments(request)
 			if err != nil {
 				return helpers.NewToolResultTextError(err.Error()), nil

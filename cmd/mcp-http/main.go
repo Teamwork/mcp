@@ -64,7 +64,9 @@ func main() {
 		slog.String("address", resources.Info.ServerAddress),
 	)
 	go func() {
+		slog.Info("http server listening", slog.String("address", resources.Info.ServerAddress))
 		if err := httpServer.ListenAndServe(); err != nil {
+			slog.Info("http server stopped")
 			if err != http.ErrServerClosed {
 				resources.Logger().Error("failed to start server",
 					slog.String("address", resources.Info.ServerAddress),
@@ -98,7 +100,7 @@ func newMCPServer(resources config.Resources) (*mcp.Server, error) {
 		return nil, fmt.Errorf("failed to enable toolsets: %w", err)
 	}
 
-	deskGroup := twdesk.DefaultToolsetGroup(resources.DeskClient())
+	deskGroup := twdesk.DefaultToolsetGroup(resources.TeamworkHTTPClient())
 	if err := deskGroup.EnableToolsets(toolsets.MethodAll); err != nil {
 		return nil, fmt.Errorf("failed to enable desk toolsets: %w", err)
 	}
@@ -113,7 +115,8 @@ func newRouter(resources config.Resources) *http.ServeMux {
 			http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
 			return
 		}
-		w.WriteHeader(http.StatusNoContent)
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("OK"))
 	})
 	mux.HandleFunc("/.well-known/oauth-protected-resource", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet && r.Method != http.MethodOptions {
@@ -142,7 +145,18 @@ func newRouter(resources config.Resources) *http.ServeMux {
 }
 
 func addRouterMiddlewares(resources config.Resources, mux *http.ServeMux) http.Handler {
-	return sentryMiddleware(resources, requestInfoMiddleware(tracerMiddleware(resources, authMiddleware(resources, mux))))
+	return sentryMiddleware(
+		resources,
+		requestInfoMiddleware(
+			tracerMiddleware(
+				resources,
+				authMiddleware(
+					resources,
+					logMiddleware(mux),
+				),
+			),
+		),
+	)
 }
 
 func sentryMiddleware(resources config.Resources, next http.Handler) http.Handler {
@@ -181,6 +195,45 @@ func tracerMiddleware(resources config.Resources, next http.Handler) http.Handle
 			return false
 		}),
 	)
+}
+
+type responseWriter struct {
+	http.ResponseWriter
+	statusCode int
+	body       bytes.Buffer
+}
+
+func (rw *responseWriter) WriteHeader(code int) {
+	rw.statusCode = code
+	rw.ResponseWriter.WriteHeader(code)
+}
+
+func (rw *responseWriter) Write(b []byte) (int, error) {
+	rw.body.Write(b)
+	return rw.ResponseWriter.Write(b)
+}
+
+func logMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		start := time.Now()
+
+		rw := &responseWriter{
+			ResponseWriter: w,
+			statusCode:     http.StatusOK, // default status code
+		}
+
+		next.ServeHTTP(rw, r)
+		duration := time.Since(start)
+
+		slog.Info("request completed",
+			slog.String("method", r.Method),
+			slog.String("path", r.URL.Path),
+			slog.String("query", r.URL.RawQuery),
+			slog.Int("status", rw.statusCode),
+			slog.String("response_body", rw.body.String()),
+			slog.Duration("duration", duration),
+		)
+	})
 }
 
 func authMiddleware(resources config.Resources, next http.Handler) http.Handler {
@@ -265,6 +318,8 @@ func authMiddleware(resources config.Resources, next http.Handler) http.Handler 
 		ctx = config.WithCrossRegion(ctx, !strings.EqualFold(resources.Info.AWSRegion, info.Region))
 		// inject customer URL
 		ctx = config.WithCustomerURL(ctx, info.URL)
+		// inject bearer token
+		ctx = config.WithBearerToken(ctx, bearerToken)
 		// inject scopes
 		ctx = config.WithScopes(ctx, info.Meta.Scopes)
 		// inject session

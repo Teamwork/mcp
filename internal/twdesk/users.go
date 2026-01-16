@@ -3,12 +3,12 @@ package twdesk
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"net/url"
 
 	"github.com/google/jsonschema-go/jsonschema"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	deskclient "github.com/teamwork/desksdkgo/client"
-	deskmodels "github.com/teamwork/desksdkgo/models"
 	"github.com/teamwork/mcp/internal/helpers"
 	"github.com/teamwork/mcp/internal/toolsets"
 )
@@ -22,29 +22,13 @@ const (
 	MethodUserList toolsets.Method = "twdesk-list_users"
 )
 
-var (
-	userGetOutputSchema  *jsonschema.Schema
-	userListOutputSchema *jsonschema.Schema
-)
-
 func init() {
 	toolsets.RegisterMethod(MethodUserGet)
 	toolsets.RegisterMethod(MethodUserList)
-
-	var err error
-	userGetOutputSchema, err = jsonschema.For[deskmodels.UserResponse](&jsonschema.ForOptions{})
-	if err != nil {
-		panic(fmt.Sprintf("failed to generate JSON schema for UserResponse: %v", err))
-	}
-
-	userListOutputSchema, err = jsonschema.For[deskmodels.UsersResponse](&jsonschema.ForOptions{})
-	if err != nil {
-		panic(fmt.Sprintf("failed to generate JSON schema for UsersResponse: %v", err))
-	}
 }
 
 // UserGet finds a user in Teamwork Desk.  This will find it by ID
-func UserGet(client *deskclient.Client) toolsets.ToolWrapper {
+func UserGet(httpClient *http.Client) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
 			Name: string(MethodUserGet),
@@ -65,9 +49,9 @@ func UserGet(client *deskclient.Client) toolsets.ToolWrapper {
 				},
 				Required: []string{"id"},
 			},
-			OutputSchema: userGetOutputSchema,
 		},
 		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+			client := ClientFromContext(ctx, httpClient)
 			arguments, err := helpers.NewToolArguments(request)
 			if err != nil {
 				return helpers.NewToolResultTextError(err.Error()), nil
@@ -83,7 +67,7 @@ func UserGet(client *deskclient.Client) toolsets.ToolWrapper {
 }
 
 // UserList returns a list of users that apply to the filters in Teamwork Desk
-func UserList(client *deskclient.Client) toolsets.ToolWrapper {
+func UserList(httpClient *http.Client) toolsets.ToolWrapper {
 	properties := map[string]*jsonschema.Schema{
 		"firstName": {
 			Type:        "array",
@@ -134,9 +118,9 @@ func UserList(client *deskclient.Client) toolsets.ToolWrapper {
 				Type:       "object",
 				Properties: properties,
 			},
-			OutputSchema: userListOutputSchema,
 		},
 		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+			client := ClientFromContext(ctx, httpClient)
 			arguments, err := helpers.NewToolArguments(request)
 			if err != nil {
 				return helpers.NewToolResultTextError(err.Error()), nil

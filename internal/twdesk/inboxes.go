@@ -3,12 +3,12 @@ package twdesk
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"net/url"
 
 	"github.com/google/jsonschema-go/jsonschema"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	deskclient "github.com/teamwork/desksdkgo/client"
-	deskmodels "github.com/teamwork/desksdkgo/models"
 	"github.com/teamwork/mcp/internal/helpers"
 	"github.com/teamwork/mcp/internal/toolsets"
 )
@@ -22,23 +22,13 @@ const (
 	MethodInboxList toolsets.Method = "twdesk-list_inboxes"
 )
 
-var (
-	inboxListOutputSchema *jsonschema.Schema
-)
-
 func init() {
 	toolsets.RegisterMethod(MethodInboxGet)
 	toolsets.RegisterMethod(MethodInboxList)
-
-	var err error
-	inboxListOutputSchema, err = jsonschema.For[deskmodels.InboxesResponse](&jsonschema.ForOptions{})
-	if err != nil {
-		panic(fmt.Sprintf("failed to generate JSON schema for InboxListResponse: %v", err))
-	}
 }
 
 // InboxGet finds a inbox in Teamwork Desk.  This will find it by ID
-func InboxGet(client *deskclient.Client) toolsets.ToolWrapper {
+func InboxGet(httpClient *http.Client) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
 			Name: string(MethodInboxGet),
@@ -61,6 +51,7 @@ func InboxGet(client *deskclient.Client) toolsets.ToolWrapper {
 			},
 		},
 		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+			client := ClientFromContext(ctx, httpClient)
 			arguments, err := helpers.NewToolArguments(request)
 			if err != nil {
 				return helpers.NewToolResultTextError(err.Error()), nil
@@ -76,7 +67,7 @@ func InboxGet(client *deskclient.Client) toolsets.ToolWrapper {
 }
 
 // InboxList returns a list of inboxes that apply to the filters in Teamwork Desk
-func InboxList(client *deskclient.Client) toolsets.ToolWrapper {
+func InboxList(httpClient *http.Client) toolsets.ToolWrapper {
 	properties := map[string]*jsonschema.Schema{
 		"name": {
 			Type:        "array",
@@ -107,9 +98,9 @@ func InboxList(client *deskclient.Client) toolsets.ToolWrapper {
 				Type:       "object",
 				Properties: properties,
 			},
-			OutputSchema: inboxListOutputSchema,
 		},
 		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+			client := ClientFromContext(ctx, httpClient)
 			arguments, err := helpers.NewToolArguments(request)
 			if err != nil {
 				return helpers.NewToolResultTextError(err.Error()), nil

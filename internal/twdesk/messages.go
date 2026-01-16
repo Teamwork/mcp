@@ -2,10 +2,10 @@ package twdesk
 
 import (
 	"context"
+	"net/http"
 
 	"github.com/google/jsonschema-go/jsonschema"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
-	deskclient "github.com/teamwork/desksdkgo/client"
 	"github.com/teamwork/mcp/internal/helpers"
 	"github.com/teamwork/mcp/internal/toolsets"
 )
@@ -24,7 +24,7 @@ func init() {
 
 // MessageCreate replies to a ticket in Teamwork Desk.  TODO: Still need to
 // define the client for this.
-func MessageCreate(client *deskclient.Client) toolsets.ToolWrapper {
+func MessageCreate(httpClient *http.Client) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
 			Name: string(MethodMessageCreate),
@@ -50,6 +50,7 @@ func MessageCreate(client *deskclient.Client) toolsets.ToolWrapper {
 			},
 		},
 		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+			client := ClientFromContext(ctx, httpClient)
 			arguments, err := helpers.NewToolArguments(request)
 			if err != nil {
 				return helpers.NewToolResultTextError(err.Error()), nil

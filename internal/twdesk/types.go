@@ -3,6 +3,7 @@ package twdesk
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"net/url"
 
 	"github.com/google/jsonschema-go/jsonschema"
@@ -24,31 +25,15 @@ const (
 	MethodTypeList   toolsets.Method = "twdesk-list_types"
 )
 
-var (
-	typeGetOutputSchema  *jsonschema.Schema
-	typeListOutputSchema *jsonschema.Schema
-)
-
 func init() {
 	toolsets.RegisterMethod(MethodTypeCreate)
 	toolsets.RegisterMethod(MethodTypeUpdate)
 	toolsets.RegisterMethod(MethodTypeGet)
 	toolsets.RegisterMethod(MethodTypeList)
-
-	var err error
-	typeGetOutputSchema, err = jsonschema.For[deskmodels.TicketTypeResponse](&jsonschema.ForOptions{})
-	if err != nil {
-		panic(fmt.Sprintf("failed to generate JSON schema for TicketTypeResponse: %v", err))
-	}
-
-	typeListOutputSchema, err = jsonschema.For[deskmodels.TicketTypesResponse](&jsonschema.ForOptions{})
-	if err != nil {
-		panic(fmt.Sprintf("failed to generate JSON schema for TicketTypesResponse: %v", err))
-	}
 }
 
 // TypeGet finds a type in Teamwork Desk.  This will find it by ID
-func TypeGet(client *deskclient.Client) toolsets.ToolWrapper {
+func TypeGet(httpClient *http.Client) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
 			Name: string(MethodTypeGet),
@@ -69,9 +54,9 @@ func TypeGet(client *deskclient.Client) toolsets.ToolWrapper {
 				},
 				Required: []string{"id"},
 			},
-			OutputSchema: typeGetOutputSchema,
 		},
 		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+			client := ClientFromContext(ctx, httpClient)
 			arguments, err := helpers.NewToolArguments(request)
 			if err != nil {
 				return helpers.NewToolResultTextError(err.Error()), nil
@@ -87,7 +72,7 @@ func TypeGet(client *deskclient.Client) toolsets.ToolWrapper {
 }
 
 // TypeList returns a list of types that apply to the filters in Teamwork Desk
-func TypeList(client *deskclient.Client) toolsets.ToolWrapper {
+func TypeList(httpClient *http.Client) toolsets.ToolWrapper {
 	properties := map[string]*jsonschema.Schema{
 		"name": {
 			Type:        "array",
@@ -120,9 +105,9 @@ func TypeList(client *deskclient.Client) toolsets.ToolWrapper {
 				Type:       "object",
 				Properties: properties,
 			},
-			OutputSchema: typeListOutputSchema,
 		},
 		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+			client := ClientFromContext(ctx, httpClient)
 			arguments, err := helpers.NewToolArguments(request)
 			if err != nil {
 				return helpers.NewToolResultTextError(err.Error()), nil
@@ -154,7 +139,7 @@ func TypeList(client *deskclient.Client) toolsets.ToolWrapper {
 }
 
 // TypeCreate creates a type in Teamwork Desk
-func TypeCreate(client *deskclient.Client) toolsets.ToolWrapper {
+func TypeCreate(httpClient *http.Client) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
 			Name: string(MethodTypeCreate),
@@ -184,6 +169,7 @@ func TypeCreate(client *deskclient.Client) toolsets.ToolWrapper {
 			},
 		},
 		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+			client := ClientFromContext(ctx, httpClient)
 			arguments, err := helpers.NewToolArguments(request)
 			if err != nil {
 				return helpers.NewToolResultTextError(err.Error()), nil
@@ -205,7 +191,7 @@ func TypeCreate(client *deskclient.Client) toolsets.ToolWrapper {
 }
 
 // TypeUpdate updates a type in Teamwork Desk
-func TypeUpdate(client *deskclient.Client) toolsets.ToolWrapper {
+func TypeUpdate(httpClient *http.Client) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
 			Name: string(MethodTypeUpdate),
@@ -239,6 +225,7 @@ func TypeUpdate(client *deskclient.Client) toolsets.ToolWrapper {
 			},
 		},
 		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+			client := ClientFromContext(ctx, httpClient)
 			arguments, err := helpers.NewToolArguments(request)
 			if err != nil {
 				return helpers.NewToolResultTextError(err.Error()), nil
