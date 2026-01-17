@@ -10,9 +10,10 @@ import (
 	"github.com/teamwork/mcp/internal/config"
 )
 
-// ClientFromContext creates a new Desk client with the correct base URL based on the context.
-// It uses the customer URL from context if available, otherwise defaults to https://api.teamwork.com/desk/api/v2
-// It also extracts the bearer token from the context and passes it via WithAPIKey.
+// ClientFromContext creates a new Desk client with the correct base URL based
+// on the context. It uses the customer URL from context if available, otherwise
+// defaults to https://api.teamwork.com/desk/api/v2 It also extracts the bearer
+// token from the context and passes it via WithAPIKey.
 func ClientFromContext(ctx context.Context, httpClient *http.Client) *deskclient.Client {
 	baseURL := "https://api.teamwork.com/desk/api/v2"
 
