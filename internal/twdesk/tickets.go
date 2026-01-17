@@ -24,6 +24,7 @@ const (
 	MethodTicketUpdate toolsets.Method = "twdesk-update_ticket"
 	MethodTicketGet    toolsets.Method = "twdesk-get_ticket"
 	MethodTicketList   toolsets.Method = "twdesk-list_tickets"
+	MethodTicketSearch toolsets.Method = "twdesk-search_tickets"
 )
 
 func init() {
@@ -31,6 +32,7 @@ func init() {
 	toolsets.RegisterMethod(MethodTicketUpdate)
 	toolsets.RegisterMethod(MethodTicketGet)
 	toolsets.RegisterMethod(MethodTicketList)
+	toolsets.RegisterMethod(MethodTicketSearch)
 }
 
 // TicketGet finds a ticket in Teamwork Desk.  This will find it by ID
@@ -401,7 +403,7 @@ func TicketSearch(httpClient *http.Client) toolsets.ToolWrapper {
 
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
-			Name: string(MethodTicketList),
+			Name: string(MethodTicketSearch),
 			Annotations: &mcp.ToolAnnotations{
 				Title:        "Search Tickets",
 				ReadOnlyHint: true,
