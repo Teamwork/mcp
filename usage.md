@@ -106,6 +106,14 @@ Alternatively, you can use a Docker image:
 
 Use either `command` (STDIO) or `httpUrl` (hosted) style.
 
+> [!TIP]
+>
+> When using HTTP, in case you get a "Teamwork account not found" error during
+> the OAuth2 authentication process, ensure VSCode didn't cache old credentials.
+> You can clear cached credentials by going to Cmd+Shift+P (or Ctrl+Shift+P on
+> Windows/Linux) and selecting "Authentication: Remove Dynamic Authentication
+> Providers".
+
 ### 🌐 Gemini CLI (HTTP)
 
 <img width="732" height="558" alt="image" src="https://github.com/user-attachments/assets/b26d2fe0-2d88-4bcc-beb5-3dab5cb575b0" />
