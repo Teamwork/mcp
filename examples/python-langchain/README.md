@@ -13,27 +13,25 @@ Teamwork operations through the Model Context Protocol.
 
 ## ⚙️ Setup
 
-### 1. Install Dependencies
+### 1. Create a Virtual Environment
 
-
-Without a virtual environment, you can install the required dependencies
-directly:
+Create and activate a virtual environment:
 
 ```bash
 cd examples/python-langchain
-pip install -r requirements.txt
+python3 -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
 ```
 
-With a virtual environment:
+### 2. Install Dependencies
+
+Install the required dependencies:
 
 ```bash
-cd examples/python-langchain
-python -m venv venv
-source venv/bin/activate
 pip install -r requirements.txt
 ```
 
-### 2. Environment Variables
+### 3. Environment Variables
 
 Set up the required environment variables:
 
@@ -56,8 +54,9 @@ export GOOGLE_API_KEY="your-google-api-key-here"
 
 ## 🚀 Running the Example
 
+Make sure your virtual environment is activated, then run:
+
 ```bash
-cd examples/python-langchain
 python main.py --llm-model openai:gpt-4o
 ```
 

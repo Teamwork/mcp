@@ -334,7 +334,10 @@ func UserGetMe(engine *twapi.Engine) toolsets.ToolWrapper {
 				Title:        "Get Logged User",
 				ReadOnlyHint: true,
 			},
-			InputSchema:  &jsonschema.Schema{Type: "object"},
+			InputSchema: &jsonschema.Schema{
+				Type:       "object",
+				Properties: map[string]*jsonschema.Schema{},
+			},
 			OutputSchema: userGetMeOutputSchema,
 		},
 		Handler: func(ctx context.Context, _ *mcp.CallToolRequest) (*mcp.CallToolResult, error) {

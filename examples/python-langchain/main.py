@@ -11,9 +11,9 @@ import os
 import signal
 import sys
 
+from langchain.agents import create_agent
 from langchain_mcp_adapters.client import MultiServerMCPClient
 from langchain_mcp_adapters.tools import load_mcp_tools
-from langgraph.prebuilt import create_react_agent
 
 def signal_handler(signal, frame):
     """Handle termination signals to gracefully exit."""
@@ -71,7 +71,7 @@ async def main():
 
   async with client.session("Teamwork.com") as session:
     tools = await load_mcp_tools(session)
-    agent = create_react_agent(args.llm_model, tools)
+    agent = create_agent(args.llm_model, tools)
 
     while True:
       try:
