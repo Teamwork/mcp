@@ -23,7 +23,7 @@ https://apidocs.teamwork.com/guides/teamwork/app-login-flow
 Helper (interactive) tool:
 ```sh
 # make sure have the latest get-bearer-token utility
-npm i @teamwork/get-bearer-token@latest
+npm i @teamwork/get-bearer-token@latest -g
 
 # run helper to generate bearer token 
 teamwork-get-bearer-token
