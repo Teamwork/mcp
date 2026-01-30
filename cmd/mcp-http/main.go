@@ -30,6 +30,9 @@ import (
 
 var reBearerToken = regexp.MustCompile(`^Bearer (.+)$`)
 
+// Limit request body size (e.g., 10MB)
+const maxBodySize = 10 * 1024 * 1024 // 10 MB
+
 func main() {
 	defer handleExit()
 
@@ -145,18 +148,81 @@ func newRouter(resources config.Resources) *http.ServeMux {
 }
 
 func addRouterMiddlewares(resources config.Resources, mux *http.ServeMux) http.Handler {
-	return sentryMiddleware(
-		resources,
+	return limitBodyMiddleware(
 		requestInfoMiddleware(
-			tracerMiddleware(
-				resources,
-				authMiddleware(
+			logMiddleware(resources.Logger(),
+				sentryMiddleware(
 					resources,
-					logMiddleware(mux, resources.Logger()),
+					tracerMiddleware(
+						resources,
+						authMiddleware(
+							resources,
+							mux,
+						),
+					),
 				),
 			),
 		),
 	)
+}
+
+func limitBodyMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		r.Body = http.MaxBytesReader(w, r.Body, maxBodySize)
+		next.ServeHTTP(w, r)
+	})
+}
+
+func requestInfoMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		next.ServeHTTP(w, r.WithContext(request.WithInfo(r.Context(), request.NewInfo(r))))
+	})
+}
+
+func logMiddleware(logger *slog.Logger, next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		start := time.Now()
+
+		var reqBody []byte
+		if r.Body != nil {
+			var err error
+			reqBody, err = io.ReadAll(r.Body)
+			if err != nil {
+				logger.Error("failed to read request body", slog.String("error", err.Error()))
+			}
+			r.Body = io.NopCloser(bytes.NewBuffer(reqBody))
+		}
+
+		rw := request.NewResponseWriter(w)
+		next.ServeHTTP(rw, r)
+		duration := time.Since(start)
+
+		headers := r.Header.Clone()
+		if auth := headers.Get("Authorization"); auth != "" {
+			if authParts := strings.SplitN(auth, " ", 2); len(authParts) == 2 {
+				headers.Set("Authorization", authParts[0]+" REDACTED")
+			} else {
+				headers.Set("Authorization", "REDACTED")
+			}
+		}
+
+		var traceID string
+		if info, ok := request.InfoFromContext(r.Context()); ok {
+			traceID = info.TraceID
+		}
+
+		logger.Info("request",
+			slog.String("trace_id", traceID),
+			slog.String("request_url", r.URL.String()),
+			slog.String("request_method", r.Method),
+			slog.Any("request_headers", headers),
+			slog.String("request_body", string(reqBody)),
+			slog.Int("response_status", rw.StatusCode()),
+			slog.Any("response_headers", rw.Header),
+			slog.String("response_body", string(rw.Body())),
+			slog.String("duration", duration.String()),
+		)
+	})
 }
 
 func sentryMiddleware(resources config.Resources, next http.Handler) http.Handler {
@@ -168,12 +234,6 @@ func sentryMiddleware(resources config.Resources, next http.Handler) http.Handle
 			r = r.WithContext(ctx)
 		}
 		next.ServeHTTP(w, r)
-	})
-}
-
-func requestInfoMiddleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		next.ServeHTTP(w, r.WithContext(request.WithInfo(r.Context(), request.NewInfo(r))))
 	})
 }
 
@@ -195,45 +255,6 @@ func tracerMiddleware(resources config.Resources, next http.Handler) http.Handle
 			return false
 		}),
 	)
-}
-
-type responseWriter struct {
-	http.ResponseWriter
-	statusCode int
-	body       bytes.Buffer
-}
-
-func (rw *responseWriter) WriteHeader(code int) {
-	rw.statusCode = code
-	rw.ResponseWriter.WriteHeader(code)
-}
-
-func (rw *responseWriter) Write(b []byte) (int, error) {
-	rw.body.Write(b)
-	return rw.ResponseWriter.Write(b)
-}
-
-func logMiddleware(next http.Handler, logger *slog.Logger) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		start := time.Now()
-
-		rw := &responseWriter{
-			ResponseWriter: w,
-			statusCode:     http.StatusOK, // default status code
-		}
-
-		next.ServeHTTP(rw, r)
-		duration := time.Since(start)
-
-		logger.Info("request completed",
-			slog.String("method", r.Method),
-			slog.String("path", r.URL.Path),
-			slog.String("query", r.URL.RawQuery),
-			slog.Int("status", rw.statusCode),
-			slog.String("response_body", rw.body.String()),
-			slog.Duration("duration", duration),
-		)
-	})
 }
 
 func authMiddleware(resources config.Resources, next http.Handler) http.Handler {
