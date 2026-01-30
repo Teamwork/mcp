@@ -218,7 +218,7 @@ func logMiddleware(logger *slog.Logger, next http.Handler) http.Handler {
 			slog.Any("request_headers", headers),
 			slog.String("request_body", string(reqBody)),
 			slog.Int("response_status", rw.StatusCode()),
-			slog.Any("response_headers", rw.Header),
+			slog.Any("response_headers", rw.Header()),
 			slog.String("response_body", string(rw.Body())),
 			slog.String("duration", duration.String()),
 		)
@@ -301,6 +301,9 @@ func authMiddleware(resources config.Resources, next http.Handler) http.Handler 
 			bypass, err := auth.Bypass(content)
 			switch {
 			case err != nil, !bypass:
+				// https://datatracker.ietf.org/doc/html/rfc9728#name-www-authenticate-response
+				w.Header().Set("WWW-Authenticate",
+					`Bearer resource_metadata="`+resources.Info.MCPURL+`/.well-known/oauth-protected-resource"`)
 				http.Error(w, "Unauthorized", http.StatusUnauthorized)
 			default:
 				r.Body = io.NopCloser(bytes.NewBuffer(content))
@@ -311,6 +314,9 @@ func authMiddleware(resources config.Resources, next http.Handler) http.Handler 
 
 		matches := reBearerToken.FindStringSubmatch(r.Header.Get("Authorization"))
 		if len(matches) < 2 {
+			// https://datatracker.ietf.org/doc/html/rfc9728#name-www-authenticate-response
+			w.Header().Set("WWW-Authenticate",
+				`Bearer resource_metadata="`+resources.Info.MCPURL+`/.well-known/oauth-protected-resource"`)
 			http.Error(w, "Unauthorized", http.StatusUnauthorized)
 			return
 		}
@@ -318,6 +324,9 @@ func authMiddleware(resources config.Resources, next http.Handler) http.Handler 
 
 		info, err := auth.GetBearerInfo(r.Context(), resources, bearerToken)
 		if err == auth.ErrBearerInfoUnauthorized {
+			// https://datatracker.ietf.org/doc/html/rfc9728#name-www-authenticate-response
+			w.Header().Set("WWW-Authenticate",
+				`Bearer resource_metadata="`+resources.Info.MCPURL+`/.well-known/oauth-protected-resource"`)
 			http.Error(w, "Unauthorized", http.StatusUnauthorized)
 			return
 		} else if err != nil {
