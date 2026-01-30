@@ -54,8 +54,14 @@ func main() {
 	}, &mcp.StreamableHTTPOptions{
 		Stateless: true,
 	})
+	mcpSSEHandler := mcp.NewSSEHandler(func(*http.Request) *mcp.Server {
+		return mcpServer
+	}, &mcp.SSEOptions{})
 
 	mux := newRouter(resources)
+	mux.HandleFunc("GET /", func(w http.ResponseWriter, r *http.Request) {
+		mcpSSEHandler.ServeHTTP(w, r)
+	})
 	mux.Handle("/", mcpHTTPServer)
 
 	httpServer := &http.Server{
