@@ -6,6 +6,8 @@ import (
 	"net"
 	"net/http"
 	"strings"
+
+	"github.com/google/uuid"
 )
 
 type key struct{}
@@ -17,6 +19,7 @@ type Info struct {
 	RemoteProto   string // X-Forwarded-Proto
 	RemotePort    int64  // X-Forwarded-Port
 	RemoteHeaders http.Header
+	TraceID       string
 }
 
 // NewInfo creates a new Info instance with the provided values.
@@ -31,12 +34,35 @@ func NewInfo(r *http.Request) Info {
 	info.RemoteHost = r.Host
 	info.RemoteProto = r.Proto
 	info.RemoteHeaders = r.Header.Clone()
+
+	traceHTTPHeaders := []string{
+		"X-Amzn-Trace-Id",
+		"X-Request-Id",
+		"X-Correlation-Id",
+		"Correlation-Id",
+	}
+	for _, header := range traceHTTPHeaders {
+		if val := r.Header.Get(header); val != "" {
+			info.TraceID = val
+			break
+		}
+	}
+	if info.TraceID == "" {
+		info.TraceID = uuid.NewString()
+	}
+
 	return info
 }
 
 // WithInfo adds the Info to the context.
 func WithInfo(ctx context.Context, info Info) context.Context {
 	return context.WithValue(ctx, key{}, info)
+}
+
+// InfoFromContext retrieves the Info from the context.
+func InfoFromContext(ctx context.Context) (Info, bool) {
+	info, ok := ctx.Value(key{}).(Info)
+	return info, ok
 }
 
 // SetProxyHeaders sets the proxy headers in the request.
