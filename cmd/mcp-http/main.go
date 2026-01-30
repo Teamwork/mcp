@@ -132,11 +132,13 @@ func newRouter(resources config.Resources) *http.ServeMux {
 			return
 		}
 
+		// https://datatracker.ietf.org/doc/html/rfc9728/#section-2
 		_, _ = w.Write([]byte(`{
   "resource": "` + resources.Info.MCPURL + `",
   "authorization_servers": ["` + resources.Info.APIURL + `"],
   "bearer_methods_supported": ["header"],
-  "resource_documentation": "https://apidocs.teamwork.com/guides/teamwork/app-login-flow"
+  "resource_documentation": "https://apidocs.teamwork.com/guides/teamwork/app-login-flow",
+  "scopes_supported": [ "projects", "desk" ]
 }`))
 	})
 	return mux
