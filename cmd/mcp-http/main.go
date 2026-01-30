@@ -152,7 +152,7 @@ func addRouterMiddlewares(resources config.Resources, mux *http.ServeMux) http.H
 				resources,
 				authMiddleware(
 					resources,
-					logMiddleware(mux),
+					logMiddleware(mux, resources.Logger()),
 				),
 			),
 		),
@@ -213,7 +213,7 @@ func (rw *responseWriter) Write(b []byte) (int, error) {
 	return rw.ResponseWriter.Write(b)
 }
 
-func logMiddleware(next http.Handler) http.Handler {
+func logMiddleware(next http.Handler, logger *slog.Logger) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
 
@@ -225,7 +225,7 @@ func logMiddleware(next http.Handler) http.Handler {
 		next.ServeHTTP(rw, r)
 		duration := time.Since(start)
 
-		slog.Info("request completed",
+		logger.Info("request completed",
 			slog.String("method", r.Method),
 			slog.String("path", r.URL.Path),
 			slog.String("query", r.URL.RawQuery),
