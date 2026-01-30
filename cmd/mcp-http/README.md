@@ -22,7 +22,8 @@ This HTTP server is designed for:
 
 ## ✨ Features
 
-- **HTTP Transport**: API implementing the MCP specification
+- **HTTP Transport**: POST-based API implementing the MCP specification
+- **SSE Transport**: GET-based Server-Sent Events for streaming MCP communication
 - **Health Checks**: Built-in health endpoint
 - **Observability**: Comprehensive logging, metrics, and Datadog APM integration
 - **Production Ready**: Designed for cloud deployment with proper error handling
@@ -50,13 +51,37 @@ TW_MCP_URL=https://my-mcp.example.com \
   go run cmd/mcp-http/main.go
 ```
 
+### 🚀 Transport Options
+
+The server supports two transport mechanisms:
+
+#### POST Transport (JSON-RPC)
+Traditional HTTP POST requests to `/` with JSON-RPC payloads:
+```bash
+curl -X POST http://localhost:8080/ \
+  -H "Authorization: Bearer <token>" \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"..."}}'
+```
+
+#### GET Transport (Server-Sent Events)
+Streaming SSE connections to `/` with GET requests:
+```bash
+curl -X GET http://localhost:8080/ \
+  -H "Authorization: Bearer <token>" \
+  -H "Accept: text/event-stream"
+```
+This establishes a persistent connection for bidirectional streaming communication via Server-Sent Events.
+
 ### 🔗 Extended API Endpoints
 
 Besides the MCP endpoints, the HTTP server provides the following extended API endpoints:
 
 | Endpoint | Method | Description |
 |----------|--------|-------------|
-| `/health` | GET | Health check endpoint |
+| `/` | POST | MCP HTTP transport (JSON-RPC over HTTP) |
+| `/` | GET | MCP SSE transport (Server-Sent Events for streaming) |
+| `/api/health` | GET | Health check endpoint |
 
 ## ⚙️ Configuration
 
