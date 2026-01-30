@@ -54,14 +54,12 @@ func main() {
 	}, &mcp.StreamableHTTPOptions{
 		Stateless: true,
 	})
-	mcpSSEHandler := mcp.NewSSEHandler(func(*http.Request) *mcp.Server {
+	mcpSSEServer := mcp.NewSSEHandler(func(*http.Request) *mcp.Server {
 		return mcpServer
 	}, &mcp.SSEOptions{})
 
 	mux := newRouter(resources)
-	mux.HandleFunc("GET /", func(w http.ResponseWriter, r *http.Request) {
-		mcpSSEHandler.ServeHTTP(w, r)
-	})
+	mux.Handle("/sse", mcpSSEServer)
 	mux.Handle("/", mcpHTTPServer)
 
 	httpServer := &http.Server{
@@ -174,6 +172,12 @@ func addRouterMiddlewares(resources config.Resources, mux *http.ServeMux) http.H
 
 func limitBodyMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Skip limiting for SSE streams - they're long-lived connections
+		if r.URL.Path == "/sse" {
+			next.ServeHTTP(w, r)
+			return
+		}
+
 		r.Body = http.MaxBytesReader(w, r.Body, maxBodySize)
 		next.ServeHTTP(w, r)
 	})
@@ -187,6 +191,12 @@ func requestInfoMiddleware(next http.Handler) http.Handler {
 
 func logMiddleware(logger *slog.Logger, next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Skip logging for SSE streams - they're long-lived connections
+		if r.URL.Path == "/sse" {
+			next.ServeHTTP(w, r)
+			return
+		}
+
 		start := time.Now()
 
 		var reqBody []byte
@@ -256,6 +266,10 @@ func tracerMiddleware(resources config.Resources, next http.Handler) http.Handle
 				return true
 			}
 			if strings.HasPrefix(req.URL.Path, "/.well-known") {
+				return true
+			}
+			// Skip tracing for SSE streams - they're long-lived connections
+			if req.URL.Path == "/sse" {
 				return true
 			}
 			return false

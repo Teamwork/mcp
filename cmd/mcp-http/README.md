@@ -65,9 +65,9 @@ curl -X POST http://localhost:8080/ \
 ```
 
 #### GET Transport (Server-Sent Events)
-Streaming SSE connections to `/` with GET requests:
+Streaming SSE connections to `/sse` with GET requests:
 ```bash
-curl -X GET http://localhost:8080/ \
+curl -X GET http://localhost:8080/sse \
   -H "Authorization: Bearer <token>" \
   -H "Accept: text/event-stream"
 ```
@@ -80,7 +80,7 @@ Besides the MCP endpoints, the HTTP server provides the following extended API e
 | Endpoint | Method | Description |
 |----------|--------|-------------|
 | `/` | POST | MCP HTTP transport (JSON-RPC over HTTP) |
-| `/` | GET | MCP SSE transport (Server-Sent Events for streaming) |
+| `/sse` | GET | MCP SSE transport (Server-Sent Events for streaming) |
 | `/api/health` | GET | Health check endpoint |
 
 ## ⚙️ Configuration
