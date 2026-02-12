@@ -3,7 +3,7 @@
 > Model Context Protocol server for Teamwork.com integration with Large Language
 > Models
 
-[![Go](https://img.shields.io/badge/Go-1.25.1-blue.svg)](https://golang.org/)
+[![Go](https://img.shields.io/badge/Go-1.26.0-blue.svg)](https://golang.org/)
 [![MCP](https://img.shields.io/badge/MCP-Compatible-green.svg)](https://modelcontextprotocol.io/)
 
 > 📌 Are you a Teamwork.com user wanting to connect AI tools (Claude Desktop, VS
@@ -73,7 +73,7 @@ go run cmd/mcp-http-cli/main.go -mcp-url=https://mcp.example.com list-tools
 
 ## 📋 Prerequisites
 
-- Go 1.25 or later
+- Go 1.26 or later
 - Valid Teamwork.com API credentials (bearer token or OAuth2 setup)
 
 ## 🧪 Development & Testing

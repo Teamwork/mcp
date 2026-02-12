@@ -6,7 +6,7 @@ on:
       - 'v*.*.*'
   workflow_dispatch:
 env:
-  GO_VERSION: "1.25.x"
+  GO_VERSION: "1.26.x"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}

@@ -6,7 +6,7 @@ on:
       - main
 
 env:
-  GO_VERSION: "1.25.x"
+  GO_VERSION: "1.26.x"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -52,7 +52,7 @@ jobs:
       - name: Lint
         uses: golangci/golangci-lint-action@v9
         with:
-          version: v2.4
+          version: v2.9
 
   test:
     runs-on: ubuntu-latest

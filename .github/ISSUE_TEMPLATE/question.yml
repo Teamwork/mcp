@@ -101,7 +101,7 @@ body:
     attributes:
       label: 🐹 Go version
       description: What version of Go are you using?
-      placeholder: "go version go1.25.1 darwin/arm64"
+      placeholder: "go version go1.26.0 darwin/arm64"
 
   - type: input
     id: server-version

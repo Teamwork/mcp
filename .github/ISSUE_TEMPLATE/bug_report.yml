@@ -107,7 +107,7 @@ body:
     attributes:
       label: 🐹 Go version
       description: Output of `go version`
-      placeholder: "go version go1.25.1 darwin/arm64"
+      placeholder: "go version go1.26.0 darwin/arm64"
     validations:
       required: true
 
