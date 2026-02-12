@@ -3,7 +3,7 @@
 A concise guide for AI coding agents working on this repository. It complements `README.md` with machine-actionable build, test, run, and convention notes.
 
 ## Project overview
-- Language/runtime: Go 1.25 or newer
+- Language/runtime: Go 1.26 or newer
 - Purpose: Model Context Protocol (MCP) server for Teamwork.com with HTTP, STDIO transports and HTTP CLI.
 - Main entry points:
   - STDIO server: `cmd/mcp-stdio/main.go`
@@ -12,7 +12,7 @@ A concise guide for AI coding agents working on this repository. It complements 
 - Core domain/tooling: `internal/twprojects` (tools for projects, tasks, users, tags, comments, milestones, timers, timelogs, etc.)
 
 ## Setup commands
-- Install Go toolchain: Go 1.25 or newer (module declares `go 1.25.1`).
+- Install Go toolchain: Go 1.26 or newer (module declares `go 1.26.0`).
 - Sync deps: `go mod download`
 - Lint/format (optional but recommended):
   - Format: `gofmt -s -w .`

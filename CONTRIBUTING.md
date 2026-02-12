@@ -26,7 +26,7 @@ Please be respectful and constructive in all interactions.
 
 Before you begin, ensure you have the following installed:
 
-- **Go 1.25 or later** - You can check your version with:
+- **Go 1.26 or later** - You can check your version with:
   ```bash
   go version
   ```

@@ -2,7 +2,7 @@
 
 > HTTP transport server for the Teamwork Model Context Protocol implementation
 
-[![Go](https://img.shields.io/badge/Go-1.25.1-blue.svg)](https://golang.org/)
+[![Go](https://img.shields.io/badge/Go-1.26.0-blue.svg)](https://golang.org/)
 [![MCP](https://img.shields.io/badge/MCP-Compatible-green.svg)](https://modelcontextprotocol.io/)
 
 ## 📖 Overview
@@ -33,7 +33,7 @@ This HTTP server is designed for:
 
 ### 📋 Prerequisites
 
-- Go 1.25 or later
+- Go 1.26 or later
 - Valid Teamwork API credentials
 - OAuth2 client configuration
 
