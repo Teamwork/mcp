@@ -59,7 +59,7 @@ func main() {
 	}, &mcp.SSEOptions{})
 
 	mux := newRouter(resources)
-	mux.Handle("/sse", mcpSSEServer)
+	mux.Handle("/sse", sseLogMiddleware(resources.Logger(), mcpSSEServer))
 	mux.Handle("/", mcpHTTPServer)
 
 	httpServer := &http.Server{
@@ -197,8 +197,6 @@ func logMiddleware(logger *slog.Logger, next http.Handler) http.Handler {
 			return
 		}
 
-		start := time.Now()
-
 		var reqBody []byte
 		if r.Body != nil {
 			var err error
@@ -209,9 +207,9 @@ func logMiddleware(logger *slog.Logger, next http.Handler) http.Handler {
 			r.Body = io.NopCloser(bytes.NewBuffer(reqBody))
 		}
 
+		start := time.Now()
 		rw := request.NewResponseWriter(w)
 		next.ServeHTTP(rw, r)
-		duration := time.Since(start)
 
 		headers := r.Header.Clone()
 		if auth := headers.Get("Authorization"); auth != "" {
@@ -236,7 +234,72 @@ func logMiddleware(logger *slog.Logger, next http.Handler) http.Handler {
 			slog.Int("response_status", rw.StatusCode()),
 			slog.Any("response_headers", rw.Header()),
 			slog.String("response_body", string(rw.Body())),
-			slog.String("duration", duration.String()),
+			slog.Duration("duration", time.Since(start)),
+		)
+	})
+}
+
+func sseLogMiddleware(logger *slog.Logger, next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		headers := r.Header.Clone()
+		if auth := headers.Get("Authorization"); auth != "" {
+			if authParts := strings.SplitN(auth, " ", 2); len(authParts) == 2 {
+				headers.Set("Authorization", authParts[0]+" REDACTED")
+			} else {
+				headers.Set("Authorization", "REDACTED")
+			}
+		}
+
+		var traceID string
+		if info, ok := request.InfoFromContext(r.Context()); ok {
+			traceID = info.TraceID
+		}
+
+		if r.Method == http.MethodGet {
+			// long-lived SSE stream connection
+			logger.Info("SSE stream opened",
+				slog.String("trace_id", traceID),
+				slog.String("request_url", r.URL.String()),
+				slog.String("request_method", r.Method),
+				slog.Any("request_headers", headers),
+				slog.String("path", r.URL.String()),
+			)
+			start := time.Now()
+			next.ServeHTTP(w, r)
+			logger.Info("SSE stream closed",
+				slog.String("trace_id", traceID),
+				slog.Duration("duration", time.Since(start)),
+			)
+			return
+		}
+
+		// short-lived message deliveries to a session
+
+		sessionID := r.URL.Query().Get("sessionid")
+
+		var reqBody []byte
+		if r.Body != nil {
+			var err error
+			reqBody, err = io.ReadAll(r.Body)
+			if err != nil {
+				logger.Error("failed to read SSE message body", slog.String("error", err.Error()))
+			}
+			r.Body = io.NopCloser(bytes.NewBuffer(reqBody))
+		}
+
+		start := time.Now()
+		rw := request.NewResponseWriter(w)
+		next.ServeHTTP(rw, r)
+
+		logger.Info("SSE message",
+			slog.String("trace_id", traceID),
+			slog.String("session_id", sessionID),
+			slog.String("request_url", r.URL.String()),
+			slog.String("request_method", r.Method),
+			slog.Any("request_headers", headers),
+			slog.String("request_body", string(reqBody)),
+			slog.Int("response_status", rw.StatusCode()),
+			slog.Duration("duration", time.Since(start)),
 		)
 	})
 }

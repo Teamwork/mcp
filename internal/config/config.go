@@ -196,6 +196,7 @@ func NewMCPServer(resources Resources, groups ...*toolsets.ToolsetGroup) *mcp.Se
 		Title:   "Teamwork.com Model Context Protocol",
 		Version: strings.TrimPrefix(resources.Info.Version, "v"),
 	}, serverOptions)
+	mcpServer.AddReceivingMiddleware(mcpLoggingMiddleware(resources))
 	mcpServer.AddReceivingMiddleware(func(next mcp.MethodHandler) mcp.MethodHandler {
 		return func(ctx context.Context, method string, req mcp.Request) (result mcp.Result, err error) {
 			result, err = next(ctx, method, req)
@@ -272,4 +273,53 @@ func NewMCPClient(
 	}
 
 	return mcpClient, clientSession, nil
+}
+
+func mcpLoggingMiddleware(resources Resources) mcp.Middleware {
+	return func(next mcp.MethodHandler) mcp.MethodHandler {
+		return func(ctx context.Context, method string, req mcp.Request) (mcp.Result, error) {
+			logger := resources.Logger()
+
+			var traceID string
+			if info, ok := request.InfoFromContext(ctx); ok {
+				traceID = info.TraceID
+			}
+
+			attrs := []any{
+				slog.String("mcp.method", method),
+				slog.String("trace_id", traceID),
+			}
+
+			if params, ok := req.GetParams().(*mcp.CallToolParamsRaw); ok {
+				attrs = append(attrs,
+					slog.String("mcp.tool.name", params.Name),
+					slog.String("mcp.tool.arguments", string(params.Arguments)),
+				)
+			}
+
+			start := time.Now()
+			result, err := next(ctx, method, req)
+			duration := time.Since(start)
+
+			attrs = append(attrs, slog.Duration("mcp.duration", duration))
+
+			if err != nil {
+				attrs = append(attrs, slog.String("mcp.error", err.Error()))
+				logger.Error("MCP request failed", attrs...)
+				return result, err
+			}
+
+			if callToolResult, ok := result.(*mcp.CallToolResult); ok {
+				attrs = append(attrs, slog.Bool("mcp.tool.is_error", callToolResult.IsError))
+				if callToolResult.IsError {
+					if encoded, encErr := json.Marshal(callToolResult.Content); encErr == nil {
+						attrs = append(attrs, slog.String("mcp.tool.error_content", string(encoded)))
+					}
+				}
+			}
+
+			logger.Info("MCP request", attrs...)
+			return result, nil
+		}
+	}
 }
