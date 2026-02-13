@@ -172,12 +172,6 @@ func addRouterMiddlewares(resources config.Resources, mux *http.ServeMux) http.H
 
 func limitBodyMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Skip limiting for SSE streams - they're long-lived connections
-		if r.URL.Path == "/sse" {
-			next.ServeHTTP(w, r)
-			return
-		}
-
 		r.Body = http.MaxBytesReader(w, r.Body, maxBodySize)
 		next.ServeHTTP(w, r)
 	})
@@ -190,9 +184,12 @@ func requestInfoMiddleware(next http.Handler) http.Handler {
 }
 
 func logMiddleware(logger *slog.Logger, next http.Handler) http.Handler {
+	skipPaths := map[string]struct{}{
+		"/api/health": {}, // health checks can be very noisy
+		"/sse":        {}, // special log middleware
+	}
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Skip logging for SSE streams - they're long-lived connections
-		if r.URL.Path == "/sse" {
+		if _, skip := skipPaths[r.URL.Path]; skip {
 			next.ServeHTTP(w, r)
 			return
 		}
@@ -320,19 +317,19 @@ func tracerMiddleware(resources config.Resources, next http.Handler) http.Handle
 	if !resources.Info.DatadogAPM.Enabled {
 		return next
 	}
+	skipPaths := map[string]struct{}{
+		"/api/health": {}, // health checks can be very noisy
+		"/sse":        {}, // long-lived connections don't work well with tracing
+	}
 	return ddhttp.WrapHandler(next, resources.Info.DatadogAPM.Service, "http.request",
 		ddhttp.WithResourceNamer(func(req *http.Request) string {
 			return fmt.Sprintf("%s_%s", req.Method, req.URL.Path)
 		}),
 		ddhttp.WithIgnoreRequest(func(req *http.Request) bool {
-			if req.URL.Path == "/api/health" {
+			if _, skip := skipPaths[req.URL.Path]; skip {
 				return true
 			}
 			if strings.HasPrefix(req.URL.Path, "/.well-known") {
-				return true
-			}
-			// Skip tracing for SSE streams - they're long-lived connections
-			if req.URL.Path == "/sse" {
 				return true
 			}
 			return false
