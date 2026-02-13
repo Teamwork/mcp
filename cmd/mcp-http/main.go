@@ -296,6 +296,8 @@ func sseLogMiddleware(logger *slog.Logger, next http.Handler) http.Handler {
 			slog.Any("request_headers", headers),
 			slog.String("request_body", string(reqBody)),
 			slog.Int("response_status", rw.StatusCode()),
+			slog.Any("response_headers", rw.Header()),
+			slog.String("response_body", string(rw.Body())),
 			slog.Duration("duration", time.Since(start)),
 		)
 	})
