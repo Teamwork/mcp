@@ -64,7 +64,7 @@ func DefaultToolsetGroup(readOnly, allowDelete bool, engine *twapi.Engine) *tool
 	}
 
 	group := toolsets.NewToolsetGroup(readOnly)
-	group.AddToolset(toolsets.NewToolset("projects", projectDescription).
+	projectToolset := toolsets.NewToolset("projects", projectDescription).
 		AddWriteTools(writeTools...).
 		AddReadTools(
 			ProjectGet(engine),
@@ -115,9 +115,16 @@ func DefaultToolsetGroup(readOnly, allowDelete bool, engine *twapi.Engine) *tool
 			SkillList(engine),
 			JobRoleGet(engine),
 			JobRoleList(engine),
-		).
-		AddPrompts(
-			TaskSkillsAndRolesPrompt(engine),
-		))
+		)
+	if !readOnly {
+		projectToolset.AddResourceTemplates(
+			TimelogCreateAppResourceTemplate(),
+		)
+	}
+	projectToolset.AddPrompts(
+		TaskSkillsAndRolesPrompt(engine),
+	)
+
+	group.AddToolset(projectToolset)
 	return group
 }
