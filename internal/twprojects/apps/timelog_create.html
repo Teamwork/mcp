@@ -1,0 +1,872 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Create Timelog</title>
+  <style>
+    :root {
+      --tw-bg: #f6f8fb;
+      --tw-surface: #ffffff;
+      --tw-border: #d8deea;
+      --tw-text-default: #10172a;
+      --tw-text-subtle: #5f6b7c;
+      --tw-primary: #1b6cff;
+      --tw-primary-hover: #1557cc;
+      --tw-primary-disabled: #9db8ef;
+      --tw-focus: #7eb0ff;
+      --tw-success-fg: #0d683d;
+      --tw-success-bg: #ecf8f1;
+      --tw-success-border: #b8e5cb;
+      --tw-critical-fg: #a12a2a;
+      --tw-critical-bg: #fdeeee;
+      --tw-critical-border: #f4c8c8;
+      --tw-radius-md: 10px;
+      --tw-radius-lg: 14px;
+      --tw-shadow: 0 12px 30px rgba(16, 23, 42, 0.08);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100dvh;
+      background: radial-gradient(circle at 0 0, #ffffff 0%, var(--tw-bg) 52%);
+      color: var(--tw-text-default);
+      font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      padding: 16px;
+    }
+
+    .panel {
+      margin: 0 auto;
+      max-width: 560px;
+      background: var(--tw-surface);
+      border: 1px solid var(--tw-border);
+      border-radius: var(--tw-radius-lg);
+      box-shadow: var(--tw-shadow);
+      padding: 18px;
+    }
+
+    .title {
+      margin: 0;
+      font-size: 20px;
+      line-height: 1.2;
+      letter-spacing: -0.02em;
+    }
+
+    .subtitle {
+      margin: 6px 0 14px;
+      color: var(--tw-text-subtle);
+      font-size: 13px;
+      line-height: 1.4;
+    }
+
+    .form {
+      display: grid;
+      gap: 12px;
+    }
+
+    .row {
+      display: grid;
+      gap: 10px;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .field {
+      min-width: 0;
+    }
+
+    .label {
+      display: block;
+      margin-bottom: 5px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--tw-text-default);
+    }
+
+    .hint {
+      margin-top: 4px;
+      font-size: 11px;
+      color: var(--tw-text-subtle);
+    }
+
+    .control,
+    .textarea {
+      width: 100%;
+      border-radius: var(--tw-radius-md);
+      border: 1px solid var(--tw-border);
+      background: #fff;
+      color: var(--tw-text-default);
+      font: inherit;
+      padding: 10px 11px;
+      outline: none;
+      transition: border-color 140ms ease, box-shadow 140ms ease;
+    }
+
+    .control:disabled,
+    .textarea:disabled {
+      background: #f4f6fa;
+      color: var(--tw-text-subtle);
+    }
+
+    .control:focus-visible,
+    .textarea:focus-visible,
+    .button:focus-visible {
+      border-color: var(--tw-focus);
+      box-shadow: 0 0 0 3px rgba(27, 108, 255, 0.18);
+    }
+
+    .control[data-invalid="true"],
+    .textarea[data-invalid="true"] {
+      border-color: var(--tw-critical-fg);
+    }
+
+    .textarea {
+      min-height: 92px;
+      resize: vertical;
+    }
+
+    .checkbox {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      color: var(--tw-text-subtle);
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .actions {
+      margin-top: 2px;
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 10px;
+    }
+
+    .button {
+      border: none;
+      border-radius: 999px;
+      background: var(--tw-primary);
+      color: #fff;
+      font: inherit;
+      font-size: 14px;
+      font-weight: 600;
+      padding: 10px 18px;
+      cursor: pointer;
+      transition: background-color 120ms ease;
+    }
+
+    .button:hover {
+      background: var(--tw-primary-hover);
+    }
+
+    .button:disabled {
+      background: var(--tw-primary-disabled);
+      cursor: not-allowed;
+    }
+
+    .status {
+      display: none;
+      border: 1px solid transparent;
+      border-radius: var(--tw-radius-md);
+      padding: 10px 12px;
+      font-size: 13px;
+      line-height: 1.35;
+      white-space: pre-wrap;
+    }
+
+    .status--show {
+      display: block;
+    }
+
+    .status--success {
+      color: var(--tw-success-fg);
+      background: var(--tw-success-bg);
+      border-color: var(--tw-success-border);
+    }
+
+    .status--error {
+      color: var(--tw-critical-fg);
+      background: var(--tw-critical-bg);
+      border-color: var(--tw-critical-border);
+    }
+
+    @media (max-width: 640px) {
+      .row {
+        grid-template-columns: 1fr;
+      }
+
+      .panel {
+        padding: 14px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <section class="panel" aria-labelledby="timelog-title">
+    <h1 id="timelog-title" class="title">Log time</h1>
+    <p class="subtitle">Create a Teamwork timelog using the current MCP connection.</p>
+
+    <form id="timelog-form" class="form" novalidate>
+      <div class="field">
+        <label class="label" for="project-id">Project</label>
+        <select class="control" id="project-id" required>
+          <option value="">Loading projects...</option>
+        </select>
+        <div class="hint" id="project-hint">Pick a project to continue.</div>
+      </div>
+
+      <div class="field">
+        <label class="label" for="task-id">Task (optional)</label>
+        <select class="control" id="task-id" disabled>
+          <option value="">Select a project first</option>
+        </select>
+        <div class="hint" id="task-hint">If no task is selected, time is logged directly against the project.</div>
+      </div>
+
+      <div class="row">
+        <div class="field">
+          <label class="label" for="date">Date</label>
+          <input class="control" id="date" type="date" required />
+        </div>
+        <div class="field">
+          <label class="label" for="time">Start time (HH:MM:SS)</label>
+          <input class="control" id="time" type="text" inputmode="numeric" pattern="^(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d$" placeholder="09:00:00" required />
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="field">
+          <label class="label" for="hours">Hours</label>
+          <input class="control" id="hours" type="number" min="0" step="1" value="0" required />
+        </div>
+        <div class="field">
+          <label class="label" for="minutes">Minutes</label>
+          <input class="control" id="minutes" type="number" min="0" max="59" step="1" value="30" required />
+        </div>
+      </div>
+
+      <div class="field">
+        <label class="label" for="description">Description</label>
+        <textarea class="textarea" id="description" placeholder="What did you work on?"></textarea>
+      </div>
+
+      <div class="field">
+        <label class="checkbox" for="billable">
+          <input id="billable" type="checkbox" />
+          Mark as billable
+        </label>
+      </div>
+
+      <div id="status" class="status" role="status" aria-live="polite"></div>
+
+      <div class="actions">
+        <button class="button" id="submit" type="submit">Create timelog</button>
+      </div>
+    </form>
+  </section>
+
+  <script>
+    (function () {
+      var hostOrigin = "*";
+      var nextID = 1;
+      var pending = new Map();
+      var tasksRequestID = 0;
+
+      var formEl = document.getElementById("timelog-form");
+      var submitButton = document.getElementById("submit");
+      var statusEl = document.getElementById("status");
+
+      var projectSelect = document.getElementById("project-id");
+      var taskSelect = document.getElementById("task-id");
+      var projectHint = document.getElementById("project-hint");
+      var taskHint = document.getElementById("task-hint");
+
+      var dateField = document.getElementById("date");
+      var timeField = document.getElementById("time");
+      var hoursField = document.getElementById("hours");
+      var minutesField = document.getElementById("minutes");
+      var descriptionField = document.getElementById("description");
+      var billableField = document.getElementById("billable");
+
+      var preselectedProjectID = null;
+      var preselectedTaskID = null;
+
+      function pad(value) {
+        return String(value).padStart(2, "0");
+      }
+
+      function nowDefaults() {
+        var now = new Date();
+        return {
+          date: now.toISOString().slice(0, 10),
+          time: pad(now.getHours()) + ":" + pad(now.getMinutes()) + ":" + pad(now.getSeconds())
+        };
+      }
+
+      function setStatus(type, message) {
+        statusEl.className = "status status--show " + (type === "error" ? "status--error" : "status--success");
+        statusEl.textContent = message;
+      }
+
+      function resetStatus() {
+        statusEl.className = "status";
+        statusEl.textContent = "";
+      }
+
+      function setControlInvalid(control, isInvalid) {
+        control.setAttribute("data-invalid", isInvalid ? "true" : "false");
+      }
+
+      function clearInvalidStyles() {
+        [projectSelect, dateField, timeField, hoursField, minutesField].forEach(function (node) {
+          setControlInvalid(node, false);
+        });
+      }
+
+      function parsePositiveInt(rawValue) {
+        if (rawValue === "" || rawValue === null || rawValue === undefined) {
+          return null;
+        }
+        var value = Number(rawValue);
+        if (!Number.isInteger(value) || value <= 0) {
+          return null;
+        }
+        return value;
+      }
+
+      function parseNonNegativeInt(rawValue) {
+        var value = Number(rawValue);
+        if (!Number.isInteger(value) || value < 0) {
+          return null;
+        }
+        return value;
+      }
+
+      function request(method, params) {
+        return new Promise(function (resolve, reject) {
+          var id = nextID++;
+          pending.set(id, { resolve: resolve, reject: reject });
+
+          window.parent.postMessage(
+            { jsonrpc: "2.0", id: id, method: method, params: params || {} },
+            hostOrigin
+          );
+
+          setTimeout(function () {
+            if (!pending.has(id)) {
+              return;
+            }
+            pending.delete(id);
+            reject(new Error("Timed out calling " + method));
+          }, 30000);
+        });
+      }
+
+      async function callTool(name, args) {
+        var result = await request("tools/call", {
+          name: name,
+          arguments: args || {}
+        });
+
+        if (result && result.isError) {
+          throw new Error(resultMessage(result));
+        }
+
+        return result;
+      }
+
+      function resultMessage(result) {
+        if (!result || !Array.isArray(result.content)) {
+          return "Timelog created.";
+        }
+
+        for (var i = 0; i < result.content.length; i += 1) {
+          var block = result.content[i];
+          if (!block || block.type !== "text" || typeof block.text !== "string") {
+            continue;
+          }
+
+          try {
+            var parsed = JSON.parse(block.text);
+            if (parsed && typeof parsed.message === "string" && parsed.message.trim() !== "") {
+              return parsed.message;
+            }
+          } catch (_err) {
+            if (block.text.trim() !== "") {
+              return block.text.trim();
+            }
+          }
+        }
+
+        return "Timelog created.";
+      }
+
+      function maybeNotAuthenticatedMessage(errorMessage) {
+        if (typeof errorMessage !== "string") {
+          return null;
+        }
+        if (!errorMessage.toLowerCase().includes("not authenticated")) {
+          return null;
+        }
+        return "The MCP session is not authenticated. Complete the host auth flow, reconnect, then retry.";
+      }
+
+      function decodeResultObjects(result) {
+        var objects = [];
+
+        if (result && result.structuredContent && typeof result.structuredContent === "object") {
+          objects.push(result.structuredContent);
+        }
+
+        if (!result || !Array.isArray(result.content)) {
+          return objects;
+        }
+
+        for (var i = 0; i < result.content.length; i += 1) {
+          var block = result.content[i];
+          if (!block || block.type !== "text" || typeof block.text !== "string") {
+            continue;
+          }
+
+          try {
+            var parsed = JSON.parse(block.text);
+            if (parsed && typeof parsed === "object") {
+              objects.push(parsed);
+            }
+          } catch (_err) {
+            // Ignore plain text fallback blocks.
+          }
+        }
+
+        return objects;
+      }
+
+      function findFirstArrayByKeys(value, keyCandidates) {
+        var queue = [value];
+
+        while (queue.length > 0) {
+          var item = queue.shift();
+          if (!item || typeof item !== "object") {
+            continue;
+          }
+
+          if (Array.isArray(item)) {
+            return item;
+          }
+
+          for (var i = 0; i < keyCandidates.length; i += 1) {
+            var key = keyCandidates[i];
+            if (Array.isArray(item[key])) {
+              return item[key];
+            }
+          }
+
+          var values = Object.values(item);
+          for (var j = 0; j < values.length; j += 1) {
+            if (values[j] && typeof values[j] === "object") {
+              queue.push(values[j]);
+            }
+          }
+        }
+
+        return [];
+      }
+
+      function normalizeProject(project) {
+        if (!project || typeof project !== "object") {
+          return null;
+        }
+
+        var id = parsePositiveInt(project.id);
+        if (!id) {
+          return null;
+        }
+
+        var name = project.name || project.title || ("Project " + id);
+        return { id: id, name: String(name) };
+      }
+
+      function normalizeTask(task) {
+        if (!task || typeof task !== "object") {
+          return null;
+        }
+
+        var id = parsePositiveInt(task.id);
+        if (!id) {
+          return null;
+        }
+
+        var name = task.name || task.content || task.title || ("Task " + id);
+        return { id: id, name: String(name) };
+      }
+
+      function setSelectOptions(selectEl, options, placeholder) {
+        selectEl.innerHTML = "";
+
+        if (placeholder !== null) {
+          var placeholderOption = document.createElement("option");
+          placeholderOption.value = "";
+          placeholderOption.textContent = placeholder;
+          selectEl.appendChild(placeholderOption);
+        }
+
+        for (var i = 0; i < options.length; i += 1) {
+          var option = document.createElement("option");
+          option.value = String(options[i].id);
+          option.textContent = options[i].name;
+          selectEl.appendChild(option);
+        }
+      }
+
+      function sortByName(left, right) {
+        return left.name.localeCompare(right.name);
+      }
+
+      function applyInput(input) {
+        if (!input || typeof input !== "object") {
+          return;
+        }
+
+        if (Number.isFinite(input.project_id)) {
+          preselectedProjectID = parsePositiveInt(input.project_id);
+        }
+
+        if (Number.isFinite(input.task_id)) {
+          preselectedTaskID = parsePositiveInt(input.task_id);
+        }
+
+        if (typeof input.date === "string") {
+          dateField.value = input.date;
+        }
+
+        if (typeof input.time === "string") {
+          timeField.value = input.time;
+        }
+
+        if (Number.isFinite(input.hours)) {
+          hoursField.value = String(input.hours);
+        }
+
+        if (Number.isFinite(input.minutes)) {
+          minutesField.value = String(input.minutes);
+        }
+
+        if (typeof input.description === "string") {
+          descriptionField.value = input.description;
+        }
+
+        if (typeof input.billable === "boolean") {
+          billableField.checked = input.billable;
+        }
+      }
+
+      function handleHostNotification(method, params) {
+        if (method === "ui/notifications/tool-input" || method === "notifications/tool-input") {
+          applyInput((params && params.input) || {});
+          return;
+        }
+
+        if (method === "ui/notifications/tool-result" || method === "notifications/tool-result") {
+          if (!params || !params.result) {
+            return;
+          }
+          if (params.result.isError) {
+            setStatus("error", resultMessage(params.result));
+            return;
+          }
+          setStatus("success", resultMessage(params.result));
+        }
+      }
+
+      async function loadProjects() {
+        projectSelect.disabled = true;
+        setSelectOptions(projectSelect, [], "Loading projects...");
+        projectHint.textContent = "Loading available projects...";
+
+        try {
+          var result = await callTool("twprojects-list_projects", {
+            page: 1,
+            page_size: 200
+          });
+          var objects = decodeResultObjects(result);
+          var rawProjects = [];
+
+          for (var i = 0; i < objects.length; i += 1) {
+            var found = findFirstArrayByKeys(objects[i], ["projects", "project", "items", "results"]);
+            if (found.length > 0) {
+              rawProjects = found;
+              break;
+            }
+          }
+
+          var seen = {};
+          var projects = [];
+          for (var j = 0; j < rawProjects.length; j += 1) {
+            var normalized = normalizeProject(rawProjects[j]);
+            if (!normalized) {
+              continue;
+            }
+            if (seen[normalized.id]) {
+              continue;
+            }
+            seen[normalized.id] = true;
+            projects.push(normalized);
+          }
+
+          projects.sort(sortByName);
+
+          if (projects.length === 0) {
+            setSelectOptions(projectSelect, [], "No projects found");
+            projectHint.textContent = "No projects were returned by twprojects-list_projects.";
+            taskSelect.disabled = true;
+            setSelectOptions(taskSelect, [], "Select a project first");
+            taskHint.textContent = "";
+            return;
+          }
+
+          setSelectOptions(projectSelect, projects, "Select a project");
+          projectSelect.disabled = false;
+          projectHint.textContent = "Choose a project to load its tasks.";
+
+          if (preselectedProjectID) {
+            projectSelect.value = String(preselectedProjectID);
+          }
+
+          if (!projectSelect.value) {
+            projectSelect.value = String(projects[0].id);
+          }
+
+          await loadTasksForSelectedProject(preselectedTaskID);
+        } catch (error) {
+          var baseMessage = error && error.message ? error.message : String(error);
+          var authMessage = maybeNotAuthenticatedMessage(baseMessage);
+          setStatus("error", authMessage || baseMessage);
+          setSelectOptions(projectSelect, [], "Unable to load projects");
+          projectHint.textContent = "Project loading failed. Check authentication and reconnect.";
+          taskSelect.disabled = true;
+          setSelectOptions(taskSelect, [], "Select a project first");
+        }
+      }
+
+      async function loadTasksForSelectedProject(preferredTaskID) {
+        var projectID = parsePositiveInt(projectSelect.value);
+        tasksRequestID += 1;
+        var requestID = tasksRequestID;
+
+        if (!projectID) {
+          taskSelect.disabled = true;
+          setSelectOptions(taskSelect, [], "Select a project first");
+          taskHint.textContent = "Select a project to load tasks.";
+          return;
+        }
+
+        taskSelect.disabled = true;
+        setSelectOptions(taskSelect, [], "Loading tasks...");
+        taskHint.textContent = "Loading tasks for project " + projectID + "...";
+
+        try {
+          var result = await callTool("twprojects-list_tasks_by_project", {
+            project_id: projectID,
+            page: 1,
+            page_size: 200
+          });
+
+          if (requestID !== tasksRequestID) {
+            return;
+          }
+
+          var objects = decodeResultObjects(result);
+          var rawTasks = [];
+
+          for (var i = 0; i < objects.length; i += 1) {
+            var found = findFirstArrayByKeys(objects[i], ["tasks", "task", "items", "results", "todo-items"]);
+            if (found.length > 0) {
+              rawTasks = found;
+              break;
+            }
+          }
+
+          var seen = {};
+          var tasks = [];
+          for (var j = 0; j < rawTasks.length; j += 1) {
+            var normalized = normalizeTask(rawTasks[j]);
+            if (!normalized) {
+              continue;
+            }
+            if (seen[normalized.id]) {
+              continue;
+            }
+            seen[normalized.id] = true;
+            tasks.push(normalized);
+          }
+
+          tasks.sort(sortByName);
+          setSelectOptions(taskSelect, tasks, "No task (log to project)");
+          taskSelect.disabled = false;
+
+          if (preferredTaskID) {
+            taskSelect.value = String(preferredTaskID);
+          }
+
+          if (taskSelect.value && !parsePositiveInt(taskSelect.value)) {
+            taskSelect.value = "";
+          }
+
+          taskHint.textContent = tasks.length > 0
+            ? "Optional: choose a task. Leave empty to log against the project."
+            : "No tasks found. Time will be logged against the project.";
+        } catch (error) {
+          if (requestID !== tasksRequestID) {
+            return;
+          }
+
+          var baseMessage = error && error.message ? error.message : String(error);
+          var authMessage = maybeNotAuthenticatedMessage(baseMessage);
+          setStatus("error", authMessage || baseMessage);
+          setSelectOptions(taskSelect, [], "Unable to load tasks");
+          taskSelect.disabled = true;
+          taskHint.textContent = "Task loading failed. You can still log against the project.";
+        }
+      }
+
+      function validateForm() {
+        clearInvalidStyles();
+
+        var errors = [];
+        var projectID = parsePositiveInt(projectSelect.value);
+        if (!projectID) {
+          setControlInvalid(projectSelect, true);
+          errors.push("Select a project.");
+        }
+
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(dateField.value)) {
+          setControlInvalid(dateField, true);
+          errors.push("Date is required.");
+        }
+
+        if (!/^(?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d$/.test(timeField.value)) {
+          setControlInvalid(timeField, true);
+          errors.push("Time must use HH:MM:SS.");
+        }
+
+        var hours = parseNonNegativeInt(hoursField.value);
+        if (hours === null) {
+          setControlInvalid(hoursField, true);
+          errors.push("Hours must be a non-negative whole number.");
+        }
+
+        var minutes = parseNonNegativeInt(minutesField.value);
+        if (minutes === null || minutes > 59) {
+          setControlInvalid(minutesField, true);
+          errors.push("Minutes must be between 0 and 59.");
+        }
+
+        if (hours === 0 && minutes === 0) {
+          setControlInvalid(hoursField, true);
+          setControlInvalid(minutesField, true);
+          errors.push("Duration must be greater than zero.");
+        }
+
+        return {
+          valid: errors.length === 0,
+          errors: errors,
+          payload: {
+            projectID: projectID,
+            taskID: parsePositiveInt(taskSelect.value),
+            date: dateField.value,
+            time: timeField.value,
+            hours: hours,
+            minutes: minutes,
+            description: descriptionField.value,
+            billable: billableField.checked
+          }
+        };
+      }
+
+      window.addEventListener("message", function (event) {
+        var data = event.data;
+        if (!data || data.jsonrpc !== "2.0") {
+          return;
+        }
+
+        if (hostOrigin === "*" && event.origin) {
+          hostOrigin = event.origin;
+        }
+
+        if (data.id !== undefined && pending.has(data.id)) {
+          var deferred = pending.get(data.id);
+          pending.delete(data.id);
+          if (data.error) {
+            deferred.reject(new Error(data.error.message || JSON.stringify(data.error)));
+            return;
+          }
+          deferred.resolve(data.result);
+          return;
+        }
+
+        if (typeof data.method === "string") {
+          handleHostNotification(data.method, data.params || {});
+          if (data.id !== undefined) {
+            window.parent.postMessage({ jsonrpc: "2.0", id: data.id, result: {} }, hostOrigin);
+          }
+        }
+      });
+
+      var defaults = nowDefaults();
+      dateField.value = defaults.date;
+      timeField.value = defaults.time;
+
+      projectSelect.addEventListener("change", function () {
+        preselectedTaskID = null;
+        loadTasksForSelectedProject(null);
+      });
+
+      formEl.addEventListener("submit", async function (event) {
+        event.preventDefault();
+        resetStatus();
+
+        var validation = validateForm();
+        if (!validation.valid) {
+          setStatus("error", validation.errors.join("\n"));
+          return;
+        }
+
+        var payload = {
+          date: validation.payload.date,
+          time: validation.payload.time,
+          hours: validation.payload.hours,
+          minutes: validation.payload.minutes,
+          description: validation.payload.description,
+          billable: validation.payload.billable
+        };
+
+        if (validation.payload.taskID) {
+          payload.task_id = validation.payload.taskID;
+        } else {
+          payload.project_id = validation.payload.projectID;
+        }
+
+        submitButton.disabled = true;
+        setStatus("success", "Creating timelog...");
+
+        try {
+          var result = await callTool("twprojects-create_timelog", payload);
+          setStatus("success", resultMessage(result));
+        } catch (error) {
+          var baseMessage = error && error.message ? error.message : String(error);
+          var authMessage = maybeNotAuthenticatedMessage(baseMessage);
+          setStatus("error", authMessage || baseMessage);
+        } finally {
+          submitButton.disabled = false;
+        }
+      });
+
+      loadProjects();
+    })();
+  </script>
+</body>
+</html>
