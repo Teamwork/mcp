@@ -66,6 +66,14 @@ func TestTimelogCreateHasMCPAppsMeta(t *testing.T) {
 	if resourceURI != "ui://teamwork/timelog-create" {
 		t.Fatalf("unexpected resource URI %q", resourceURI)
 	}
+
+	openAIOutputTemplate, ok := createTimelogTool.Meta["openai/outputTemplate"].(string)
+	if !ok || openAIOutputTemplate == "" {
+		t.Fatalf("expected _meta.openai/outputTemplate to be non-empty string, got %#v", createTimelogTool.Meta["openai/outputTemplate"])
+	}
+	if openAIOutputTemplate != resourceURI {
+		t.Fatalf("expected openai/outputTemplate to match ui.resourceUri, got %q and %q", openAIOutputTemplate, resourceURI)
+	}
 }
 
 func TestTimelogCreateResourceRead(t *testing.T) {
@@ -89,5 +97,26 @@ func TestTimelogCreateResourceRead(t *testing.T) {
 	}
 	if !strings.Contains(content.Text, "Create Timelog") {
 		t.Fatalf("expected embedded HTML to contain heading, got: %q", content.Text)
+	}
+
+	uiMetaRaw, ok := content.Meta["ui"]
+	if !ok {
+		t.Fatal("expected resource content to include _meta.ui")
+	}
+	uiMeta, ok := uiMetaRaw.(map[string]any)
+	if !ok {
+		t.Fatalf("expected _meta.ui to be map[string]any, got %T", uiMetaRaw)
+	}
+	if description, ok := uiMeta["description"].(string); !ok || description == "" {
+		t.Fatalf("expected _meta.ui.description to be non-empty string, got %#v", uiMeta["description"])
+	}
+	if _, ok := uiMeta["csp"].(map[string]any); !ok {
+		t.Fatalf("expected _meta.ui.csp to be map[string]any, got %T", uiMeta["csp"])
+	}
+	if _, ok := content.Meta["openai/widgetDescription"].(string); !ok {
+		t.Fatalf("expected _meta.openai/widgetDescription to be present, got %#v", content.Meta["openai/widgetDescription"])
+	}
+	if _, ok := content.Meta["openai/widgetCSP"].(map[string]any); !ok {
+		t.Fatalf("expected _meta.openai/widgetCSP to be map[string]any, got %T", content.Meta["openai/widgetCSP"])
 	}
 }

@@ -13,7 +13,24 @@ const (
 	timelogCreateAppResourceURI      = "ui://teamwork/timelog-create"
 	timelogCreateAppResourceTitle    = "Create Timelog App"
 	timelogCreateAppResourceTemplate = "ui://teamwork/timelog-create"
+	timelogCreateAppDescription      = "Interactive form for creating Teamwork timelogs."
 )
+
+var timelogCreateWidgetCSP = map[string]any{
+	"connect_domains":  []string{},
+	"resource_domains": []string{},
+}
+
+var timelogCreateResourceMeta = mcp.Meta{
+	"ui": map[string]any{
+		"description":   timelogCreateAppDescription,
+		"prefersBorder": true,
+		"csp":           timelogCreateWidgetCSP,
+	},
+	"openai/widgetDescription":   timelogCreateAppDescription,
+	"openai/widgetPrefersBorder": true,
+	"openai/widgetCSP":           timelogCreateWidgetCSP,
+}
 
 //go:embed apps/timelog_create.html
 var timelogCreateAppHTML string
@@ -25,7 +42,7 @@ func TimelogCreateAppResourceTemplate() toolsets.ServerResourceTemplate {
 		&mcp.ResourceTemplate{
 			Name:        "twprojects-create_timelog-ui",
 			Title:       timelogCreateAppResourceTitle,
-			Description: "Interactive form for creating Teamwork timelogs.",
+			Description: timelogCreateAppDescription,
 			MIMEType:    mcpAppMimeType,
 			URITemplate: timelogCreateAppResourceTemplate,
 		},
@@ -36,6 +53,7 @@ func TimelogCreateAppResourceTemplate() toolsets.ServerResourceTemplate {
 						URI:      req.Params.URI,
 						MIMEType: mcpAppMimeType,
 						Text:     timelogCreateAppHTML,
+						Meta:     timelogCreateResourceMeta,
 					},
 				},
 			}, nil
