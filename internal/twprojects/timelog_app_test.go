@@ -69,7 +69,8 @@ func TestTimelogCreateHasMCPAppsMeta(t *testing.T) {
 
 	openAIOutputTemplate, ok := createTimelogTool.Meta["openai/outputTemplate"].(string)
 	if !ok || openAIOutputTemplate == "" {
-		t.Fatalf("expected _meta.openai/outputTemplate to be non-empty string, got %#v", createTimelogTool.Meta["openai/outputTemplate"])
+		t.Fatalf("expected _meta.openai/outputTemplate to be non-empty string, got %#v",
+			createTimelogTool.Meta["openai/outputTemplate"])
 	}
 	if openAIOutputTemplate != resourceURI {
 		t.Fatalf("expected openai/outputTemplate to match ui.resourceUri, got %q and %q", openAIOutputTemplate, resourceURI)
