@@ -70,6 +70,7 @@ func TimelogCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 				"ui": map[string]any{
 					"resourceUri": timelogCreateAppResourceURI,
 				},
+				"openai/outputTemplate": timelogCreateAppResourceURI,
 			},
 			Name:        string(MethodTimelogCreate),
 			Description: "Create a new timelog in Teamwork.com. " + timelogDescription,
