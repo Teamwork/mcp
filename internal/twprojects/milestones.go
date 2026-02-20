@@ -100,7 +100,7 @@ func MilestoneCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 								Items: &jsonschema.Schema{
 									Type: "integer",
 								},
-								MinItems: twapi.Ptr(1),
+								MinItems: new(1),
 							},
 							"company_ids": {
 								Type:        "array",
@@ -108,7 +108,7 @@ func MilestoneCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 								Items: &jsonschema.Schema{
 									Type: "integer",
 								},
-								MinItems: twapi.Ptr(1),
+								MinItems: new(1),
 							},
 							"team_ids": {
 								Type:        "array",
@@ -116,11 +116,11 @@ func MilestoneCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 								Items: &jsonschema.Schema{
 									Type: "integer",
 								},
-								MinItems: twapi.Ptr(1),
+								MinItems: new(1),
 							},
 						},
-						MinProperties: twapi.Ptr(1),
-						MaxProperties: twapi.Ptr(3),
+						MinProperties: new(1),
+						MaxProperties: new(3),
 						AnyOf: []*jsonschema.Schema{
 							{Required: []string{"user_ids"}},
 							{Required: []string{"company_ids"}},
@@ -234,7 +234,7 @@ func MilestoneUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 								Items: &jsonschema.Schema{
 									Type: "integer",
 								},
-								MinItems: twapi.Ptr(1),
+								MinItems: new(1),
 							},
 							"company_ids": {
 								Type:        "array",
@@ -242,7 +242,7 @@ func MilestoneUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 								Items: &jsonschema.Schema{
 									Type: "integer",
 								},
-								MinItems: twapi.Ptr(1),
+								MinItems: new(1),
 							},
 							"team_ids": {
 								Type:        "array",
@@ -250,11 +250,11 @@ func MilestoneUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 								Items: &jsonschema.Schema{
 									Type: "integer",
 								},
-								MinItems: twapi.Ptr(1),
+								MinItems: new(1),
 							},
 						},
-						MinProperties: twapi.Ptr(1),
-						MaxProperties: twapi.Ptr(3),
+						MinProperties: new(1),
+						MaxProperties: new(3),
 						AnyOf: []*jsonschema.Schema{
 							{Required: []string{"user_ids"}},
 							{Required: []string{"company_ids"}},
