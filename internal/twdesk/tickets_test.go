@@ -16,6 +16,8 @@ func TestTicketCreate(t *testing.T) {
 	testutil.ExecuteToolRequest(t, mcpServer, twdesk.MethodTicketCreate.String(), map[string]any{
 		"subject":    "Test Ticket",
 		"body":       "This is a test ticket",
+		"cc":         []string{"cc@example.com"},
+		"bcc":        []string{"bcc@example.com"},
 		"priorityId": "1",
 		"statusId":   "1",
 		"typeId":     "1",
@@ -32,6 +34,8 @@ func TestTicketUpdate(t *testing.T) {
 	testutil.ExecuteToolRequest(t, mcpServer, twdesk.MethodTicketUpdate.String(), map[string]any{
 		"id":         "123",
 		"subject":    "Updated Ticket",
+		"cc":         []string{"cc-update@example.com"},
+		"bcc":        []string{"bcc-update@example.com"},
 		"priorityId": "2",
 		"statusId":   "2",
 		"typeId":     "2",
