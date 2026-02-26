@@ -713,6 +713,20 @@ func TicketUpdate(httpClient *http.Client) toolsets.ToolWrapper {
 						Type:        "string",
 						Description: "The body of the ticket.",
 					},
+					"bcc": {
+						Type:        "array",
+						Description: "An array of email addresses to BCC on ticket update.",
+						Items: &jsonschema.Schema{
+							Type: "string",
+						},
+					},
+					"cc": {
+						Type:        "array",
+						Description: "An array of email addresses to CC on ticket update.",
+						Items: &jsonschema.Schema{
+							Type: "string",
+						},
+					},
 					"priorityId": {
 						Type: "integer",
 						Description: `
@@ -760,6 +774,14 @@ func TicketUpdate(httpClient *http.Client) toolsets.ToolWrapper {
 
 			if body := arguments.GetString("body", ""); body != "" {
 				data.Body = body
+			}
+
+			if len(arguments.GetStringSlice("bcc", []string{})) > 0 {
+				data.BCC = arguments.GetStringSlice("bcc", []string{})
+			}
+
+			if len(arguments.GetStringSlice("cc", []string{})) > 0 {
+				data.CC = arguments.GetStringSlice("cc", []string{})
 			}
 
 			if statusId := arguments.GetInt("statusId", 0); statusId > 0 {
