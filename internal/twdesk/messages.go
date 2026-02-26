@@ -2,10 +2,12 @@ package twdesk
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 
 	"github.com/google/jsonschema-go/jsonschema"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
+	deskmodels "github.com/teamwork/desksdkgo/models"
 	"github.com/teamwork/mcp/internal/helpers"
 	"github.com/teamwork/mcp/internal/toolsets"
 )
@@ -22,8 +24,7 @@ func init() {
 	toolsets.RegisterMethod(MethodMessageCreate)
 }
 
-// MessageCreate replies to a ticket in Teamwork Desk.  TODO: Still need to
-// define the client for this.
+// MessageCreate replies to a ticket in Teamwork Desk.
 func MessageCreate(httpClient *http.Client) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
@@ -45,6 +46,20 @@ func MessageCreate(httpClient *http.Client) toolsets.ToolWrapper {
 						Type:        "string",
 						Description: "The body of the message.",
 					},
+					"bcc": {
+						Type:        "array",
+						Description: "An array of email addresses to BCC on message reply.",
+						Items: &jsonschema.Schema{
+							Type: "string",
+						},
+					},
+					"cc": {
+						Type:        "array",
+						Description: "An array of email addresses to CC on message reply.",
+						Items: &jsonschema.Schema{
+							Type: "string",
+						},
+					},
 				},
 				Required: []string{"ticketID", "body"},
 			},
@@ -56,10 +71,26 @@ func MessageCreate(httpClient *http.Client) toolsets.ToolWrapper {
 				return helpers.NewToolResultTextError(err.Error()), nil
 			}
 
-			_ = client // TODO: use the client to create the message
-			_ = ctx
-			_ = arguments
-			return helpers.NewToolResultTextError("not implemented"), nil
+			data := deskmodels.MessageResponse{
+				Message: deskmodels.Message{
+					Message: arguments.GetString("body", ""),
+				},
+			}
+
+			if len(arguments.GetStringSlice("bcc", []string{})) > 0 {
+				data.Message.BCC = arguments.GetStringSlice("bcc", []string{})
+			}
+
+			if len(arguments.GetStringSlice("cc", []string{})) > 0 {
+				data.Message.CC = arguments.GetStringSlice("cc", []string{})
+			}
+
+			message, err := client.Messages.CreateForTicket(ctx, arguments.GetInt("ticketID", 0), &data)
+			if err != nil {
+				return nil, fmt.Errorf("failed to create message: %w", err)
+			}
+
+			return helpers.NewToolResultJSON(message)
 		},
 	}
 }
