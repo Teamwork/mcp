@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"reflect"
 	"slices"
+	"strconv"
 	"time"
 
 	twapi "github.com/teamwork/twapi-go-sdk"
@@ -729,6 +730,18 @@ func toFloat64(value any) (float64, bool) {
 		v = float64(n)
 	case float64:
 		v = n
+	case string:
+		if parsed, err := strconv.ParseInt(n, 10, 64); err == nil {
+			v = float64(parsed)
+		} else {
+			return 0, false
+		}
+	case []byte:
+		if parsed, err := strconv.ParseInt(string(n), 10, 64); err == nil {
+			v = float64(parsed)
+		} else {
+			return 0, false
+		}
 	default:
 		return 0, false
 	}
