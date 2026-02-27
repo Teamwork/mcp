@@ -182,6 +182,10 @@ func NewMCPServer(resources Resources, groups ...*toolsets.ToolsetGroup) *mcp.Se
 		HasPrompts: hasPrompts,
 		Capabilities: &mcp.ServerCapabilities{
 			Logging: &mcp.LoggingCapabilities{},
+			Extensions: map[string]any{
+				// https://github.com/modelcontextprotocol/ext-apps/blob/main/specification/2026-01-26/apps.mdx#extension-identifier
+				"io.modelcontextprotocol/ui": map[string]any{},
+			},
 		},
 	}
 	if hasTools {
