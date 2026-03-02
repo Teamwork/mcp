@@ -3,6 +3,7 @@
 > Model Context Protocol server for Teamwork.com integration with Large Language
 > Models
 
+[![Go Report Card](https://goreportcard.com/badge/github.com/teamwork/mcp)](https://goreportcard.com/report/github.com/teamwork/mcp)
 [![Go](https://img.shields.io/badge/Go-1.26.0-blue.svg)](https://golang.org/)
 [![MCP](https://img.shields.io/badge/MCP-Compatible-green.svg)](https://modelcontextprotocol.io/)
 
