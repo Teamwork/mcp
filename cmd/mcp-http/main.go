@@ -52,7 +52,8 @@ func main() {
 	mcpHTTPServer := mcp.NewStreamableHTTPHandler(func(*http.Request) *mcp.Server {
 		return mcpServer
 	}, &mcp.StreamableHTTPOptions{
-		Stateless: true,
+		Stateless:                  true,
+		DisableLocalhostProtection: resources.Info.Environment == "dev",
 	})
 	mcpSSEServer := mcp.NewSSEHandler(func(*http.Request) *mcp.Server {
 		return mcpServer
