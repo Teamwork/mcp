@@ -52,10 +52,12 @@ func init() {
 	if err != nil {
 		panic(fmt.Sprintf("failed to generate JSON schema for NotebookGetResponse: %v", err))
 	}
+	helpers.WithMetaWebLinkSchema(notebookGetOutputSchema)
 	notebookListOutputSchema, err = jsonschema.For[projects.NotebookListResponse](&jsonschema.ForOptions{})
 	if err != nil {
 		panic(fmt.Sprintf("failed to generate JSON schema for NotebookListResponse: %v", err))
 	}
+	helpers.WithMetaWebLinkSchema(notebookListOutputSchema)
 }
 
 // NotebookCreate creates a notebook in Teamwork.com.
@@ -308,7 +310,9 @@ func NotebookGet(engine *twapi.Engine) toolsets.ToolWrapper {
 						)),
 					},
 				},
-				StructuredContent: notebook,
+				StructuredContent: helpers.StructuredWebLinker(ctx, notebook,
+					helpers.WebLinkerWithIDPathBuilder("/app/notebooks"),
+				),
 			}, nil
 		},
 	}
@@ -408,7 +412,9 @@ func NotebookList(engine *twapi.Engine) toolsets.ToolWrapper {
 						)),
 					},
 				},
-				StructuredContent: notebookList,
+				StructuredContent: helpers.StructuredWebLinker(ctx, notebookList,
+					helpers.WebLinkerWithIDPathBuilder("/app/notebooks"),
+				),
 			}, nil
 		},
 	}

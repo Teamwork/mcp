@@ -51,10 +51,12 @@ func init() {
 	if err != nil {
 		panic(fmt.Sprintf("failed to generate JSON schema for TagGetResponse: %v", err))
 	}
+	helpers.WithMetaWebLinkSchema(tagGetOutputSchema)
 	tagListOutputSchema, err = jsonschema.For[projects.TagListResponse](&jsonschema.ForOptions{})
 	if err != nil {
 		panic(fmt.Sprintf("failed to generate JSON schema for TagListResponse: %v", err))
 	}
+	helpers.WithMetaWebLinkSchema(tagListOutputSchema)
 }
 
 // TagCreate creates a tag in Teamwork.com.

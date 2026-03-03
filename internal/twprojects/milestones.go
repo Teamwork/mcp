@@ -54,10 +54,12 @@ func init() {
 	if err != nil {
 		panic(fmt.Sprintf("failed to generate JSON schema for MilestoneGetResponse: %v", err))
 	}
+	helpers.WithMetaWebLinkSchema(milestoneGetOutputSchema)
 	milestoneListOutputSchema, err = jsonschema.For[projects.MilestoneListResponse](&jsonschema.ForOptions{})
 	if err != nil {
 		panic(fmt.Sprintf("failed to generate JSON schema for MilestoneListResponse: %v", err))
 	}
+	helpers.WithMetaWebLinkSchema(milestoneListOutputSchema)
 }
 
 // MilestoneCreate creates a milestone in Teamwork.com.
@@ -420,7 +422,9 @@ func MilestoneGet(engine *twapi.Engine) toolsets.ToolWrapper {
 						)),
 					},
 				},
-				StructuredContent: milestone,
+				StructuredContent: helpers.StructuredWebLinker(ctx, milestone,
+					helpers.WebLinkerWithIDPathBuilder("/app/milestones"),
+				),
 			}, nil
 		},
 	}
@@ -506,7 +510,9 @@ func MilestoneList(engine *twapi.Engine) toolsets.ToolWrapper {
 						)),
 					},
 				},
-				StructuredContent: milestoneList,
+				StructuredContent: helpers.StructuredWebLinker(ctx, milestoneList,
+					helpers.WebLinkerWithIDPathBuilder("/app/milestones"),
+				),
 			}, nil
 		},
 	}
@@ -598,7 +604,9 @@ func MilestoneListByProject(engine *twapi.Engine) toolsets.ToolWrapper {
 						)),
 					},
 				},
-				StructuredContent: milestoneList,
+				StructuredContent: helpers.StructuredWebLinker(ctx, milestoneList,
+					helpers.WebLinkerWithIDPathBuilder("/app/milestones"),
+				),
 			}, nil
 		},
 	}

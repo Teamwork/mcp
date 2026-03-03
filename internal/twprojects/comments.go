@@ -64,10 +64,12 @@ func init() {
 	if err != nil {
 		panic(fmt.Sprintf("failed to generate JSON schema for CommentGetResponse: %v", err))
 	}
+	helpers.WithMetaWebLinkSchema(commentGetOutputSchema)
 	commentListOutputSchema, err = jsonschema.For[projects.CommentListResponse](&jsonschema.ForOptions{})
 	if err != nil {
 		panic(fmt.Sprintf("failed to generate JSON schema for CommentListResponse: %v", err))
 	}
+	helpers.WithMetaWebLinkSchema(commentListOutputSchema)
 }
 
 // CommentCreate creates a comment in Teamwork.com.
@@ -327,7 +329,7 @@ func CommentGet(engine *twapi.Engine) toolsets.ToolWrapper {
 						Text: string(helpers.WebLinker(ctx, encoded, commentPathBuilder)),
 					},
 				},
-				StructuredContent: comment,
+				StructuredContent: helpers.StructuredWebLinker(ctx, comment, commentPathBuilder),
 			}, nil
 		},
 	}
@@ -406,7 +408,7 @@ func CommentList(engine *twapi.Engine) toolsets.ToolWrapper {
 						Text: string(helpers.WebLinker(ctx, encoded, commentPathBuilder)),
 					},
 				},
-				StructuredContent: commentList,
+				StructuredContent: helpers.StructuredWebLinker(ctx, commentList, commentPathBuilder),
 			}, nil
 		},
 	}
@@ -492,7 +494,7 @@ func CommentListByFileVersion(engine *twapi.Engine) toolsets.ToolWrapper {
 						Text: string(helpers.WebLinker(ctx, encoded, commentPathBuilder)),
 					},
 				},
-				StructuredContent: commentList,
+				StructuredContent: helpers.StructuredWebLinker(ctx, commentList, commentPathBuilder),
 			}, nil
 		},
 	}
@@ -577,7 +579,7 @@ func CommentListByMilestone(engine *twapi.Engine) toolsets.ToolWrapper {
 						Text: string(helpers.WebLinker(ctx, encoded, commentPathBuilder)),
 					},
 				},
-				StructuredContent: commentList,
+				StructuredContent: helpers.StructuredWebLinker(ctx, commentList, commentPathBuilder),
 			}, nil
 		},
 	}
@@ -662,7 +664,7 @@ func CommentListByNotebook(engine *twapi.Engine) toolsets.ToolWrapper {
 						Text: string(helpers.WebLinker(ctx, encoded, commentPathBuilder)),
 					},
 				},
-				StructuredContent: commentList,
+				StructuredContent: helpers.StructuredWebLinker(ctx, commentList, commentPathBuilder),
 			}, nil
 		},
 	}
@@ -747,7 +749,7 @@ func CommentListByTask(engine *twapi.Engine) toolsets.ToolWrapper {
 						Text: string(helpers.WebLinker(ctx, encoded, commentPathBuilder)),
 					},
 				},
-				StructuredContent: commentList,
+				StructuredContent: helpers.StructuredWebLinker(ctx, commentList, commentPathBuilder),
 			}, nil
 		},
 	}

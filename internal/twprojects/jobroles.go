@@ -51,10 +51,12 @@ func init() {
 	if err != nil {
 		panic(fmt.Sprintf("failed to generate JSON schema for JobRoleGetResponse: %v", err))
 	}
+	helpers.WithMetaWebLinkSchema(jobRoleGetOutputSchema)
 	jobRoleListOutputSchema, err = jsonschema.For[projects.JobRoleListResponse](&jsonschema.ForOptions{})
 	if err != nil {
 		panic(fmt.Sprintf("failed to generate JSON schema for JobRoleListResponse: %v", err))
 	}
+	helpers.WithMetaWebLinkSchema(jobRoleListOutputSchema)
 }
 
 // JobRoleCreate creates a job role in Teamwork.com.

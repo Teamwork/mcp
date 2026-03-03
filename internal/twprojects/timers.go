@@ -58,10 +58,12 @@ func init() {
 	if err != nil {
 		panic(fmt.Sprintf("failed to generate JSON schema for TimerGetResponse: %v", err))
 	}
+	helpers.WithMetaWebLinkSchema(timerGetOutputSchema)
 	timerListOutputSchema, err = jsonschema.For[projects.TimerListResponse](&jsonschema.ForOptions{})
 	if err != nil {
 		panic(fmt.Sprintf("failed to generate JSON schema for TimerListResponse: %v", err))
 	}
+	helpers.WithMetaWebLinkSchema(timerListOutputSchema)
 }
 
 // TimerCreate creates a timer in Teamwork.com.
@@ -430,7 +432,9 @@ func TimerGet(engine *twapi.Engine) toolsets.ToolWrapper {
 						)),
 					},
 				},
-				StructuredContent: timer,
+				StructuredContent: helpers.StructuredWebLinker(ctx, timer,
+					helpers.WebLinkerWithIDPathBuilder("/app/timers"),
+				),
 			}, nil
 		},
 	}
@@ -517,7 +521,9 @@ func TimerList(engine *twapi.Engine) toolsets.ToolWrapper {
 						)),
 					},
 				},
-				StructuredContent: timerList,
+				StructuredContent: helpers.StructuredWebLinker(ctx, timerList,
+					helpers.WebLinkerWithIDPathBuilder("/app/timers"),
+				),
 			}, nil
 		},
 	}

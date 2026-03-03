@@ -57,14 +57,17 @@ func init() {
 	if err != nil {
 		panic(fmt.Sprintf("failed to generate JSON schema for UserGetResponse: %v", err))
 	}
+	helpers.WithMetaWebLinkSchema(userGetOutputSchema)
 	userGetMeOutputSchema, err = jsonschema.For[projects.UserGetMeResponse](&jsonschema.ForOptions{})
 	if err != nil {
 		panic(fmt.Sprintf("failed to generate JSON schema for UserGetMeResponse: %v", err))
 	}
+	helpers.WithMetaWebLinkSchema(userGetMeOutputSchema)
 	userListOutputSchema, err = jsonschema.For[projects.UserListResponse](&jsonschema.ForOptions{})
 	if err != nil {
 		panic(fmt.Sprintf("failed to generate JSON schema for UserListResponse: %v", err))
 	}
+	helpers.WithMetaWebLinkSchema(userListOutputSchema)
 }
 
 // UserCreate creates a user in Teamwork.com.
@@ -318,7 +321,9 @@ func UserGet(engine *twapi.Engine) toolsets.ToolWrapper {
 						)),
 					},
 				},
-				StructuredContent: user,
+				StructuredContent: helpers.StructuredWebLinker(ctx, user,
+					helpers.WebLinkerWithIDPathBuilder("/app/people"),
+				),
 			}, nil
 		},
 	}
@@ -359,7 +364,9 @@ func UserGetMe(engine *twapi.Engine) toolsets.ToolWrapper {
 						)),
 					},
 				},
-				StructuredContent: user,
+				StructuredContent: helpers.StructuredWebLinker(ctx, user,
+					helpers.WebLinkerWithIDPathBuilder("/app/people"),
+				),
 			}, nil
 		},
 	}
@@ -436,7 +443,9 @@ func UserList(engine *twapi.Engine) toolsets.ToolWrapper {
 						)),
 					},
 				},
-				StructuredContent: userList,
+				StructuredContent: helpers.StructuredWebLinker(ctx, userList,
+					helpers.WebLinkerWithIDPathBuilder("/app/people"),
+				),
 			}, nil
 		},
 	}
@@ -519,7 +528,9 @@ func UserListByProject(engine *twapi.Engine) toolsets.ToolWrapper {
 						)),
 					},
 				},
-				StructuredContent: userList,
+				StructuredContent: helpers.StructuredWebLinker(ctx, userList,
+					helpers.WebLinkerWithIDPathBuilder("/app/people"),
+				),
 			}, nil
 		},
 	}

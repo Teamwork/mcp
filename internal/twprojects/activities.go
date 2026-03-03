@@ -45,6 +45,7 @@ func init() {
 	if err != nil {
 		panic(fmt.Sprintf("failed to generate JSON schema for ActivityListResponse: %v", err))
 	}
+	helpers.WithMetaWebLinkSchema(activityListOutputSchema)
 }
 
 // ActivityList lists activities in Teamwork.com.
