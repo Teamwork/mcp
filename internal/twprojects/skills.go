@@ -52,10 +52,12 @@ func init() {
 	if err != nil {
 		panic(fmt.Sprintf("failed to generate JSON schema for SkillGetResponse: %v", err))
 	}
+	helpers.WithMetaWebLinkSchema(skillGetOutputSchema)
 	skillListOutputSchema, err = jsonschema.For[projects.SkillListResponse](&jsonschema.ForOptions{})
 	if err != nil {
 		panic(fmt.Sprintf("failed to generate JSON schema for SkillListResponse: %v", err))
 	}
+	helpers.WithMetaWebLinkSchema(skillListOutputSchema)
 }
 
 // SkillCreate creates a skill in Teamwork.com.

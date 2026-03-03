@@ -83,7 +83,9 @@ func TicketGet(httpClient *http.Client) toolsets.ToolWrapper {
 						)),
 					},
 				},
-				StructuredContent: ticket,
+				StructuredContent: helpers.StructuredWebLinker(ctx, ticket,
+					helpers.WebLinkerWithIDPathBuilder("/desk/tickets"),
+				),
 			}, nil
 		},
 	}

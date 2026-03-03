@@ -42,6 +42,7 @@ func init() {
 	if err != nil {
 		panic(fmt.Sprintf("failed to generate JSON schema for IndustryListResponse: %v", err))
 	}
+	helpers.WithMetaWebLinkSchema(industryListOutputSchema)
 }
 
 // IndustryList lists projects in Teamwork.com.

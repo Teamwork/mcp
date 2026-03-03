@@ -135,6 +135,39 @@ func WebLinker(
 	return encoded
 }
 
+// StructuredWebLinker is a variant of WebLinker that operates on structured
+// types. It marshals the data to JSON, applies WebLinker to inject web links,
+// and unmarshals back to a generic representation. Because Go structs have
+// fixed fields and cannot receive dynamically injected keys (like
+// "meta.webLink"), the returned value is a map[string]any rather than the
+// original typed struct.
+//
+// Returns the original data unchanged if JSON marshaling fails, the customer
+// URL is missing, or buildPath is nil.
+func StructuredWebLinker(
+	ctx context.Context,
+	data any,
+	buildPath func(map[string]any) string,
+	opts ...WebLinkerOption,
+) any {
+	if data == nil || buildPath == nil {
+		return data
+	}
+
+	encoded, err := json.Marshal(data)
+	if err != nil {
+		return data
+	}
+
+	modified := WebLinker(ctx, encoded, buildPath, opts...)
+
+	var result any
+	if err := json.Unmarshal(modified, &result); err != nil {
+		return data
+	}
+	return result
+}
+
 // WebLinkerWithIDPathBuilder creates a path builder function for entities with
 // an "id" field. It returns a function that builds a path in the format
 // "prefix/id" for objects containing a non-zero "id" field. Returns an empty

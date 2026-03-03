@@ -205,3 +205,201 @@ func TestWebLinkerWithIDPathBuilder(t *testing.T) {
 		})
 	}
 }
+
+func TestStructuredWebLinker(t *testing.T) {
+	type Entity struct {
+		ID   int64  `json:"id"`
+		Name string `json:"name"`
+	}
+	type EntityWithMeta struct {
+		ID   int64          `json:"id"`
+		Name string         `json:"name"`
+		Meta map[string]any `json:"meta,omitempty"`
+	}
+	type SingleResponse struct {
+		Entity Entity `json:"entity"`
+	}
+	type ListResponse struct {
+		Meta struct {
+			Page struct {
+				HasMore bool `json:"hasMore"`
+			} `json:"page"`
+		} `json:"meta"`
+		Entities []Entity `json:"entities"`
+	}
+	type WithExistingMeta struct {
+		Entity EntityWithMeta `json:"entity"`
+	}
+
+	tests := []struct {
+		name    string
+		data    any
+		url     string
+		want    map[string]any
+		builder func(map[string]any) string
+		options []helpers.WebLinkerOption
+	}{{
+		name: "single entity struct",
+		data: SingleResponse{
+			Entity: Entity{ID: 123, Name: "Test"},
+		},
+		url:     "https://example.com/",
+		builder: helpers.WebLinkerWithIDPathBuilder("entities"),
+		want: map[string]any{
+			"entity": map[string]any{
+				"id":   float64(123),
+				"name": "Test",
+				"meta": map[string]any{
+					"webLink": "https://example.com/entities/123",
+				},
+			},
+		},
+	}, {
+		name: "list response struct",
+		data: ListResponse{
+			Entities: []Entity{
+				{ID: 1, Name: "One"},
+				{ID: 2, Name: "Two"},
+			},
+		},
+		url:     "https://example.com/",
+		builder: helpers.WebLinkerWithIDPathBuilder("entities"),
+		want: map[string]any{
+			"meta": map[string]any{
+				"page": map[string]any{
+					"hasMore": false,
+				},
+			},
+			"entities": []any{
+				map[string]any{
+					"id":   float64(1),
+					"name": "One",
+					"meta": map[string]any{
+						"webLink": "https://example.com/entities/1",
+					},
+				},
+				map[string]any{
+					"id":   float64(2),
+					"name": "Two",
+					"meta": map[string]any{
+						"webLink": "https://example.com/entities/2",
+					},
+				},
+			},
+		},
+	}, {
+		name: "nil data returns nil",
+		data: nil,
+		url:  "https://example.com/",
+		want: nil,
+	}, {
+		name: "nil builder returns original",
+		data: SingleResponse{
+			Entity: Entity{ID: 1, Name: "One"},
+		},
+		url:     "https://example.com/",
+		builder: nil,
+		want: map[string]any{
+			"entity": map[string]any{
+				"id":   float64(1),
+				"name": "One",
+			},
+		},
+	}, {
+		name: "missing customer URL returns original",
+		data: SingleResponse{
+			Entity: Entity{ID: 1, Name: "One"},
+		},
+		url:     "",
+		builder: helpers.WebLinkerWithIDPathBuilder("entities"),
+		want: map[string]any{
+			"entity": map[string]any{
+				"id":   float64(1),
+				"name": "One",
+			},
+		},
+	}, {
+		name: "entity with existing meta and webLink preserved",
+		data: WithExistingMeta{
+			Entity: EntityWithMeta{
+				ID:   123,
+				Name: "Test",
+				Meta: map[string]any{"webLink": "https://other.com/custom/123", "note": "keep"},
+			},
+		},
+		url:     "https://example.com/",
+		builder: helpers.WebLinkerWithIDPathBuilder("entities"),
+		want: map[string]any{
+			"entity": map[string]any{
+				"id":   float64(123),
+				"name": "Test",
+				"meta": map[string]any{
+					"webLink": "https://other.com/custom/123",
+					"note":    "keep",
+				},
+			},
+		},
+	}, {
+		name: "additional ignore field via options",
+		data: struct {
+			SkipMe Entity   `json:"skipMe"`
+			Items  []Entity `json:"items"`
+		}{
+			SkipMe: Entity{ID: 9, Name: "Ignored"},
+			Items:  []Entity{{ID: 1, Name: "One"}},
+		},
+		url:     "https://example.com/",
+		builder: helpers.WebLinkerWithIDPathBuilder("entities"),
+		options: []helpers.WebLinkerOption{helpers.WebLinkerWithIgnoreFields("skipMe")},
+		want: map[string]any{
+			"skipMe": map[string]any{
+				"id":   float64(9),
+				"name": "Ignored",
+			},
+			"items": []any{
+				map[string]any{
+					"id":   float64(1),
+					"name": "One",
+					"meta": map[string]any{
+						"webLink": "https://example.com/entities/1",
+					},
+				},
+			},
+		},
+	}}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctx := context.Background()
+			if tt.url != "" {
+				ctx = config.WithCustomerURL(ctx, tt.url)
+			}
+			got := helpers.StructuredWebLinker(ctx, tt.data, tt.builder, tt.options...)
+			if tt.want == nil {
+				if got != nil {
+					t.Errorf("expected nil, got %v", got)
+				}
+				return
+			}
+			// Marshal both to JSON for comparison to handle type differences
+			gotJSON, err := json.Marshal(got)
+			if err != nil {
+				t.Fatalf("failed to marshal got: %v", err)
+			}
+			wantJSON, err := json.Marshal(tt.want)
+			if err != nil {
+				t.Fatalf("failed to marshal want: %v", err)
+			}
+			var gotMap, wantMap map[string]any
+			if err := json.Unmarshal(gotJSON, &gotMap); err != nil {
+				t.Fatalf("failed to unmarshal got: %v", err)
+			}
+			if err := json.Unmarshal(wantJSON, &wantMap); err != nil {
+				t.Fatalf("failed to unmarshal want: %v", err)
+			}
+			if !reflect.DeepEqual(gotMap, wantMap) {
+				t.Errorf("unexpected result:\n  got:  %s\n  want: %s", gotJSON, wantJSON)
+			}
+		})
+	}
+}

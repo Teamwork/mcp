@@ -56,10 +56,12 @@ func init() {
 	if err != nil {
 		panic(fmt.Sprintf("failed to generate JSON schema for TimelogGetResponse: %v", err))
 	}
+	helpers.WithMetaWebLinkSchema(timelogGetOutputSchema)
 	timelogListOutputSchema, err = jsonschema.For[projects.TimelogListResponse](&jsonschema.ForOptions{})
 	if err != nil {
 		panic(fmt.Sprintf("failed to generate JSON schema for TimelogListResponse: %v", err))
 	}
+	helpers.WithMetaWebLinkSchema(timelogListOutputSchema)
 }
 
 // TimelogCreate creates a timelog in Teamwork.com.

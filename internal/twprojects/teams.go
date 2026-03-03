@@ -55,10 +55,12 @@ func init() {
 	if err != nil {
 		panic(fmt.Sprintf("failed to generate JSON schema for TeamGetResponse: %v", err))
 	}
+	helpers.WithMetaWebLinkSchema(teamGetOutputSchema)
 	teamListOutputSchema, err = jsonschema.For[projects.TeamListResponse](&jsonschema.ForOptions{})
 	if err != nil {
 		panic(fmt.Sprintf("failed to generate JSON schema for TeamListResponse: %v", err))
 	}
+	helpers.WithMetaWebLinkSchema(teamListOutputSchema)
 }
 
 // TeamCreate creates a team in Teamwork.com.
@@ -315,7 +317,9 @@ func TeamGet(engine *twapi.Engine) toolsets.ToolWrapper {
 						)),
 					},
 				},
-				StructuredContent: team,
+				StructuredContent: helpers.StructuredWebLinker(ctx, team,
+					helpers.WebLinkerWithIDPathBuilder("/app/teams"),
+				),
 			}, nil
 		},
 	}
@@ -388,7 +392,9 @@ func TeamList(engine *twapi.Engine) toolsets.ToolWrapper {
 						)),
 					},
 				},
-				StructuredContent: teamList,
+				StructuredContent: helpers.StructuredWebLinker(ctx, teamList,
+					helpers.WebLinkerWithIDPathBuilder("/app/teams"),
+				),
 			}, nil
 		},
 	}
@@ -462,7 +468,9 @@ func TeamListByCompany(engine *twapi.Engine) toolsets.ToolWrapper {
 						)),
 					},
 				},
-				StructuredContent: teamList,
+				StructuredContent: helpers.StructuredWebLinker(ctx, teamList,
+					helpers.WebLinkerWithIDPathBuilder("/app/teams"),
+				),
 			}, nil
 		},
 	}
@@ -536,7 +544,9 @@ func TeamListByProject(engine *twapi.Engine) toolsets.ToolWrapper {
 						)),
 					},
 				},
-				StructuredContent: teamList,
+				StructuredContent: helpers.StructuredWebLinker(ctx, teamList,
+					helpers.WebLinkerWithIDPathBuilder("/app/teams"),
+				),
 			}, nil
 		},
 	}

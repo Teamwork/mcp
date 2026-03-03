@@ -52,10 +52,12 @@ func init() {
 	if err != nil {
 		panic(fmt.Sprintf("failed to generate JSON schema for ProjectCategoryGetResponse: %v", err))
 	}
+	helpers.WithMetaWebLinkSchema(projectCategoryGetOutputSchema)
 	projectCategoryListOutputSchema, err = jsonschema.For[projects.ProjectCategoryListResponse](&jsonschema.ForOptions{})
 	if err != nil {
 		panic(fmt.Sprintf("failed to generate JSON schema for ProjectCategoryListResponse: %v", err))
 	}
+	helpers.WithMetaWebLinkSchema(projectCategoryListOutputSchema)
 }
 
 // ProjectCategoryCreate creates a project category in Teamwork.com.
@@ -263,7 +265,7 @@ func ProjectCategoryGet(engine *twapi.Engine) toolsets.ToolWrapper {
 						Text: string(helpers.WebLinker(ctx, encoded, projectCategoryPathBuilder)),
 					},
 				},
-				StructuredContent: projectCategory,
+				StructuredContent: helpers.StructuredWebLinker(ctx, projectCategory, projectCategoryPathBuilder),
 			}, nil
 		},
 	}
@@ -329,7 +331,7 @@ func ProjectCategoryList(engine *twapi.Engine) toolsets.ToolWrapper {
 						Text: string(helpers.WebLinker(ctx, encoded, projectCategoryPathBuilder)),
 					},
 				},
-				StructuredContent: projectCategoryList,
+				StructuredContent: helpers.StructuredWebLinker(ctx, projectCategoryList, projectCategoryPathBuilder),
 			}, nil
 		},
 	}

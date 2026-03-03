@@ -53,10 +53,12 @@ func init() {
 	if err != nil {
 		panic(fmt.Sprintf("failed to generate JSON schema for CompanyGetResponse: %v", err))
 	}
+	helpers.WithMetaWebLinkSchema(companyGetOutputSchema)
 	companyListOutputSchema, err = jsonschema.For[projects.CompanyListResponse](&jsonschema.ForOptions{})
 	if err != nil {
 		panic(fmt.Sprintf("failed to generate JSON schema for CompanyListResponse: %v", err))
 	}
+	helpers.WithMetaWebLinkSchema(companyListOutputSchema)
 }
 
 // CompanyCreate creates a company in Teamwork.com.
@@ -412,7 +414,9 @@ func CompanyGet(engine *twapi.Engine) toolsets.ToolWrapper {
 						)),
 					},
 				},
-				StructuredContent: company,
+				StructuredContent: helpers.StructuredWebLinker(ctx, company,
+					helpers.WebLinkerWithIDPathBuilder("/app/clients"),
+				),
 			}, nil
 		},
 	}
@@ -496,7 +500,9 @@ func CompanyList(engine *twapi.Engine) toolsets.ToolWrapper {
 						)),
 					},
 				},
-				StructuredContent: companyList,
+				StructuredContent: helpers.StructuredWebLinker(ctx, companyList,
+					helpers.WebLinkerWithIDPathBuilder("/app/clients"),
+				),
 			}, nil
 		},
 	}

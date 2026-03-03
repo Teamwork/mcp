@@ -56,10 +56,12 @@ func init() {
 	if err != nil {
 		panic(fmt.Sprintf("failed to generate JSON schema for TaskGetResponse: %v", err))
 	}
+	helpers.WithMetaWebLinkSchema(taskGetOutputSchema)
 	taskListOutputSchema, err = jsonschema.For[projects.TaskListResponse](&jsonschema.ForOptions{})
 	if err != nil {
 		panic(fmt.Sprintf("failed to generate JSON schema for TaskListResponse: %v", err))
 	}
+	helpers.WithMetaWebLinkSchema(taskListOutputSchema)
 }
 
 // TaskCreate creates a task in Teamwork.com.
@@ -557,7 +559,9 @@ func TaskGet(engine *twapi.Engine) toolsets.ToolWrapper {
 						)),
 					},
 				},
-				StructuredContent: task,
+				StructuredContent: helpers.StructuredWebLinker(ctx, task,
+					helpers.WebLinkerWithIDPathBuilder("/app/tasks"),
+				),
 			}, nil
 		},
 	}
@@ -643,7 +647,9 @@ func TaskList(engine *twapi.Engine) toolsets.ToolWrapper {
 						)),
 					},
 				},
-				StructuredContent: taskList,
+				StructuredContent: helpers.StructuredWebLinker(ctx, taskList,
+					helpers.WebLinkerWithIDPathBuilder("/app/tasks"),
+				),
 			}, nil
 		},
 	}
@@ -735,7 +741,9 @@ func TaskListByTasklist(engine *twapi.Engine) toolsets.ToolWrapper {
 						)),
 					},
 				},
-				StructuredContent: taskList,
+				StructuredContent: helpers.StructuredWebLinker(ctx, taskList,
+					helpers.WebLinkerWithIDPathBuilder("/app/tasks"),
+				),
 			}, nil
 		},
 	}
@@ -827,7 +835,9 @@ func TaskListByProject(engine *twapi.Engine) toolsets.ToolWrapper {
 						)),
 					},
 				},
-				StructuredContent: taskList,
+				StructuredContent: helpers.StructuredWebLinker(ctx, taskList,
+					helpers.WebLinkerWithIDPathBuilder("/app/tasks"),
+				),
 			}, nil
 		},
 	}

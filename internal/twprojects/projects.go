@@ -53,10 +53,12 @@ func init() {
 	if err != nil {
 		panic(fmt.Sprintf("failed to generate JSON schema for ProjectGetResponse: %v", err))
 	}
+	helpers.WithMetaWebLinkSchema(projectGetOutputSchema)
 	projectListOutputSchema, err = jsonschema.For[projects.ProjectListResponse](&jsonschema.ForOptions{})
 	if err != nil {
 		panic(fmt.Sprintf("failed to generate JSON schema for ProjectListResponse: %v", err))
 	}
+	helpers.WithMetaWebLinkSchema(projectListOutputSchema)
 }
 
 // ProjectCreate creates a project in Teamwork.com.
@@ -322,7 +324,9 @@ func ProjectGet(engine *twapi.Engine) toolsets.ToolWrapper {
 						)),
 					},
 				},
-				StructuredContent: project,
+				StructuredContent: helpers.StructuredWebLinker(ctx, project,
+					helpers.WebLinkerWithIDPathBuilder("/app/projects"),
+				),
 			}, nil
 		},
 	}
@@ -412,7 +416,9 @@ func ProjectList(engine *twapi.Engine) toolsets.ToolWrapper {
 						)),
 					},
 				},
-				StructuredContent: projectList,
+				StructuredContent: helpers.StructuredWebLinker(ctx, projectList,
+					helpers.WebLinkerWithIDPathBuilder("/app/projects"),
+				),
 			}, nil
 		},
 	}
