@@ -37,7 +37,7 @@ jobs:
 
       - run: docker context create builders
 
-      - uses: docker/setup-buildx-action@v3
+      - uses: docker/setup-buildx-action@v4
         with:
           version: latest
           endpoint: builders
