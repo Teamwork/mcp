@@ -60,6 +60,8 @@ func main() {
 			authenticated = true
 			// inject customer URL in the context
 			ctx = config.WithCustomerURL(ctx, info.URL)
+			// inject bearer token in the context (used by Desk SDK clients)
+			ctx = config.WithBearerToken(ctx, resources.Info.BearerToken)
 			// inject bearer token in the context
 			ctx = session.WithBearerTokenContext(ctx, session.NewBearerToken(resources.Info.BearerToken, info.URL))
 		}
