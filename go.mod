@@ -11,7 +11,7 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/modelcontextprotocol/go-sdk v1.4.0
 	github.com/teamwork/desksdkgo v0.0.0-20260310162122-b89d691e5ee8
-	github.com/teamwork/twapi-go-sdk v1.8.1
+	github.com/teamwork/twapi-go-sdk v1.8.2
 )
 
 require (
@@ -88,7 +88,7 @@ require (
 	golang.org/x/exp v0.0.0-20251002181428-27f1f14c8bb9 // indirect
 	golang.org/x/mod v0.29.0 // indirect
 	golang.org/x/oauth2 v0.34.0 // indirect
-	golang.org/x/sys v0.41.0 // indirect
+	golang.org/x/sys v0.42.0 // indirect
 	golang.org/x/text v0.30.0 // indirect
 	golang.org/x/time v0.13.0 // indirect
 	golang.org/x/xerrors v0.0.0-20240903120638-7835f813f4da // indirect
