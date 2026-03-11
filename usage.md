@@ -51,6 +51,28 @@ Two main ways to connect:
 Use STDIO for desktop apps (Claude Desktop, local Copilot) and HTTP for cloud
 workflows or clients that only speak HTTP.
 
+### 🍺 macOS (STDIO via Homebrew)
+
+Install from the Teamwork tap:
+
+```sh
+brew tap teamwork/mcp https://github.com/teamwork/mcp
+brew install teamwork/mcp/tw-mcp
+```
+
+Verify it is available in your PATH:
+
+```sh
+tw-mcp -h
+```
+
+Upgrade later with:
+
+```sh
+brew update
+brew upgrade teamwork/mcp/tw-mcp
+```
+
 ## 5. 🖥️ Configure Common Clients
 
 ### 💬 Claude Desktop (STDIO)
