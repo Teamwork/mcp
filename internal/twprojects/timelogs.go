@@ -421,6 +421,13 @@ func TimelogList(engine *twapi.Engine) toolsets.ToolWrapper {
 							Type: "integer",
 						},
 					},
+					"ticketIds": {
+						Type:        "array",
+						Description: "A list of desk ticket IDs to filter timelogs by associated desk tickets",
+						Items: &jsonschema.Schema{
+							Type: "integer",
+						},
+					},
 					"page": {
 						Type:        "integer",
 						Description: "Page number for pagination of results.",
@@ -448,6 +455,7 @@ func TimelogList(engine *twapi.Engine) toolsets.ToolWrapper {
 				helpers.OptionalNumericListParam(&timelogListRequest.Filters.AssignedToUserIDs, "assigned_user_ids"),
 				helpers.OptionalNumericListParam(&timelogListRequest.Filters.AssignedToCompanyIDs, "assigned_company_ids"),
 				helpers.OptionalNumericListParam(&timelogListRequest.Filters.AssignedToTeamIDs, "assigned_team_ids"),
+				helpers.OptionalNumericListParam(&timelogListRequest.Filters.DeskTicketIDs, "ticketIds"),
 				helpers.OptionalNumericParam(&timelogListRequest.Filters.Page, "page"),
 				helpers.OptionalNumericParam(&timelogListRequest.Filters.PageSize, "page_size"),
 			)
@@ -524,6 +532,13 @@ func TimelogListByProject(engine *twapi.Engine) toolsets.ToolWrapper {
 							Type: "integer",
 						},
 					},
+					"ticketIds": {
+						Type:        "array",
+						Description: "A list of desk ticket IDs to filter timelogs by associated desk tickets",
+						Items: &jsonschema.Schema{
+							Type: "integer",
+						},
+					},
 					"page": {
 						Type:        "integer",
 						Description: "Page number for pagination of results.",
@@ -553,6 +568,7 @@ func TimelogListByProject(engine *twapi.Engine) toolsets.ToolWrapper {
 				helpers.OptionalNumericListParam(&timelogListRequest.Filters.AssignedToUserIDs, "assigned_user_ids"),
 				helpers.OptionalNumericListParam(&timelogListRequest.Filters.AssignedToCompanyIDs, "assigned_company_ids"),
 				helpers.OptionalNumericListParam(&timelogListRequest.Filters.AssignedToTeamIDs, "assigned_team_ids"),
+				helpers.OptionalNumericListParam(&timelogListRequest.Filters.DeskTicketIDs, "ticketIds"),
 				helpers.OptionalNumericParam(&timelogListRequest.Filters.Page, "page"),
 				helpers.OptionalNumericParam(&timelogListRequest.Filters.PageSize, "page_size"),
 			)
@@ -629,6 +645,13 @@ func TimelogListByTask(engine *twapi.Engine) toolsets.ToolWrapper {
 							Type: "integer",
 						},
 					},
+					"ticketIds": {
+						Type:        "array",
+						Description: "A list of desk ticket IDs to filter timelogs by associated desk tickets",
+						Items: &jsonschema.Schema{
+							Type: "integer",
+						},
+					},
 					"page": {
 						Type:        "integer",
 						Description: "Page number for pagination of results.",
@@ -658,6 +681,7 @@ func TimelogListByTask(engine *twapi.Engine) toolsets.ToolWrapper {
 				helpers.OptionalNumericListParam(&timelogListRequest.Filters.AssignedToUserIDs, "assigned_user_ids"),
 				helpers.OptionalNumericListParam(&timelogListRequest.Filters.AssignedToCompanyIDs, "assigned_company_ids"),
 				helpers.OptionalNumericListParam(&timelogListRequest.Filters.AssignedToTeamIDs, "assigned_team_ids"),
+				helpers.OptionalNumericListParam(&timelogListRequest.Filters.DeskTicketIDs, "ticketIds"),
 				helpers.OptionalNumericParam(&timelogListRequest.Filters.Page, "page"),
 				helpers.OptionalNumericParam(&timelogListRequest.Filters.PageSize, "page_size"),
 			)
