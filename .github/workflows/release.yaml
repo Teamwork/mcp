@@ -11,6 +11,7 @@ env:
 permissions:
   contents: write
   packages: write
+  pull-requests: write
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -248,7 +249,10 @@ jobs:
           end
           EOF
 
-      - name: Commit and push formula
+      - name: Commit and push formula branch
+        id: formula-branch
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
         run: |
           set -euo pipefail
           cd tap
@@ -257,9 +261,37 @@ jobs:
 
           if git diff --quiet; then
             echo "No Homebrew formula changes detected"
+            echo "changed=false" >> "$GITHUB_OUTPUT"
             exit 0
           fi
 
+          branch="chore/homebrew-tw-mcp-${VERSION}"
+          git checkout -B "$branch"
           git add Formula/tw-mcp.rb
-          git commit -m "tw-mcp ${{ steps.version.outputs.version }}"
-          git push origin HEAD
+          git commit -m "tw-mcp ${VERSION}"
+          git push --force-with-lease origin "$branch"
+          echo "changed=true" >> "$GITHUB_OUTPUT"
+          echo "branch=$branch" >> "$GITHUB_OUTPUT"
+
+      - name: Create or update pull request
+        if: steps.formula-branch.outputs.changed == 'true'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ steps.version.outputs.version }}
+          BASE_REF: ${{ github.event.repository.default_branch }}
+          BRANCH: ${{ steps.formula-branch.outputs.branch }}
+        run: |
+          set -euo pipefail
+
+          existing_pr="$(gh pr list --repo "${GITHUB_REPOSITORY}" --head "$BRANCH" --base "$BASE_REF" --state open --json number --jq '.[0].number')"
+          if [ -n "$existing_pr" ]; then
+            echo "PR #$existing_pr already exists for $BRANCH"
+            exit 0
+          fi
+
+          gh pr create \
+            --repo "${GITHUB_REPOSITORY}" \
+            --base "$BASE_REF" \
+            --head "$BRANCH" \
+            --title "chore: update Homebrew formula for ${VERSION}" \
+            --body "Automated Homebrew formula update for ${VERSION}."
