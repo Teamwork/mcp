@@ -116,6 +116,7 @@ func newMCPServer(resources config.Resources) (*mcp.Server, error) {
 
 func newRouter(resources config.Resources) *http.ServeMux {
 	mux := http.NewServeMux()
+	mux.Handle("/favicon.ico", http.RedirectHandler("https://teamwork.com/favicon.ico", http.StatusPermanentRedirect))
 	mux.HandleFunc("/api/health", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet && r.Method != http.MethodOptions {
 			http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
@@ -186,8 +187,9 @@ func requestInfoMiddleware(next http.Handler) http.Handler {
 
 func logMiddleware(logger *slog.Logger, next http.Handler) http.Handler {
 	skipPaths := map[string]struct{}{
-		"/api/health": {}, // health checks can be very noisy
-		"/sse":        {}, // special log middleware
+		"/favicon.ico": {}, // avoid logging browser favicon requests
+		"/api/health":  {}, // health checks can be very noisy
+		"/sse":         {}, // special log middleware
 	}
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if _, skip := skipPaths[r.URL.Path]; skip {
@@ -321,8 +323,9 @@ func tracerMiddleware(resources config.Resources, next http.Handler) http.Handle
 		return next
 	}
 	skipPaths := map[string]struct{}{
-		"/api/health": {}, // health checks can be very noisy
-		"/sse":        {}, // long-lived connections don't work well with tracing
+		"/favicon.ico": {}, // avoid logging browser favicon requests
+		"/api/health":  {}, // health checks can be very noisy
+		"/sse":         {}, // long-lived connections don't work well with tracing
 	}
 	return ddhttp.WrapHandler(next, resources.Info.DatadogAPM.Service, "http.request",
 		ddhttp.WithResourceNamer(func(req *http.Request) string {
@@ -344,6 +347,8 @@ func authMiddleware(resources config.Resources, next http.Handler) http.Handler 
 	whitelistEndpoints := map[string][]string{
 		// health checks don't require authentication
 		"/api/health": {http.MethodGet, http.MethodOptions},
+		// browser may request favicons without authentication
+		"/favicon.ico": {http.MethodGet, http.MethodOptions},
 	}
 
 	whitelistPrefixEndpoints := map[string][]string{
