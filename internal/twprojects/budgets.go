@@ -82,7 +82,7 @@ func ProjectBudgetList(engine *twapi.Engine) toolsets.ToolWrapper {
 					"status": {
 						Type:        "string",
 						Description: "Filter budgets by status. Allowed values: upcoming, active, complete.",
-						Enum: []any{"upcoming", "active", "complete"},
+						Enum:        []any{"upcoming", "active", "complete"},
 					},
 					"limit": {
 						Type:        "integer",
