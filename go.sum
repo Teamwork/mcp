@@ -171,6 +171,12 @@ github.com/teamwork/desksdkgo v0.0.0-20260310162122-b89d691e5ee8 h1:dcNUWU23Z+aV
 github.com/teamwork/desksdkgo v0.0.0-20260310162122-b89d691e5ee8/go.mod h1:nAQ9TiITo1WqNnLsifExR7SH/64rGemPIb7yi7KbQ5I=
 github.com/teamwork/twapi-go-sdk v1.8.2 h1:eAYOrE7flHEeIHKK7ytRi+t4pDS1Iuze09eYSV88R14=
 github.com/teamwork/twapi-go-sdk v1.8.2/go.mod h1:bTr8DQ5dSRdzrCcfKfQJhPXZnituxbf6/VbuHVgdbAc=
+github.com/teamwork/twapi-go-sdk v1.8.3-0.20260313145405-93f3d5de6fea h1:6Dlu/VJfbuuFTFy//rdrty5RgLIW9Crhf7zAsAGGnL8=
+github.com/teamwork/twapi-go-sdk v1.8.3-0.20260313145405-93f3d5de6fea/go.mod h1:bTr8DQ5dSRdzrCcfKfQJhPXZnituxbf6/VbuHVgdbAc=
+github.com/teamwork/twapi-go-sdk v1.8.3-0.20260313155412-d5f0f04bb552 h1:35OnjIWd+DVnppKDWK55b0LID+0vFtfwG2yGD7Z1nFI=
+github.com/teamwork/twapi-go-sdk v1.8.3-0.20260313155412-d5f0f04bb552/go.mod h1:bTr8DQ5dSRdzrCcfKfQJhPXZnituxbf6/VbuHVgdbAc=
+github.com/teamwork/twapi-go-sdk v1.8.3 h1:nPDq1KjO3u1Nd/yBCAqezPJDuthq5yeC3ehwyqPGxKI=
+github.com/teamwork/twapi-go-sdk v1.8.3/go.mod h1:bTr8DQ5dSRdzrCcfKfQJhPXZnituxbf6/VbuHVgdbAc=
 github.com/tinylib/msgp v1.4.0 h1:SYOeDRiydzOw9kSiwdYp9UcBgPFtLU2WDHaJXyHruf8=
 github.com/tinylib/msgp v1.4.0/go.mod h1:cvjFkb4RiC8qSBOPMGPSzSAx47nAsfhLVTCZZNuHv5o=
 github.com/tklauser/go-sysconf v0.3.15 h1:VE89k0criAymJ/Os65CSn1IXaol+1wrsFHEB8Ol49K4=

@@ -115,6 +115,8 @@ func DefaultToolsetGroup(readOnly, allowDelete bool, engine *twapi.Engine) *tool
 			SkillList(engine),
 			JobRoleGet(engine),
 			JobRoleList(engine),
+			TasklistBudgetList(engine),
+			ProjectBudgetList(engine),
 		)
 	if !readOnly {
 		projectToolset.AddResourceTemplates(
