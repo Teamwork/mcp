@@ -8,7 +8,7 @@
 
 ## Prerequisites
 
-- `tw-mcp` binary installed and in your PATH — see [Getting a Bearer Token](../usage.md#2--get-a-bearer-token) and [Choose a Connection Mode](../usage.md#4--choose-a-connection-mode)
+- Teamwork CLI installed and in your PATH — see the [Teamwork CLI setup guide](teamwork-cli.md)
 - Claude Desktop installed: https://claude.ai/download
 
 ## Setup

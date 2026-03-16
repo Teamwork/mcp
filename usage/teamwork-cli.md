@@ -1,8 +1,8 @@
-# tw-mcp — Binary / CLI Setup
+# Teamwork CLI — Setup
 
 ← [Back to Usage Guide](../usage.md)
 
-`tw-mcp` is the self-hosted STDIO binary for desktop MCP clients (Claude Desktop, VSCode Copilot, etc.). It runs locally — no exposed network port needed.
+The Teamwork CLI (`tw-mcp`) is the self-hosted STDIO binary for desktop MCP clients (Claude Desktop, VSCode Copilot, etc.). It runs locally — no exposed network port needed.
 
 ## Get a Bearer Token
 
@@ -60,4 +60,4 @@ tw-mcp -h
 |----------|-------------|
 | `TW_MCP_BEARER_TOKEN` | Bearer token for authentication (required) |
 
-Your MCP client (Claude Desktop, VSCode, etc.) is responsible for spawning `tw-mcp` and passing the environment variables — see the [client guides](../usage.md#5-client-setup-guides) for exact config snippets.
+Your MCP client (Claude Desktop, VSCode, etc.) is responsible for spawning `tw-mcp` and passing the environment variables — see the [client guides](../usage.md#client-setup-guides) for exact config snippets.
