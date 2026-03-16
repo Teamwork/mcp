@@ -165,6 +165,28 @@ The `"trust": false` setting will make Gemini CLI ask before executing any
 action against the Teamwork.com MCP server. This is recommended to avoid
 accidental modifications.
 
+### 🤖 Claude Code (CLI)
+
+* Docs: https://docs.anthropic.com/en/docs/claude-code/mcp
+* Walkthrough: https://www.youtube.com/watch?v=BHPSuAYEVYU
+
+**HTTP (recommended — no binary needed):**
+
+```bash
+claude mcp add --transport http teamwork https://mcp.ai.teamwork.com \
+  --header "Authorization: Bearer <token>"
+```
+
+**STDIO (local binary):**
+
+```bash
+claude mcp add teamwork tw-mcp --env TW_MCP_BEARER_TOKEN=<token>
+```
+
+> [!TIP]
+>
+> Run `claude mcp list` to confirm the server is registered, and `claude mcp get teamwork` to inspect its configuration.
+
 ### 🛠️ Other Platforms (n8n, Appmixer, custom)
 
 Use the hosted HTTP endpoint. Provide a generic MCP client (if supported) or
