@@ -12,7 +12,7 @@ Teamwork.com site right now? Jump straight to the
 **[Usage Guide](usage.md)** for tokens, enabling MCP, and
 client configuration examples for:
 
-- [Teamwork CLI](usage/tw-mcp.md)
+- [Teamwork CLI](usage/teamwork-cli.md)
 - [Claude Desktop](usage/claude-desktop.md)
 - [Claude Code](usage/claude-code.md)
 - [VSCode Copilot](usage/vscode-copilot.md)

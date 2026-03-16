@@ -7,7 +7,7 @@
 ## Prerequisites
 
 - Claude Code installed: `npm i -g @anthropic-ai/claude-code`
-- A Bearer token — see [Getting a Bearer Token](../usage.md#2--get-a-bearer-token)
+- A Bearer token — see [Get a Bearer Token](../usage.md#get-a-bearer-token)
 
 ## Setup
 

@@ -10,8 +10,8 @@
 ## Prerequisites
 
 - VSCode with the **GitHub Copilot Chat** extension installed
-- A Bearer token — see [Getting a Bearer Token](../usage.md#2--get-a-bearer-token)
-- *(STDIO only)* `tw-mcp` binary in your PATH — see [macOS Homebrew install](../usage.md#-macos-stdio-via-homebrew)
+- A Bearer token — see [Get a Bearer Token](../usage.md#get-a-bearer-token)
+- *(STDIO only)* Teamwork CLI in your PATH — see the [Teamwork CLI setup guide](teamwork-cli.md)
 
 ## Setup
 
