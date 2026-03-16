@@ -7,10 +7,14 @@
 [![Go](https://img.shields.io/badge/Go-1.26.0-blue.svg)](https://golang.org/)
 [![MCP](https://img.shields.io/badge/MCP-Compatible-green.svg)](https://modelcontextprotocol.io/)
 
-> 📌 Are you a Teamwork.com user wanting to connect AI tools (Claude Desktop, VS
-> Code Copilot Chat, Gemini, etc.) to your Teamwork.com site right now? Jump
-> straight to the **[Usage Guide (How to Connect)](usage.md)** for tokens,
-> enabling MCP and client configuration examples.
+> 📌 Are you a Teamwork.com user wanting to connect AI tools to your
+> Teamwork.com site right now? Jump straight to the
+> **[Usage Guide (How to Connect)](usage.md)** for tokens, enabling MCP, and
+> client configuration examples for:
+> [Claude Desktop](usage.md#-claude-desktop-stdio) ·
+> [Claude Code](usage.md#-claude-code-cli) ·
+> [VSCode Copilot](usage.md#-vscode-github-copilot-chat-mcp) ·
+> [Gemini CLI](usage.md#-gemini-cli-http)
 
 ## 📖 Overview
 
