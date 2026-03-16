@@ -7,14 +7,17 @@
 [![Go](https://img.shields.io/badge/Go-1.26.0-blue.svg)](https://golang.org/)
 [![MCP](https://img.shields.io/badge/MCP-Compatible-green.svg)](https://modelcontextprotocol.io/)
 
-> 📌 Are you a Teamwork.com user wanting to connect AI tools to your
-> Teamwork.com site right now? Jump straight to the
-> **[Usage Guide (How to Connect)](usage.md)** for tokens, enabling MCP, and
-> client configuration examples for:
-> [Claude Desktop](usage.md#-claude-desktop-stdio) ·
-> [Claude Code](usage.md#-claude-code-cli) ·
-> [VSCode Copilot](usage.md#-vscode-github-copilot-chat-mcp) ·
-> [Gemini CLI](usage.md#-gemini-cli-http)
+📌 Are you a Teamwork.com user wanting to connect AI tools to your
+Teamwork.com site right now? Jump straight to the
+**[Usage Guide](usage.md)** for tokens, enabling MCP, and
+client configuration examples for:
+
+- [tw-mcp binary](usage/tw-mcp.md) ·
+- [Claude Desktop](usage/claude-desktop.md) ·
+- [Claude Code](usage/claude-code.md) ·
+- [VSCode Copilot](usage/vscode-copilot.md) ·
+- [Gemini CLI](usage/gemini-cli.md) ·
+- [Other platforms](usage/other-platforms.md)
 
 ## 📖 Overview
 
