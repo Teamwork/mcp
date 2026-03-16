@@ -12,11 +12,11 @@ Teamwork.com site right now? Jump straight to the
 **[Usage Guide](usage.md)** for tokens, enabling MCP, and
 client configuration examples for:
 
-- [tw-mcp binary](usage/tw-mcp.md) ·
-- [Claude Desktop](usage/claude-desktop.md) ·
-- [Claude Code](usage/claude-code.md) ·
-- [VSCode Copilot](usage/vscode-copilot.md) ·
-- [Gemini CLI](usage/gemini-cli.md) ·
+- [Teamwork MCP CLI](usage/tw-mcp.md)
+- [Claude Desktop](usage/claude-desktop.md)
+- [Claude Code](usage/claude-code.md)
+- [VSCode Copilot](usage/vscode-copilot.md)
+- [Gemini CLI](usage/gemini-cli.md)
 - [Other platforms](usage/other-platforms.md)
 
 ## 📖 Overview
