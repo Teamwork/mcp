@@ -1,6 +1,6 @@
 # Gemini CLI — Teamwork.com MCP Setup
 
-← [Back to Usage Guide](../usage.md)
+← [Back to Usage Guide](README.md)
 
 <img width="732" height="558" alt="Gemini CLI with Teamwork MCP" src="https://github.com/user-attachments/assets/b26d2fe0-2d88-4bcc-beb5-3dab5cb575b0" />
 
@@ -9,7 +9,7 @@
 ## Prerequisites
 
 - Gemini CLI installed
-- A Bearer token — see [Get a Bearer Token](../usage.md#get-a-bearer-token)
+- A Bearer token — see [Get a Bearer Token](teamwork-cli.md#get-a-bearer-token)
 
 ## Setup
 

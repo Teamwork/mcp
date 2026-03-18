@@ -1,6 +1,6 @@
 # Claude Desktop — Teamwork.com MCP Setup
 
-← [Back to Usage Guide](../usage.md)
+← [Back to Usage Guide](README.md)
 
 * Video walkthrough: https://www.youtube.com/watch?v=BHPSuAYEVYU
 
@@ -13,17 +13,17 @@
 
 ## Setup
 
-1. Download the latest `tw-mcp` release: https://github.com/Teamwork/mcp/releases/latest
-2. Rename/move the binary into your PATH as `tw-mcp` (e.g. `/usr/local/bin/tw-mcp`)
-3. **(macOS)** Approve it in **System Settings → Privacy & Security** if macOS blocks it.
-4. Open or create the Claude Desktop config file:
-   - **macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`
-   - **Windows**: `%APPDATA%\Claude\claude_desktop_config.json`
+Open or create the Claude Desktop config file:
+- **macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`
+- **Windows**: `%APPDATA%\Claude\claude_desktop_config.json`
 
 For more details on the config file location, see the MCP quickstart:
 https://modelcontextprotocol.io/quickstart/user
 
 ## Configuration
+
+> [!TIP]
+> See [Get a Bearer Token](teamwork-cli.md#get-a-bearer-token)
 
 ### Option A — Local binary (STDIO, recommended)
 
@@ -42,9 +42,6 @@ https://modelcontextprotocol.io/quickstart/user
 ```
 
 Replace `<token>` with your Bearer token.
-
-> [!TIP]
-> **Get your token:** `npm i @teamwork/get-bearer-token@latest -g && teamwork-get-bearer-token`
 
 ### Option B — Docker (STDIO)
 
@@ -71,4 +68,5 @@ Replace `<token>` with your Bearer token.
 
 ## Verify
 
-Restart Claude Desktop. You should see the Teamwork.com MCP tools listed in the tool selector (hammer icon) within a chat.
+Restart Claude Desktop. You should see the Teamwork.com MCP tools listed in the
+tool selector (hammer icon) within a chat.

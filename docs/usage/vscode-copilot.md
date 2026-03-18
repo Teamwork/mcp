@@ -1,6 +1,6 @@
 # VSCode (GitHub Copilot Chat) — Teamwork.com MCP Setup
 
-← [Back to Usage Guide](../usage.md)
+← [Back to Usage Guide](README.md)
 
 <img width="753" height="839" alt="VSCode Copilot Chat with Teamwork MCP" src="https://github.com/user-attachments/assets/61204ca7-c904-4cf6-aa3a-059b8c96fa48" />
 
@@ -10,12 +10,12 @@
 ## Prerequisites
 
 - VSCode with the **GitHub Copilot Chat** extension installed
-- A Bearer token — see [Get a Bearer Token](../usage.md#get-a-bearer-token)
 - *(STDIO only)* Teamwork CLI in your PATH — see the [Teamwork CLI setup guide](teamwork-cli.md)
 
 ## Setup
 
-Add an entry to your `.vscode/mcp.json` (workspace) or the user-level MCP settings. Use either STDIO or HTTP depending on your preference.
+Add an entry to your `.vscode/mcp.json` (workspace) or the user-level MCP
+settings. Use either STDIO or HTTP depending on your preference.
 
 ### Option A — Hosted HTTP
 
@@ -24,10 +24,7 @@ Add an entry to your `.vscode/mcp.json` (workspace) or the user-level MCP settin
   "servers": {
     "Teamwork.com": {
       "type": "http",
-      "url": "https://mcp.ai.teamwork.com",
-      "headers": {
-        "Authorization": "Bearer <token>"
-      }
+      "url": "https://mcp.ai.teamwork.com"
     }
   }
 }
@@ -53,7 +50,7 @@ Add an entry to your `.vscode/mcp.json` (workspace) or the user-level MCP settin
 Replace `<token>` with your Bearer token.
 
 > [!TIP]
-> **Get your token:** `npm i @teamwork/get-bearer-token@latest -g && teamwork-get-bearer-token`
+> See [Get a Bearer Token](teamwork-cli.md#get-a-bearer-token)
 
 ## Troubleshooting
 

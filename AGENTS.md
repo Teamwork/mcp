@@ -81,7 +81,7 @@ Common variables (subset; see command READMEs for complete lists):
 
 ## Useful references (in-repo)
 - `README.md` — overview and quick-starts (HTTP, STDIO, CLI)
-- `usage.md` — end-user connection guide for popular MCP clients
+- `docs/usage/README.md` — end-user connection guide for popular MCP clients
 - `cmd/mcp-stdio/README.md` — STDIO server flags and envs
 - `cmd/mcp-http/README.md` — HTTP server envs and endpoints
 - `cmd/mcp-http-cli/README.md` — CLI usage

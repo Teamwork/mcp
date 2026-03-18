@@ -1,8 +1,10 @@
 # Teamwork CLI — Setup
 
-← [Back to Usage Guide](../usage.md)
+← [Back to Usage Guide](README.md)
 
-The Teamwork CLI (`tw-mcp`) is the self-hosted STDIO binary for desktop MCP clients (Claude Desktop, VSCode Copilot, etc.). It runs locally — no exposed network port needed.
+The Teamwork CLI (`tw-mcp`) is the self-hosted STDIO binary for desktop MCP
+clients (Claude Desktop, VSCode Copilot, etc.). It runs locally — no exposed
+network port needed.
 
 ## Get a Bearer Token
 
@@ -14,7 +16,8 @@ npm i @teamwork/get-bearer-token@latest -g
 teamwork-get-bearer-token
 ```
 
-Copy the token it outputs — you will use it as `TW_MCP_BEARER_TOKEN` below.
+Copy the token it outputs — you will use it as `<token>` (or
+`TW_MCP_BEARER_TOKEN`) in your client config.
 
 Alternatively follow the manual steps at:
 https://apidocs.teamwork.com/guides/teamwork/app-login-flow
@@ -50,7 +53,9 @@ chmod +x /usr/local/bin/tw-mcp
 tw-mcp -h
 ```
 
-> **macOS security note:** If macOS blocks the binary, open **System Settings → Privacy & Security** and click **Allow Anyway**.
+> [!IMPORTANT]
+> **macOS security note:** If macOS blocks the binary, open **System Settings →
+> Privacy & Security** and click **Allow Anyway**.
 
 ## Usage
 
@@ -60,4 +65,6 @@ tw-mcp -h
 |----------|-------------|
 | `TW_MCP_BEARER_TOKEN` | Bearer token for authentication (required) |
 
-Your MCP client (Claude Desktop, VSCode, etc.) is responsible for spawning `tw-mcp` and passing the environment variables — see the [client guides](../usage.md#client-setup-guides) for exact config snippets.
+Your MCP client (Claude Desktop, VSCode, etc.) is responsible for spawning
+`tw-mcp` and passing the environment variables — see the [client
+guides](README.md#client-setup-guides) for exact config snippets.
