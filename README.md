@@ -7,17 +7,9 @@
 [![Go](https://img.shields.io/badge/Go-1.26.0-blue.svg)](https://golang.org/)
 [![MCP](https://img.shields.io/badge/MCP-Compatible-green.svg)](https://modelcontextprotocol.io/)
 
-📌 Are you a Teamwork.com user wanting to connect AI tools to your
-Teamwork.com site right now? Jump straight to the
-**[Usage Guide](usage.md)** for tokens, enabling MCP, and
-client configuration examples for:
-
-- [Teamwork CLI](usage/teamwork-cli.md)
-- [Claude Desktop](usage/claude-desktop.md)
-- [Claude Code](usage/claude-code.md)
-- [VSCode Copilot](usage/vscode-copilot.md)
-- [Gemini CLI](usage/gemini-cli.md)
-- [Other platforms](usage/other-platforms.md)
+📌 Are you a Teamwork.com user wanting to connect AI tools to your Teamwork.com
+site right now? Jump straight to the **[Usage Guide](docs/usage/README.md)** for
+tokens, enabling MCP, and client configuration examples.
 
 ## 📖 Overview
 
@@ -122,7 +114,7 @@ NODE_EXTRA_CA_CERTS=letsencrypt-stg-root-x1.pem npx @modelcontextprotocol/inspec
 │   ├── toolsets/          # Tool framework and registration logic
 │   └── twprojects/        # Teamwork project/domain tools (tasks, tags, timers, etc.)
 ├── examples/              # Usage & integration examples (LangChain Node/Python)
-├── usage.md               # End-user setup & connection guide
+├── docs/usage/            # End-user setup & connection guide
 ├── Makefile               # Common developer tasks
 ├── Dockerfile             # Container build configuration
 ├── CODE_OF_CONDUCT.md     # Community guidelines

@@ -1,6 +1,6 @@
 # Other Platforms — Teamwork.com MCP Setup
 
-← [Back to Usage Guide](../usage.md)
+← [Back to Usage Guide](README.md)
 
 Use the public hosted HTTP endpoint for any platform that supports MCP over HTTP or generic JSON-RPC.
 
@@ -8,7 +8,7 @@ Use the public hosted HTTP endpoint for any platform that supports MCP over HTTP
 **Auth header:** `Authorization: Bearer <token>`
 
 > [!TIP]
-> **Get your token:** `npm i @teamwork/get-bearer-token@latest -g && teamwork-get-bearer-token`
+> See [Get a Bearer Token](teamwork-cli.md#get-a-bearer-token)
 
 ## n8n
 
