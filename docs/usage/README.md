@@ -4,7 +4,8 @@ This guide helps you connect AI tools to your Teamwork.com site via MCP.
 
 **Public hosted endpoint (HTTP):** `https://mcp.ai.teamwork.com`
 
-**Self-hosted / local binary (STDIO):** see the [Teamwork CLI setup guide](usage/teamwork-cli.md)
+**Self-hosted / local binary (STDIO):** see the [Teamwork CLI setup
+guide](/docs/usage/teamwork-cli.md)
 
 ---
 
@@ -23,11 +24,11 @@ Ask an account administrator to enable MCP under **Settings → AI**.
 
 ## Client Setup Guides
 
-| Client                           | Transport     | Guide                                    |
-|----------------------------------|---------------|------------------------------------------|
-| **Teamwork CLI**                 | STDIO         | [teamwork-cli.md](teamwork-cli.md)       |
-| **Claude Desktop**               | STDIO         | [claude-desktop.md](claude-desktop.md)   |
-| **Claude Code (CLI)**            | HTTP          | [claude-code.md](claude-code.md)         |
-| **VSCode — GitHub Copilot Chat** | HTTP or STDIO | [vscode-copilot.md](vscode-copilot.md)   |
-| **Gemini CLI**                   | HTTP          | [gemini-cli.md](gemini-cli.md)           |
-| **n8n, Appmixer, custom**        | HTTP          | [other-platforms.md](other-platforms.md) |
+| Client                           | Transport     | Guide                                                |
+|----------------------------------|---------------|------------------------------------------------------|
+| **Teamwork CLI**                 | STDIO         | [teamwork-cli.md](/docs/usage/teamwork-cli.md)       |
+| **Claude Desktop**               | STDIO         | [claude-desktop.md](/docs/usage/claude-desktop.md)   |
+| **Claude Code (CLI)**            | HTTP          | [claude-code.md](/docs/usage/claude-code.md)         |
+| **VSCode — GitHub Copilot Chat** | HTTP or STDIO | [vscode-copilot.md](/docs/usage/vscode-copilot.md)   |
+| **Gemini CLI**                   | HTTP          | [gemini-cli.md](/docs/usage/gemini-cli.md)           |
+| **n8n, Appmixer, custom**        | HTTP          | [other-platforms.md](/docs/usage/other-platforms.md) |
