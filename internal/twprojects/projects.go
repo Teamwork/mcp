@@ -193,6 +193,11 @@ func ProjectUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 							Type: "integer",
 						},
 					},
+					"status": {
+						Type:        "string",
+						Description: "The status of the project. Allowed values: active or archived.",
+						Enum:        []any{"active", "archived"},
+					},
 				},
 				Required: []string{"id"},
 			},
@@ -214,6 +219,12 @@ func ProjectUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 				helpers.OptionalNumericPointerParam(&projectUpdateRequest.CompanyID, "company_id"),
 				helpers.OptionalNumericPointerParam(&projectUpdateRequest.OwnerID, "owned_id"),
 				helpers.OptionalNumericListParam(&projectUpdateRequest.TagIDs, "tag_ids"),
+				helpers.OptionalPointerParam(&projectUpdateRequest.Status, "status",
+					helpers.RestrictValues(
+						projects.ProjectStatusActive,
+						projects.ProjectStatusArchived,
+					),
+				),
 			)
 			if err != nil {
 				return helpers.NewToolResultTextError(fmt.Sprintf("invalid parameters: %s", err.Error())), nil

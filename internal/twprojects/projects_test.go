@@ -32,6 +32,7 @@ func TestProjectUpdate(t *testing.T) {
 		"company_id":  float64(123),
 		"owner_id":    float64(456),
 		"tag_ids":     []float64{1, 2, 3},
+		"status":      "archived",
 	})
 }
 
