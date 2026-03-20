@@ -1,4 +1,3 @@
-//nolint:lll
 package twprojects
 
 import (
@@ -46,9 +45,9 @@ func init() {
 	var err error
 
 	// generate the output schemas only once
-	tasklistBudgetListOutputSchema, err = jsonschema.For[projects.ProjectBudgetTasklistBudgetListResponse](&jsonschema.ForOptions{})
+	tasklistBudgetListOutputSchema, err = jsonschema.For[projects.TasklistBudgetListResponse](&jsonschema.ForOptions{})
 	if err != nil {
-		panic(fmt.Sprintf("failed to generate JSON schema for ProjectBudgetTasklistBudgetListResponse: %v", err))
+		panic(fmt.Sprintf("failed to generate JSON schema for TasklistBudgetListResponse: %v", err))
 	}
 	helpers.WithMetaWebLinkSchema(tasklistBudgetListOutputSchema)
 
@@ -191,7 +190,7 @@ func TasklistBudgetList(engine *twapi.Engine) toolsets.ToolWrapper {
 				return helpers.NewToolResultTextError(fmt.Sprintf("invalid parameters: %s", err.Error())), nil
 			}
 
-			tasklistBudgetListRequest := projects.NewProjectBudgetTasklistBudgetListRequest(projectBudgetID)
+			tasklistBudgetListRequest := projects.NewTasklistBudgetListRequest(projectBudgetID)
 			err = helpers.ParamGroup(arguments,
 				helpers.OptionalNumericParam(&tasklistBudgetListRequest.Filters.Page, "page"),
 				helpers.OptionalNumericParam(&tasklistBudgetListRequest.Filters.PageSize, "page_size"),
@@ -200,7 +199,7 @@ func TasklistBudgetList(engine *twapi.Engine) toolsets.ToolWrapper {
 				return helpers.NewToolResultTextError(fmt.Sprintf("invalid parameters: %s", err.Error())), nil
 			}
 
-			tasklistBudgetList, err := projects.ProjectBudgetTasklistBudgetList(ctx, engine, tasklistBudgetListRequest)
+			tasklistBudgetList, err := projects.TasklistBudgetList(ctx, engine, tasklistBudgetListRequest)
 			if err != nil {
 				return helpers.HandleAPIError(err, "failed to list tasklist budgets")
 			}
