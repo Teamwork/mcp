@@ -11,7 +11,7 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/modelcontextprotocol/go-sdk v1.4.1
 	github.com/teamwork/desksdkgo v0.0.0-20260310162122-b89d691e5ee8
-	github.com/teamwork/twapi-go-sdk v1.9.0
+	github.com/teamwork/twapi-go-sdk v1.9.1
 )
 
 require (
