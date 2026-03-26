@@ -220,13 +220,9 @@ func logMiddleware(logger *slog.Logger, next http.Handler) http.Handler {
 			}
 		}
 
-		var traceID string
-		if info, ok := request.InfoFromContext(r.Context()); ok {
-			traceID = info.TraceID
-		}
-
+		info, _ := request.InfoFromContext(r.Context())
 		logger.Info("request",
-			slog.String("trace_id", traceID),
+			slog.String("trace_id", info.TraceID()),
 			slog.String("request_url", r.URL.String()),
 			slog.String("request_method", r.Method),
 			slog.Any("request_headers", headers),
@@ -235,6 +231,9 @@ func logMiddleware(logger *slog.Logger, next http.Handler) http.Handler {
 			slog.Any("response_headers", rw.Header()),
 			slog.String("response_body", string(rw.Body())),
 			slog.Duration("duration", time.Since(start)),
+			slog.Int64("installation.id", info.InstallationID()),
+			slog.String("installation.url", info.InstallationURL()),
+			slog.Int64("user.id", info.UserID()),
 		)
 	})
 }
@@ -250,15 +249,12 @@ func sseLogMiddleware(logger *slog.Logger, next http.Handler) http.Handler {
 			}
 		}
 
-		var traceID string
-		if info, ok := request.InfoFromContext(r.Context()); ok {
-			traceID = info.TraceID
-		}
+		info, _ := request.InfoFromContext(r.Context())
 
 		if r.Method == http.MethodGet {
 			// long-lived SSE stream connection
 			logger.Info("SSE stream opened",
-				slog.String("trace_id", traceID),
+				slog.String("trace_id", info.TraceID()),
 				slog.String("request_url", r.URL.String()),
 				slog.String("request_method", r.Method),
 				slog.Any("request_headers", headers),
@@ -267,7 +263,7 @@ func sseLogMiddleware(logger *slog.Logger, next http.Handler) http.Handler {
 			start := time.Now()
 			next.ServeHTTP(w, r)
 			logger.Info("SSE stream closed",
-				slog.String("trace_id", traceID),
+				slog.String("trace_id", info.TraceID()),
 				slog.Duration("duration", time.Since(start)),
 			)
 			return
@@ -292,7 +288,7 @@ func sseLogMiddleware(logger *slog.Logger, next http.Handler) http.Handler {
 		next.ServeHTTP(rw, r)
 
 		logger.Info("SSE message",
-			slog.String("trace_id", traceID),
+			slog.String("trace_id", info.TraceID()),
 			slog.String("session_id", sessionID),
 			slog.String("request_url", r.URL.String()),
 			slog.String("request_method", r.Method),
@@ -302,6 +298,9 @@ func sseLogMiddleware(logger *slog.Logger, next http.Handler) http.Handler {
 			slog.Any("response_headers", rw.Header()),
 			slog.String("response_body", string(rw.Body())),
 			slog.Duration("duration", time.Since(start)),
+			slog.Int64("installation.id", info.InstallationID()),
+			slog.String("installation.url", info.InstallationURL()),
+			slog.Int64("user.id", info.UserID()),
 		)
 	})
 }
@@ -429,6 +428,9 @@ func authMiddleware(resources config.Resources, next http.Handler) http.Handler 
 			span.SetTag("user.id", info.UserID)
 			span.SetTag("installation.id", info.InstallationID)
 			span.SetTag("installation.url", info.URL)
+		}
+		if requestInfo, ok := request.InfoFromContext(r.Context()); ok {
+			requestInfo.SetAuth(info.InstallationID, info.URL, info.UserID)
 		}
 
 		ctx := r.Context()

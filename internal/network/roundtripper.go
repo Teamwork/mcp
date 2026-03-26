@@ -48,11 +48,6 @@ func (lrt *LoggingRoundTripper) RoundTrip(r *http.Request) (*http.Response, erro
 		}
 	}
 
-	var traceID string
-	if info, ok := request.InfoFromContext(r.Context()); ok {
-		traceID = info.TraceID
-	}
-
 	transport := lrt.Base
 	if transport == nil {
 		transport = http.DefaultTransport
@@ -74,8 +69,9 @@ func (lrt *LoggingRoundTripper) RoundTrip(r *http.Request) (*http.Response, erro
 		resp.Body = io.NopCloser(bytes.NewBuffer(respBody))
 	}
 
+	info, _ := request.InfoFromContext(r.Context())
 	lrt.Log.Info("internal request",
-		slog.String("trace_id", traceID),
+		slog.String("trace_id", info.TraceID()),
 		slog.String("request_url", r.URL.String()),
 		slog.String("request_method", r.Method),
 		slog.Any("request_headers", headers),
@@ -84,6 +80,9 @@ func (lrt *LoggingRoundTripper) RoundTrip(r *http.Request) (*http.Response, erro
 		slog.Any("response_headers", resp.Header),
 		slog.String("response_body", string(respBody)),
 		slog.String("duration", time.Since(start).String()),
+		slog.Int64("installation.id", info.InstallationID()),
+		slog.String("installation.url", info.InstallationURL()),
+		slog.Int64("user.id", info.UserID()),
 	)
 
 	return resp, nil

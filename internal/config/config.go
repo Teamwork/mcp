@@ -284,14 +284,13 @@ func mcpLoggingMiddleware(resources Resources) mcp.Middleware {
 		return func(ctx context.Context, method string, req mcp.Request) (mcp.Result, error) {
 			logger := resources.Logger()
 
-			var traceID string
-			if info, ok := request.InfoFromContext(ctx); ok {
-				traceID = info.TraceID
-			}
-
+			info, _ := request.InfoFromContext(ctx)
 			attrs := []any{
 				slog.String("mcp.method", method),
-				slog.String("trace_id", traceID),
+				slog.String("trace_id", info.TraceID()),
+				slog.Int64("installation.id", info.InstallationID()),
+				slog.String("installation.url", info.InstallationURL()),
+				slog.Int64("user.id", info.UserID()),
 			}
 
 			if params, ok := req.GetParams().(*mcp.CallToolParamsRaw); ok {
