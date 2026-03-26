@@ -14,26 +14,71 @@ type key struct{}
 
 // Info stores request information in the context.
 type Info struct {
-	RemoteIP      string // X-Forwarded-For
-	RemoteHost    string // X-Forwarded-Host
-	RemoteProto   string // X-Forwarded-Proto
-	RemotePort    int64  // X-Forwarded-Port
-	RemoteHeaders http.Header
-	TraceID       string
+	remoteIP        string // X-Forwarded-For
+	remoteHost      string // X-Forwarded-Host
+	remoteProto     string // X-Forwarded-Proto
+	remotePort      int64  // X-Forwarded-Port
+	remoteHeaders   http.Header
+	traceID         string
+	installationID  int64
+	installationURL string
+	userID          int64
+}
+
+// TraceID returns the request trace ID.
+func (i *Info) TraceID() string {
+	if i == nil {
+		return ""
+	}
+	return i.traceID
+}
+
+// SetAuth sets the authenticated information.
+func (i *Info) SetAuth(installationID int64, installationURL string, userID int64) {
+	if i == nil {
+		return
+	}
+	i.installationID = installationID
+	i.installationURL = installationURL
+	i.userID = userID
+}
+
+// InstallationID returns the authenticated installation ID.
+func (i *Info) InstallationID() int64 {
+	if i == nil {
+		return 0
+	}
+	return i.installationID
+}
+
+// InstallationURL returns the authenticated installation URL.
+func (i *Info) InstallationURL() string {
+	if i == nil {
+		return ""
+	}
+	return i.installationURL
+}
+
+// UserID returns the authenticated user ID.
+func (i *Info) UserID() int64 {
+	if i == nil {
+		return 0
+	}
+	return i.userID
 }
 
 // NewInfo creates a new Info instance with the provided values.
-func NewInfo(r *http.Request) Info {
+func NewInfo(r *http.Request) *Info {
 	var info Info
 	if remoteAddr, remotePort, err := net.SplitHostPort(r.RemoteAddr); err == nil {
-		info.RemoteIP = remoteAddr
+		info.remoteIP = remoteAddr
 		if port, err := net.LookupPort("tcp", remotePort); err == nil {
-			info.RemotePort = int64(port)
+			info.remotePort = int64(port)
 		}
 	}
-	info.RemoteHost = r.Host
-	info.RemoteProto = r.Proto
-	info.RemoteHeaders = r.Header.Clone()
+	info.remoteHost = r.Host
+	info.remoteProto = r.Proto
+	info.remoteHeaders = r.Header.Clone()
 
 	traceHTTPHeaders := []string{
 		"X-Amzn-Trace-Id",
@@ -43,31 +88,34 @@ func NewInfo(r *http.Request) Info {
 	}
 	for _, header := range traceHTTPHeaders {
 		if val := r.Header.Get(header); val != "" {
-			info.TraceID = val
+			info.traceID = val
 			break
 		}
 	}
-	if info.TraceID == "" {
-		info.TraceID = uuid.NewString()
+	if info.traceID == "" {
+		info.traceID = uuid.NewString()
 	}
 
-	return info
+	return &info
 }
 
 // WithInfo adds the Info to the context.
-func WithInfo(ctx context.Context, info Info) context.Context {
+func WithInfo(ctx context.Context, info *Info) context.Context {
+	if info == nil {
+		return ctx
+	}
 	return context.WithValue(ctx, key{}, info)
 }
 
 // InfoFromContext retrieves the Info from the context.
-func InfoFromContext(ctx context.Context) (Info, bool) {
-	info, ok := ctx.Value(key{}).(Info)
+func InfoFromContext(ctx context.Context) (*Info, bool) {
+	info, ok := ctx.Value(key{}).(*Info)
 	return info, ok
 }
 
 // SetProxyHeaders sets the proxy headers in the request.
 func SetProxyHeaders(r *http.Request) {
-	info, ok := r.Context().Value(key{}).(Info)
+	info, ok := r.Context().Value(key{}).(*Info)
 	if !ok {
 		return
 	}
@@ -77,13 +125,13 @@ func SetProxyHeaders(r *http.Request) {
 	// "X-Forwarded-Proto" and "X-Forwarded-Port".
 
 	r.Header.Set("Sent-By", "tw-mcp-server")
-	r.Header.Set("X-Forwarded-For", info.RemoteIP)
+	r.Header.Set("X-Forwarded-For", info.remoteIP)
 
 	if r.Header != nil {
 		if headerValue := r.Header.Get("X-Forwarded-For"); headerValue != "" {
 			xForwardedForParts := strings.Split(headerValue, ",")
-			if xForwardedForParts[len(xForwardedForParts)-1] != info.RemoteIP {
-				xForwardedForParts = append(xForwardedForParts, info.RemoteIP)
+			if xForwardedForParts[len(xForwardedForParts)-1] != info.remoteIP {
+				xForwardedForParts = append(xForwardedForParts, info.remoteIP)
 			}
 			r.Header.Set("X-Forwarded-For", strings.Join(xForwardedForParts, ","))
 		}
