@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"flag"
 	"fmt"
@@ -10,6 +9,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/modelcontextprotocol/go-sdk/jsonrpc"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/teamwork/mcp/internal/auth"
 	"github.com/teamwork/mcp/internal/config"
@@ -102,9 +102,11 @@ func newMCPServer(resources config.Resources) (*mcp.Server, error) {
 }
 
 func mcpError(logger *slog.Logger, err error, code jsonRPCErrorCode) {
-	encoded, err := json.Marshal(jsonRPCError{
-		Code:    code,
-		Message: err.Error(),
+	encoded, err := jsonrpc.EncodeMessage(&jsonrpc.Response{
+		Error: &jsonrpc.Error{
+			Code:    int64(code),
+			Message: err.Error(),
+		},
 	})
 	if err != nil {
 		logger.Error("failed to encode error",
@@ -145,29 +147,12 @@ func (t *methodsInput) Set(value string) error {
 type jsonRPCErrorCode int64
 
 const (
-	jsonRPCErrorCodeParse          jsonRPCErrorCode = -32700
-	jsonRPCErrorCodeInvalidRequest jsonRPCErrorCode = -32600
-	jsonRPCErrorCodeMethodNotFound jsonRPCErrorCode = -32601
-	jsonRPCErrorCodeInvalidParams  jsonRPCErrorCode = -32602
-	jsonRPCErrorCodeInternalError  jsonRPCErrorCode = -32603
+	jsonRPCErrorCodeParse          jsonRPCErrorCode = jsonrpc.CodeParseError
+	jsonRPCErrorCodeInvalidRequest jsonRPCErrorCode = jsonrpc.CodeInvalidRequest
+	jsonRPCErrorCodeMethodNotFound jsonRPCErrorCode = jsonrpc.CodeMethodNotFound
+	jsonRPCErrorCodeInvalidParams  jsonRPCErrorCode = jsonrpc.CodeInvalidParams
+	jsonRPCErrorCodeInternalError  jsonRPCErrorCode = jsonrpc.CodeInternalError
 )
-
-// jsonRPCError represents a JSON-RPC level error.
-//
-// https://www.jsonrpc.org/specification#error_object
-//
-// The library does not export this type, so we need to redefine it here.
-// https://github.com/modelcontextprotocol/go-sdk/blob/1dcbf62661fc9c54ae364e0af80433db347e2fc4/internal/jsonrpc2/wire.go#L66-L74
-//
-//nolint:lll
-type jsonRPCError struct {
-	// Code is an error code indicating the type of failure.
-	Code jsonRPCErrorCode `json:"code"`
-	// Message is a short description of the error.
-	Message string `json:"message"`
-	// Data is optional structured data containing additional information about the error.
-	Data json.RawMessage `json:"data,omitempty"`
-}
 
 type exitCode int
 
