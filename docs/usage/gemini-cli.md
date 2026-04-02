@@ -9,7 +9,6 @@
 ## Prerequisites
 
 - Gemini CLI installed
-- A Bearer token — see [Get a Bearer Token](teamwork-cli.md#get-a-bearer-token)
 
 ## Setup
 
@@ -17,24 +16,32 @@ Edit `$HOME/.gemini/settings.json` and add the `mcpServers` block:
 
 ```json
 {
-  "selectedAuthType": "oauth-personal",
   "mcpServers": {
     "Teamwork.com": {
-      "httpUrl": "https://mcp.ai.teamwork.com",
-      "headers": { "Authorization": "Bearer <token>" },
+      "url": "https://mcp.ai.teamwork.com",
+      "type": "http",
+      "oauth": {
+        "scopes": ["projects","desk"]
+      },
       "trust": false,
-      "timeout": 5000
+      "timeout": 5000,
+      "description": "Teamwork.com MCP server"
     }
   }
 }
 ```
 
-Replace `<token>` with your Bearer token.
+> [!NOTE]
+> This configuration is for Gemini CLI v0.36.0. If you're using a different
+> version, please refer to the corresponding documentation for any changes in
+> configuration options.
 
-> [!TIP]
-> **Get your token:** `npm i @teamwork/get-bearer-token@latest -g && teamwork-get-bearer-token`
+More configuration options can be found [here](https://github.com/google-gemini/gemini-cli/blob/v0.36.0/packages/core/src/code_assist/types.ts#L369-L389).
 
 ## Notes
 
-- `"trust": false` causes Gemini CLI to prompt you for confirmation before executing any action against Teamwork.com. This is recommended to prevent accidental modifications.
+- `"trust": false` causes Gemini CLI to prompt you for confirmation before
+  executing any action against Teamwork.com. This is recommended to prevent
+  accidental modifications.
+
 - Increase `timeout` (milliseconds) if you experience timeouts on slow networks.
