@@ -23,6 +23,18 @@ Use the public hosted HTTP endpoint for any platform that supports MCP over HTTP
 2. Set the base URL to `https://mcp.ai.teamwork.com`.
 3. Add the `Authorization: Bearer <token>` header to the connector authentication settings.
 
+### LibreChat
+
+1. Use the SSE endpoint: `https://mcp.ai.teamwork.com/sse`.
+2. Set the `SSE` transport method.
+3. Select the OAuth authentication
+4. Change your Teamwork Developer App to use the correct redirect URL (`http://localhost:3080/api/mcp/teamwork/oauth/callback` by default).
+5. Fill the client ID and secret from your Teamwork Developer App.
+6. Populate the Authorization server fields:
+  - Authorization URL: `https://www.teamwork.com/launchpad/login`
+  - Token URL: `https://www.teamwork.com/launchpad/v1/token.json`
+7. Set the same scopes from the Teamwork Developer App (`projects`, `desk` or `projects,desk`).
+
 ## Custom / Programmatic
 
 Any HTTP client can call the MCP server directly:
