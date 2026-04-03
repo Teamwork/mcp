@@ -282,6 +282,10 @@ func TaskUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 						Type:        "integer",
 						Description: "The ID of the task to update.",
 					},
+					"name": {
+						Type:        "string",
+						Description: "The name/title of the task.",
+					},
 					"tasklist_id": {
 						Type:        "integer",
 						Description: "The ID of the tasklist.",
