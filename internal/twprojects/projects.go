@@ -21,6 +21,7 @@ const (
 	MethodProjectCreate toolsets.Method = "twprojects-create_project"
 	MethodProjectUpdate toolsets.Method = "twprojects-update_project"
 	MethodProjectDelete toolsets.Method = "twprojects-delete_project"
+	MethodProjectClone  toolsets.Method = "twprojects-clone_project"
 	MethodProjectGet    toolsets.Method = "twprojects-get_project"
 	MethodProjectList   toolsets.Method = "twprojects-list_projects"
 )
@@ -43,6 +44,7 @@ func init() {
 	toolsets.RegisterMethod(MethodProjectCreate)
 	toolsets.RegisterMethod(MethodProjectUpdate)
 	toolsets.RegisterMethod(MethodProjectDelete)
+	toolsets.RegisterMethod(MethodProjectClone)
 	toolsets.RegisterMethod(MethodProjectGet)
 	toolsets.RegisterMethod(MethodProjectList)
 
@@ -278,6 +280,136 @@ func ProjectDelete(engine *twapi.Engine) toolsets.ToolWrapper {
 				return helpers.HandleAPIError(err, "failed to delete project")
 			}
 			return helpers.NewToolResultText("Project deleted successfully"), nil
+		},
+	}
+}
+
+// ProjectClone clones a project in Teamwork.com.
+func ProjectClone(engine *twapi.Engine) toolsets.ToolWrapper {
+	return toolsets.ToolWrapper{
+		Tool: &mcp.Tool{
+			Name:        string(MethodProjectClone),
+			Description: "Clone an existing project in Teamwork.com. " + projectDescription,
+			Annotations: &mcp.ToolAnnotations{
+				Title: "Clone Project",
+			},
+			InputSchema: &jsonschema.Schema{
+				Type: "object",
+				Properties: map[string]*jsonschema.Schema{
+					"id": {
+						Type:        "integer",
+						Description: "The ID of the project to clone.",
+					},
+					"name": {
+						Type: "string",
+						Description: "The name of the new cloned project. If not provided, the name of the original project " +
+							"will be used with an incremental suffix (e.g., 'Project Name (1)').",
+					},
+					"description": {
+						Type: "string",
+						Description: "The description of the new cloned project. If not provided, the description of the " +
+							"original project will be used.",
+					},
+					"company_id": {
+						Type: "integer",
+						Description: "The ID of the company associated with the new cloned project. If not provided, the company " +
+							"of the original project will be used.",
+					},
+					"new_from_template": {
+						Type:        "boolean",
+						Description: "Indicates whether the new project should be a regular one created from a template.",
+					},
+					"to_template": {
+						Type:        "boolean",
+						Description: "Indicates whether the new project should be set as a template.",
+					},
+					"template_date_target": {
+						Type: "string",
+						Description: "Specifies whether target_date represents the project's " +
+							"start or end date. When 'end', the start date is calculated by subtracting the template project's duration " +
+							"from target_date. Only applicable when new_from_template=true.",
+						Enum:    []any{"start", "end"},
+						Default: json.RawMessage(`"start"`),
+					},
+					"target_date": {
+						Type: "string",
+						Description: "Target date is the desired start or end date for the cloned project " +
+							"(determined by template_date_target). Used only when creating a project from " +
+							"a template (new_from_template=true). Accepted format: YYYYMMDD string. " +
+							"Defaults to the current user date if omitted.",
+					},
+					"days_offset": {
+						Type: "integer",
+						Description: "DaysOffset is the number of days to shift all scheduled dates in the cloned " +
+							"project relative to the base date. When cloning from a template, it defines " +
+							"the project duration span. When copying an existing project, it shifts the " +
+							"original start and end dates by this many days. If omitted, calculated " +
+							"automatically from the source project's date range.",
+					},
+				},
+				Required: []string{"id"},
+			},
+		},
+		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+			var projectCloneRequest projects.ProjectCloneRequest
+
+			var arguments map[string]any
+			if err := json.Unmarshal(request.Params.Arguments, &arguments); err != nil {
+				return helpers.NewToolResultTextError(fmt.Sprintf("failed to decode request: %s", err.Error())), nil
+			}
+			err := helpers.ParamGroup(arguments,
+				helpers.RequiredNumericParam(&projectCloneRequest.Path.ID, "id"),
+				helpers.OptionalPointerParam(&projectCloneRequest.Name, "name"),
+				helpers.OptionalPointerParam(&projectCloneRequest.Description, "description"),
+				helpers.OptionalNumericPointerParam(&projectCloneRequest.CompanyID, "company_id"),
+				helpers.OptionalPointerParam(&projectCloneRequest.NewFromTemplate, "new_from_template"),
+				helpers.OptionalPointerParam(&projectCloneRequest.ToTemplate, "to_template"),
+				helpers.OptionalPointerParam(&projectCloneRequest.TemplateDateTarget, "template_date_target",
+					helpers.RestrictValues(
+						projects.ProjectCloneTemplateDateTargetStart,
+						projects.ProjectCloneTemplateDateTargetEnd,
+					),
+				),
+				helpers.OptionalLegacyDatePointerParam(&projectCloneRequest.TargetDate, "target_date"),
+				helpers.OptionalNumericPointerParam(&projectCloneRequest.DaysOffset, "days_offset"),
+			)
+			if err != nil {
+				return helpers.NewToolResultTextError(fmt.Sprintf("invalid parameters: %s", err.Error())), nil
+			}
+
+			projectCloneRequest.Action = new(projects.ProjectCloneActionCopy)
+			projectCloneRequest.CopyFiles = new(true)
+			projectCloneRequest.CopyMessages = new(true)
+			projectCloneRequest.CopyMilestones = new(true)
+			projectCloneRequest.CopyTasks = new(true)
+			projectCloneRequest.CopyTasklists = new(true)
+			projectCloneRequest.CopyNotebooks = new(true)
+			projectCloneRequest.CopyLinks = new(true)
+			projectCloneRequest.CopyComments = new(true)
+			projectCloneRequest.CopyFollowers = new(true)
+			projectCloneRequest.CopyInvoices = new(true)
+			projectCloneRequest.CopyTimelogs = new(true)
+			projectCloneRequest.CopyExpenses = new(true)
+			projectCloneRequest.CopyWebhooks = new(true)
+			projectCloneRequest.CopyProjectRoles = new(true)
+			projectCloneRequest.CopyCustomFields = new(true)
+			projectCloneRequest.CopyCustomItems = new(true)
+			projectCloneRequest.CopyProjectUpdates = new(true)
+			projectCloneRequest.CopyRisks = new(true)
+			projectCloneRequest.CopyForms = new(true)
+			projectCloneRequest.CopyAutomations = new(true)
+			projectCloneRequest.CopyPeople = new(true)
+			projectCloneRequest.CopyProjectPrivacy = new(true)
+			projectCloneRequest.CopyBudgets = new(true)
+			projectCloneRequest.CopyAllocations = new(true)
+			projectCloneRequest.CopyLogo = new(true)
+			projectCloneRequest.CopyProjectPreferences = new(true)
+
+			project, err := projects.ProjectClone(ctx, engine, projectCloneRequest)
+			if err != nil {
+				return helpers.HandleAPIError(err, "failed to clone project")
+			}
+			return helpers.NewToolResultText("Project cloned successfully with ID %d", project.ID), nil
 		},
 	}
 }
