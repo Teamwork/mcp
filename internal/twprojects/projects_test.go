@@ -43,6 +43,21 @@ func TestProjectDelete(t *testing.T) {
 	})
 }
 
+func TestProjectClone(t *testing.T) {
+	mcpServer := mcpServerMock(t, http.StatusOK, []byte(`{"projectId":123}`))
+	testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodProjectClone.String(), map[string]any{
+		"id":                   float64(123),
+		"name":                 "Cloned Project",
+		"description":          "This is a cloned project.",
+		"company_id":           float64(123),
+		"new_from_template":    true,
+		"to_template":          false,
+		"template_date_target": "start",
+		"target_date":          "20240101",
+		"days_offset":          float64(7),
+	})
+}
+
 func TestProjectGet(t *testing.T) {
 	mcpServer := mcpServerMock(t, http.StatusOK, []byte(`{}`))
 	testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodProjectGet.String(), map[string]any{

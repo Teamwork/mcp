@@ -10,6 +10,7 @@ func DefaultToolsetGroup(readOnly, allowDelete bool, engine *twapi.Engine) *tool
 	writeTools := []toolsets.ToolWrapper{
 		ProjectCreate(engine),
 		ProjectUpdate(engine),
+		ProjectClone(engine),
 		ProjectMemberAdd(engine),
 		ProjectCategoryCreate(engine),
 		ProjectCategoryUpdate(engine),
