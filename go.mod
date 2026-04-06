@@ -4,7 +4,7 @@ go 1.26.0
 
 require (
 	github.com/DataDog/dd-trace-go/contrib/net/http/v2 v2.7.0
-	github.com/DataDog/dd-trace-go/v2 v2.7.0
+	github.com/DataDog/dd-trace-go/v2 v2.7.1
 	github.com/getsentry/sentry-go v0.44.1
 	github.com/getsentry/sentry-go/slog v0.44.1
 	github.com/google/jsonschema-go v0.4.2
@@ -36,16 +36,13 @@ require (
 	github.com/DataDog/go-tuf v1.1.1-0.5.2 // indirect
 	github.com/DataDog/sketches-go v1.4.8 // indirect
 	github.com/Microsoft/go-winio v0.6.2 // indirect
-	github.com/brianvoe/gofakeit/v7 v7.14.1 // indirect
 	github.com/cenkalti/backoff/v5 v5.0.3 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/cihub/seelog v0.0.0-20170130134532-f561c5e57575 // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/ebitengine/purego v0.10.0 // indirect
 	github.com/go-ole/go-ole v1.3.0 // indirect
-	github.com/golang/protobuf v1.5.4 // indirect
 	github.com/hashicorp/go-version v1.9.0 // indirect
-	github.com/joho/godotenv v1.5.1 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/klauspost/compress v1.18.5 // indirect
 	github.com/klauspost/cpuid/v2 v2.3.0 // indirect
