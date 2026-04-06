@@ -20,10 +20,6 @@ const (
 	MethodMessageCreate toolsets.Method = "twdesk-create_message"
 )
 
-func init() {
-	toolsets.RegisterMethod(MethodMessageCreate)
-}
-
 // MessageCreate replies to a ticket in Teamwork Desk.
 func MessageCreate(httpClient *http.Client) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{

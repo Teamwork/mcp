@@ -47,9 +47,21 @@ TW_MCP_BEARER_TOKEN=your-bearer-token \
 TW_MCP_BEARER_TOKEN=your-bearer-token \
   go run cmd/mcp-stdio/main.go -read-only
 
-# Enable specific toolsets only
+# PM profile: projects, tasks, people, and content only
 TW_MCP_BEARER_TOKEN=your-bearer-token \
-  go run cmd/mcp-stdio/main.go -toolsets=twprojects-list_projects,twprojects-get_project
+  go run cmd/mcp-stdio/main.go -toolsets=pm
+
+# Support profile: Desk tickets and customers only
+TW_MCP_BEARER_TOKEN=your-bearer-token \
+  go run cmd/mcp-stdio/main.go -toolsets=support
+
+# Read-only analyst: all toolsets but no writes
+TW_MCP_BEARER_TOKEN=your-bearer-token \
+  go run cmd/mcp-stdio/main.go -toolsets=analyst -read-only
+
+# Specific sub-toolsets only
+TW_MCP_BEARER_TOKEN=your-bearer-token \
+  go run cmd/mcp-stdio/main.go -toolsets=twprojects-tasks,twprojects-content
 ```
 
 ### ⚙️ Configuration
@@ -58,8 +70,30 @@ TW_MCP_BEARER_TOKEN=your-bearer-token \
 
 | Flag | Description | Default | Example |
 |------|-------------|---------|---------|
-| `-toolsets` | Comma-separated list of toolsets to enable | `all` | `twprojects-list_projects,twprojects-get_project` |
+| `-toolsets` | Comma-separated list of sub-toolsets or profile names to enable | `all` | `pm`, `twprojects-tasks,twdesk-tickets` |
 | `-read-only` | Restrict the server to read-only operations | `false` | `-read-only` |
+
+##### Available profiles
+
+| Profile | Toolsets included | Intended use |
+|---------|-------------------|--------------|
+| `pm` | `twprojects-projects`, `twprojects-tasks`, `twprojects-people`, `twprojects-content` | Project managers working in Teamwork Projects |
+| `support` | `twdesk-tickets`, `twdesk-customers` | Support agents working in Teamwork Desk |
+| `analyst` | All sub-toolsets (combine with `-read-only`) | Read-only reporting across both products |
+| `ops` | All sub-toolsets | Full access — same as `all` |
+
+##### Available sub-toolsets
+
+| Sub-toolset | Covers |
+|-------------|--------|
+| `twprojects-projects` | Projects, categories, templates, project members, industries |
+| `twprojects-tasks` | Tasks and tasklists |
+| `twprojects-people` | Users, companies, teams, skills, job roles, workload |
+| `twprojects-time` | Timelogs, timers, budgets |
+| `twprojects-content` | Comments, notebooks, milestones, tags, activities |
+| `twdesk-tickets` | Tickets, messages, files, inboxes |
+| `twdesk-customers` | Companies, customers, users |
+| `twdesk-admin` | Priorities, statuses, types, tags |
 
 #### Environment Variables
 
@@ -93,9 +127,15 @@ TW_MCP_BEARER_TOKEN=your-token go run cmd/mcp-stdio/main.go
 # Read-only mode for safety
 TW_MCP_BEARER_TOKEN=your-token go run cmd/mcp-stdio/main.go -read-only
 
-# Enable only project and task operations
+# PM profile: projects, tasks, people, and content
+TW_MCP_BEARER_TOKEN=your-token go run cmd/mcp-stdio/main.go -toolsets=pm
+
+# Support profile: Desk tickets and customers
+TW_MCP_BEARER_TOKEN=your-token go run cmd/mcp-stdio/main.go -toolsets=support
+
+# Combine sub-toolsets across products
 TW_MCP_BEARER_TOKEN=your-token go run cmd/mcp-stdio/main.go \
-  -toolsets=twprojects-list_projects,twprojects-get_project,twprojects-list_tasks
+  -toolsets=twprojects-tasks,twdesk-tickets
 ```
 
 ### Integration with MCP Clients

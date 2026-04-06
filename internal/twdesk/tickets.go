@@ -27,14 +27,6 @@ const (
 	MethodTicketSearch toolsets.Method = "twdesk-search_tickets"
 )
 
-func init() {
-	toolsets.RegisterMethod(MethodTicketCreate)
-	toolsets.RegisterMethod(MethodTicketUpdate)
-	toolsets.RegisterMethod(MethodTicketGet)
-	toolsets.RegisterMethod(MethodTicketList)
-	toolsets.RegisterMethod(MethodTicketSearch)
-}
-
 // TicketGet finds a ticket in Teamwork Desk.  This will find it by ID
 func TicketGet(httpClient *http.Client) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{

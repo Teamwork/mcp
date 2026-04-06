@@ -25,13 +25,6 @@ const (
 	MethodCompanyList   toolsets.Method = "twdesk-list_companies"
 )
 
-func init() {
-	toolsets.RegisterMethod(MethodCompanyCreate)
-	toolsets.RegisterMethod(MethodCompanyUpdate)
-	toolsets.RegisterMethod(MethodCompanyGet)
-	toolsets.RegisterMethod(MethodCompanyList)
-}
-
 // CompanyGet finds a company in Teamwork Desk.  This will find it by ID
 func CompanyGet(httpClient *http.Client) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{

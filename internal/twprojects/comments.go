@@ -46,17 +46,6 @@ var (
 )
 
 func init() {
-	// register the toolset methods
-	toolsets.RegisterMethod(MethodCommentCreate)
-	toolsets.RegisterMethod(MethodCommentUpdate)
-	toolsets.RegisterMethod(MethodCommentDelete)
-	toolsets.RegisterMethod(MethodCommentGet)
-	toolsets.RegisterMethod(MethodCommentList)
-	toolsets.RegisterMethod(MethodCommentListByFileVersion)
-	toolsets.RegisterMethod(MethodCommentListByMilestone)
-	toolsets.RegisterMethod(MethodCommentListByNotebook)
-	toolsets.RegisterMethod(MethodCommentListByTask)
-
 	var err error
 
 	// generate the output schemas only once

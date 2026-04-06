@@ -34,8 +34,6 @@ var (
 )
 
 func init() {
-	toolsets.RegisterMethod(MethodUsersWorkload)
-
 	var err error
 
 	// generate the output schemas only once

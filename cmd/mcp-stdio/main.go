@@ -25,6 +25,32 @@ var (
 	logToFile string
 )
 
+func init() {
+	toolsets.RegisterProfile("pm", []toolsets.Method{
+		twprojects.ToolsetProjects,
+		twprojects.ToolsetTasks,
+		twprojects.ToolsetPeople,
+		twprojects.ToolsetContent,
+	})
+	toolsets.RegisterProfile("support", []toolsets.Method{
+		twdesk.ToolsetTickets,
+		twdesk.ToolsetCustomers,
+	})
+	toolsets.RegisterProfile("analyst", []toolsets.Method{
+		twprojects.ToolsetProjects,
+		twprojects.ToolsetTasks,
+		twprojects.ToolsetPeople,
+		twprojects.ToolsetTime,
+		twprojects.ToolsetContent,
+		twdesk.ToolsetTickets,
+		twdesk.ToolsetCustomers,
+		twdesk.ToolsetAdmin,
+	})
+	toolsets.RegisterProfile("ops", []toolsets.Method{
+		toolsets.MethodAll,
+	})
+}
+
 func main() {
 	defer handleExit()
 
@@ -134,11 +160,18 @@ func (t *methodsInput) Set(value string) error {
 	*t = (*t)[:0] // reset slice
 
 	var errs error
-	for methodString := range strings.SplitSeq(value, ",") {
-		if method := toolsets.Method(strings.TrimSpace(methodString)); method.IsRegistered() {
+	for token := range strings.SplitSeq(value, ",") {
+		token = strings.TrimSpace(token)
+		// expand named profiles into their constituent methods
+		if profileMethods, ok := toolsets.LookupProfile(token); ok {
+			*t = append(*t, profileMethods...)
+			continue
+		}
+		if method := toolsets.Method(token); method.IsRegistered() {
 			*t = append(*t, method)
 		} else {
-			errs = errors.Join(errs, fmt.Errorf("invalid toolset method: %q", methodString))
+			errs = errors.Join(errs, fmt.Errorf("invalid toolset: %q (use a sub-toolset key like %q, a profile like %q, or %q)",
+				token, "twprojects-tasks", "pm", "all"))
 		}
 	}
 	return errs

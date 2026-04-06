@@ -27,12 +27,6 @@ const projectTemplateDescription = "The project template is a reusable project s
 	"timelines that reflect a repeatable process, allowing teams to quickly spin up new projects with consistent " +
 	"organization, clear responsibilities, and efficient execution from the start."
 
-func init() {
-	// register the toolset methods
-	toolsets.RegisterMethod(MethodProjectTemplateCreate)
-	toolsets.RegisterMethod(MethodProjectTemplateList)
-}
-
 // ProjectTemplateCreate creates a project template in Teamwork.com.
 func ProjectTemplateCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{

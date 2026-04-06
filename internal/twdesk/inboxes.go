@@ -22,11 +22,6 @@ const (
 	MethodInboxList toolsets.Method = "twdesk-list_inboxes"
 )
 
-func init() {
-	toolsets.RegisterMethod(MethodInboxGet)
-	toolsets.RegisterMethod(MethodInboxList)
-}
-
 // InboxGet finds a inbox in Teamwork Desk.  This will find it by ID
 func InboxGet(httpClient *http.Client) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{

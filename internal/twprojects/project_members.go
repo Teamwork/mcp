@@ -27,11 +27,6 @@ const projectMemberDescription = "In the context of Teamwork.com, a project memb
 	"effectively is crucial for ensuring that the right people are involved in the right tasks, and it helps maintain " +
 	"accountability and clarity throughout the project's lifecycle."
 
-func init() {
-	// register the toolset methods
-	toolsets.RegisterMethod(MethodProjectMemberAdd)
-}
-
 // ProjectMemberAdd adds a user to a project in Teamwork.com.
 func ProjectMemberAdd(engine *twapi.Engine) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{

@@ -41,16 +41,6 @@ var (
 )
 
 func init() {
-	// register the toolset methods
-	toolsets.RegisterMethod(MethodTimerCreate)
-	toolsets.RegisterMethod(MethodTimerUpdate)
-	toolsets.RegisterMethod(MethodTimerPause)
-	toolsets.RegisterMethod(MethodTimerResume)
-	toolsets.RegisterMethod(MethodTimerComplete)
-	toolsets.RegisterMethod(MethodTimerDelete)
-	toolsets.RegisterMethod(MethodTimerGet)
-	toolsets.RegisterMethod(MethodTimerList)
-
 	var err error
 
 	// generate the output schemas only once

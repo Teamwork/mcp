@@ -39,13 +39,6 @@ var (
 )
 
 func init() {
-	// register the toolset methods
-	toolsets.RegisterMethod(MethodCompanyCreate)
-	toolsets.RegisterMethod(MethodCompanyUpdate)
-	toolsets.RegisterMethod(MethodCompanyDelete)
-	toolsets.RegisterMethod(MethodCompanyGet)
-	toolsets.RegisterMethod(MethodCompanyList)
-
 	var err error
 
 	// generate the output schemas only once
