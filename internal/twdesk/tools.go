@@ -7,7 +7,7 @@ import (
 )
 
 // DefaultToolsetGroup creates a default ToolsetGroup for Teamwork Desk.
-func DefaultToolsetGroup(httpClient *http.Client) *toolsets.ToolsetGroup {
+func DefaultToolsetGroup(readOnly bool, httpClient *http.Client) *toolsets.ToolsetGroup {
 	readTools := []toolsets.ToolWrapper{
 		CompanyGet(httpClient),
 		CompanyList(httpClient),
@@ -49,7 +49,7 @@ func DefaultToolsetGroup(httpClient *http.Client) *toolsets.ToolsetGroup {
 		TypeUpdate(httpClient),
 	}
 
-	group := toolsets.NewToolsetGroup(false)
+	group := toolsets.NewToolsetGroup(readOnly)
 	group.AddToolset(toolsets.NewToolset("desk", projectDescription).
 		AddWriteTools(writeTools...).
 		AddReadTools(readTools...))
