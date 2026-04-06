@@ -94,7 +94,7 @@ func DeskMCPServerMock(t *testing.T, status int, response []byte) (*mcp.Server, 
 	}
 
 	httpClient := testServer.Client()
-	toolsetGroup := twdesk.DefaultToolsetGroup(httpClient)
+	toolsetGroup := twdesk.DefaultToolsetGroup(false, httpClient)
 	if err := toolsetGroup.EnableToolsets(toolsets.MethodAll); err != nil {
 		cleanup()
 		t.Fatalf("failed to enable toolsets: %v", err)
