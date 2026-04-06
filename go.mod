@@ -3,7 +3,7 @@ module github.com/teamwork/mcp
 go 1.26.0
 
 require (
-	github.com/DataDog/dd-trace-go/contrib/net/http/v2 v2.7.0
+	github.com/DataDog/dd-trace-go/contrib/net/http/v2 v2.7.1
 	github.com/DataDog/dd-trace-go/v2 v2.7.1
 	github.com/getsentry/sentry-go v0.44.1
 	github.com/getsentry/sentry-go/slog v0.44.1
