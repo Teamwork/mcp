@@ -70,7 +70,7 @@ TW_MCP_BEARER_TOKEN=your-bearer-token \
 
 | Flag | Description | Default | Example |
 |------|-------------|---------|---------|
-| `-toolsets` | Comma-separated list of sub-toolsets or profile names to enable | `all` | `pm`, `twprojects-tasks,twdesk-tickets` |
+| `-toolsets` | Comma-separated list of sub-toolsets or profile names to enable | `all` | `project-manager`, `twprojects-tasks,twdesk-tickets` |
 | `-read-only` | Restrict the server to read-only operations | `false` | `-read-only` |
 
 ##### Available profiles
