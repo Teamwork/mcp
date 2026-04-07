@@ -16,6 +16,7 @@ for desktop applications and development environments.
 ### 🤖 What is the STDIO Server for?
 
 This STDIO server is designed for:
+
 - **Desktop LLM applications**: Direct integration with local AI applications
 - **Development and testing**: Easy local development with MCP tools
 - **Single-user environments**: Efficient communication without network overhead
@@ -49,7 +50,7 @@ TW_MCP_BEARER_TOKEN=your-bearer-token \
 
 # PM profile: projects, tasks, people, and content only
 TW_MCP_BEARER_TOKEN=your-bearer-token \
-  go run cmd/mcp-stdio/main.go -toolsets=pm
+  go run cmd/mcp-stdio/main.go -toolsets=project-manager
 
 # Support profile: Desk tickets and customers only
 TW_MCP_BEARER_TOKEN=your-bearer-token \
@@ -68,53 +69,56 @@ TW_MCP_BEARER_TOKEN=your-bearer-token \
 
 #### Command-Line Flags
 
-| Flag | Description | Default | Example |
-|------|-------------|---------|---------|
-| `-toolsets` | Comma-separated list of sub-toolsets or profile names to enable | `all` | `project-manager`, `twprojects-tasks,twdesk-tickets` |
-| `-read-only` | Restrict the server to read-only operations | `false` | `-read-only` |
+| Flag         | Description                                                     | Default | Example                                              |
+| ------------ | --------------------------------------------------------------- | ------- | ---------------------------------------------------- |
+| `-toolsets`  | Comma-separated list of sub-toolsets or profile names to enable | `all`   | `project-manager`, `twprojects-tasks,twdesk-tickets` |
+| `-read-only` | Restrict the server to read-only operations                     | `false` | `-read-only`                                         |
 
 ##### Available profiles
 
-| Profile | Toolsets included | Intended use |
-|---------|-------------------|--------------|
+| Profile           | Toolsets included                                                                    | Intended use                                  |
+| ----------------- | ------------------------------------------------------------------------------------ | --------------------------------------------- |
 | `project-manager` | `twprojects-projects`, `twprojects-tasks`, `twprojects-people`, `twprojects-content` | Project managers working in Teamwork Projects |
-| `support` | `twdesk-tickets`, `twdesk-customers` | Support agents working in Teamwork Desk |
-| `analyst` | All sub-toolsets (combine with `-read-only`) | Read-only reporting across both products |
-| `ops` | All sub-toolsets | Full access — same as `all` |
+| `support`         | `twdesk-tickets`, `twdesk-customers`                                                 | Support agents working in Teamwork Desk       |
+| `analyst`         | All sub-toolsets (combine with `-read-only`)                                         | Read-only reporting across both products      |
+| `ops`             | All sub-toolsets                                                                     | Full access — same as `all`                   |
 
 ##### Available sub-toolsets
 
-| Sub-toolset | Covers |
-|-------------|--------|
+| Sub-toolset           | Covers                                                       |
+| --------------------- | ------------------------------------------------------------ |
 | `twprojects-projects` | Projects, categories, templates, project members, industries |
-| `twprojects-tasks` | Tasks and tasklists |
-| `twprojects-people` | Users, companies, teams, skills, job roles, workload |
-| `twprojects-time` | Timelogs, timers, budgets |
-| `twprojects-content` | Comments, notebooks, milestones, tags, activities |
-| `twdesk-tickets` | Tickets, messages, files, inboxes |
-| `twdesk-customers` | Companies, customers, users |
-| `twdesk-admin` | Priorities, statuses, types, tags |
+| `twprojects-tasks`    | Tasks and tasklists                                          |
+| `twprojects-people`   | Users, companies, teams, skills, job roles, workload         |
+| `twprojects-time`     | Timelogs, timers, budgets                                    |
+| `twprojects-content`  | Comments, notebooks, milestones, tags, activities            |
+| `twdesk-tickets`      | Tickets, messages, files, inboxes                            |
+| `twdesk-customers`    | Companies, customers, users                                  |
+| `twdesk-admin`        | Priorities, statuses, types, tags                            |
 
 #### Environment Variables
 
 The server can be configured using the following environment variables:
 
 ##### Authentication Variables
-| Variable | Description | Example |
-|----------|-------------|---------|
+
+| Variable              | Description                              | Example             |
+| --------------------- | ---------------------------------------- | ------------------- |
 | `TW_MCP_BEARER_TOKEN` | Bearer token for Teamwork API (required) | `your-bearer-token` |
 
 ##### Server Configuration
-| Variable | Description | Default | Example |
-|----------|-------------|---------|---------|
-| `TW_MCP_VERSION` | Version of the MCP server | `dev` | `v1.0.0` |
+
+| Variable         | Description               | Default                | Example                        |
+| ---------------- | ------------------------- | ---------------------- | ------------------------------ |
+| `TW_MCP_VERSION` | Version of the MCP server | `dev`                  | `v1.0.0`                       |
 | `TW_MCP_API_URL` | The Teamwork API base URL | `https://teamwork.com` | `https://example.teamwork.com` |
 
 ##### Logging Configuration
-| Variable | Description | Default | Example |
-|----------|-------------|---------|---------|
-| `TW_MCP_LOG_FORMAT` | Log output format | `text` | `json`, `text` |
-| `TW_MCP_LOG_LEVEL` | Logging level | `info` | `debug`, `warn`, `error`, `fatal` |
+
+| Variable            | Description       | Default | Example                           |
+| ------------------- | ----------------- | ------- | --------------------------------- |
+| `TW_MCP_LOG_FORMAT` | Log output format | `text`  | `json`, `text`                    |
+| `TW_MCP_LOG_LEVEL`  | Logging level     | `info`  | `debug`, `warn`, `error`, `fatal` |
 
 ## 📝 Usage Examples
 
@@ -147,10 +151,7 @@ The STDIO server can be integrated with any MCP-compatible client:
   "mcpServers": {
     "teamwork": {
       "command": "go",
-      "args": [
-        "run", 
-        "/path/to/teamwork/mcp/cmd/mcp-stdio/main.go"
-      ],
+      "args": ["run", "/path/to/teamwork/mcp/cmd/mcp-stdio/main.go"],
       "env": {
         "TW_MCP_BEARER_TOKEN": "your-bearer-token"
       }
