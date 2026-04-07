@@ -52,7 +52,7 @@ func RegisterMethod(method Method) {
 
 // RegisterProfile registers a named profile that maps to a set of methods.
 // Profiles are a convenience for enabling a predefined collection of toolsets
-// with a single name (e.g. "pm", "support").
+// with a single name (e.g. "project-manager", "support").
 func RegisterProfile(name string, methods []Method) {
 	registeredProfilesMutex.Lock()
 	defer registeredProfilesMutex.Unlock()
