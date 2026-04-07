@@ -62,7 +62,6 @@ func DefaultToolsetGroup(readOnly, allowDelete bool, engine *twapi.Engine) *tool
 			ProjectCategoryGet(engine),
 			ProjectCategoryList(engine),
 			ProjectTemplateList(engine),
-			IndustryList(engine),
 		)
 	group.AddToolset(projectsToolset)
 
@@ -82,57 +81,58 @@ func DefaultToolsetGroup(readOnly, allowDelete bool, engine *twapi.Engine) *tool
 	tasksToolset := toolsets.NewToolset(ToolsetTasks, taskDescription).
 		AddWriteTools(tasksWriteTools...).
 		AddReadTools(
+			TaskGet(engine),
+			TaskList(engine),
+			TaskListByProject(engine),
+			TaskListByTasklist(engine),
 			TasklistGet(engine),
 			TasklistList(engine),
 			TasklistListByProject(engine),
-			TaskGet(engine),
-			TaskList(engine),
-			TaskListByTasklist(engine),
-			TaskListByProject(engine),
 		)
 	tasksToolset.AddPrompts(TaskSkillsAndRolesPrompt(engine))
 	group.AddToolset(tasksToolset)
 
 	// --- people sub-toolset ---
 	peopleWriteTools := []toolsets.ToolWrapper{
-		UserCreate(engine),
-		UserUpdate(engine),
 		CompanyCreate(engine),
 		CompanyUpdate(engine),
-		TeamCreate(engine),
-		TeamUpdate(engine),
-		SkillCreate(engine),
-		SkillUpdate(engine),
 		JobRoleCreate(engine),
 		JobRoleUpdate(engine),
+		SkillCreate(engine),
+		SkillUpdate(engine),
+		TeamCreate(engine),
+		TeamUpdate(engine),
+		UserCreate(engine),
+		UserUpdate(engine),
 	}
 	if allowDelete {
 		peopleWriteTools = append(peopleWriteTools,
-			UserDelete(engine),
 			CompanyDelete(engine),
-			TeamDelete(engine),
-			SkillDelete(engine),
 			JobRoleDelete(engine),
+			SkillDelete(engine),
+			TeamDelete(engine),
+			UserDelete(engine),
 		)
 	}
 	peopleToolset := toolsets.NewToolset(ToolsetPeople, peopleDescription).
 		AddWriteTools(peopleWriteTools...).
 		AddReadTools(
+			CompanyGet(engine),
+			CompanyList(engine),
+			IndustryList(engine),
+			JobRoleGet(engine),
+			JobRoleList(engine),
+			SkillGet(engine),
+			SkillList(engine),
+			TeamGet(engine),
+			TeamList(engine),
+			TeamListByCompany(engine),
+			TeamListByProject(engine),
 			UserGet(engine),
 			UserGetMe(engine),
 			UserList(engine),
 			UserListByProject(engine),
 			UsersWorkload(engine),
-			CompanyGet(engine),
-			CompanyList(engine),
-			TeamGet(engine),
-			TeamList(engine),
-			TeamListByCompany(engine),
-			TeamListByProject(engine),
-			SkillGet(engine),
-			SkillList(engine),
-			JobRoleGet(engine),
-			JobRoleList(engine),
 		)
 	group.AddToolset(peopleToolset)
 

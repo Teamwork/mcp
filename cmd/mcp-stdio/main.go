@@ -26,7 +26,7 @@ var (
 )
 
 func init() {
-	toolsets.RegisterProfile("pm", []toolsets.Method{
+	toolsets.RegisterProfile("project-manager", []toolsets.Method{
 		twprojects.ToolsetProjects,
 		twprojects.ToolsetTasks,
 		twprojects.ToolsetPeople,
