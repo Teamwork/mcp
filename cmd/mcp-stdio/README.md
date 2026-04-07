@@ -77,7 +77,7 @@ TW_MCP_BEARER_TOKEN=your-bearer-token \
 
 | Profile | Toolsets included | Intended use |
 |---------|-------------------|--------------|
-| `pm` | `twprojects-projects`, `twprojects-tasks`, `twprojects-people`, `twprojects-content` | Project managers working in Teamwork Projects |
+| `project-manager` | `twprojects-projects`, `twprojects-tasks`, `twprojects-people`, `twprojects-content` | Project managers working in Teamwork Projects |
 | `support` | `twdesk-tickets`, `twdesk-customers` | Support agents working in Teamwork Desk |
 | `analyst` | All sub-toolsets (combine with `-read-only`) | Read-only reporting across both products |
 | `ops` | All sub-toolsets | Full access — same as `all` |
