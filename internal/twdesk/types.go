@@ -52,7 +52,7 @@ func TypeGet(httpClient *http.Client) toolsets.ToolWrapper {
 			client := ClientFromContext(ctx, httpClient)
 			arguments, err := helpers.NewToolArguments(request)
 			if err != nil {
-				return helpers.NewToolResultTextError(err.Error()), nil
+				return helpers.NewToolResultTextError("%v", err), nil
 			}
 
 			t, err := client.TicketTypes.Get(ctx, arguments.GetInt("id", 0))
@@ -103,7 +103,7 @@ func TypeList(httpClient *http.Client) toolsets.ToolWrapper {
 			client := ClientFromContext(ctx, httpClient)
 			arguments, err := helpers.NewToolArguments(request)
 			if err != nil {
-				return helpers.NewToolResultTextError(err.Error()), nil
+				return helpers.NewToolResultTextError("%v", err), nil
 			}
 
 			// Apply filters to the type list
@@ -165,7 +165,7 @@ func TypeCreate(httpClient *http.Client) toolsets.ToolWrapper {
 			client := ClientFromContext(ctx, httpClient)
 			arguments, err := helpers.NewToolArguments(request)
 			if err != nil {
-				return helpers.NewToolResultTextError(err.Error()), nil
+				return helpers.NewToolResultTextError("%v", err), nil
 			}
 
 			t, err := client.TicketTypes.Create(ctx, &deskmodels.TicketTypeResponse{
@@ -221,7 +221,7 @@ func TypeUpdate(httpClient *http.Client) toolsets.ToolWrapper {
 			client := ClientFromContext(ctx, httpClient)
 			arguments, err := helpers.NewToolArguments(request)
 			if err != nil {
-				return helpers.NewToolResultTextError(err.Error()), nil
+				return helpers.NewToolResultTextError("%v", err), nil
 			}
 
 			_, err = client.TicketTypes.Update(ctx, arguments.GetInt("id", 0), &deskmodels.TicketTypeResponse{

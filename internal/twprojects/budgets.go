@@ -100,7 +100,7 @@ func ProjectBudgetList(engine *twapi.Engine) toolsets.ToolWrapper {
 
 			var arguments map[string]any
 			if err := json.Unmarshal(request.Params.Arguments, &arguments); err != nil {
-				return helpers.NewToolResultTextError(fmt.Sprintf("failed to decode request: %s", err.Error())), nil
+				return helpers.NewToolResultTextError("failed to decode request: %s", err.Error()), nil
 			}
 			err := helpers.ParamGroup(arguments,
 				helpers.OptionalNumericListParam(&projectBudgetListRequest.Filters.ProjectIDs, "project_ids"),
@@ -118,7 +118,7 @@ func ProjectBudgetList(engine *twapi.Engine) toolsets.ToolWrapper {
 				helpers.OptionalParam(&projectBudgetListRequest.Filters.Cursor, "cursor"),
 			)
 			if err != nil {
-				return helpers.NewToolResultTextError(fmt.Sprintf("invalid parameters: %s", err.Error())), nil
+				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
 			}
 
 			projectBudgetList, err := projects.ProjectBudgetList(ctx, engine, projectBudgetListRequest)
@@ -177,13 +177,13 @@ func TasklistBudgetList(engine *twapi.Engine) toolsets.ToolWrapper {
 
 			var arguments map[string]any
 			if err := json.Unmarshal(request.Params.Arguments, &arguments); err != nil {
-				return helpers.NewToolResultTextError(fmt.Sprintf("failed to decode request: %s", err.Error())), nil
+				return helpers.NewToolResultTextError("failed to decode request: %s", err.Error()), nil
 			}
 			err := helpers.ParamGroup(arguments,
 				helpers.RequiredNumericParam(&projectBudgetID, "project_budget_id"),
 			)
 			if err != nil {
-				return helpers.NewToolResultTextError(fmt.Sprintf("invalid parameters: %s", err.Error())), nil
+				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
 			}
 
 			tasklistBudgetListRequest := projects.NewTasklistBudgetListRequest(projectBudgetID)
@@ -192,7 +192,7 @@ func TasklistBudgetList(engine *twapi.Engine) toolsets.ToolWrapper {
 				helpers.OptionalNumericParam(&tasklistBudgetListRequest.Filters.PageSize, "page_size"),
 			)
 			if err != nil {
-				return helpers.NewToolResultTextError(fmt.Sprintf("invalid parameters: %s", err.Error())), nil
+				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
 			}
 
 			tasklistBudgetList, err := projects.TasklistBudgetList(ctx, engine, tasklistBudgetListRequest)

@@ -144,7 +144,7 @@ func MilestoneCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 
 			var arguments map[string]any
 			if err := json.Unmarshal(request.Params.Arguments, &arguments); err != nil {
-				return helpers.NewToolResultTextError(fmt.Sprintf("failed to decode request: %s", err.Error())), nil
+				return helpers.NewToolResultTextError("failed to decode request: %s", err.Error()), nil
 			}
 			err := helpers.ParamGroup(arguments,
 				helpers.RequiredNumericParam(&milestoneCreateRequest.Path.ProjectID, "project_id"),
@@ -155,27 +155,24 @@ func MilestoneCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 				helpers.OptionalNumericListParam(&milestoneCreateRequest.TagIDs, "tag_ids"),
 			)
 			if err != nil {
-				return helpers.NewToolResultTextError(fmt.Sprintf("invalid parameters: %s", err.Error())), nil
+				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
 			}
 
-			assignees, ok := arguments["assignees"]
-			if !ok {
+			if _, ok := arguments["assignees"]; !ok {
 				return helpers.NewToolResultTextError("missing required parameter: assignees"), nil
 			}
-			assigneesMap, ok := assignees.(map[string]any)
-			if !ok {
-				return helpers.NewToolResultTextError(fmt.Sprintf("invalid assignees: expected an object, got %T", assignees)), nil
-			} else if assigneesMap == nil {
+			assignees, toolResult := parseLegacyUserGroups(
+				arguments,
+				"assignees",
+				"assignees",
+			)
+			if toolResult != nil {
+				return toolResult, nil
+			}
+			if assignees == nil {
 				return helpers.NewToolResultTextError("assignees cannot be null"), nil
 			}
-			err = helpers.ParamGroup(assigneesMap,
-				helpers.OptionalNumericListParam(&milestoneCreateRequest.Assignees.UserIDs, "user_ids"),
-				helpers.OptionalNumericListParam(&milestoneCreateRequest.Assignees.CompanyIDs, "company_ids"),
-				helpers.OptionalNumericListParam(&milestoneCreateRequest.Assignees.TeamIDs, "team_ids"),
-			)
-			if err != nil {
-				return helpers.NewToolResultTextError(fmt.Sprintf("invalid assignees: %s", err.Error())), nil
-			}
+			milestoneCreateRequest.Assignees = *assignees
 			if milestoneCreateRequest.Assignees.IsEmpty() {
 				return helpers.NewToolResultTextError("at least one assignee must be provided"), nil
 			}
@@ -278,7 +275,7 @@ func MilestoneUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 
 			var arguments map[string]any
 			if err := json.Unmarshal(request.Params.Arguments, &arguments); err != nil {
-				return helpers.NewToolResultTextError(fmt.Sprintf("failed to decode request: %s", err.Error())), nil
+				return helpers.NewToolResultTextError("failed to decode request: %s", err.Error()), nil
 			}
 			err := helpers.ParamGroup(arguments,
 				helpers.RequiredNumericParam(&milestoneUpdateRequest.Path.ID, "id"),
@@ -289,24 +286,17 @@ func MilestoneUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 				helpers.OptionalNumericListParam(&milestoneUpdateRequest.TagIDs, "tag_ids"),
 			)
 			if err != nil {
-				return helpers.NewToolResultTextError(fmt.Sprintf("invalid parameters: %s", err.Error())), nil
+				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
 			}
 
-			if assignees, ok := arguments["assignees"]; ok {
-				assigneesMap, ok := assignees.(map[string]any)
-				if !ok {
-					return helpers.NewToolResultTextError("invalid assignees"), nil
-				} else if assigneesMap != nil {
-					milestoneUpdateRequest.Assignees = new(projects.LegacyUserGroups)
-					err = helpers.ParamGroup(assigneesMap,
-						helpers.OptionalNumericListParam(&milestoneUpdateRequest.Assignees.UserIDs, "user_ids"),
-						helpers.OptionalNumericListParam(&milestoneUpdateRequest.Assignees.CompanyIDs, "company_ids"),
-						helpers.OptionalNumericListParam(&milestoneUpdateRequest.Assignees.TeamIDs, "team_ids"),
-					)
-					if err != nil {
-						return helpers.NewToolResultTextError(fmt.Sprintf("invalid assignees: %s", err.Error())), nil
-					}
-				}
+			if assignees, toolResult := parseLegacyUserGroups(
+				arguments,
+				"assignees",
+				"assignees",
+			); toolResult != nil {
+				return toolResult, nil
+			} else if assignees != nil {
+				milestoneUpdateRequest.Assignees = assignees
 			}
 
 			_, err = projects.MilestoneUpdate(ctx, engine, milestoneUpdateRequest)
@@ -343,13 +333,13 @@ func MilestoneDelete(engine *twapi.Engine) toolsets.ToolWrapper {
 
 			var arguments map[string]any
 			if err := json.Unmarshal(request.Params.Arguments, &arguments); err != nil {
-				return helpers.NewToolResultTextError(fmt.Sprintf("failed to decode request: %s", err.Error())), nil
+				return helpers.NewToolResultTextError("failed to decode request: %s", err.Error()), nil
 			}
 			err := helpers.ParamGroup(arguments,
 				helpers.RequiredNumericParam(&milestoneDeleteRequest.Path.ID, "id"),
 			)
 			if err != nil {
-				return helpers.NewToolResultTextError(fmt.Sprintf("invalid parameters: %s", err.Error())), nil
+				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
 			}
 
 			_, err = projects.MilestoneDelete(ctx, engine, milestoneDeleteRequest)
@@ -388,13 +378,13 @@ func MilestoneGet(engine *twapi.Engine) toolsets.ToolWrapper {
 
 			var arguments map[string]any
 			if err := json.Unmarshal(request.Params.Arguments, &arguments); err != nil {
-				return helpers.NewToolResultTextError(fmt.Sprintf("failed to decode request: %s", err.Error())), nil
+				return helpers.NewToolResultTextError("failed to decode request: %s", err.Error()), nil
 			}
 			err := helpers.ParamGroup(arguments,
 				helpers.RequiredNumericParam(&milestoneGetRequest.Path.ID, "id"),
 			)
 			if err != nil {
-				return helpers.NewToolResultTextError(fmt.Sprintf("invalid parameters: %s", err.Error())), nil
+				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
 			}
 
 			milestone, err := projects.MilestoneGet(ctx, engine, milestoneGetRequest)
@@ -472,7 +462,7 @@ func MilestoneList(engine *twapi.Engine) toolsets.ToolWrapper {
 
 			var arguments map[string]any
 			if err := json.Unmarshal(request.Params.Arguments, &arguments); err != nil {
-				return helpers.NewToolResultTextError(fmt.Sprintf("failed to decode request: %s", err.Error())), nil
+				return helpers.NewToolResultTextError("failed to decode request: %s", err.Error()), nil
 			}
 			err := helpers.ParamGroup(arguments,
 				helpers.OptionalParam(&milestoneListRequest.Filters.SearchTerm, "search_term"),
@@ -482,7 +472,7 @@ func MilestoneList(engine *twapi.Engine) toolsets.ToolWrapper {
 				helpers.OptionalNumericParam(&milestoneListRequest.Filters.PageSize, "page_size"),
 			)
 			if err != nil {
-				return helpers.NewToolResultTextError(fmt.Sprintf("invalid parameters: %s", err.Error())), nil
+				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
 			}
 
 			milestoneList, err := projects.MilestoneList(ctx, engine, milestoneListRequest)
@@ -565,7 +555,7 @@ func MilestoneListByProject(engine *twapi.Engine) toolsets.ToolWrapper {
 
 			var arguments map[string]any
 			if err := json.Unmarshal(request.Params.Arguments, &arguments); err != nil {
-				return helpers.NewToolResultTextError(fmt.Sprintf("failed to decode request: %s", err.Error())), nil
+				return helpers.NewToolResultTextError("failed to decode request: %s", err.Error()), nil
 			}
 			err := helpers.ParamGroup(arguments,
 				helpers.RequiredNumericParam(&milestoneListRequest.Path.ProjectID, "project_id"),
@@ -576,7 +566,7 @@ func MilestoneListByProject(engine *twapi.Engine) toolsets.ToolWrapper {
 				helpers.OptionalNumericParam(&milestoneListRequest.Filters.PageSize, "page_size"),
 			)
 			if err != nil {
-				return helpers.NewToolResultTextError(fmt.Sprintf("invalid parameters: %s", err.Error())), nil
+				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
 			}
 
 			milestoneList, err := projects.MilestoneList(ctx, engine, milestoneListRequest)

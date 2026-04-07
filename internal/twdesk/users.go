@@ -49,7 +49,7 @@ func UserGet(httpClient *http.Client) toolsets.ToolWrapper {
 			client := ClientFromContext(ctx, httpClient)
 			arguments, err := helpers.NewToolArguments(request)
 			if err != nil {
-				return helpers.NewToolResultTextError(err.Error()), nil
+				return helpers.NewToolResultTextError("%v", err), nil
 			}
 
 			user, err := client.Users.Get(ctx, arguments.GetInt("id", 0))
@@ -118,7 +118,7 @@ func UserList(httpClient *http.Client) toolsets.ToolWrapper {
 			client := ClientFromContext(ctx, httpClient)
 			arguments, err := helpers.NewToolArguments(request)
 			if err != nil {
-				return helpers.NewToolResultTextError(err.Error()), nil
+				return helpers.NewToolResultTextError("%v", err), nil
 			}
 
 			// Apply filters to the user list

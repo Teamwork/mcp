@@ -85,14 +85,14 @@ func SkillCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 
 			var arguments map[string]any
 			if err := json.Unmarshal(request.Params.Arguments, &arguments); err != nil {
-				return helpers.NewToolResultTextError(fmt.Sprintf("failed to decode request: %s", err.Error())), nil
+				return helpers.NewToolResultTextError("failed to decode request: %s", err.Error()), nil
 			}
 			err := helpers.ParamGroup(arguments,
 				helpers.RequiredParam(&skillCreateRequest.Name, "name"),
 				helpers.OptionalNumericListParam(&skillCreateRequest.UserIDs, "user_ids"),
 			)
 			if err != nil {
-				return helpers.NewToolResultTextError(fmt.Sprintf("invalid parameters: %s", err.Error())), nil
+				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
 			}
 
 			skillResponse, err := projects.SkillCreate(ctx, engine, skillCreateRequest)
@@ -140,7 +140,7 @@ func SkillUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 
 			var arguments map[string]any
 			if err := json.Unmarshal(request.Params.Arguments, &arguments); err != nil {
-				return helpers.NewToolResultTextError(fmt.Sprintf("failed to decode request: %s", err.Error())), nil
+				return helpers.NewToolResultTextError("failed to decode request: %s", err.Error()), nil
 			}
 			err := helpers.ParamGroup(arguments,
 				helpers.RequiredNumericParam(&skillUpdateRequest.Path.ID, "id"),
@@ -148,7 +148,7 @@ func SkillUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 				helpers.OptionalNumericListParam(&skillUpdateRequest.UserIDs, "user_ids"),
 			)
 			if err != nil {
-				return helpers.NewToolResultTextError(fmt.Sprintf("invalid parameters: %s", err.Error())), nil
+				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
 			}
 
 			_, err = projects.SkillUpdate(ctx, engine, skillUpdateRequest)
@@ -185,13 +185,13 @@ func SkillDelete(engine *twapi.Engine) toolsets.ToolWrapper {
 
 			var arguments map[string]any
 			if err := json.Unmarshal(request.Params.Arguments, &arguments); err != nil {
-				return helpers.NewToolResultTextError(fmt.Sprintf("failed to decode request: %s", err.Error())), nil
+				return helpers.NewToolResultTextError("failed to decode request: %s", err.Error()), nil
 			}
 			err := helpers.ParamGroup(arguments,
 				helpers.RequiredNumericParam(&skillDeleteRequest.Path.ID, "id"),
 			)
 			if err != nil {
-				return helpers.NewToolResultTextError(fmt.Sprintf("invalid parameters: %s", err.Error())), nil
+				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
 			}
 
 			_, err = projects.SkillDelete(ctx, engine, skillDeleteRequest)
@@ -230,13 +230,13 @@ func SkillGet(engine *twapi.Engine) toolsets.ToolWrapper {
 
 			var arguments map[string]any
 			if err := json.Unmarshal(request.Params.Arguments, &arguments); err != nil {
-				return helpers.NewToolResultTextError(fmt.Sprintf("failed to decode request: %s", err.Error())), nil
+				return helpers.NewToolResultTextError("failed to decode request: %s", err.Error()), nil
 			}
 			err := helpers.ParamGroup(arguments,
 				helpers.RequiredNumericParam(&skillGetRequest.Path.ID, "id"),
 			)
 			if err != nil {
-				return helpers.NewToolResultTextError(fmt.Sprintf("invalid parameters: %s", err.Error())), nil
+				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
 			}
 
 			skill, err := projects.SkillGet(ctx, engine, skillGetRequest)
@@ -296,7 +296,7 @@ func SkillList(engine *twapi.Engine) toolsets.ToolWrapper {
 
 			var arguments map[string]any
 			if err := json.Unmarshal(request.Params.Arguments, &arguments); err != nil {
-				return helpers.NewToolResultTextError(fmt.Sprintf("failed to decode request: %s", err.Error())), nil
+				return helpers.NewToolResultTextError("failed to decode request: %s", err.Error()), nil
 			}
 			err := helpers.ParamGroup(arguments,
 				helpers.OptionalParam(&skillListRequest.Filters.SearchTerm, "search_term"),
@@ -304,7 +304,7 @@ func SkillList(engine *twapi.Engine) toolsets.ToolWrapper {
 				helpers.OptionalNumericParam(&skillListRequest.Filters.PageSize, "page_size"),
 			)
 			if err != nil {
-				return helpers.NewToolResultTextError(fmt.Sprintf("invalid parameters: %s", err.Error())), nil
+				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
 			}
 
 			skillList, err := projects.SkillList(ctx, engine, skillListRequest)

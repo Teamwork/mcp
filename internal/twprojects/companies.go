@@ -146,7 +146,7 @@ func CompanyCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 
 			var arguments map[string]any
 			if err := json.Unmarshal(request.Params.Arguments, &arguments); err != nil {
-				return helpers.NewToolResultTextError(fmt.Sprintf("failed to decode request: %s", err.Error())), nil
+				return helpers.NewToolResultTextError("failed to decode request: %s", err.Error()), nil
 			}
 			err := helpers.ParamGroup(arguments,
 				helpers.RequiredParam(&companyCreateRequest.Name, "name"),
@@ -168,7 +168,7 @@ func CompanyCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 				helpers.OptionalNumericListParam(&companyCreateRequest.TagIDs, "tag_ids"),
 			)
 			if err != nil {
-				return helpers.NewToolResultTextError(fmt.Sprintf("invalid parameters: %s", err.Error())), nil
+				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
 			}
 
 			companyResponse, err := projects.CompanyCreate(ctx, engine, companyCreateRequest)
@@ -276,7 +276,7 @@ func CompanyUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 
 			var arguments map[string]any
 			if err := json.Unmarshal(request.Params.Arguments, &arguments); err != nil {
-				return helpers.NewToolResultTextError(fmt.Sprintf("failed to decode request: %s", err.Error())), nil
+				return helpers.NewToolResultTextError("failed to decode request: %s", err.Error()), nil
 			}
 			err := helpers.ParamGroup(arguments,
 				helpers.RequiredNumericParam(&companyUpdateRequest.Path.ID, "id"),
@@ -299,7 +299,7 @@ func CompanyUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 				helpers.OptionalNumericListParam(&companyUpdateRequest.TagIDs, "tag_ids"),
 			)
 			if err != nil {
-				return helpers.NewToolResultTextError(fmt.Sprintf("invalid parameters: %s", err.Error())), nil
+				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
 			}
 
 			_, err = projects.CompanyUpdate(ctx, engine, companyUpdateRequest)
@@ -336,13 +336,13 @@ func CompanyDelete(engine *twapi.Engine) toolsets.ToolWrapper {
 
 			var arguments map[string]any
 			if err := json.Unmarshal(request.Params.Arguments, &arguments); err != nil {
-				return helpers.NewToolResultTextError(fmt.Sprintf("failed to decode request: %s", err.Error())), nil
+				return helpers.NewToolResultTextError("failed to decode request: %s", err.Error()), nil
 			}
 			err := helpers.ParamGroup(arguments,
 				helpers.RequiredNumericParam(&companyDeleteRequest.Path.ID, "id"),
 			)
 			if err != nil {
-				return helpers.NewToolResultTextError(fmt.Sprintf("invalid parameters: %s", err.Error())), nil
+				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
 			}
 
 			_, err = projects.CompanyDelete(ctx, engine, companyDeleteRequest)
@@ -381,13 +381,13 @@ func CompanyGet(engine *twapi.Engine) toolsets.ToolWrapper {
 
 			var arguments map[string]any
 			if err := json.Unmarshal(request.Params.Arguments, &arguments); err != nil {
-				return helpers.NewToolResultTextError(fmt.Sprintf("failed to decode request: %s", err.Error())), nil
+				return helpers.NewToolResultTextError("failed to decode request: %s", err.Error()), nil
 			}
 			err := helpers.ParamGroup(arguments,
 				helpers.RequiredNumericParam(&companyGetRequest.Path.ID, "id"),
 			)
 			if err != nil {
-				return helpers.NewToolResultTextError(fmt.Sprintf("invalid parameters: %s", err.Error())), nil
+				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
 			}
 
 			company, err := projects.CompanyGet(ctx, engine, companyGetRequest)
@@ -463,7 +463,7 @@ func CompanyList(engine *twapi.Engine) toolsets.ToolWrapper {
 
 			var arguments map[string]any
 			if err := json.Unmarshal(request.Params.Arguments, &arguments); err != nil {
-				return helpers.NewToolResultTextError(fmt.Sprintf("failed to decode request: %s", err.Error())), nil
+				return helpers.NewToolResultTextError("failed to decode request: %s", err.Error()), nil
 			}
 			err := helpers.ParamGroup(arguments,
 				helpers.OptionalParam(&companyListRequest.Filters.SearchTerm, "search_term"),
@@ -473,7 +473,7 @@ func CompanyList(engine *twapi.Engine) toolsets.ToolWrapper {
 				helpers.OptionalNumericParam(&companyListRequest.Filters.PageSize, "page_size"),
 			)
 			if err != nil {
-				return helpers.NewToolResultTextError(fmt.Sprintf("invalid parameters: %s", err.Error())), nil
+				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
 			}
 
 			companyList, err := projects.CompanyList(ctx, engine, companyListRequest)

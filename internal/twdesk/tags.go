@@ -52,7 +52,7 @@ func TagGet(httpClient *http.Client) toolsets.ToolWrapper {
 			client := ClientFromContext(ctx, httpClient)
 			arguments, err := helpers.NewToolArguments(request)
 			if err != nil {
-				return helpers.NewToolResultTextError(err.Error()), nil
+				return helpers.NewToolResultTextError("%v", err), nil
 			}
 
 			tag, err := client.Tags.Get(ctx, arguments.GetInt("id", 0))
@@ -104,7 +104,7 @@ func TagList(httpClient *http.Client) toolsets.ToolWrapper {
 			client := ClientFromContext(ctx, httpClient)
 			arguments, err := helpers.NewToolArguments(request)
 			if err != nil {
-				return helpers.NewToolResultTextError(err.Error()), nil
+				return helpers.NewToolResultTextError("%v", err), nil
 			}
 
 			// Apply filters to the tag list
@@ -165,7 +165,7 @@ func TagCreate(httpClient *http.Client) toolsets.ToolWrapper {
 			client := ClientFromContext(ctx, httpClient)
 			arguments, err := helpers.NewToolArguments(request)
 			if err != nil {
-				return helpers.NewToolResultTextError(err.Error()), nil
+				return helpers.NewToolResultTextError("%v", err), nil
 			}
 
 			tag, err := client.Tags.Create(ctx, &deskmodels.TagResponse{
@@ -216,7 +216,7 @@ func TagUpdate(httpClient *http.Client) toolsets.ToolWrapper {
 			client := ClientFromContext(ctx, httpClient)
 			arguments, err := helpers.NewToolArguments(request)
 			if err != nil {
-				return helpers.NewToolResultTextError(err.Error()), nil
+				return helpers.NewToolResultTextError("%v", err), nil
 			}
 
 			_, err = client.Tags.Update(ctx, arguments.GetInt("id", 0), &deskmodels.TagResponse{

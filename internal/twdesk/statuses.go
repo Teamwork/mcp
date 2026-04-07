@@ -52,7 +52,7 @@ func StatusGet(httpClient *http.Client) toolsets.ToolWrapper {
 			client := ClientFromContext(ctx, httpClient)
 			arguments, err := helpers.NewToolArguments(request)
 			if err != nil {
-				return helpers.NewToolResultTextError(err.Error()), nil
+				return helpers.NewToolResultTextError("%v", err), nil
 			}
 
 			status, err := client.TicketStatuses.Get(ctx, arguments.GetInt("id", 0))
@@ -111,7 +111,7 @@ func StatusList(httpClient *http.Client) toolsets.ToolWrapper {
 			client := ClientFromContext(ctx, httpClient)
 			arguments, err := helpers.NewToolArguments(request)
 			if err != nil {
-				return helpers.NewToolResultTextError(err.Error()), nil
+				return helpers.NewToolResultTextError("%v", err), nil
 			}
 
 			// Apply filters to the status list
@@ -177,7 +177,7 @@ func StatusCreate(httpClient *http.Client) toolsets.ToolWrapper {
 			client := ClientFromContext(ctx, httpClient)
 			arguments, err := helpers.NewToolArguments(request)
 			if err != nil {
-				return helpers.NewToolResultTextError(err.Error()), nil
+				return helpers.NewToolResultTextError("%v", err), nil
 			}
 
 			status, err := client.TicketStatuses.Create(ctx, &deskmodels.TicketStatusResponse{
@@ -233,7 +233,7 @@ func StatusUpdate(httpClient *http.Client) toolsets.ToolWrapper {
 			client := ClientFromContext(ctx, httpClient)
 			arguments, err := helpers.NewToolArguments(request)
 			if err != nil {
-				return helpers.NewToolResultTextError(err.Error()), nil
+				return helpers.NewToolResultTextError("%v", err), nil
 			}
 
 			_, err = client.TicketStatuses.Update(ctx, arguments.GetInt("id", 0), &deskmodels.TicketStatusResponse{

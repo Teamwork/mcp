@@ -54,7 +54,7 @@ func TicketGet(httpClient *http.Client) toolsets.ToolWrapper {
 			client := ClientFromContext(ctx, httpClient)
 			arguments, err := helpers.NewToolArguments(request)
 			if err != nil {
-				return helpers.NewToolResultTextError(err.Error()), nil
+				return helpers.NewToolResultTextError("%v", err), nil
 			}
 
 			ticket, err := client.Tickets.Get(ctx, arguments.GetInt("id", 0))
@@ -220,7 +220,7 @@ func TicketList(httpClient *http.Client) toolsets.ToolWrapper {
 			client := ClientFromContext(ctx, httpClient)
 			arguments, err := helpers.NewToolArguments(request)
 			if err != nil {
-				return helpers.NewToolResultTextError(err.Error()), nil
+				return helpers.NewToolResultTextError("%v", err), nil
 			}
 
 			// Apply filters to the ticket list
@@ -415,7 +415,7 @@ func TicketSearch(httpClient *http.Client) toolsets.ToolWrapper {
 			client := ClientFromContext(ctx, httpClient)
 			arguments, err := helpers.NewToolArguments(request)
 			if err != nil {
-				return helpers.NewToolResultTextError(err.Error()), nil
+				return helpers.NewToolResultTextError("%v", err), nil
 			}
 
 			params := &deskmodels.SearchTicketsFilter{}
@@ -570,7 +570,7 @@ func TicketCreate(httpClient *http.Client) toolsets.ToolWrapper {
 			client := ClientFromContext(ctx, httpClient)
 			arguments, err := helpers.NewToolArguments(request)
 			if err != nil {
-				return helpers.NewToolResultTextError(err.Error()), nil
+				return helpers.NewToolResultTextError("%v", err), nil
 			}
 
 			data := deskmodels.Ticket{
@@ -757,7 +757,7 @@ func TicketUpdate(httpClient *http.Client) toolsets.ToolWrapper {
 			client := ClientFromContext(ctx, httpClient)
 			arguments, err := helpers.NewToolArguments(request)
 			if err != nil {
-				return helpers.NewToolResultTextError(err.Error()), nil
+				return helpers.NewToolResultTextError("%v", err), nil
 			}
 
 			data := deskmodels.Ticket{}

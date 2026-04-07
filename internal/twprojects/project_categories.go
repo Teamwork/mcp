@@ -86,7 +86,7 @@ func ProjectCategoryCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 
 			var arguments map[string]any
 			if err := json.Unmarshal(request.Params.Arguments, &arguments); err != nil {
-				return helpers.NewToolResultTextError(fmt.Sprintf("failed to decode request: %s", err.Error())), nil
+				return helpers.NewToolResultTextError("failed to decode request: %s", err.Error()), nil
 			}
 			err := helpers.ParamGroup(arguments,
 				helpers.RequiredParam(&projectCategoryCreateRequest.Name, "name"),
@@ -94,7 +94,7 @@ func ProjectCategoryCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 				helpers.OptionalNumericPointerParam(&projectCategoryCreateRequest.ParentID, "parent_id"),
 			)
 			if err != nil {
-				return helpers.NewToolResultTextError(fmt.Sprintf("invalid parameters: %s", err.Error())), nil
+				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
 			}
 
 			projectCategory, err := projects.ProjectCategoryCreate(ctx, engine, projectCategoryCreateRequest)
@@ -143,7 +143,7 @@ func ProjectCategoryUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 
 			var arguments map[string]any
 			if err := json.Unmarshal(request.Params.Arguments, &arguments); err != nil {
-				return helpers.NewToolResultTextError(fmt.Sprintf("failed to decode request: %s", err.Error())), nil
+				return helpers.NewToolResultTextError("failed to decode request: %s", err.Error()), nil
 			}
 			err := helpers.ParamGroup(arguments,
 				helpers.RequiredNumericParam(&projectCategoryUpdateRequest.Path.ID, "id"),
@@ -152,7 +152,7 @@ func ProjectCategoryUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 				helpers.OptionalNumericPointerParam(&projectCategoryUpdateRequest.ParentID, "parent_id"),
 			)
 			if err != nil {
-				return helpers.NewToolResultTextError(fmt.Sprintf("invalid parameters: %s", err.Error())), nil
+				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
 			}
 
 			_, err = projects.ProjectCategoryUpdate(ctx, engine, projectCategoryUpdateRequest)
@@ -189,13 +189,13 @@ func ProjectCategoryDelete(engine *twapi.Engine) toolsets.ToolWrapper {
 
 			var arguments map[string]any
 			if err := json.Unmarshal(request.Params.Arguments, &arguments); err != nil {
-				return helpers.NewToolResultTextError(fmt.Sprintf("failed to decode request: %s", err.Error())), nil
+				return helpers.NewToolResultTextError("failed to decode request: %s", err.Error()), nil
 			}
 			err := helpers.ParamGroup(arguments,
 				helpers.RequiredNumericParam(&projectCategoryDeleteRequest.Path.ID, "id"),
 			)
 			if err != nil {
-				return helpers.NewToolResultTextError(fmt.Sprintf("invalid parameters: %s", err.Error())), nil
+				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
 			}
 
 			_, err = projects.ProjectCategoryDelete(ctx, engine, projectCategoryDeleteRequest)
@@ -234,13 +234,13 @@ func ProjectCategoryGet(engine *twapi.Engine) toolsets.ToolWrapper {
 
 			var arguments map[string]any
 			if err := json.Unmarshal(request.Params.Arguments, &arguments); err != nil {
-				return helpers.NewToolResultTextError(fmt.Sprintf("failed to decode request: %s", err.Error())), nil
+				return helpers.NewToolResultTextError("failed to decode request: %s", err.Error()), nil
 			}
 			err := helpers.ParamGroup(arguments,
 				helpers.RequiredNumericParam(&projectCategoryGetRequest.Path.ID, "id"),
 			)
 			if err != nil {
-				return helpers.NewToolResultTextError(fmt.Sprintf("invalid parameters: %s", err.Error())), nil
+				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
 			}
 
 			projectCategory, err := projects.ProjectCategoryGet(ctx, engine, projectCategoryGetRequest)
@@ -298,7 +298,7 @@ func ProjectCategoryList(engine *twapi.Engine) toolsets.ToolWrapper {
 
 			var arguments map[string]any
 			if err := json.Unmarshal(request.Params.Arguments, &arguments); err != nil {
-				return helpers.NewToolResultTextError(fmt.Sprintf("failed to decode request: %s", err.Error())), nil
+				return helpers.NewToolResultTextError("failed to decode request: %s", err.Error()), nil
 			}
 			err := helpers.ParamGroup(arguments,
 				helpers.OptionalParam(&projectCategoryListRequest.Filters.SearchTerm, "search_term"),
@@ -306,7 +306,7 @@ func ProjectCategoryList(engine *twapi.Engine) toolsets.ToolWrapper {
 				helpers.OptionalNumericParam(&projectCategoryListRequest.Filters.PageSize, "page_size"),
 			)
 			if err != nil {
-				return helpers.NewToolResultTextError(fmt.Sprintf("invalid parameters: %s", err.Error())), nil
+				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
 			}
 
 			projectCategoryList, err := projects.ProjectCategoryList(ctx, engine, projectCategoryListRequest)

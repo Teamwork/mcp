@@ -91,7 +91,7 @@ func TasklistCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 
 			var arguments map[string]any
 			if err := json.Unmarshal(request.Params.Arguments, &arguments); err != nil {
-				return helpers.NewToolResultTextError(fmt.Sprintf("failed to decode request: %s", err.Error())), nil
+				return helpers.NewToolResultTextError("failed to decode request: %s", err.Error()), nil
 			}
 			err := helpers.ParamGroup(arguments,
 				helpers.RequiredParam(&tasklistCreateRequest.Name, "name"),
@@ -100,7 +100,7 @@ func TasklistCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 				helpers.OptionalNumericPointerParam(&tasklistCreateRequest.MilestoneID, "milestone_id"),
 			)
 			if err != nil {
-				return helpers.NewToolResultTextError(fmt.Sprintf("invalid parameters: %s", err.Error())), nil
+				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
 			}
 
 			tasklist, err := projects.TasklistCreate(ctx, engine, tasklistCreateRequest)
@@ -149,7 +149,7 @@ func TasklistUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 
 			var arguments map[string]any
 			if err := json.Unmarshal(request.Params.Arguments, &arguments); err != nil {
-				return helpers.NewToolResultTextError(fmt.Sprintf("failed to decode request: %s", err.Error())), nil
+				return helpers.NewToolResultTextError("failed to decode request: %s", err.Error()), nil
 			}
 			err := helpers.ParamGroup(arguments,
 				helpers.RequiredNumericParam(&tasklistUpdateRequest.Path.ID, "id"),
@@ -158,7 +158,7 @@ func TasklistUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 				helpers.OptionalNumericPointerParam(&tasklistUpdateRequest.MilestoneID, "milestone_id"),
 			)
 			if err != nil {
-				return helpers.NewToolResultTextError(fmt.Sprintf("invalid parameters: %s", err.Error())), nil
+				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
 			}
 
 			_, err = projects.TasklistUpdate(ctx, engine, tasklistUpdateRequest)
@@ -195,13 +195,13 @@ func TasklistDelete(engine *twapi.Engine) toolsets.ToolWrapper {
 
 			var arguments map[string]any
 			if err := json.Unmarshal(request.Params.Arguments, &arguments); err != nil {
-				return helpers.NewToolResultTextError(fmt.Sprintf("failed to decode request: %s", err.Error())), nil
+				return helpers.NewToolResultTextError("failed to decode request: %s", err.Error()), nil
 			}
 			err := helpers.ParamGroup(arguments,
 				helpers.RequiredNumericParam(&tasklistDeleteRequest.Path.ID, "id"),
 			)
 			if err != nil {
-				return helpers.NewToolResultTextError(fmt.Sprintf("invalid parameters: %s", err.Error())), nil
+				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
 			}
 
 			_, err = projects.TasklistDelete(ctx, engine, tasklistDeleteRequest)
@@ -240,13 +240,13 @@ func TasklistGet(engine *twapi.Engine) toolsets.ToolWrapper {
 
 			var arguments map[string]any
 			if err := json.Unmarshal(request.Params.Arguments, &arguments); err != nil {
-				return helpers.NewToolResultTextError(fmt.Sprintf("failed to decode request: %s", err.Error())), nil
+				return helpers.NewToolResultTextError("failed to decode request: %s", err.Error()), nil
 			}
 			err := helpers.ParamGroup(arguments,
 				helpers.RequiredNumericParam(&tasklistGetRequest.Path.ID, "id"),
 			)
 			if err != nil {
-				return helpers.NewToolResultTextError(fmt.Sprintf("invalid parameters: %s", err.Error())), nil
+				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
 			}
 
 			tasklist, err := projects.TasklistGet(ctx, engine, tasklistGetRequest)
@@ -308,7 +308,7 @@ func TasklistList(engine *twapi.Engine) toolsets.ToolWrapper {
 
 			var arguments map[string]any
 			if err := json.Unmarshal(request.Params.Arguments, &arguments); err != nil {
-				return helpers.NewToolResultTextError(fmt.Sprintf("failed to decode request: %s", err.Error())), nil
+				return helpers.NewToolResultTextError("failed to decode request: %s", err.Error()), nil
 			}
 			err := helpers.ParamGroup(arguments,
 				helpers.OptionalParam(&tasklistListRequest.Filters.SearchTerm, "search_term"),
@@ -316,7 +316,7 @@ func TasklistList(engine *twapi.Engine) toolsets.ToolWrapper {
 				helpers.OptionalNumericParam(&tasklistListRequest.Filters.PageSize, "page_size"),
 			)
 			if err != nil {
-				return helpers.NewToolResultTextError(fmt.Sprintf("invalid parameters: %s", err.Error())), nil
+				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
 			}
 
 			tasklistList, err := projects.TasklistList(ctx, engine, tasklistListRequest)
@@ -383,7 +383,7 @@ func TasklistListByProject(engine *twapi.Engine) toolsets.ToolWrapper {
 
 			var arguments map[string]any
 			if err := json.Unmarshal(request.Params.Arguments, &arguments); err != nil {
-				return helpers.NewToolResultTextError(fmt.Sprintf("failed to decode request: %s", err.Error())), nil
+				return helpers.NewToolResultTextError("failed to decode request: %s", err.Error()), nil
 			}
 			err := helpers.ParamGroup(arguments,
 				helpers.RequiredNumericParam(&tasklistListRequest.Path.ProjectID, "project_id"),
@@ -392,7 +392,7 @@ func TasklistListByProject(engine *twapi.Engine) toolsets.ToolWrapper {
 				helpers.OptionalNumericParam(&tasklistListRequest.Filters.PageSize, "page_size"),
 			)
 			if err != nil {
-				return helpers.NewToolResultTextError(fmt.Sprintf("invalid parameters: %s", err.Error())), nil
+				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
 			}
 
 			tasklistList, err := projects.TasklistList(ctx, engine, tasklistListRequest)

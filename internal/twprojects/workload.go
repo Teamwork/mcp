@@ -117,7 +117,7 @@ func UsersWorkload(engine *twapi.Engine) toolsets.ToolWrapper {
 
 			var arguments map[string]any
 			if err := json.Unmarshal(request.Params.Arguments, &arguments); err != nil {
-				return helpers.NewToolResultTextError(fmt.Sprintf("failed to decode request: %s", err.Error())), nil
+				return helpers.NewToolResultTextError("failed to decode request: %s", err.Error()), nil
 			}
 			err := helpers.ParamGroup(arguments,
 				helpers.RequiredDateParam(&workloadRequest.Filters.StartDate, "start_date"),
@@ -130,7 +130,7 @@ func UsersWorkload(engine *twapi.Engine) toolsets.ToolWrapper {
 				helpers.OptionalNumericParam(&workloadRequest.Filters.PageSize, "page_size"),
 			)
 			if err != nil {
-				return helpers.NewToolResultTextError(fmt.Sprintf("invalid parameters: %s", err.Error())), nil
+				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
 			}
 
 			workload, err := projects.WorkloadGet(ctx, engine, workloadRequest)

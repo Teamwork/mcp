@@ -3,7 +3,6 @@ package twprojects
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 
 	"github.com/google/jsonschema-go/jsonschema"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
@@ -83,7 +82,7 @@ func ProjectTemplateCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 
 			var arguments map[string]any
 			if err := json.Unmarshal(request.Params.Arguments, &arguments); err != nil {
-				return helpers.NewToolResultTextError(fmt.Sprintf("failed to decode request: %s", err.Error())), nil
+				return helpers.NewToolResultTextError("failed to decode request: %s", err.Error()), nil
 			}
 			err := helpers.ParamGroup(arguments,
 				helpers.RequiredParam(&projectCreateRequest.Name, "name"),
@@ -96,7 +95,7 @@ func ProjectTemplateCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 				helpers.OptionalNumericListParam(&projectCreateRequest.TagIDs, "tag_ids"),
 			)
 			if err != nil {
-				return helpers.NewToolResultTextError(fmt.Sprintf("invalid parameters: %s", err.Error())), nil
+				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
 			}
 
 			project, err := projects.ProjectTemplateCreate(ctx, engine, projectCreateRequest)
@@ -162,7 +161,7 @@ func ProjectTemplateList(engine *twapi.Engine) toolsets.ToolWrapper {
 
 			var arguments map[string]any
 			if err := json.Unmarshal(request.Params.Arguments, &arguments); err != nil {
-				return helpers.NewToolResultTextError(fmt.Sprintf("failed to decode request: %s", err.Error())), nil
+				return helpers.NewToolResultTextError("failed to decode request: %s", err.Error()), nil
 			}
 			err := helpers.ParamGroup(arguments,
 				helpers.OptionalNumericListParam(&projectListRequest.Filters.ProjectCategoryIDs, "project_category_ids"),
@@ -173,7 +172,7 @@ func ProjectTemplateList(engine *twapi.Engine) toolsets.ToolWrapper {
 				helpers.OptionalNumericParam(&projectListRequest.Filters.PageSize, "page_size"),
 			)
 			if err != nil {
-				return helpers.NewToolResultTextError(fmt.Sprintf("invalid parameters: %s", err.Error())), nil
+				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
 			}
 
 			projectList, err := projects.ProjectTemplateList(ctx, engine, projectListRequest)

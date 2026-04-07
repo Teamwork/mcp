@@ -170,6 +170,99 @@ func TaskCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 							},
 						},
 					},
+					"change_followers": {
+						Type:        "object",
+						Description: "An object containing the followers of any task changes.",
+						Properties: map[string]*jsonschema.Schema{
+							"user_ids": {
+								Type:        "array",
+								Description: "List of user IDs following the task changes.",
+								Items:       &jsonschema.Schema{Type: "integer"},
+								MinItems:    new(1),
+							},
+							"company_ids": {
+								Type:        "array",
+								Description: "List of company IDs following the task changes.",
+								Items:       &jsonschema.Schema{Type: "integer"},
+								MinItems:    new(1),
+							},
+							"team_ids": {
+								Type:        "array",
+								Description: "List of team IDs following the task changes.",
+								Items:       &jsonschema.Schema{Type: "integer"},
+								MinItems:    new(1),
+							},
+						},
+						MinProperties: new(1),
+						MaxProperties: new(3),
+						AnyOf: []*jsonschema.Schema{
+							{Required: []string{"user_ids"}},
+							{Required: []string{"company_ids"}},
+							{Required: []string{"team_ids"}},
+						},
+					},
+					"comment_followers": {
+						Type:        "object",
+						Description: "An object containing the followers of any task comments.",
+						Properties: map[string]*jsonschema.Schema{
+							"user_ids": {
+								Type:        "array",
+								Description: "List of user IDs following the task comments.",
+								Items:       &jsonschema.Schema{Type: "integer"},
+								MinItems:    new(1),
+							},
+							"company_ids": {
+								Type:        "array",
+								Description: "List of company IDs following the task comments.",
+								Items:       &jsonschema.Schema{Type: "integer"},
+								MinItems:    new(1),
+							},
+							"team_ids": {
+								Type:        "array",
+								Description: "List of team IDs following the task comments.",
+								Items:       &jsonschema.Schema{Type: "integer"},
+								MinItems:    new(1),
+							},
+						},
+						MinProperties: new(1),
+						MaxProperties: new(3),
+						AnyOf: []*jsonschema.Schema{
+							{Required: []string{"user_ids"}},
+							{Required: []string{"company_ids"}},
+							{Required: []string{"team_ids"}},
+						},
+					},
+					"complete_followers": {
+						Type:        "object",
+						Description: "An object containing the followers of any task completions.",
+						Properties: map[string]*jsonschema.Schema{
+							"user_ids": {
+								Type:        "array",
+								Description: "List of user IDs following the task completions.",
+								Items:       &jsonschema.Schema{Type: "integer"},
+								MinItems:    new(1),
+							},
+							"company_ids": {
+								Type:        "array",
+								Description: "List of company IDs following the task completions.",
+								Items:       &jsonschema.Schema{Type: "integer"},
+								MinItems:    new(1),
+							},
+							"team_ids": {
+								Type:        "array",
+								Description: "List of team IDs following the task completions.",
+								Items:       &jsonschema.Schema{Type: "integer"},
+								MinItems:    new(1),
+							},
+						},
+						MinProperties: new(1),
+						MaxProperties: new(3),
+						AnyOf: []*jsonschema.Schema{
+							{Required: []string{"user_ids"}},
+							{Required: []string{"company_ids"}},
+							{Required: []string{"team_ids"}},
+						},
+					},
 				},
 				Required: []string{"name", "tasklist_id"},
 			},
@@ -180,7 +273,7 @@ func TaskCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 
 			var arguments map[string]any
 			if err := json.Unmarshal(request.Params.Arguments, &arguments); err != nil {
-				return helpers.NewToolResultTextError(fmt.Sprintf("failed to decode request: %s", err.Error())), nil
+				return helpers.NewToolResultTextError("failed to decode request: %s", err.Error()), nil
 			}
 			err := helpers.ParamGroup(arguments,
 				helpers.RequiredParam(&taskCreateRequest.Name, "name"),
@@ -197,25 +290,17 @@ func TaskCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 				helpers.OptionalNumericListParam(&taskCreateRequest.TagIDs, "tag_ids"),
 			)
 			if err != nil {
-				return helpers.NewToolResultTextError(fmt.Sprintf("invalid parameters: %s", err.Error())), nil
+				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
 			}
 
-			if assignees, ok := arguments["assignees"]; ok {
-				assigneesMap, ok := assignees.(map[string]any)
-				if !ok {
-					return helpers.NewToolResultTextError("invalid assignees"), nil
-				} else if assigneesMap != nil {
-					taskCreateRequest.Assignees = new(projects.UserGroups)
-
-					err = helpers.ParamGroup(assigneesMap,
-						helpers.OptionalNumericListParam(&taskCreateRequest.Assignees.UserIDs, "user_ids"),
-						helpers.OptionalNumericListParam(&taskCreateRequest.Assignees.CompanyIDs, "company_ids"),
-						helpers.OptionalNumericListParam(&taskCreateRequest.Assignees.TeamIDs, "team_ids"),
-					)
-					if err != nil {
-						return helpers.NewToolResultTextError(fmt.Sprintf("invalid assignees: %s", err)), nil
-					}
-				}
+			if assignees, toolResult := parseUserGroups(
+				arguments,
+				"assignees",
+				"assignees",
+			); toolResult != nil {
+				return toolResult, nil
+			} else if assignees != nil {
+				taskCreateRequest.Assignees = assignees
 			}
 
 			if predecessors, ok := arguments["predecessors"]; ok {
@@ -241,11 +326,39 @@ func TaskCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 						),
 					)
 					if err != nil {
-						return helpers.NewToolResultTextError(fmt.Sprintf("invalid predecessor: %s", err)), nil
+						return helpers.NewToolResultTextError("invalid predecessor: %s", err), nil
 					}
 
 					taskCreateRequest.Predecessors = append(taskCreateRequest.Predecessors, p)
 				}
+			}
+
+			if followers, toolResult := parseUserGroups(
+				arguments,
+				"change_followers",
+				"change followers",
+			); toolResult != nil {
+				return toolResult, nil
+			} else if followers != nil {
+				taskCreateRequest.ChangeFollowers = *followers
+			}
+			if followers, toolResult := parseUserGroups(
+				arguments,
+				"comment_followers",
+				"comment followers",
+			); toolResult != nil {
+				return toolResult, nil
+			} else if followers != nil {
+				taskCreateRequest.CommentFollowers = *followers
+			}
+			if followers, toolResult := parseUserGroups(
+				arguments,
+				"complete_followers",
+				"complete followers",
+			); toolResult != nil {
+				return toolResult, nil
+			} else if followers != nil {
+				taskCreateRequest.CompleteFollowers = *followers
 			}
 
 			taskResponse, err := projects.TaskCreate(ctx, engine, taskCreateRequest)
@@ -372,6 +485,99 @@ func TaskUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 							},
 						},
 					},
+					"change_followers": {
+						Type:        "object",
+						Description: "An object containing the followers of any task changes.",
+						Properties: map[string]*jsonschema.Schema{
+							"user_ids": {
+								Type:        "array",
+								Description: "List of user IDs following the task changes.",
+								Items:       &jsonschema.Schema{Type: "integer"},
+								MinItems:    new(1),
+							},
+							"company_ids": {
+								Type:        "array",
+								Description: "List of company IDs following the task changes.",
+								Items:       &jsonschema.Schema{Type: "integer"},
+								MinItems:    new(1),
+							},
+							"team_ids": {
+								Type:        "array",
+								Description: "List of team IDs following the task changes.",
+								Items:       &jsonschema.Schema{Type: "integer"},
+								MinItems:    new(1),
+							},
+						},
+						MinProperties: new(1),
+						MaxProperties: new(3),
+						AnyOf: []*jsonschema.Schema{
+							{Required: []string{"user_ids"}},
+							{Required: []string{"company_ids"}},
+							{Required: []string{"team_ids"}},
+						},
+					},
+					"comment_followers": {
+						Type:        "object",
+						Description: "An object containing the followers of any task comments.",
+						Properties: map[string]*jsonschema.Schema{
+							"user_ids": {
+								Type:        "array",
+								Description: "List of user IDs following the task comments.",
+								Items:       &jsonschema.Schema{Type: "integer"},
+								MinItems:    new(1),
+							},
+							"company_ids": {
+								Type:        "array",
+								Description: "List of company IDs following the task comments.",
+								Items:       &jsonschema.Schema{Type: "integer"},
+								MinItems:    new(1),
+							},
+							"team_ids": {
+								Type:        "array",
+								Description: "List of team IDs following the task comments.",
+								Items:       &jsonschema.Schema{Type: "integer"},
+								MinItems:    new(1),
+							},
+						},
+						MinProperties: new(1),
+						MaxProperties: new(3),
+						AnyOf: []*jsonschema.Schema{
+							{Required: []string{"user_ids"}},
+							{Required: []string{"company_ids"}},
+							{Required: []string{"team_ids"}},
+						},
+					},
+					"complete_followers": {
+						Type:        "object",
+						Description: "An object containing the followers of any task completions.",
+						Properties: map[string]*jsonschema.Schema{
+							"user_ids": {
+								Type:        "array",
+								Description: "List of user IDs following the task completions.",
+								Items:       &jsonschema.Schema{Type: "integer"},
+								MinItems:    new(1),
+							},
+							"company_ids": {
+								Type:        "array",
+								Description: "List of company IDs following the task completions.",
+								Items:       &jsonschema.Schema{Type: "integer"},
+								MinItems:    new(1),
+							},
+							"team_ids": {
+								Type:        "array",
+								Description: "List of team IDs following the task completions.",
+								Items:       &jsonschema.Schema{Type: "integer"},
+								MinItems:    new(1),
+							},
+						},
+						MinProperties: new(1),
+						MaxProperties: new(3),
+						AnyOf: []*jsonschema.Schema{
+							{Required: []string{"user_ids"}},
+							{Required: []string{"company_ids"}},
+							{Required: []string{"team_ids"}},
+						},
+					},
 				},
 				Required: []string{"id"},
 			},
@@ -382,7 +588,7 @@ func TaskUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 
 			var arguments map[string]any
 			if err := json.Unmarshal(request.Params.Arguments, &arguments); err != nil {
-				return helpers.NewToolResultTextError(fmt.Sprintf("failed to decode request: %s", err.Error())), nil
+				return helpers.NewToolResultTextError("failed to decode request: %s", err.Error()), nil
 			}
 			err := helpers.ParamGroup(arguments,
 				helpers.RequiredNumericParam(&taskUpdateRequest.Path.ID, "id"),
@@ -400,25 +606,17 @@ func TaskUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 				helpers.OptionalNumericListParam(&taskUpdateRequest.TagIDs, "tag_ids"),
 			)
 			if err != nil {
-				return helpers.NewToolResultTextError(fmt.Sprintf("invalid parameters: %s", err.Error())), nil
+				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
 			}
 
-			if assignees, ok := arguments["assignees"]; ok {
-				assigneesMap, ok := assignees.(map[string]any)
-				if !ok {
-					return helpers.NewToolResultTextError("invalid assignees"), nil
-				} else if assigneesMap != nil {
-					taskUpdateRequest.Assignees = new(projects.UserGroups)
-
-					err = helpers.ParamGroup(assigneesMap,
-						helpers.OptionalNumericListParam(&taskUpdateRequest.Assignees.UserIDs, "user_ids"),
-						helpers.OptionalNumericListParam(&taskUpdateRequest.Assignees.CompanyIDs, "company_ids"),
-						helpers.OptionalNumericListParam(&taskUpdateRequest.Assignees.TeamIDs, "team_ids"),
-					)
-					if err != nil {
-						return helpers.NewToolResultTextError(fmt.Sprintf("invalid assignees: %s", err)), nil
-					}
-				}
+			if assignees, toolResult := parseUserGroups(
+				arguments,
+				"assignees",
+				"assignees",
+			); toolResult != nil {
+				return toolResult, nil
+			} else if assignees != nil {
+				taskUpdateRequest.Assignees = assignees
 			}
 
 			if predecessors, ok := arguments["predecessors"]; ok {
@@ -444,11 +642,39 @@ func TaskUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 						),
 					)
 					if err != nil {
-						return helpers.NewToolResultTextError(fmt.Sprintf("invalid predecessor: %s", err)), nil
+						return helpers.NewToolResultTextError("invalid predecessor: %s", err), nil
 					}
 
 					taskUpdateRequest.Predecessors = append(taskUpdateRequest.Predecessors, p)
 				}
+			}
+
+			if followers, toolResult := parseUserGroups(
+				arguments,
+				"change_followers",
+				"change followers",
+			); toolResult != nil {
+				return toolResult, nil
+			} else if followers != nil {
+				taskUpdateRequest.ChangeFollowers = followers
+			}
+			if followers, toolResult := parseUserGroups(
+				arguments,
+				"comment_followers",
+				"comment followers",
+			); toolResult != nil {
+				return toolResult, nil
+			} else if followers != nil {
+				taskUpdateRequest.CommentFollowers = followers
+			}
+			if followers, toolResult := parseUserGroups(
+				arguments,
+				"complete_followers",
+				"complete followers",
+			); toolResult != nil {
+				return toolResult, nil
+			} else if followers != nil {
+				taskUpdateRequest.CompleteFollowers = followers
 			}
 
 			_, err = projects.TaskUpdate(ctx, engine, taskUpdateRequest)
@@ -485,13 +711,13 @@ func TaskDelete(engine *twapi.Engine) toolsets.ToolWrapper {
 
 			var arguments map[string]any
 			if err := json.Unmarshal(request.Params.Arguments, &arguments); err != nil {
-				return helpers.NewToolResultTextError(fmt.Sprintf("failed to decode request: %s", err.Error())), nil
+				return helpers.NewToolResultTextError("failed to decode request: %s", err.Error()), nil
 			}
 			err := helpers.ParamGroup(arguments,
 				helpers.RequiredNumericParam(&taskDeleteRequest.Path.ID, "id"),
 			)
 			if err != nil {
-				return helpers.NewToolResultTextError(fmt.Sprintf("invalid parameters: %s", err.Error())), nil
+				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
 			}
 
 			_, err = projects.TaskDelete(ctx, engine, taskDeleteRequest)
@@ -530,13 +756,13 @@ func TaskGet(engine *twapi.Engine) toolsets.ToolWrapper {
 
 			var arguments map[string]any
 			if err := json.Unmarshal(request.Params.Arguments, &arguments); err != nil {
-				return helpers.NewToolResultTextError(fmt.Sprintf("failed to decode request: %s", err.Error())), nil
+				return helpers.NewToolResultTextError("failed to decode request: %s", err.Error()), nil
 			}
 			err := helpers.ParamGroup(arguments,
 				helpers.RequiredNumericParam(&taskGetRequest.Path.ID, "id"),
 			)
 			if err != nil {
-				return helpers.NewToolResultTextError(fmt.Sprintf("invalid parameters: %s", err.Error())), nil
+				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
 			}
 
 			task, err := projects.TaskGet(ctx, engine, taskGetRequest)
@@ -613,7 +839,7 @@ func TaskList(engine *twapi.Engine) toolsets.ToolWrapper {
 
 			var arguments map[string]any
 			if err := json.Unmarshal(request.Params.Arguments, &arguments); err != nil {
-				return helpers.NewToolResultTextError(fmt.Sprintf("failed to decode request: %s", err.Error())), nil
+				return helpers.NewToolResultTextError("failed to decode request: %s", err.Error()), nil
 			}
 			err := helpers.ParamGroup(arguments,
 				helpers.OptionalParam(&taskListRequest.Filters.SearchTerm, "search_term"),
@@ -624,7 +850,7 @@ func TaskList(engine *twapi.Engine) toolsets.ToolWrapper {
 				helpers.OptionalNumericParam(&taskListRequest.Filters.PageSize, "page_size"),
 			)
 			if err != nil {
-				return helpers.NewToolResultTextError(fmt.Sprintf("invalid parameters: %s", err.Error())), nil
+				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
 			}
 
 			taskList, err := projects.TaskList(ctx, engine, taskListRequest)
@@ -706,7 +932,7 @@ func TaskListByTasklist(engine *twapi.Engine) toolsets.ToolWrapper {
 
 			var arguments map[string]any
 			if err := json.Unmarshal(request.Params.Arguments, &arguments); err != nil {
-				return helpers.NewToolResultTextError(fmt.Sprintf("failed to decode request: %s", err.Error())), nil
+				return helpers.NewToolResultTextError("failed to decode request: %s", err.Error()), nil
 			}
 			err := helpers.ParamGroup(arguments,
 				helpers.RequiredNumericParam(&taskListRequest.Path.TasklistID, "tasklist_id"),
@@ -718,7 +944,7 @@ func TaskListByTasklist(engine *twapi.Engine) toolsets.ToolWrapper {
 				helpers.OptionalNumericParam(&taskListRequest.Filters.PageSize, "page_size"),
 			)
 			if err != nil {
-				return helpers.NewToolResultTextError(fmt.Sprintf("invalid parameters: %s", err.Error())), nil
+				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
 			}
 
 			taskList, err := projects.TaskList(ctx, engine, taskListRequest)
@@ -800,7 +1026,7 @@ func TaskListByProject(engine *twapi.Engine) toolsets.ToolWrapper {
 
 			var arguments map[string]any
 			if err := json.Unmarshal(request.Params.Arguments, &arguments); err != nil {
-				return helpers.NewToolResultTextError(fmt.Sprintf("failed to decode request: %s", err.Error())), nil
+				return helpers.NewToolResultTextError("failed to decode request: %s", err.Error()), nil
 			}
 			err := helpers.ParamGroup(arguments,
 				helpers.RequiredNumericParam(&taskListRequest.Path.ProjectID, "project_id"),
@@ -812,7 +1038,7 @@ func TaskListByProject(engine *twapi.Engine) toolsets.ToolWrapper {
 				helpers.OptionalNumericParam(&taskListRequest.Filters.PageSize, "page_size"),
 			)
 			if err != nil {
-				return helpers.NewToolResultTextError(fmt.Sprintf("invalid parameters: %s", err.Error())), nil
+				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
 			}
 
 			taskList, err := projects.TaskList(ctx, engine, taskListRequest)

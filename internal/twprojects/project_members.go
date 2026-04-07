@@ -3,7 +3,6 @@ package twprojects
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 
 	"github.com/google/jsonschema-go/jsonschema"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
@@ -59,14 +58,14 @@ func ProjectMemberAdd(engine *twapi.Engine) toolsets.ToolWrapper {
 
 			var arguments map[string]any
 			if err := json.Unmarshal(request.Params.Arguments, &arguments); err != nil {
-				return helpers.NewToolResultTextError(fmt.Sprintf("failed to decode request: %s", err.Error())), nil
+				return helpers.NewToolResultTextError("failed to decode request: %s", err.Error()), nil
 			}
 			err := helpers.ParamGroup(arguments,
 				helpers.RequiredNumericParam(&projectMemberAddRequest.Path.ProjectID, "project_id"),
 				helpers.OptionalNumericListParam(&projectMemberAddRequest.UserIDs, "user_ids"),
 			)
 			if err != nil {
-				return helpers.NewToolResultTextError(fmt.Sprintf("invalid parameters: %s", err.Error())), nil
+				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
 			}
 
 			_, err = projects.ProjectMemberAdd(ctx, engine, projectMemberAddRequest)
