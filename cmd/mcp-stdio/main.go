@@ -170,8 +170,7 @@ func (t *methodsInput) Set(value string) error {
 		if method := toolsets.Method(token); method.IsRegistered() {
 			*t = append(*t, method)
 		} else {
-			errs = errors.Join(errs, fmt.Errorf("invalid toolset: %q (use a sub-toolset key like %q, a profile like %q, or %q)",
-				token, "twprojects-tasks", "pm", "all"))
+			errs = errors.Join(errs, fmt.Errorf(`invalid toolset: %q (use a sub-toolset key like "twprojects-tasks", a profile like "project-manager", or "all")`, token))
 		}
 	}
 	return errs
