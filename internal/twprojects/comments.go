@@ -106,6 +106,60 @@ func CommentCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 							"HTML",
 						},
 					},
+					"notify_current_user": {
+						Type:        "boolean",
+						Description: "Whether the current user should be notified about the new comment.",
+					},
+					"notify": {
+						Description: "Who should be notified about the new comment. Accepts either 'all', true (followers) or an " +
+							"object specifying user, team, or company IDs.",
+						AnyOf: []*jsonschema.Schema{
+							{
+								Type:        "string",
+								Description: "Notify all project members.",
+								Enum: []any{
+									"all",
+								},
+							},
+							{
+								Type:        "boolean",
+								Description: "Notify all followers of the entity this comment is related to.",
+								Enum:        []any{true},
+							},
+							{
+								Type: "object",
+								Description: "An object containing the users, teams or companies to notify. At least one of the " +
+									"properties (user_ids, team_ids, company_ids) is required.",
+								Properties: map[string]*jsonschema.Schema{
+									"user_ids": {
+										Type:        "array",
+										Description: "List of user IDs to notify.",
+										Items:       &jsonschema.Schema{Type: "integer"},
+										MinItems:    new(1),
+									},
+									"company_ids": {
+										Type:        "array",
+										Description: "List of company IDs to notify.",
+										Items:       &jsonschema.Schema{Type: "integer"},
+										MinItems:    new(1),
+									},
+									"team_ids": {
+										Type:        "array",
+										Description: "List of team IDs to notify.",
+										Items:       &jsonschema.Schema{Type: "integer"},
+										MinItems:    new(1),
+									},
+								},
+								MinProperties: new(1),
+								MaxProperties: new(3),
+								AnyOf: []*jsonschema.Schema{
+									{Required: []string{"user_ids"}},
+									{Required: []string{"company_ids"}},
+									{Required: []string{"team_ids"}},
+								},
+							},
+						},
+					},
 				},
 				Required: []string{"object", "body"},
 			},
@@ -120,9 +174,40 @@ func CommentCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 			err := helpers.ParamGroup(arguments,
 				helpers.RequiredParam(&commentCreateRequest.Body, "body"),
 				helpers.OptionalPointerParam(&commentCreateRequest.ContentType, "content_type"),
+				helpers.OptionalPointerParam(&commentCreateRequest.NotifyCurrentUser, "notify_current_user"),
 			)
 			if err != nil {
 				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
+			}
+
+			if notify, ok := arguments["notify"]; ok {
+				switch value := notify.(type) {
+				case bool:
+					if !value {
+						return helpers.NewToolResultTextError("invalid parameters: notify must be true when using boolean"), nil
+					}
+					commentCreateRequest.Notify = projects.NewCommentNotifyFollowers()
+				case string:
+					switch strings.ToLower(value) {
+					case "all":
+						commentCreateRequest.Notify = projects.NewCommentNotifyAll()
+					default:
+						return helpers.NewToolResultTextError("invalid parameters: notify must be 'all'"), nil
+					}
+				case map[string]any:
+					if notifiers, toolResult := parseLegacyUserGroups(
+						arguments,
+						"notify",
+						"notifiers",
+					); toolResult != nil {
+						return toolResult, nil
+					} else if notifiers != nil {
+						commentCreateRequest.Notify = projects.NewCommentNotifyGroup(*notifiers)
+					}
+				default:
+					return helpers.NewToolResultTextError("invalid parameters: notify must be either boolean true, " +
+						"string ('all'), or an object"), nil
+				}
 			}
 
 			var objectType string
@@ -195,6 +280,60 @@ func CommentUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 							"HTML",
 						},
 					},
+					"notify_current_user": {
+						Type:        "boolean",
+						Description: "Whether the current user should be notified about the comment change.",
+					},
+					"notify": {
+						Description: "Who should be notified about the comment change. Accepts either 'all', true (followers) or " +
+							"an object specifying user, team, or company IDs.",
+						AnyOf: []*jsonschema.Schema{
+							{
+								Type:        "string",
+								Description: "Notify all project members.",
+								Enum: []any{
+									"all",
+								},
+							},
+							{
+								Type:        "boolean",
+								Description: "Notify all followers of the entity this comment is related to.",
+								Enum:        []any{true},
+							},
+							{
+								Type: "object",
+								Description: "An object containing the users, teams or companies to notify. At least one of the " +
+									"properties (user_ids, team_ids, company_ids) is required.",
+								Properties: map[string]*jsonschema.Schema{
+									"user_ids": {
+										Type:        "array",
+										Description: "List of user IDs to notify.",
+										Items:       &jsonschema.Schema{Type: "integer"},
+										MinItems:    new(1),
+									},
+									"company_ids": {
+										Type:        "array",
+										Description: "List of company IDs to notify.",
+										Items:       &jsonschema.Schema{Type: "integer"},
+										MinItems:    new(1),
+									},
+									"team_ids": {
+										Type:        "array",
+										Description: "List of team IDs to notify.",
+										Items:       &jsonschema.Schema{Type: "integer"},
+										MinItems:    new(1),
+									},
+								},
+								MinProperties: new(1),
+								MaxProperties: new(3),
+								AnyOf: []*jsonschema.Schema{
+									{Required: []string{"user_ids"}},
+									{Required: []string{"company_ids"}},
+									{Required: []string{"team_ids"}},
+								},
+							},
+						},
+					},
 				},
 				Required: []string{"id", "body"},
 			},
@@ -210,9 +349,40 @@ func CommentUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 				helpers.RequiredNumericParam(&commentUpdateRequest.Path.ID, "id"),
 				helpers.RequiredParam(&commentUpdateRequest.Body, "body"),
 				helpers.OptionalPointerParam(&commentUpdateRequest.ContentType, "content_type"),
+				helpers.OptionalPointerParam(&commentUpdateRequest.NotifyCurrentUser, "notify_current_user"),
 			)
 			if err != nil {
 				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
+			}
+
+			if notify, ok := arguments["notify"]; ok {
+				switch value := notify.(type) {
+				case bool:
+					if !value {
+						return helpers.NewToolResultTextError("invalid parameters: notify must be true when using boolean"), nil
+					}
+					commentUpdateRequest.Notify = projects.NewCommentNotifyFollowers()
+				case string:
+					switch strings.ToLower(value) {
+					case "all":
+						commentUpdateRequest.Notify = projects.NewCommentNotifyAll()
+					default:
+						return helpers.NewToolResultTextError("invalid parameters: notify must be 'all'"), nil
+					}
+				case map[string]any:
+					if notifiers, toolResult := parseLegacyUserGroups(
+						arguments,
+						"notify",
+						"notifiers",
+					); toolResult != nil {
+						return toolResult, nil
+					} else if notifiers != nil {
+						commentUpdateRequest.Notify = projects.NewCommentNotifyGroup(*notifiers)
+					}
+				default:
+					return helpers.NewToolResultTextError("invalid parameters: notify must be either boolean true, " +
+						"string ('all'), or an object"), nil
+				}
 			}
 
 			_, err = projects.CommentUpdate(ctx, engine, commentUpdateRequest)
