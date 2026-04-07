@@ -35,17 +35,17 @@ func DefaultToolsetGroup(readOnly bool, httpClient *http.Client) *toolsets.Tools
 	// --- tickets sub-toolset ---
 	group.AddToolset(toolsets.NewToolset(ToolsetTickets, projectDescription).
 		AddWriteTools(
+			FileCreate(httpClient),
+			MessageCreate(httpClient),
 			TicketCreate(httpClient),
 			TicketUpdate(httpClient),
-			MessageCreate(httpClient),
-			FileCreate(httpClient),
 		).
 		AddReadTools(
+			InboxGet(httpClient),
+			InboxList(httpClient),
 			TicketGet(httpClient),
 			TicketList(httpClient),
 			TicketSearch(httpClient),
-			InboxGet(httpClient),
-			InboxList(httpClient),
 		))
 
 	// --- customers sub-toolset ---
@@ -72,20 +72,20 @@ func DefaultToolsetGroup(readOnly bool, httpClient *http.Client) *toolsets.Tools
 			PriorityUpdate(httpClient),
 			StatusCreate(httpClient),
 			StatusUpdate(httpClient),
-			TypeCreate(httpClient),
-			TypeUpdate(httpClient),
 			TagCreate(httpClient),
 			TagUpdate(httpClient),
+			TypeCreate(httpClient),
+			TypeUpdate(httpClient),
 		).
 		AddReadTools(
 			PriorityGet(httpClient),
 			PriorityList(httpClient),
 			StatusGet(httpClient),
 			StatusList(httpClient),
-			TypeGet(httpClient),
-			TypeList(httpClient),
 			TagGet(httpClient),
 			TagList(httpClient),
+			TypeGet(httpClient),
+			TypeList(httpClient),
 		))
 
 	return group

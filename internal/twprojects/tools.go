@@ -40,42 +40,42 @@ func DefaultToolsetGroup(readOnly, allowDelete bool, engine *twapi.Engine) *tool
 
 	// --- projects sub-toolset ---
 	projectsWriteTools := []toolsets.ToolWrapper{
-		ProjectCreate(engine),
-		ProjectUpdate(engine),
-		ProjectClone(engine),
-		ProjectMemberAdd(engine),
 		ProjectCategoryCreate(engine),
 		ProjectCategoryUpdate(engine),
+		ProjectClone(engine),
+		ProjectCreate(engine),
+		ProjectMemberAdd(engine),
 		ProjectTemplateCreate(engine),
+		ProjectUpdate(engine),
 	}
 	if allowDelete {
 		projectsWriteTools = append(projectsWriteTools,
-			ProjectDelete(engine),
 			ProjectCategoryDelete(engine),
+			ProjectDelete(engine),
 		)
 	}
 	projectsToolset := toolsets.NewToolset(ToolsetProjects, projectDescription).
 		AddWriteTools(projectsWriteTools...).
 		AddReadTools(
-			ProjectGet(engine),
-			ProjectList(engine),
 			ProjectCategoryGet(engine),
 			ProjectCategoryList(engine),
+			ProjectGet(engine),
+			ProjectList(engine),
 			ProjectTemplateList(engine),
 		)
 	group.AddToolset(projectsToolset)
 
 	// --- tasks sub-toolset ---
 	tasksWriteTools := []toolsets.ToolWrapper{
+		TaskCreate(engine),
 		TasklistCreate(engine),
 		TasklistUpdate(engine),
-		TaskCreate(engine),
 		TaskUpdate(engine),
 	}
 	if allowDelete {
 		tasksWriteTools = append(tasksWriteTools,
-			TasklistDelete(engine),
 			TaskDelete(engine),
+			TasklistDelete(engine),
 		)
 	}
 	tasksToolset := toolsets.NewToolset(ToolsetTasks, taskDescription).
@@ -140,11 +140,11 @@ func DefaultToolsetGroup(readOnly, allowDelete bool, engine *twapi.Engine) *tool
 	timeWriteTools := []toolsets.ToolWrapper{
 		TimelogCreate(engine),
 		TimelogUpdate(engine),
+		TimerComplete(engine),
 		TimerCreate(engine),
-		TimerUpdate(engine),
 		TimerPause(engine),
 		TimerResume(engine),
-		TimerComplete(engine),
+		TimerUpdate(engine),
 	}
 	if allowDelete {
 		timeWriteTools = append(timeWriteTools,
@@ -155,14 +155,14 @@ func DefaultToolsetGroup(readOnly, allowDelete bool, engine *twapi.Engine) *tool
 	timeToolset := toolsets.NewToolset(ToolsetTime, timeDescription).
 		AddWriteTools(timeWriteTools...).
 		AddReadTools(
+			ProjectBudgetList(engine),
+			TasklistBudgetList(engine),
 			TimelogGet(engine),
 			TimelogList(engine),
 			TimelogListByProject(engine),
 			TimelogListByTask(engine),
 			TimerGet(engine),
 			TimerList(engine),
-			TasklistBudgetList(engine),
-			ProjectBudgetList(engine),
 		)
 	if !readOnly {
 		timeToolset.AddResourceTemplates(TimelogCreateAppResourceTemplate())
@@ -183,29 +183,29 @@ func DefaultToolsetGroup(readOnly, allowDelete bool, engine *twapi.Engine) *tool
 	if allowDelete {
 		contentWriteTools = append(contentWriteTools,
 			CommentDelete(engine),
-			NotebookDelete(engine),
 			MilestoneDelete(engine),
+			NotebookDelete(engine),
 			TagDelete(engine),
 		)
 	}
 	contentToolset := toolsets.NewToolset(ToolsetContent, contentDescription).
 		AddWriteTools(contentWriteTools...).
 		AddReadTools(
+			ActivityList(engine),
+			ActivityListByProject(engine),
 			CommentGet(engine),
 			CommentList(engine),
 			CommentListByFileVersion(engine),
 			CommentListByMilestone(engine),
 			CommentListByNotebook(engine),
 			CommentListByTask(engine),
-			NotebookGet(engine),
-			NotebookList(engine),
 			MilestoneGet(engine),
 			MilestoneList(engine),
 			MilestoneListByProject(engine),
+			NotebookGet(engine),
+			NotebookList(engine),
 			TagGet(engine),
 			TagList(engine),
-			ActivityList(engine),
-			ActivityListByProject(engine),
 		)
 	group.AddToolset(contentToolset)
 
