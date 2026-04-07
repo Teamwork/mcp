@@ -115,14 +115,14 @@ func CommentCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 
 			var arguments map[string]any
 			if err := json.Unmarshal(request.Params.Arguments, &arguments); err != nil {
-				return helpers.NewToolResultTextError(fmt.Sprintf("failed to decode request: %s", err.Error())), nil
+				return helpers.NewToolResultTextError("failed to decode request: %s", err.Error()), nil
 			}
 			err := helpers.ParamGroup(arguments,
 				helpers.RequiredParam(&commentCreateRequest.Body, "body"),
 				helpers.OptionalPointerParam(&commentCreateRequest.ContentType, "content_type"),
 			)
 			if err != nil {
-				return helpers.NewToolResultTextError(fmt.Sprintf("invalid parameters: %s", err.Error())), nil
+				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
 			}
 
 			var objectType string
@@ -133,7 +133,7 @@ func CommentCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 			}
 			objectMap, ok := object.(map[string]any)
 			if !ok {
-				return helpers.NewToolResultTextError(fmt.Sprintf("invalid object: expected an object, got %T", object)), nil
+				return helpers.NewToolResultTextError("invalid object: expected an object, got %T", object), nil
 			} else if objectMap == nil {
 				return helpers.NewToolResultTextError("object cannot be nil"), nil
 			}
@@ -142,7 +142,7 @@ func CommentCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 				helpers.RequiredNumericParam(&objectID, "id"),
 			)
 			if err != nil {
-				return helpers.NewToolResultTextError(fmt.Sprintf("invalid object: %s", err.Error())), nil
+				return helpers.NewToolResultTextError("invalid object: %s", err.Error()), nil
 			}
 
 			switch strings.ToLower(objectType) {
@@ -155,7 +155,7 @@ func CommentCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 			case "notebooks":
 				commentCreateRequest.Path.NotebookID = objectID
 			default:
-				return helpers.NewToolResultTextError(fmt.Sprintf("invalid object type: %s", objectType)), nil
+				return helpers.NewToolResultTextError("invalid object type: %s", objectType), nil
 			}
 
 			comment, err := projects.CommentCreate(ctx, engine, commentCreateRequest)
@@ -204,7 +204,7 @@ func CommentUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 
 			var arguments map[string]any
 			if err := json.Unmarshal(request.Params.Arguments, &arguments); err != nil {
-				return helpers.NewToolResultTextError(fmt.Sprintf("failed to decode request: %s", err.Error())), nil
+				return helpers.NewToolResultTextError("failed to decode request: %s", err.Error()), nil
 			}
 			err := helpers.ParamGroup(arguments,
 				helpers.RequiredNumericParam(&commentUpdateRequest.Path.ID, "id"),
@@ -212,7 +212,7 @@ func CommentUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 				helpers.OptionalPointerParam(&commentUpdateRequest.ContentType, "content_type"),
 			)
 			if err != nil {
-				return helpers.NewToolResultTextError(fmt.Sprintf("invalid parameters: %s", err.Error())), nil
+				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
 			}
 
 			_, err = projects.CommentUpdate(ctx, engine, commentUpdateRequest)
@@ -249,13 +249,13 @@ func CommentDelete(engine *twapi.Engine) toolsets.ToolWrapper {
 
 			var arguments map[string]any
 			if err := json.Unmarshal(request.Params.Arguments, &arguments); err != nil {
-				return helpers.NewToolResultTextError(fmt.Sprintf("failed to decode request: %s", err.Error())), nil
+				return helpers.NewToolResultTextError("failed to decode request: %s", err.Error()), nil
 			}
 			err := helpers.ParamGroup(arguments,
 				helpers.RequiredNumericParam(&commentDeleteRequest.Path.ID, "id"),
 			)
 			if err != nil {
-				return helpers.NewToolResultTextError(fmt.Sprintf("invalid parameters: %s", err.Error())), nil
+				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
 			}
 
 			_, err = projects.CommentDelete(ctx, engine, commentDeleteRequest)
@@ -294,13 +294,13 @@ func CommentGet(engine *twapi.Engine) toolsets.ToolWrapper {
 
 			var arguments map[string]any
 			if err := json.Unmarshal(request.Params.Arguments, &arguments); err != nil {
-				return helpers.NewToolResultTextError(fmt.Sprintf("failed to decode request: %s", err.Error())), nil
+				return helpers.NewToolResultTextError("failed to decode request: %s", err.Error()), nil
 			}
 			err := helpers.ParamGroup(arguments,
 				helpers.RequiredNumericParam(&commentGetRequest.Path.ID, "id"),
 			)
 			if err != nil {
-				return helpers.NewToolResultTextError(fmt.Sprintf("invalid parameters: %s", err.Error())), nil
+				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
 			}
 
 			comment, err := projects.CommentGet(ctx, engine, commentGetRequest)
@@ -365,7 +365,7 @@ func CommentList(engine *twapi.Engine) toolsets.ToolWrapper {
 
 			var arguments map[string]any
 			if err := json.Unmarshal(request.Params.Arguments, &arguments); err != nil {
-				return helpers.NewToolResultTextError(fmt.Sprintf("failed to decode request: %s", err.Error())), nil
+				return helpers.NewToolResultTextError("failed to decode request: %s", err.Error()), nil
 			}
 			err := helpers.ParamGroup(arguments,
 				helpers.OptionalParam(&commentListRequest.Filters.SearchTerm, "search_term"),
@@ -374,7 +374,7 @@ func CommentList(engine *twapi.Engine) toolsets.ToolWrapper {
 				helpers.OptionalNumericParam(&commentListRequest.Filters.PageSize, "page_size"),
 			)
 			if err != nil {
-				return helpers.NewToolResultTextError(fmt.Sprintf("invalid parameters: %s", err.Error())), nil
+				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
 			}
 
 			if commentListRequest.Filters.UpdatedAfter.IsZero() {
@@ -450,7 +450,7 @@ func CommentListByFileVersion(engine *twapi.Engine) toolsets.ToolWrapper {
 
 			var arguments map[string]any
 			if err := json.Unmarshal(request.Params.Arguments, &arguments); err != nil {
-				return helpers.NewToolResultTextError(fmt.Sprintf("failed to decode request: %s", err.Error())), nil
+				return helpers.NewToolResultTextError("failed to decode request: %s", err.Error()), nil
 			}
 			err := helpers.ParamGroup(arguments,
 				helpers.RequiredNumericParam(&commentListRequest.Path.FileVersionID, "file_version_id"),
@@ -460,7 +460,7 @@ func CommentListByFileVersion(engine *twapi.Engine) toolsets.ToolWrapper {
 				helpers.OptionalNumericParam(&commentListRequest.Filters.PageSize, "page_size"),
 			)
 			if err != nil {
-				return helpers.NewToolResultTextError(fmt.Sprintf("invalid parameters: %s", err.Error())), nil
+				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
 			}
 
 			if commentListRequest.Filters.UpdatedAfter.IsZero() {
@@ -535,7 +535,7 @@ func CommentListByMilestone(engine *twapi.Engine) toolsets.ToolWrapper {
 
 			var arguments map[string]any
 			if err := json.Unmarshal(request.Params.Arguments, &arguments); err != nil {
-				return helpers.NewToolResultTextError(fmt.Sprintf("failed to decode request: %s", err.Error())), nil
+				return helpers.NewToolResultTextError("failed to decode request: %s", err.Error()), nil
 			}
 			err := helpers.ParamGroup(arguments,
 				helpers.RequiredNumericParam(&commentListRequest.Path.MilestoneID, "milestone_id"),
@@ -545,7 +545,7 @@ func CommentListByMilestone(engine *twapi.Engine) toolsets.ToolWrapper {
 				helpers.OptionalNumericParam(&commentListRequest.Filters.PageSize, "page_size"),
 			)
 			if err != nil {
-				return helpers.NewToolResultTextError(fmt.Sprintf("invalid parameters: %s", err.Error())), nil
+				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
 			}
 
 			if commentListRequest.Filters.UpdatedAfter.IsZero() {
@@ -620,7 +620,7 @@ func CommentListByNotebook(engine *twapi.Engine) toolsets.ToolWrapper {
 
 			var arguments map[string]any
 			if err := json.Unmarshal(request.Params.Arguments, &arguments); err != nil {
-				return helpers.NewToolResultTextError(fmt.Sprintf("failed to decode request: %s", err.Error())), nil
+				return helpers.NewToolResultTextError("failed to decode request: %s", err.Error()), nil
 			}
 			err := helpers.ParamGroup(arguments,
 				helpers.RequiredNumericParam(&commentListRequest.Path.NotebookID, "notebook_id"),
@@ -630,7 +630,7 @@ func CommentListByNotebook(engine *twapi.Engine) toolsets.ToolWrapper {
 				helpers.OptionalNumericParam(&commentListRequest.Filters.PageSize, "page_size"),
 			)
 			if err != nil {
-				return helpers.NewToolResultTextError(fmt.Sprintf("invalid parameters: %s", err.Error())), nil
+				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
 			}
 
 			if commentListRequest.Filters.UpdatedAfter.IsZero() {
@@ -705,7 +705,7 @@ func CommentListByTask(engine *twapi.Engine) toolsets.ToolWrapper {
 
 			var arguments map[string]any
 			if err := json.Unmarshal(request.Params.Arguments, &arguments); err != nil {
-				return helpers.NewToolResultTextError(fmt.Sprintf("failed to decode request: %s", err.Error())), nil
+				return helpers.NewToolResultTextError("failed to decode request: %s", err.Error()), nil
 			}
 			err := helpers.ParamGroup(arguments,
 				helpers.RequiredNumericParam(&commentListRequest.Path.TaskID, "task_id"),
@@ -715,7 +715,7 @@ func CommentListByTask(engine *twapi.Engine) toolsets.ToolWrapper {
 				helpers.OptionalNumericParam(&commentListRequest.Filters.PageSize, "page_size"),
 			)
 			if err != nil {
-				return helpers.NewToolResultTextError(fmt.Sprintf("invalid parameters: %s", err.Error())), nil
+				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
 			}
 
 			if commentListRequest.Filters.UpdatedAfter.IsZero() {

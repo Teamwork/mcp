@@ -180,8 +180,8 @@ github.com/stretchr/testify v1.11.1 h1:7s2iGBzp5EwR7/aIZr8ao5+dra3wiQyKjjFuvgVKu
 github.com/stretchr/testify v1.11.1/go.mod h1:wZwfW3scLgRK+23gO65QZefKpKQRnfz6sD981Nm4B6U=
 github.com/teamwork/desksdkgo v0.0.0-20260330142212-c4602a5ea23f h1:uDH6pc9RLBtVVO4HLbg5j0VqycTfItcBUANEKDYRuYc=
 github.com/teamwork/desksdkgo v0.0.0-20260330142212-c4602a5ea23f/go.mod h1:nAQ9TiITo1WqNnLsifExR7SH/64rGemPIb7yi7KbQ5I=
-github.com/teamwork/twapi-go-sdk v1.10.1 h1:0kdhQooPIaeM2PYCmzlW+YAUagZL6qx65Wx98j6FyMU=
-github.com/teamwork/twapi-go-sdk v1.10.1/go.mod h1:bTr8DQ5dSRdzrCcfKfQJhPXZnituxbf6/VbuHVgdbAc=
+github.com/teamwork/twapi-go-sdk v1.11.0 h1:c8ubucEPT5nc2XaJ4XRxY0WmIjCwUrYgzm4gsJtmOv4=
+github.com/teamwork/twapi-go-sdk v1.11.0/go.mod h1:bTr8DQ5dSRdzrCcfKfQJhPXZnituxbf6/VbuHVgdbAc=
 github.com/tinylib/msgp v1.6.3 h1:bCSxiTz386UTgyT1i0MSCvdbWjVW+8sG3PjkGsZQt4s=
 github.com/tinylib/msgp v1.6.3/go.mod h1:RSp0LW9oSxFut3KzESt5Voq4GVWyS+PSulT77roAqEA=
 github.com/tklauser/go-sysconf v0.3.16 h1:frioLaCQSsF5Cy1jgRBrzr6t502KIIwQ0MArYICU0nA=

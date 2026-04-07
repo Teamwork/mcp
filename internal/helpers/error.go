@@ -10,7 +10,8 @@ import (
 
 // NewToolResultTextError creates a new MCP tool result representing an error with the
 // given text message.
-func NewToolResultTextError(text string) *mcp.CallToolResult {
+func NewToolResultTextError(format string, args ...any) *mcp.CallToolResult {
+	text := fmt.Sprintf(format, args...)
 	return &mcp.CallToolResult{
 		IsError: true,
 		Content: []mcp.Content{
@@ -28,15 +29,14 @@ func HandleAPIError(err error, label string) (*mcp.CallToolResult, error) {
 		return nil, nil
 	}
 
-	var httpErr *twapi.HTTPError
-	if errors.As(err, &httpErr) {
+	if httpErr, ok := errors.AsType[*twapi.HTTPError](err); ok {
 		switch {
 		case httpErr.StatusCode >= 500:
-			return NewToolResultTextError(fmt.Sprintf("server error: %s", err.Error())), nil
+			return NewToolResultTextError("server error: %s", err.Error()), nil
 		case httpErr.StatusCode >= 400:
-			return NewToolResultTextError(fmt.Sprintf("bad request: %s", err.Error())), nil
+			return NewToolResultTextError("bad request: %s", err.Error()), nil
 		default:
-			return NewToolResultTextError(fmt.Sprintf("unexpected HTTP status: %s", err.Error())), nil
+			return NewToolResultTextError("unexpected HTTP status: %s", err.Error()), nil
 		}
 	}
 	return nil, fmt.Errorf("%s: %w", label, err)
