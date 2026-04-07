@@ -127,8 +127,8 @@ TW_MCP_BEARER_TOKEN=your-token go run cmd/mcp-stdio/main.go
 # Read-only mode for safety
 TW_MCP_BEARER_TOKEN=your-token go run cmd/mcp-stdio/main.go -read-only
 
-# PM profile: projects, tasks, people, and content
-TW_MCP_BEARER_TOKEN=your-token go run cmd/mcp-stdio/main.go -toolsets=pm
+# project-manager profile: projects, tasks, people, and content
+TW_MCP_BEARER_TOKEN=your-token go run cmd/mcp-stdio/main.go -toolsets=project-manager
 
 # Support profile: Desk tickets and customers
 TW_MCP_BEARER_TOKEN=your-token go run cmd/mcp-stdio/main.go -toolsets=support
