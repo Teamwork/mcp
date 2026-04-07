@@ -170,7 +170,10 @@ func (t *methodsInput) Set(value string) error {
 		if method := toolsets.Method(token); method.IsRegistered() {
 			*t = append(*t, method)
 		} else {
-			errs = errors.Join(errs, fmt.Errorf(`invalid toolset: %q (use a sub-toolset key like "twprojects-tasks", a profile like "project-manager", or "all")`, token))
+			errs = errors.Join(errs, fmt.Errorf(`
+				invalid toolset: %q (use a sub-toolset key like "twprojects-tasks", 
+				a profile like "project-manager", or "all")
+			`, token))
 		}
 	}
 	return errs
@@ -179,11 +182,7 @@ func (t *methodsInput) Set(value string) error {
 type jsonRPCErrorCode int64
 
 const (
-	jsonRPCErrorCodeParse          jsonRPCErrorCode = jsonrpc.CodeParseError
-	jsonRPCErrorCodeInvalidRequest jsonRPCErrorCode = jsonrpc.CodeInvalidRequest
-	jsonRPCErrorCodeMethodNotFound jsonRPCErrorCode = jsonrpc.CodeMethodNotFound
-	jsonRPCErrorCodeInvalidParams  jsonRPCErrorCode = jsonrpc.CodeInvalidParams
-	jsonRPCErrorCodeInternalError  jsonRPCErrorCode = jsonrpc.CodeInternalError
+	jsonRPCErrorCodeInternalError jsonRPCErrorCode = jsonrpc.CodeInternalError
 )
 
 type exitCode int
