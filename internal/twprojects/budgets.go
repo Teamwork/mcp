@@ -38,10 +38,6 @@ var (
 )
 
 func init() {
-	// register the toolset methods
-	toolsets.RegisterMethod(MethodTasklistBudgetList)
-	toolsets.RegisterMethod(MethodProjectBudgetList)
-
 	var err error
 
 	// generate the output schemas only once

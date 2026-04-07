@@ -39,14 +39,6 @@ var (
 )
 
 func init() {
-	// register the toolset methods
-	toolsets.RegisterMethod(MethodMilestoneCreate)
-	toolsets.RegisterMethod(MethodMilestoneUpdate)
-	toolsets.RegisterMethod(MethodMilestoneDelete)
-	toolsets.RegisterMethod(MethodMilestoneGet)
-	toolsets.RegisterMethod(MethodMilestoneList)
-	toolsets.RegisterMethod(MethodMilestoneListByProject)
-
 	var err error
 
 	// generate the output schemas only once

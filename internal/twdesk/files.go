@@ -21,10 +21,6 @@ const (
 	MethodFileCreate toolsets.Method = "twdesk-create_file"
 )
 
-func init() {
-	toolsets.RegisterMethod(MethodFileCreate)
-}
-
 // FileCreate creates a file in Teamwork Desk
 func FileCreate(httpClient *http.Client) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{

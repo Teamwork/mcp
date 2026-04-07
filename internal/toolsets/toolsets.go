@@ -14,6 +14,9 @@ import (
 var (
 	registeredMethods      = make(map[Method]struct{})
 	registeredMethodsMutex sync.RWMutex
+
+	registeredProfiles      = make(map[string][]Method)
+	registeredProfilesMutex sync.RWMutex
 )
 
 // Method identifies the name of a logical unit of operation or action that can
@@ -45,6 +48,43 @@ func RegisterMethod(method Method) {
 	registeredMethodsMutex.Lock()
 	defer registeredMethodsMutex.Unlock()
 	registeredMethods[method] = struct{}{}
+}
+
+// RegisterProfile registers a named profile that maps to a set of methods.
+// Profiles are a convenience for enabling a predefined collection of toolsets
+// with a single name (e.g. "project-manager", "support").
+func RegisterProfile(name string, methods []Method) {
+	registeredProfilesMutex.Lock()
+	defer registeredProfilesMutex.Unlock()
+	registeredProfiles[name] = methods
+}
+
+// LookupProfile returns the methods associated with a named profile, and
+// whether the profile exists.
+func LookupProfile(name string) ([]Method, bool) {
+	registeredProfilesMutex.RLock()
+	defer registeredProfilesMutex.RUnlock()
+	methods, exists := registeredProfiles[name]
+	return methods, exists
+}
+
+// IsProfile reports whether name is a registered profile.
+func IsProfile(name string) bool {
+	registeredProfilesMutex.RLock()
+	defer registeredProfilesMutex.RUnlock()
+	_, exists := registeredProfiles[name]
+	return exists
+}
+
+// ListProfiles returns all registered profile names.
+func ListProfiles() []string {
+	registeredProfilesMutex.RLock()
+	defer registeredProfilesMutex.RUnlock()
+	names := make([]string, 0, len(registeredProfiles))
+	for name := range registeredProfiles {
+		names = append(names, name)
+	}
+	return names
 }
 
 // ToolsetDoesNotExistError is an error type that indicates a requested toolset
@@ -317,13 +357,19 @@ func (tg *ToolsetGroup) IsEnabled(method Method) bool {
 }
 
 // EnableToolsets enables multiple Toolsets by their methods. If "all" is
-// included in the methods, it will enable all Toolsets in the group.
+// included in the methods, it will enable all Toolsets in the group. Methods
+// that do not belong to this group are silently ignored, allowing the same
+// method list to be passed to multiple groups without error.
 func (tg *ToolsetGroup) EnableToolsets(methods ...Method) error {
 	// special case for "all"
 	for _, method := range methods {
 		if method == MethodAll {
 			tg.everythingOn = true
 			break
+		}
+		// silently skip methods that belong to other groups
+		if _, exists := tg.Toolsets[method]; !exists {
+			continue
 		}
 		if err := tg.EnableToolset(method); err != nil {
 			return err

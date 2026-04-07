@@ -25,13 +25,6 @@ const (
 	MethodTagList   toolsets.Method = "twdesk-list_tags"
 )
 
-func init() {
-	toolsets.RegisterMethod(MethodTagCreate)
-	toolsets.RegisterMethod(MethodTagUpdate)
-	toolsets.RegisterMethod(MethodTagGet)
-	toolsets.RegisterMethod(MethodTagList)
-}
-
 // TagGet finds a tag in Teamwork Desk.  This will find it by ID
 func TagGet(httpClient *http.Client) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{

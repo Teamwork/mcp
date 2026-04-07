@@ -40,15 +40,6 @@ var (
 )
 
 func init() {
-	// register the toolset methods
-	toolsets.RegisterMethod(MethodTimelogCreate)
-	toolsets.RegisterMethod(MethodTimelogUpdate)
-	toolsets.RegisterMethod(MethodTimelogDelete)
-	toolsets.RegisterMethod(MethodTimelogGet)
-	toolsets.RegisterMethod(MethodTimelogList)
-	toolsets.RegisterMethod(MethodTimelogListByProject)
-	toolsets.RegisterMethod(MethodTimelogListByTask)
-
 	var err error
 
 	// generate the output schemas only once

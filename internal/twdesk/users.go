@@ -22,11 +22,6 @@ const (
 	MethodUserList toolsets.Method = "twdesk-list_users"
 )
 
-func init() {
-	toolsets.RegisterMethod(MethodUserGet)
-	toolsets.RegisterMethod(MethodUserList)
-}
-
 // UserGet finds a user in Teamwork Desk.  This will find it by ID
 func UserGet(httpClient *http.Client) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{

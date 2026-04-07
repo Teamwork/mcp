@@ -37,13 +37,6 @@ var (
 )
 
 func init() {
-	// register the toolset methods
-	toolsets.RegisterMethod(MethodJobRoleCreate)
-	toolsets.RegisterMethod(MethodJobRoleUpdate)
-	toolsets.RegisterMethod(MethodJobRoleDelete)
-	toolsets.RegisterMethod(MethodJobRoleGet)
-	toolsets.RegisterMethod(MethodJobRoleList)
-
 	var err error
 
 	// generate the output schemas only once

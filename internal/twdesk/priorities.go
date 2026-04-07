@@ -25,13 +25,6 @@ const (
 	MethodPriorityList   toolsets.Method = "twdesk-list_priorities"
 )
 
-func init() {
-	toolsets.RegisterMethod(MethodPriorityCreate)
-	toolsets.RegisterMethod(MethodPriorityUpdate)
-	toolsets.RegisterMethod(MethodPriorityGet)
-	toolsets.RegisterMethod(MethodPriorityList)
-}
-
 // PriorityGet finds a priority in Teamwork Desk.  This will find it by ID
 func PriorityGet(httpClient *http.Client) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{

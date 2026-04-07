@@ -25,13 +25,6 @@ const (
 	MethodStatusList   toolsets.Method = "twdesk-list_statuses"
 )
 
-func init() {
-	toolsets.RegisterMethod(MethodStatusCreate)
-	toolsets.RegisterMethod(MethodStatusUpdate)
-	toolsets.RegisterMethod(MethodStatusGet)
-	toolsets.RegisterMethod(MethodStatusList)
-}
-
 // StatusGet finds a status in Teamwork Desk.  This will find it by ID
 func StatusGet(httpClient *http.Client) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{

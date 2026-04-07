@@ -25,13 +25,6 @@ const (
 	MethodCustomerList   toolsets.Method = "twdesk-list_customers"
 )
 
-func init() {
-	toolsets.RegisterMethod(MethodCustomerCreate)
-	toolsets.RegisterMethod(MethodCustomerUpdate)
-	toolsets.RegisterMethod(MethodCustomerGet)
-	toolsets.RegisterMethod(MethodCustomerList)
-}
-
 // CustomerGet finds a customer in Teamwork Desk.  This will find it by ID
 func CustomerGet(httpClient *http.Client) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{

@@ -25,13 +25,6 @@ const (
 	MethodTypeList   toolsets.Method = "twdesk-list_types"
 )
 
-func init() {
-	toolsets.RegisterMethod(MethodTypeCreate)
-	toolsets.RegisterMethod(MethodTypeUpdate)
-	toolsets.RegisterMethod(MethodTypeGet)
-	toolsets.RegisterMethod(MethodTypeList)
-}
-
 // TypeGet finds a type in Teamwork Desk.  This will find it by ID
 func TypeGet(httpClient *http.Client) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{
