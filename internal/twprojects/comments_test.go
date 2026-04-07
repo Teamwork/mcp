@@ -15,17 +15,25 @@ func TestCommentCreate(t *testing.T) {
 			"type": "tasks",
 			"id":   float64(123),
 		},
-		"body":         "Example",
-		"content_type": "TEXT",
+		"body":                "Example",
+		"content_type":        "TEXT",
+		"notify_current_user": true,
+		"notify": map[string]any{
+			"user_ids":    []any{float64(1), float64(2)},
+			"team_ids":    []any{float64(3)},
+			"company_ids": []any{float64(4)},
+		},
 	})
 }
 
 func TestCommentUpdate(t *testing.T) {
 	mcpServer := mcpServerMock(t, http.StatusOK, []byte(`{}`))
 	testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodCommentUpdate.String(), map[string]any{
-		"id":           float64(123),
-		"body":         "Example",
-		"content_type": "TEXT",
+		"id":                  float64(123),
+		"body":                "Example",
+		"content_type":        "TEXT",
+		"notify_current_user": true,
+		"notify":              "all",
 	})
 }
 
