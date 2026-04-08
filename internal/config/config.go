@@ -178,6 +178,7 @@ func NewMCPServer(resources Resources, groups ...*toolsets.ToolsetGroup) *mcp.Se
 	}
 
 	serverOptions := &mcp.ServerOptions{
+		Logger:     resources.logger,
 		HasTools:   hasTools,
 		HasPrompts: hasPrompts,
 		Capabilities: &mcp.ServerCapabilities{
