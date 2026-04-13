@@ -9,7 +9,7 @@ require (
 	github.com/getsentry/sentry-go/slog v0.45.1
 	github.com/google/jsonschema-go v0.4.2
 	github.com/google/uuid v1.6.0
-	github.com/modelcontextprotocol/go-sdk v1.4.1
+	github.com/modelcontextprotocol/go-sdk v1.5.0
 	github.com/teamwork/desksdkgo v0.0.0-20260409174248-9cf41197609c
 	github.com/teamwork/twapi-go-sdk v1.12.1
 )
