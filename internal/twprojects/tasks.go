@@ -21,6 +21,7 @@ const (
 	MethodTaskCreate         toolsets.Method = "twprojects-create_task"
 	MethodTaskUpdate         toolsets.Method = "twprojects-update_task"
 	MethodTaskDelete         toolsets.Method = "twprojects-delete_task"
+	MethodTaskComplete       toolsets.Method = "twprojects-complete_task"
 	MethodTaskGet            toolsets.Method = "twprojects-get_task"
 	MethodTaskList           toolsets.Method = "twprojects-list_tasks"
 	MethodTaskListByTasklist toolsets.Method = "twprojects-list_tasks_by_tasklist"
@@ -725,6 +726,49 @@ func TaskDelete(engine *twapi.Engine) toolsets.ToolWrapper {
 				return helpers.HandleAPIError(err, "failed to delete task")
 			}
 			return helpers.NewToolResultText("Task deleted successfully"), nil
+		},
+	}
+}
+
+// TaskComplete marks a task as complete in Teamwork.com.
+func TaskComplete(engine *twapi.Engine) toolsets.ToolWrapper {
+	return toolsets.ToolWrapper{
+		Tool: &mcp.Tool{
+			Name:        string(MethodTaskComplete),
+			Description: "Mark an existing task as complete in Teamwork.com. " + taskDescription,
+			Annotations: &mcp.ToolAnnotations{
+				Title: "Complete Task",
+			},
+			InputSchema: &jsonschema.Schema{
+				Type: "object",
+				Properties: map[string]*jsonschema.Schema{
+					"id": {
+						Type:        "integer",
+						Description: "The ID of the task to mark as complete.",
+					},
+				},
+				Required: []string{"id"},
+			},
+		},
+		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+			var taskCompleteRequest projects.TaskCompleteRequest
+
+			var arguments map[string]any
+			if err := json.Unmarshal(request.Params.Arguments, &arguments); err != nil {
+				return helpers.NewToolResultTextError("failed to decode request: %s", err.Error()), nil
+			}
+			err := helpers.ParamGroup(arguments,
+				helpers.RequiredNumericParam(&taskCompleteRequest.Path.ID, "id"),
+			)
+			if err != nil {
+				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
+			}
+
+			_, err = projects.TaskComplete(ctx, engine, taskCompleteRequest)
+			if err != nil {
+				return helpers.HandleAPIError(err, "failed to complete task")
+			}
+			return helpers.NewToolResultText("Task completed successfully"), nil
 		},
 	}
 }
