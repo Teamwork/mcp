@@ -78,6 +78,13 @@ func TestTaskDelete(t *testing.T) {
 	})
 }
 
+func TestTaskComplete(t *testing.T) {
+	mcpServer := mcpServerMock(t, http.StatusOK, []byte(`{}`))
+	testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodTaskComplete.String(), map[string]any{
+		"id": float64(123),
+	})
+}
+
 func TestTaskGet(t *testing.T) {
 	mcpServer := mcpServerMock(t, http.StatusOK, []byte(`{}`))
 	testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodTaskGet.String(), map[string]any{
