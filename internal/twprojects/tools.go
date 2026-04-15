@@ -72,11 +72,19 @@ func DefaultToolsetGroup(readOnly, allowDelete bool, engine *twapi.Engine) *tool
 		TasklistCreate(engine),
 		TasklistUpdate(engine),
 		TaskUpdate(engine),
+		WorkflowCreate(engine),
+		WorkflowUpdate(engine),
+		WorkflowProjectLink(engine),
+		WorkflowStageCreate(engine),
+		WorkflowStageUpdate(engine),
+		WorkflowStageTaskMove(engine),
 	}
 	if allowDelete {
 		tasksWriteTools = append(tasksWriteTools,
 			TaskDelete(engine),
 			TasklistDelete(engine),
+			WorkflowDelete(engine),
+			WorkflowStageDelete(engine),
 		)
 	}
 	tasksToolset := toolsets.NewToolset(ToolsetTasks, taskDescription).
@@ -89,6 +97,10 @@ func DefaultToolsetGroup(readOnly, allowDelete bool, engine *twapi.Engine) *tool
 			TasklistGet(engine),
 			TasklistList(engine),
 			TasklistListByProject(engine),
+			WorkflowGet(engine),
+			WorkflowList(engine),
+			WorkflowStageGet(engine),
+			WorkflowStageList(engine),
 		)
 	tasksToolset.AddPrompts(TaskSkillsAndRolesPrompt(engine))
 	group.AddToolset(tasksToolset)
