@@ -271,6 +271,7 @@ func TaskCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 			var taskCreateRequest projects.TaskCreateRequest
 			taskCreateRequest.Options.Notify = true
+			taskCreateRequest.Options.CheckInvalidUsers = true
 
 			var arguments map[string]any
 			if err := json.Unmarshal(request.Params.Arguments, &arguments); err != nil {
@@ -586,6 +587,7 @@ func TaskUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 			var taskUpdateRequest projects.TaskUpdateRequest
 			taskUpdateRequest.Options.Notify = true
+			taskUpdateRequest.Options.CheckInvalidUsers = true
 
 			var arguments map[string]any
 			if err := json.Unmarshal(request.Params.Arguments, &arguments); err != nil {
