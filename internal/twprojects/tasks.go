@@ -853,14 +853,62 @@ func TaskList(engine *twapi.Engine) toolsets.ToolWrapper {
 						Type:        "string",
 						Description: "A search term to filter tasks by name.",
 					},
-					"tag_ids": {
-						Type:        "array",
-						Description: "A list of tag IDs to filter tasks by tags",
-						Items:       &jsonschema.Schema{Type: "integer"},
-					},
 					"assignee_user_ids": {
 						Type:        "array",
 						Description: "A list of user IDs to filter tasks by assigned users",
+						Items:       &jsonschema.Schema{Type: "integer"},
+					},
+					"created_after": {
+						Type:        "string",
+						Format:      "date-time",
+						Description: "Filter tasks created after this date and time in RFC 3339 format.",
+						Examples: []any{
+							"2023-01-01T00:00:00Z",
+						},
+					},
+					"created_before": {
+						Type:        "string",
+						Format:      "date-time",
+						Description: "Filter tasks created before this date and time in RFC 3339 format.",
+						Examples: []any{
+							"2023-12-31T23:59:59Z",
+						},
+					},
+					"updated_after": {
+						Type:        "string",
+						Format:      "date-time",
+						Description: "Filter tasks updated after this date and time in RFC 3339 format.",
+						Examples: []any{
+							"2023-01-01T00:00:00Z",
+						},
+					},
+					"updated_before": {
+						Type:        "string",
+						Format:      "date-time",
+						Description: "Filter tasks updated before this date and time in RFC 3339 format.",
+						Examples: []any{
+							"2023-12-31T23:59:59Z",
+						},
+					},
+					"completed_after": {
+						Type:        "string",
+						Format:      "date-time",
+						Description: "Filter tasks completed after this date and time in RFC 3339 format.",
+						Examples: []any{
+							"2023-01-01T00:00:00Z",
+						},
+					},
+					"completed_before": {
+						Type:        "string",
+						Format:      "date-time",
+						Description: "Filter tasks completed before this date and time in RFC 3339 format.",
+						Examples: []any{
+							"2023-12-31T23:59:59Z",
+						},
+					},
+					"tag_ids": {
+						Type:        "array",
+						Description: "A list of tag IDs to filter tasks by tags",
 						Items:       &jsonschema.Schema{Type: "integer"},
 					},
 					"match_all_tags": {
@@ -889,11 +937,17 @@ func TaskList(engine *twapi.Engine) toolsets.ToolWrapper {
 			}
 			err := helpers.ParamGroup(arguments,
 				helpers.OptionalParam(&taskListRequest.Filters.SearchTerm, "search_term"),
-				helpers.OptionalNumericListParam(&taskListRequest.Filters.TagIDs, "tag_ids"),
 				helpers.OptionalNumericListParam(&taskListRequest.Filters.AssigneeUserIDs, "assignee_user_ids"),
-				helpers.OptionalPointerParam(&taskListRequest.Filters.MatchAllTags, "match_all_tags"),
 				helpers.OptionalNumericParam(&taskListRequest.Filters.Page, "page"),
 				helpers.OptionalNumericParam(&taskListRequest.Filters.PageSize, "page_size"),
+				helpers.OptionalTimePointerParam(&taskListRequest.Filters.CreatedAfter, "created_after"),
+				helpers.OptionalTimePointerParam(&taskListRequest.Filters.CreatedBefore, "created_before"),
+				helpers.OptionalTimePointerParam(&taskListRequest.Filters.UpdatedAfter, "updated_after"),
+				helpers.OptionalTimePointerParam(&taskListRequest.Filters.UpdatedBefore, "updated_before"),
+				helpers.OptionalTimePointerParam(&taskListRequest.Filters.CompletedAfter, "completed_after"),
+				helpers.OptionalTimePointerParam(&taskListRequest.Filters.CompletedBefore, "completed_before"),
+				helpers.OptionalNumericListParam(&taskListRequest.Filters.TagIDs, "tag_ids"),
+				helpers.OptionalPointerParam(&taskListRequest.Filters.MatchAllTags, "match_all_tags"),
 			)
 			if err != nil {
 				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
