@@ -122,10 +122,16 @@ func TestTaskListByProject(t *testing.T) {
 	testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodTaskListByProject.String(), map[string]any{
 		"project_id":        float64(123),
 		"search_term":       "test",
+		"assignee_user_ids": []float64{4, 5, 6},
+		"created_after":     "2023-10-01T00:00:00Z",
+		"created_before":    "2023-10-31T23:59:59Z",
+		"updated_after":     "2023-10-01T00:00:00Z",
+		"updated_before":    "2023-10-31T23:59:59Z",
+		"completed_after":   "2023-10-01T00:00:00Z",
+		"completed_before":  "2023-10-31T23:59:59Z",
 		"tag_ids":           []float64{1, 2, 3},
 		"match_all_tags":    true,
 		"page":              float64(1),
 		"page_size":         float64(10),
-		"assignee_user_ids": []float64{4, 5, 6},
 	})
 }
