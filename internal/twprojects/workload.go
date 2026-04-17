@@ -3,7 +3,6 @@ package twprojects
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 
 	"github.com/google/jsonschema-go/jsonschema"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
@@ -28,22 +27,6 @@ const workloadDescription = "Workload is a visual representation of how tasks ar
 	"hours to give managers and teams a clear picture of availability and resource allocation. By providing " +
 	"this insight, workload makes it easier to plan effectively, prevent burnout, and ensure that deadlines are " +
 	"met without placing too much pressure on any single person."
-
-var (
-	userWorkloadOutputSchema *jsonschema.Schema
-)
-
-func init() {
-	var err error
-
-	// generate the output schemas only once
-	userWorkloadOutputSchema, err = jsonschema.For[projects.WorkloadResponse](&jsonschema.ForOptions{
-		IgnoreInvalidTypes: true,
-	})
-	if err != nil {
-		panic(fmt.Sprintf("failed to generate JSON schema for WorkloadResponse: %v", err))
-	}
-}
 
 // UsersWorkload retrieves the workload of users in Teamwork.com.
 func UsersWorkload(engine *twapi.Engine) toolsets.ToolWrapper {
@@ -107,7 +90,6 @@ func UsersWorkload(engine *twapi.Engine) toolsets.ToolWrapper {
 				},
 				Required: []string{"start_date", "end_date"},
 			},
-			OutputSchema: userWorkloadOutputSchema,
 		},
 		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 			var workloadRequest projects.WorkloadRequest
