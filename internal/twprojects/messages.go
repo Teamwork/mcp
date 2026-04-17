@@ -83,7 +83,7 @@ func MessageCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 					},
 					"notify": {
 						Description: "Who should be notified about the new message. Accepts either 'all' or an " +
-							"object specifying user, team, or company IDs.",
+							"object specifying user, team, or company IDs. By default, all project members are notified.",
 						AnyOf: []*jsonschema.Schema{
 							{
 								Type:        "string",
@@ -125,6 +125,7 @@ func MessageCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 								},
 							},
 						},
+						Default: json.RawMessage(`"all"`),
 					},
 				},
 				Required: []string{"title", "project_id", "body"},
@@ -170,6 +171,8 @@ func MessageCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 					return helpers.NewToolResultTextError("invalid parameters: notify must be either string ('all'), " +
 						"or an object"), nil
 				}
+			} else {
+				messageCreateRequest.Notify = projects.NewMessageNotifyAll()
 			}
 
 			message, err := projects.MessageCreate(ctx, engine, messageCreateRequest)
@@ -215,7 +218,7 @@ func MessageUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 					},
 					"notify": {
 						Description: "Who should be notified about the new message. Accepts either 'all' or an " +
-							"object specifying user, team, or company IDs.",
+							"object specifying user, team, or company IDs. By default, all project members are notified.",
 						AnyOf: []*jsonschema.Schema{
 							{
 								Type:        "string",
@@ -257,6 +260,7 @@ func MessageUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 								},
 							},
 						},
+						Default: json.RawMessage(`"all"`),
 					},
 				},
 				Required: []string{"id"},
@@ -302,6 +306,8 @@ func MessageUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 					return helpers.NewToolResultTextError("invalid parameters: notify must be either string ('all'), " +
 						"or an object"), nil
 				}
+			} else {
+				messageUpdateRequest.Notify = projects.NewMessageNotifyAll()
 			}
 
 			_, err = projects.MessageUpdate(ctx, engine, messageUpdateRequest)
