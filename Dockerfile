@@ -18,6 +18,7 @@ COPY --chown=root:root . /usr/src/mcp
 
 ARG BUILD_VERSION=dev
 
+RUN apk add --no-cache git
 RUN go mod download
 RUN go build -ldflags="-X 'github.com/teamwork/mcp/internal/config.Version=$BUILD_VERSION'" -o /app/tw-mcp-http ./cmd/mcp-http
 RUN go build -ldflags="-X 'github.com/teamwork/mcp/internal/config.Version=$BUILD_VERSION'" -o /app/tw-mcp-stdio ./cmd/mcp-stdio
