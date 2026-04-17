@@ -112,7 +112,7 @@ func CommentCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 					},
 					"notify": {
 						Description: "Who should be notified about the new comment. Accepts either 'all', true (followers) or an " +
-							"object specifying user, team, or company IDs.",
+							"object specifying user, team, or company IDs. By default, followers are notified.",
 						AnyOf: []*jsonschema.Schema{
 							{
 								Type:        "string",
@@ -159,6 +159,7 @@ func CommentCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 								},
 							},
 						},
+						Default: json.RawMessage(`true`),
 					},
 				},
 				Required: []string{"object", "body"},
@@ -208,6 +209,8 @@ func CommentCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 					return helpers.NewToolResultTextError("invalid parameters: notify must be either boolean true, " +
 						"string ('all'), or an object"), nil
 				}
+			} else {
+				commentCreateRequest.Notify = projects.NewCommentNotifyFollowers()
 			}
 
 			var objectType string
@@ -286,7 +289,7 @@ func CommentUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 					},
 					"notify": {
 						Description: "Who should be notified about the comment change. Accepts either 'all', true (followers) or " +
-							"an object specifying user, team, or company IDs.",
+							"an object specifying user, team, or company IDs. By default, followers are notified.",
 						AnyOf: []*jsonschema.Schema{
 							{
 								Type:        "string",
@@ -333,6 +336,7 @@ func CommentUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 								},
 							},
 						},
+						Default: json.RawMessage(`true`),
 					},
 				},
 				Required: []string{"id", "body"},
@@ -383,6 +387,8 @@ func CommentUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 					return helpers.NewToolResultTextError("invalid parameters: notify must be either boolean true, " +
 						"string ('all'), or an object"), nil
 				}
+			} else {
+				commentUpdateRequest.Notify = projects.NewCommentNotifyFollowers()
 			}
 
 			_, err = projects.CommentUpdate(ctx, engine, commentUpdateRequest)
