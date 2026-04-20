@@ -38,6 +38,12 @@ func MessageCreate(httpClient *http.Client) toolsets.ToolWrapper {
 						Type:        "integer",
 						Description: "The ID of the ticket that the message will be sent to.",
 					},
+					"threadType": {
+						Type:        "string",
+						Description: "The thread type of the message. Valid values are 'message' or 'note'.",
+						Enum:        []any{"message", "note"},
+						Deprecated:  false,
+					},
 					"body": {
 						Type:        "string",
 						Description: "The body of the message.",
@@ -69,7 +75,8 @@ func MessageCreate(httpClient *http.Client) toolsets.ToolWrapper {
 
 			data := deskmodels.MessageResponse{
 				Message: deskmodels.Message{
-					Message: arguments.GetString("body", ""),
+					Message:    arguments.GetString("body", ""),
+					ThreadType: arguments.GetString("threadType", "message"),
 				},
 			}
 
