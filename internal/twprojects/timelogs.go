@@ -61,9 +61,9 @@ func TimelogCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 		Tool: &mcp.Tool{
 			Meta: mcp.Meta{
 				"ui": map[string]any{
-					"resourceUri": timelogCreateAppResourceURI,
+					"resourceUri": timelogCreateAppURI,
 				},
-				"openai/outputTemplate": timelogCreateAppResourceURI,
+				"openai/outputTemplate": timelogCreateAppURI,
 			},
 			Name:        string(MethodTimelogCreate),
 			Description: "Create a new timelog in Teamwork.com. " + timelogDescription,

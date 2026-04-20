@@ -115,6 +115,19 @@ func (e *ToolsetDoesNotExistError) Is(target error) bool {
 	return ok
 }
 
+// ServerResource represents a plain resource that can be registered with the
+// MCP server and will appear in resources/list.
+type ServerResource struct {
+	resource *mcp.Resource
+	handler  mcp.ResourceHandler
+}
+
+// NewServerResource creates a new ServerResource with the given resource and
+// handler function.
+func NewServerResource(resource *mcp.Resource, handler mcp.ResourceHandler) ServerResource {
+	return ServerResource{resource: resource, handler: handler}
+}
+
 // ServerResourceTemplate represents a resource template that can be registered
 // with the MCP server.
 type ServerResourceTemplate struct {
@@ -173,6 +186,7 @@ type Toolset struct {
 	// resources are not tools, but the community seems to be moving towards
 	// namespaces as a broader concept and in order to have multiple servers
 	// running concurrently, we want to avoid overlapping resources too.
+	resources         []ServerResource
 	resourceTemplates []ServerResourceTemplate
 	// prompts are also not tools but are namespaced similarly
 	prompts []ServerPrompt
@@ -222,6 +236,33 @@ func (t *Toolset) RegisterTools(s *mcp.Server) {
 		for _, tool := range t.writeTools {
 			s.AddTool(tool.Tool, tool.Handler)
 		}
+	}
+}
+
+// AddResources adds plain resources to the Toolset. These will appear in
+// resources/list responses.
+func (t *Toolset) AddResources(resources ...ServerResource) *Toolset {
+	t.resources = append(t.resources, resources...)
+	return t
+}
+
+// GetActiveResources returns the plain resources that are currently active in
+// the Toolset.
+func (t *Toolset) GetActiveResources() []ServerResource {
+	if !t.Enabled {
+		return nil
+	}
+	return t.resources
+}
+
+// RegisterResources registers the plain resources in the Toolset with the MCP
+// server.
+func (t *Toolset) RegisterResources(s *mcp.Server) {
+	if !t.Enabled {
+		return
+	}
+	for _, r := range t.resources {
+		s.AddResource(r.resource, r.handler)
 	}
 }
 
@@ -403,6 +444,7 @@ func (tg *ToolsetGroup) EnableToolset(method Method) error {
 func (tg *ToolsetGroup) RegisterAll(s *mcp.Server) {
 	for _, toolset := range tg.Toolsets {
 		toolset.RegisterTools(s)
+		toolset.RegisterResources(s)
 		toolset.RegisterResourcesTemplates(s)
 		toolset.RegisterPrompts(s)
 	}

@@ -346,7 +346,7 @@
         return value;
       }
 
-      function request(method, params) {
+      function request(method, params, timeoutMs) {
         return new Promise(function (resolve, reject) {
           var id = nextID++;
           pending.set(id, { resolve: resolve, reject: reject });
@@ -362,7 +362,7 @@
             }
             pending.delete(id);
             reject(new Error("Timed out calling " + method));
-          }, 30000);
+          }, timeoutMs || 30000);
         });
       }
 
@@ -816,6 +816,21 @@
         }
       });
 
+      async function initialize() {
+        var initResult = await request("ui/initialize", {
+          protocolVersion: "2026-01-26",
+          capabilities: {}
+        }, 5000);
+
+        // Acknowledge — fire-and-forget, no response expected.
+        window.parent.postMessage(
+          { jsonrpc: "2.0", method: "ui/notifications/initialized", params: {} },
+          hostOrigin
+        );
+
+        return initResult;
+      }
+
       var defaults = nowDefaults();
       dateField.value = defaults.date;
       timeField.value = defaults.time;
@@ -865,7 +880,11 @@
         }
       });
 
-      loadProjects();
+      initialize().then(loadProjects).catch(function (err) {
+        // Fallback: if the host doesn't support ui/initialize (e.g. MCP
+        // Inspector), the request will time out. Load projects anyway.
+        loadProjects();
+      });
     })();
   </script>
 </body>
