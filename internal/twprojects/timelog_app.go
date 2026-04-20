@@ -9,11 +9,10 @@ import (
 )
 
 const (
-	mcpAppMimeType                   = "text/html;profile=mcp-app"
-	timelogCreateAppResourceURI      = "ui://teamwork/timelog-create"
-	timelogCreateAppResourceTitle    = "Create Timelog App"
-	timelogCreateAppResourceTemplate = "ui://teamwork/timelog-create"
-	timelogCreateAppDescription      = "Interactive form for creating Teamwork timelogs."
+	mcpAppMimeType                = "text/html;profile=mcp-app"
+	timelogCreateAppURI           = "ui://teamwork/timelog-create"
+	timelogCreateAppResourceTitle = "Create Timelog App"
+	timelogCreateAppDescription   = "Interactive form for creating Teamwork timelogs."
 )
 
 var timelogCreateWidgetCSP = map[string]any{
@@ -35,28 +34,31 @@ var timelogCreateResourceMeta = mcp.Meta{
 //go:embed apps/timelog_create.html
 var timelogCreateAppHTML string
 
-// TimelogCreateAppResourceTemplate registers the MCP Apps resource used by the
-// twprojects-create_timelog tool.
-func TimelogCreateAppResourceTemplate() toolsets.ServerResourceTemplate {
-	return toolsets.NewServerResourceTemplate(
-		&mcp.ResourceTemplate{
+func timelogCreateReadHandler(_ context.Context, _ *mcp.ReadResourceRequest) (*mcp.ReadResourceResult, error) {
+	return &mcp.ReadResourceResult{
+		Contents: []*mcp.ResourceContents{
+			{
+				URI:      timelogCreateAppURI,
+				MIMEType: mcpAppMimeType,
+				Text:     timelogCreateAppHTML,
+				Meta:     timelogCreateResourceMeta,
+			},
+		},
+	}, nil
+}
+
+// TimelogCreateAppResource returns the MCP Apps plain resource so it appears
+// in resources/list.
+func TimelogCreateAppResource() toolsets.ServerResource {
+	return toolsets.NewServerResource(
+		&mcp.Resource{
 			Name:        "twprojects-create_timelog-ui",
 			Title:       timelogCreateAppResourceTitle,
 			Description: timelogCreateAppDescription,
 			MIMEType:    mcpAppMimeType,
-			URITemplate: timelogCreateAppResourceTemplate,
+			URI:         timelogCreateAppURI,
+			Meta:        timelogCreateResourceMeta,
 		},
-		func(_ context.Context, req *mcp.ReadResourceRequest) (*mcp.ReadResourceResult, error) {
-			return &mcp.ReadResourceResult{
-				Contents: []*mcp.ResourceContents{
-					{
-						URI:      req.Params.URI,
-						MIMEType: mcpAppMimeType,
-						Text:     timelogCreateAppHTML,
-						Meta:     timelogCreateResourceMeta,
-					},
-				},
-			}, nil
-		},
+		timelogCreateReadHandler,
 	)
 }
