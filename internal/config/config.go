@@ -188,6 +188,8 @@ func NewMCPServer(resources Resources, groups ...*toolsets.ToolsetGroup) *mcp.Se
 				"io.modelcontextprotocol/ui": map[string]any{},
 			},
 		},
+		// https://github.com/modelcontextprotocol/go-sdk/blob/v1.5.0/design/design.md#ping--keepalive
+		KeepAlive: 30 * time.Second,
 	}
 	if hasTools {
 		serverOptions.Capabilities.Tools = &mcp.ToolCapabilities{}
