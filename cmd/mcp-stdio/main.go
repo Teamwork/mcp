@@ -8,6 +8,7 @@ import (
 	"log/slog"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/modelcontextprotocol/go-sdk/jsonrpc"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
@@ -62,7 +63,7 @@ func main() {
 	f := os.Stderr
 	if logToFile != "" {
 		var err error
-		f, err = os.Open(logToFile)
+		f, err = os.OpenFile(logToFile, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "failed to open log file: %s\n", err)
 			exit(exitCodeSetupFailure)
@@ -107,7 +108,30 @@ func main() {
 		}
 	})
 
-	if err := mcpServer.Run(ctx, &mcp.StdioTransport{}); err != nil {
+	ss, err := mcpServer.Connect(ctx, &mcp.StdioTransport{}, nil)
+	if err != nil {
+		mcpError(resources.Logger(), fmt.Errorf("failed to connect: %s", err), jsonRPCErrorCodeInternalError)
+		exit(exitCodeSetupFailure)
+	}
+
+	go func() {
+		ticker := time.NewTicker(30 * time.Second)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ticker.C:
+				pingCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
+				if err := ss.Ping(pingCtx, nil); err != nil {
+					mcpError(resources.Logger(), fmt.Errorf("failed to ping: %s", err), jsonRPCErrorCodeInternalError)
+				}
+				cancel()
+			case <-ctx.Done():
+				return
+			}
+		}
+	}()
+
+	if err := ss.Wait(); err != nil {
 		mcpError(resources.Logger(), fmt.Errorf("failed to serve: %s", err), jsonRPCErrorCodeInternalError)
 		exit(exitCodeSetupFailure)
 	}
