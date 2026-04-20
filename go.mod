@@ -10,7 +10,7 @@ require (
 	github.com/google/jsonschema-go v0.4.2
 	github.com/google/uuid v1.6.0
 	github.com/modelcontextprotocol/go-sdk v1.5.0
-	github.com/teamwork/desksdkgo v0.0.0-20260420182034-7764d4995c59
+	github.com/teamwork/desksdkgo v0.0.0-20260420182446-6788c53d670d
 	github.com/teamwork/twapi-go-sdk v1.13.4
 )
 
