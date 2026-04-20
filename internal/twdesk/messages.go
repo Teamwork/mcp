@@ -41,7 +41,7 @@ func MessageCreate(httpClient *http.Client) toolsets.ToolWrapper {
 					"threadType": {
 						Type:        "string",
 						Description: "The thread type of the message. Valid values are 'message' or 'note'.",
-						Enum:        []interface{}{"message", "note"},
+						Enum:        []any{"message", "note"},
 						Deprecated:  false,
 					},
 					"body": {
