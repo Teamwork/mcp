@@ -576,13 +576,13 @@ func TicketCreate(httpClient *http.Client) toolsets.ToolWrapper {
 			data := deskmodels.Ticket{
 				Subject: arguments.GetString("subject", ""),
 				Body:    arguments.GetString("body", ""),
-				Inbox: deskmodels.EntityRef{
+				Inbox: &deskmodels.EntityRef{
 					ID: arguments.GetInt("inboxId", 0),
 				},
 			}
 
 			if arguments.GetInt("customerId", 0) != 0 {
-				data.Customer = deskmodels.EntityRef{
+				data.Customer = &deskmodels.EntityRef{
 					ID: arguments.GetInt("customerId", 0),
 				}
 			}
@@ -601,7 +601,7 @@ func TicketCreate(httpClient *http.Client) toolsets.ToolWrapper {
 				}
 
 				if len(customers.Customers) > 0 {
-					data.Customer = deskmodels.EntityRef{
+					data.Customer = &deskmodels.EntityRef{
 						ID: customers.Customers[0].ID,
 					}
 				} else {
@@ -614,7 +614,7 @@ func TicketCreate(httpClient *http.Client) toolsets.ToolWrapper {
 					if err != nil {
 						return nil, fmt.Errorf("failed to create customer: %w", err)
 					}
-					data.Customer = deskmodels.EntityRef{
+					data.Customer = &deskmodels.EntityRef{
 						ID: customer.Customer.ID,
 					}
 				}
@@ -721,6 +721,13 @@ func TicketUpdate(httpClient *http.Client) toolsets.ToolWrapper {
 							Type: "string",
 						},
 					},
+					"inboxId": {
+						Type: "integer",
+						Description: `
+							The inbox ID of the ticket. 
+							Use the 'twdesk-list_inboxes' tool to find valid IDs.
+						`,
+					},
 					"priorityId": {
 						Type: "integer",
 						Description: `
@@ -764,6 +771,12 @@ func TicketUpdate(httpClient *http.Client) toolsets.ToolWrapper {
 
 			if subject := arguments.GetString("subject", ""); subject != "" {
 				data.Subject = subject
+			}
+
+			if inboxId := arguments.GetInt("inboxId", 0); inboxId > 0 {
+				data.Inbox = &deskmodels.EntityRef{
+					ID: inboxId,
+				}
 			}
 
 			if body := arguments.GetString("body", ""); body != "" {
