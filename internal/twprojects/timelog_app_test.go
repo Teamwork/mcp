@@ -108,9 +108,6 @@ func TestTimelogCreateResourceRead(t *testing.T) {
 	if !ok {
 		t.Fatalf("expected _meta.ui to be map[string]any, got %T", uiMetaRaw)
 	}
-	if description, ok := uiMeta["description"].(string); !ok || description == "" {
-		t.Fatalf("expected _meta.ui.description to be non-empty string, got %#v", uiMeta["description"])
-	}
 	if _, ok := uiMeta["csp"].(map[string]any); !ok {
 		t.Fatalf("expected _meta.ui.csp to be map[string]any, got %T", uiMeta["csp"])
 	}

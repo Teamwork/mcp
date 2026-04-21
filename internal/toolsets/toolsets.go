@@ -483,3 +483,15 @@ func (tg *ToolsetGroup) HasPrompts() bool {
 	}
 	return false
 }
+
+// HasResources checks if the ToolsetGroup has any enabled Toolsets with
+// available resources. It returns true if at least one Toolset is enabled and
+// has resources, otherwise it returns false.
+func (tg *ToolsetGroup) HasResources() bool {
+	for _, toolset := range tg.Toolsets {
+		if toolset.Enabled && (len(toolset.resources) > 0 || len(toolset.resourceTemplates) > 0) {
+			return true
+		}
+	}
+	return false
+}

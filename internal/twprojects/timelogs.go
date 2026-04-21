@@ -63,6 +63,7 @@ func TimelogCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 				"ui": map[string]any{
 					"resourceUri": timelogCreateAppURI,
 				},
+				"ui/resourceUri":        timelogCreateAppURI, // legacy support
 				"openai/outputTemplate": timelogCreateAppURI,
 			},
 			Name:        string(MethodTimelogCreate),

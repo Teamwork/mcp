@@ -166,14 +166,18 @@ func Load(logOutput io.Writer) (Resources, func()) {
 // NewMCPServer creates a new MCP server with the given resources and toolset
 // group.
 func NewMCPServer(resources Resources, groups ...*toolsets.ToolsetGroup) *mcp.Server {
-	// Determine if any group has tools
-	var hasTools, hasPrompts bool
+	// Determine if any group has tools, prompts or resources to populate the
+	// server capabilities
+	var hasTools, hasPrompts, hasResources bool
 	for _, group := range groups {
 		if group.HasTools() {
 			hasTools = true
 		}
 		if group.HasPrompts() {
 			hasPrompts = true
+		}
+		if group.HasResources() {
+			hasResources = true
 		}
 	}
 
@@ -196,6 +200,9 @@ func NewMCPServer(resources Resources, groups ...*toolsets.ToolsetGroup) *mcp.Se
 	}
 	if hasPrompts {
 		serverOptions.Capabilities.Prompts = &mcp.PromptCapabilities{}
+	}
+	if hasResources {
+		serverOptions.Capabilities.Resources = &mcp.ResourceCapabilities{}
 	}
 
 	mcpServer := mcp.NewServer(&mcp.Implementation{

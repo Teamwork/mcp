@@ -16,15 +16,24 @@ const (
 )
 
 var timelogCreateWidgetCSP = map[string]any{
-	"connect_domains":  []string{},
-	"resource_domains": []string{},
+	"connectDomains":  []string{},
+	"resourceDomains": []string{},
+	"frameDomains":    []string{},
+	"baseUriDomains":  []string{},
+}
+
+var timelogCreateWidgetPermissions = map[string]any{
+	"camera":         map[string]any{},
+	"microphone":     map[string]any{},
+	"geolocation":    map[string]any{},
+	"clipboardWrite": map[string]any{},
 }
 
 var timelogCreateResourceMeta = mcp.Meta{
 	"ui": map[string]any{
-		"description":   timelogCreateAppDescription,
-		"prefersBorder": true,
 		"csp":           timelogCreateWidgetCSP,
+		"permissions":   timelogCreateWidgetPermissions,
+		"prefersBorder": true,
 	},
 	"openai/widgetDescription":   timelogCreateAppDescription,
 	"openai/widgetPrefersBorder": true,
@@ -49,6 +58,8 @@ func timelogCreateReadHandler(_ context.Context, _ *mcp.ReadResourceRequest) (*m
 
 // TimelogCreateAppResource returns the MCP Apps plain resource so it appears
 // in resources/list.
+//
+// https://github.com/modelcontextprotocol/ext-apps/blob/main/specification/2026-01-26/apps.mdx#ui-resource-format
 func TimelogCreateAppResource() toolsets.ServerResource {
 	return toolsets.NewServerResource(
 		&mcp.Resource{
