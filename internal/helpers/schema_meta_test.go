@@ -150,6 +150,7 @@ func TestWithMetaWebLinkSchema(t *testing.T) {
 				meta := items.Properties["meta"]
 				if meta == nil {
 					t.Fatal("expected meta property on nullable array items")
+					return
 				}
 				if meta.Properties["webLink"] == nil {
 					t.Fatal("expected webLink in meta")
