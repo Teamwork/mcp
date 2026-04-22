@@ -18,12 +18,13 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/DataDog/dd-trace-go/v2/ddtrace/tracer"
 	"github.com/teamwork/mcp/pkg/auth"
 	"github.com/teamwork/mcp/pkg/config"
 	"github.com/teamwork/mcp/pkg/request"
 	"github.com/teamwork/mcp/pkg/twctx"
 	"github.com/teamwork/twapi-go-sdk/session"
+	otelattr "go.opentelemetry.io/otel/attribute"
+	oteltrace "go.opentelemetry.io/otel/trace"
 )
 
 var reBearerToken = regexp.MustCompile(`^Bearer (.+)$`)
@@ -134,11 +135,12 @@ func Auth(resources config.Resources, validator *auth.Validator, next http.Handl
 			return
 		}
 
-		if span, ok := tracer.SpanFromContext(r.Context()); ok {
-			span.SetTag("user.id", info.UserID)
-			span.SetTag("installation.id", info.InstallationID)
-			span.SetTag("installation.url", info.URL)
-		}
+		span := oteltrace.SpanFromContext(r.Context())
+		span.SetAttributes(
+			otelattr.Int64("user.id", info.UserID),
+			otelattr.Int64("installation.id", info.InstallationID),
+			otelattr.String("installation.url", info.URL),
+		)
 		if requestInfo, ok := request.InfoFromContext(r.Context()); ok {
 			requestInfo.SetAuth(info.InstallationID, info.URL, info.UserID)
 		}

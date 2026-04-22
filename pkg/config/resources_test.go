@@ -40,16 +40,16 @@ func TestNewResourcesEnvPrefix(t *testing.T) {
 	})
 }
 
-// TestNewResourcesDatadogEnvIsNotPrefixed guards the one group of variables
-// that must stay bare: DD_SERVICE and friends are set by the Datadog agent's
-// own conventions, so prefixing them would leave tracing unconfigured.
-func TestNewResourcesDatadogEnvIsNotPrefixed(t *testing.T) {
-	t.Setenv("DD_SERVICE", "from-the-agent")
-	t.Setenv("TW_MCP_PRO_DD_SERVICE", "should-be-ignored")
+// TestNewResourcesOTelEnvIsNotPrefixed guards the one group of variables that
+// must stay bare: OTEL_SERVICE_NAME and friends are set by the OpenTelemetry
+// specification, so prefixing them would leave tracing unconfigured.
+func TestNewResourcesOTelEnvIsNotPrefixed(t *testing.T) {
+	t.Setenv("OTEL_SERVICE_NAME", "from-the-collector")
+	t.Setenv("TW_MCP_PRO_OTEL_SERVICE_NAME", "should-be-ignored")
 
 	resources := newResources(newOptions(WithEnvPrefix("TW_MCP_PRO_")))
-	if got := resources.Info.DatadogAPM.Service; got != "from-the-agent" {
-		t.Errorf("DatadogAPM.Service = %q, want %q", got, "from-the-agent")
+	if got := resources.Info.OTel.Service; got != "from-the-collector" {
+		t.Errorf("OTel.Service = %q, want %q", got, "from-the-collector")
 	}
 }
 
