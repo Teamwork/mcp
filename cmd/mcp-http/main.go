@@ -15,8 +15,6 @@ import (
 	"syscall"
 	"time"
 
-	ddhttp "github.com/DataDog/dd-trace-go/contrib/net/http/v2"
-	"github.com/DataDog/dd-trace-go/v2/ddtrace/tracer"
 	"github.com/getsentry/sentry-go"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/teamwork/mcp/internal/auth"
@@ -26,6 +24,9 @@ import (
 	"github.com/teamwork/mcp/internal/twdesk"
 	"github.com/teamwork/mcp/internal/twprojects"
 	"github.com/teamwork/twapi-go-sdk/session"
+	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
+	otelattr "go.opentelemetry.io/otel/attribute"
+	oteltrace "go.opentelemetry.io/otel/trace"
 )
 
 var reBearerToken = regexp.MustCompile(`^Bearer (.+)$`)
@@ -318,7 +319,7 @@ func sentryMiddleware(resources config.Resources, next http.Handler) http.Handle
 }
 
 func tracerMiddleware(resources config.Resources, next http.Handler) http.Handler {
-	if !resources.Info.DatadogAPM.Enabled {
+	if !resources.Info.OTel.Enabled {
 		return next
 	}
 	skipPaths := map[string]struct{}{
@@ -326,18 +327,15 @@ func tracerMiddleware(resources config.Resources, next http.Handler) http.Handle
 		"/api/health":  {}, // health checks can be very noisy
 		"/sse":         {}, // long-lived connections don't work well with tracing
 	}
-	return ddhttp.WrapHandler(next, resources.Info.DatadogAPM.Service, "http.request",
-		ddhttp.WithResourceNamer(func(req *http.Request) string {
+	return otelhttp.NewHandler(next, "http.request",
+		otelhttp.WithSpanNameFormatter(func(_ string, req *http.Request) string {
 			return fmt.Sprintf("%s_%s", req.Method, req.URL.Path)
 		}),
-		ddhttp.WithIgnoreRequest(func(req *http.Request) bool {
+		otelhttp.WithFilter(func(req *http.Request) bool {
 			if _, skip := skipPaths[req.URL.Path]; skip {
-				return true
+				return false
 			}
-			if strings.HasPrefix(req.URL.Path, "/.well-known") {
-				return true
-			}
-			return false
+			return !strings.HasPrefix(req.URL.Path, "/.well-known")
 		}),
 	)
 }
@@ -424,11 +422,12 @@ func authMiddleware(resources config.Resources, next http.Handler) http.Handler 
 			return
 		}
 
-		if span, ok := tracer.SpanFromContext(r.Context()); ok {
-			span.SetTag("user.id", info.UserID)
-			span.SetTag("installation.id", info.InstallationID)
-			span.SetTag("installation.url", info.URL)
-		}
+		span := oteltrace.SpanFromContext(r.Context())
+		span.SetAttributes(
+			otelattr.Int64("user.id", info.UserID),
+			otelattr.Int64("installation.id", info.InstallationID),
+			otelattr.String("installation.url", info.URL),
+		)
 		if requestInfo, ok := request.InfoFromContext(r.Context()); ok {
 			requestInfo.SetAuth(info.InstallationID, info.URL, info.UserID)
 		}
