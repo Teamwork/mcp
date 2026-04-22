@@ -7,9 +7,9 @@ import (
 
 	"github.com/google/jsonschema-go/jsonschema"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
-	spacesmodels "github.com/teamwork/spacessdkgo/models"
 	"github.com/teamwork/mcp/internal/helpers"
 	"github.com/teamwork/mcp/internal/toolsets"
+	spacesmodels "github.com/teamwork/spacessdkgo/models"
 )
 
 // MethodSearch is the method name for searching pages in Teamwork Spaces.

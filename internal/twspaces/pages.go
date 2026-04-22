@@ -8,9 +8,9 @@ import (
 
 	"github.com/google/jsonschema-go/jsonschema"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
-	spacesmodels "github.com/teamwork/spacessdkgo/models"
 	"github.com/teamwork/mcp/internal/helpers"
 	"github.com/teamwork/mcp/internal/toolsets"
+	spacesmodels "github.com/teamwork/spacessdkgo/models"
 )
 
 // List of page methods available in the Teamwork Spaces MCP service.

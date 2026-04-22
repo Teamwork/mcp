@@ -7,7 +7,7 @@ import (
 )
 
 const (
-	spacesContentDescription   = "Pages, comments, tags, and categories in Teamwork Spaces."
+	spacesContentDescription    = "Pages, comments, tags, and categories in Teamwork Spaces."
 	spacesCategoriesDescription = "Space categories in Teamwork Spaces."
 )
 

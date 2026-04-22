@@ -8,9 +8,9 @@ import (
 
 	"github.com/google/jsonschema-go/jsonschema"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
-	spacesmodels "github.com/teamwork/spacessdkgo/models"
 	"github.com/teamwork/mcp/internal/helpers"
 	"github.com/teamwork/mcp/internal/toolsets"
+	spacesmodels "github.com/teamwork/spacessdkgo/models"
 )
 
 // List of category methods available in the Teamwork Spaces MCP service.
@@ -75,7 +75,7 @@ func CategoryList(httpClient *http.Client) toolsets.ToolWrapper {
 				Properties: map[string]*jsonschema.Schema{},
 			},
 		},
-		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		Handler: func(ctx context.Context, _ *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 			client := ClientFromContext(ctx, httpClient)
 
 			categories, err := client.Categories.List(ctx, url.Values{})
