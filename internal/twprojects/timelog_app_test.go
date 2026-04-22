@@ -48,6 +48,10 @@ func TestTimelogCreateHasMCPAppsMeta(t *testing.T) {
 	}
 	if createTimelogTool == nil {
 		t.Fatal("twprojects-create_timelog tool not found")
+		return
+	}
+	if createTimelogTool.Meta == nil {
+		t.Fatal("expected tool to have meta, got nil")
 	}
 
 	uiMetaRaw, ok := createTimelogTool.Meta["ui"]

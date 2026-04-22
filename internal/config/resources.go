@@ -54,22 +54,17 @@ type Resources struct {
 			// SentryDSN is the Sentry DSN to be used for error reporting.
 			SentryDSN string
 		}
-		// DatadogAPM contains the configuration for Datadog APM. This is useful for
-		// the MCP server in HTTP mode.
-		DatadogAPM struct {
-			// Enabled indicates if Datadog APM is enabled.
+		// OTel contains the configuration for OpenTelemetry tracing.
+		OTel struct {
+			// Enabled indicates if OpenTelemetry tracing is enabled.
 			Enabled bool
-			// Service is the name of the service to be used in Datadog APM.
+			// Endpoint is the OTLP HTTP endpoint to send traces to (e.g. "http://localhost:4318").
+			Endpoint string
+			// Service is the name of the service.
 			Service string
-			// AgentHost is the host of the Datadog Agent.
-			AgentHost string
-			// AgentPort is the port of the Datadog Agent.
-			AgentPort string
-			// StatsdPort is the port of the DogStatsD Agent.
-			StatsdPort string
-			// Environment is the environment to be used in Datadog APM.
+			// Environment is the deployment environment (e.g. "production", "staging").
 			Environment string
-			// Version is the version of the service to be used in Datadog APM.
+			// Version is the version of the service.
 			Version string
 		}
 	}
@@ -89,14 +84,11 @@ func newResources() Resources {
 	resources.Info.Log.Level = strings.ToLower(getEnv("TW_MCP_LOG_LEVEL", "info"))
 	resources.Info.Log.SentryDSN = getEnv("TW_MCP_SENTRY_DSN", "")
 
-	// https://docs.datadoghq.com/containers/docker/apm/?tab=linux#docker-apm-agent-environment-variables
-	resources.Info.DatadogAPM.Enabled = strings.EqualFold(getEnv("DD_APM_TRACING_ENABLED", "false"), "true")
-	resources.Info.DatadogAPM.Service = getEnv("DD_SERVICE", "mcp-server")
-	resources.Info.DatadogAPM.AgentHost = getEnv("DD_AGENT_HOST", "localhost")
-	resources.Info.DatadogAPM.AgentPort = getEnv("DD_TRACE_AGENT_PORT", "8126")
-	resources.Info.DatadogAPM.StatsdPort = getEnv("DD_DOGSTATSD_PORT", "8125")
-	resources.Info.DatadogAPM.Environment = getEnv("DD_ENV", resources.Info.Environment)
-	resources.Info.DatadogAPM.Version = getEnv("DD_VERSION", resources.Info.Version)
+	resources.Info.OTel.Enabled = strings.EqualFold(getEnv("OTEL_TRACING_ENABLED", "false"), "true")
+	resources.Info.OTel.Endpoint = getEnv("OTEL_EXPORTER_OTLP_ENDPOINT", "http://localhost:4318")
+	resources.Info.OTel.Service = getEnv("OTEL_SERVICE_NAME", "mcp-server")
+	resources.Info.OTel.Environment = getEnv("OTEL_ENV", resources.Info.Environment)
+	resources.Info.OTel.Version = getEnv("OTEL_VERSION", resources.Info.Version)
 
 	return resources
 }

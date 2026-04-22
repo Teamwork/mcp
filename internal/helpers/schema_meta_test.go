@@ -72,10 +72,12 @@ func TestWithMetaWebLinkSchema(t *testing.T) {
 				task := schema.Properties["task"]
 				if task == nil {
 					t.Fatal("expected task property")
+					return
 				}
 				meta := task.Properties["meta"]
 				if meta == nil {
 					t.Fatal("expected meta property on task")
+					return
 				}
 				if meta.Type != "object" {
 					t.Errorf("expected meta type 'object', got %q", meta.Type)
@@ -83,6 +85,7 @@ func TestWithMetaWebLinkSchema(t *testing.T) {
 				webLink := meta.Properties["webLink"]
 				if webLink == nil {
 					t.Fatal("expected webLink property in meta")
+					return
 				}
 				if webLink.Type != "string" {
 					t.Errorf("expected webLink type 'string', got %q", webLink.Type)
@@ -113,10 +116,12 @@ func TestWithMetaWebLinkSchema(t *testing.T) {
 				items := schema.Properties["tasks"].Items
 				if items == nil {
 					t.Fatal("expected tasks items")
+					return
 				}
 				meta := items.Properties["meta"]
 				if meta == nil {
 					t.Fatal("expected meta property on task items")
+					return
 				}
 				webLink := meta.Properties["webLink"]
 				if webLink == nil {
@@ -145,6 +150,7 @@ func TestWithMetaWebLinkSchema(t *testing.T) {
 				meta := items.Properties["meta"]
 				if meta == nil {
 					t.Fatal("expected meta property on nullable array items")
+					return
 				}
 				if meta.Properties["webLink"] == nil {
 					t.Fatal("expected webLink in meta")

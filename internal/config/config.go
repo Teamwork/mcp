@@ -13,10 +13,6 @@ import (
 	"strings"
 	"time"
 
-	ddhttp "github.com/DataDog/dd-trace-go/contrib/net/http/v2"
-	"github.com/DataDog/dd-trace-go/v2/ddtrace/ext"
-	"github.com/DataDog/dd-trace-go/v2/ddtrace/tracer"
-	"github.com/DataDog/dd-trace-go/v2/instrumentation/httptrace"
 	"github.com/getsentry/sentry-go"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	desksdk "github.com/teamwork/desksdkgo/client"
@@ -25,6 +21,10 @@ import (
 	"github.com/teamwork/mcp/internal/toolsets"
 	twapi "github.com/teamwork/twapi-go-sdk"
 	"github.com/teamwork/twapi-go-sdk/session"
+	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
+	otelattr "go.opentelemetry.io/otel/attribute"
+	otelcodes "go.opentelemetry.io/otel/codes"
+	oteltrace "go.opentelemetry.io/otel/trace"
 )
 
 const (
@@ -63,19 +63,14 @@ func Load(logOutput io.Writer) (Resources, func()) {
 		}
 	}
 
-	if resources.Info.DatadogAPM.Enabled {
-		resources.teamworkHTTPClient = ddhttp.WrapClient(resources.teamworkHTTPClient,
-			ddhttp.WithService(resources.Info.DatadogAPM.Service),
-			ddhttp.WithResourceNamer(func(req *http.Request) string {
+	if resources.Info.OTel.Enabled {
+		transport := resources.teamworkHTTPClient.Transport
+		if transport == nil {
+			transport = http.DefaultTransport
+		}
+		resources.teamworkHTTPClient.Transport = otelhttp.NewTransport(transport,
+			otelhttp.WithSpanNameFormatter(func(_ string, req *http.Request) string {
 				return fmt.Sprintf("%s_%s", req.Method, req.URL.Path)
-			}),
-			ddhttp.WithBefore(func(r *http.Request, s *tracer.Span) {
-				// update the span URL when using internal HAProxy address
-				if host := r.Header.Get("Host"); host != "" && host != r.URL.Host {
-					url := httptrace.URLFromRequest(r, true)
-					url = strings.Replace(url, r.URL.Host, host, 1)
-					s.SetTag(ext.HTTPURL, url)
-				}
 			}),
 		)
 	}
@@ -145,17 +140,24 @@ func Load(logOutput io.Writer) (Resources, func()) {
 			}),
 	)
 
-	if resources.Info.DatadogAPM.Enabled {
-		if err := startDatadog(resources); err != nil {
-			resources.logger.Error("failed to start datadog tracer",
+	var otelShutdown func(context.Context) error
+	if resources.Info.OTel.Enabled {
+		var err error
+		otelShutdown, err = startOTel(context.Background(), resources)
+		if err != nil {
+			resources.logger.Error("failed to start OpenTelemetry tracer",
 				slog.String("error", err.Error()),
 			)
 		}
 	}
 
 	return resources, func() {
-		if resources.Info.DatadogAPM.Enabled {
-			tracer.Stop()
+		if otelShutdown != nil {
+			if err := otelShutdown(context.Background()); err != nil {
+				resources.logger.Error("failed to shutdown OpenTelemetry tracer",
+					slog.String("error", err.Error()),
+				)
+			}
 		}
 		if resources.Info.Log.SentryDSN != "" {
 			sentry.Flush(sentryFlushTimeout)
@@ -218,21 +220,22 @@ func NewMCPServer(resources Resources, groups ...*toolsets.ToolsetGroup) *mcp.Se
 				return result, err
 			}
 
-			// populate Datadog APM trace with more MCP information
-			if resources.Info.DatadogAPM.Enabled {
-				if span, ok := tracer.SpanFromContext(ctx); ok {
-					span.SetTag("mcp.method", method)
-					if callToolParams, ok := req.GetParams().(*mcp.CallToolParamsRaw); ok {
-						span.SetTag("mcp.tool.name", callToolParams.Name)
-						span.SetTag("mcp.tool.arguments", string(callToolParams.Arguments))
-					}
-					if callToolResult, ok := result.(*mcp.CallToolResult); ok {
-						if callToolResult.IsError {
-							if encoded, err := json.Marshal(callToolResult.Content); err == nil {
-								span.SetTag(ext.Error, encoded)
-							} else {
-								span.SetTag(ext.Error, "failed to execute tool")
-							}
+			// populate OTel trace with MCP information
+			if resources.Info.OTel.Enabled {
+				span := oteltrace.SpanFromContext(ctx)
+				span.SetAttributes(otelattr.String("mcp.method", method))
+				if callToolParams, ok := req.GetParams().(*mcp.CallToolParamsRaw); ok {
+					span.SetAttributes(
+						otelattr.String("mcp.tool.name", callToolParams.Name),
+						otelattr.String("mcp.tool.arguments", string(callToolParams.Arguments)),
+					)
+				}
+				if callToolResult, ok := result.(*mcp.CallToolResult); ok {
+					if callToolResult.IsError {
+						if encoded, encErr := json.Marshal(callToolResult.Content); encErr == nil {
+							span.SetStatus(otelcodes.Error, string(encoded))
+						} else {
+							span.SetStatus(otelcodes.Error, "failed to execute tool")
 						}
 					}
 				}
