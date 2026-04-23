@@ -70,12 +70,18 @@ func ProjectCategoryCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 						Description: "The name of the project category.",
 					},
 					"color": {
-						Type:        "string",
 						Description: "The color of the project category in hex format (e.g., #FF5733).",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string"},
+							{Type: "null"},
+						},
 					},
 					"parent_id": {
-						Type:        "integer",
 						Description: "The ID of the parent project category, if any. This allows for nested categories.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "integer"},
+							{Type: "null"},
+						},
 					},
 				},
 				Required: []string{"name"},
@@ -123,16 +129,25 @@ func ProjectCategoryUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 						Description: "The ID of the project category to update.",
 					},
 					"name": {
-						Type:        "string",
 						Description: "The name of the project category.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string"},
+							{Type: "null"},
+						},
 					},
 					"color": {
-						Type:        "string",
 						Description: "The color of the project category in hex format (e.g., #FF5733).",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string"},
+							{Type: "null"},
+						},
 					},
 					"parent_id": {
-						Type:        "integer",
 						Description: "The ID of the parent project category, if any. This allows for nested categories.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "integer"},
+							{Type: "null"},
+						},
 					},
 				},
 				Required: []string{"id"},
@@ -278,18 +293,28 @@ func ProjectCategoryList(engine *twapi.Engine) toolsets.ToolWrapper {
 				Type: "object",
 				Properties: map[string]*jsonschema.Schema{
 					"search_term": {
-						Type:        "string",
 						Description: "A search term to filter project categories by name.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string"},
+							{Type: "null"},
+						},
 					},
 					"page": {
-						Type:        "integer",
 						Description: "Page number for pagination of results.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "integer"},
+							{Type: "null"},
+						},
 					},
 					"page_size": {
-						Type:        "integer",
 						Description: "Number of results per page for pagination.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "integer"},
+							{Type: "null"},
+						},
 					},
 				},
+				Required: []string{},
 			},
 			OutputSchema: projectCategoryListOutputSchema,
 		},

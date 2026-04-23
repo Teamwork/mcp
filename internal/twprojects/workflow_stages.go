@@ -120,8 +120,11 @@ func WorkflowStageUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 						Description: "The ID of the workflow stage to update.",
 					},
 					"name": {
-						Type:        "string",
 						Description: "The new name of the workflow stage.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string"},
+							{Type: "null"},
+						},
 					},
 				},
 				Required: []string{"workflow_id", "id"},
@@ -173,9 +176,12 @@ func WorkflowStageDelete(engine *twapi.Engine) toolsets.ToolWrapper {
 						Description: "The ID of the workflow stage to delete.",
 					},
 					"map_tasks_to_stage_id": {
-						Type: "integer",
 						Description: "The ID of another stage to which tasks in the deleted stage will be moved. " +
 							"If not provided, tasks will be moved back to the backlog.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "integer"},
+							{Type: "null"},
+						},
 					},
 				},
 				Required: []string{"workflow_id", "id"},
@@ -341,12 +347,18 @@ func WorkflowStageList(engine *twapi.Engine) toolsets.ToolWrapper {
 						Description: "The ID of the workflow whose stages to list.",
 					},
 					"page": {
-						Type:        "integer",
 						Description: "Page number for pagination of results.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "integer"},
+							{Type: "null"},
+						},
 					},
 					"page_size": {
-						Type:        "integer",
 						Description: "Number of results per page for pagination.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "integer"},
+							{Type: "null"},
+						},
 					},
 				},
 				Required: []string{"workflow_id"},

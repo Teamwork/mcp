@@ -43,10 +43,10 @@ func ProjectMemberAdd(engine *twapi.Engine) toolsets.ToolWrapper {
 						Description: "The ID of the project to add the member to.",
 					},
 					"user_ids": {
-						Type:        "array",
 						Description: "A list of user IDs to add to the project.",
-						Items: &jsonschema.Schema{
-							Type: "integer",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "array", Items: &jsonschema.Schema{Type: "integer"}},
+							{Type: "null"},
 						},
 					},
 				},

@@ -71,70 +71,115 @@ func CompanyCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 						Description: "The name of the company.",
 					},
 					"address_one": {
-						Type:        "string",
 						Description: "The first line of the address of the company.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string"},
+							{Type: "null"},
+						},
 					},
 					"address_two": {
-						Type:        "string",
 						Description: "The second line of the address of the company.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string"},
+							{Type: "null"},
+						},
 					},
 					"city": {
-						Type:        "string",
 						Description: "The city of the company.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string"},
+							{Type: "null"},
+						},
 					},
 					"state": {
-						Type:        "string",
 						Description: "The state of the company.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string"},
+							{Type: "null"},
+						},
 					},
 					"zip": {
-						Type:        "string",
 						Description: "The ZIP or postal code of the company.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string"},
+							{Type: "null"},
+						},
 					},
 					"country_code": {
-						Type:        "string",
 						Description: "The country code of the company, e.g., 'US' for the United States.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string"},
+							{Type: "null"},
+						},
 					},
 					"phone": {
-						Type:        "string",
 						Description: "The phone number of the company.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string"},
+							{Type: "null"},
+						},
 					},
 					"fax": {
-						Type:        "string",
 						Description: "The fax number of the company.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string"},
+							{Type: "null"},
+						},
 					},
 					"email_one": {
-						Type:        "string",
 						Description: "The primary email address of the company.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string"},
+							{Type: "null"},
+						},
 					},
 					"email_two": {
-						Type:        "string",
 						Description: "The secondary email address of the company.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string"},
+							{Type: "null"},
+						},
 					},
 					"email_three": {
-						Type:        "string",
 						Description: "The tertiary email address of the company.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string"},
+							{Type: "null"},
+						},
 					},
 					"website": {
-						Type:        "string",
 						Description: "The website of the company.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string"},
+							{Type: "null"},
+						},
 					},
 					"profile": {
-						Type:        "string",
 						Description: "A profile description for the company.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string"},
+							{Type: "null"},
+						},
 					},
 					"manager_id": {
-						Type:        "integer",
 						Description: "The ID of the user who manages the company.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "integer"},
+							{Type: "null"},
+						},
 					},
 					"industry_id": {
-						Type:        "integer",
 						Description: "The ID of the industry the company belongs to.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "integer"},
+							{Type: "null"},
+						},
 					},
 					"tag_ids": {
-						Type:        "array",
 						Description: "A list of tag IDs to associate with the company.",
-						Items: &jsonschema.Schema{
-							Type: "integer",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "array", Items: &jsonschema.Schema{Type: "integer"}},
+							{Type: "null"},
 						},
 					},
 				},
@@ -197,74 +242,122 @@ func CompanyUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 						Description: "The ID of the company to update.",
 					},
 					"name": {
-						Type:        "string",
 						Description: "The name of the company.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string"},
+							{Type: "null"},
+						},
 					},
 					"address_one": {
-						Type:        "string",
 						Description: "The first line of the address of the company.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string"},
+							{Type: "null"},
+						},
 					},
 					"address_two": {
-						Type:        "string",
 						Description: "The second line of the address of the company.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string"},
+							{Type: "null"},
+						},
 					},
 					"city": {
-						Type:        "string",
 						Description: "The city of the company.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string"},
+							{Type: "null"},
+						},
 					},
 					"state": {
-						Type:        "string",
 						Description: "The state of the company.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string"},
+							{Type: "null"},
+						},
 					},
 					"zip": {
-						Type:        "string",
 						Description: "The ZIP or postal code of the company.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string"},
+							{Type: "null"},
+						},
 					},
 					"country_code": {
-						Type:        "string",
 						Description: "The country code of the company, e.g., 'US' for the United States.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string"},
+							{Type: "null"},
+						},
 					},
 					"phone": {
-						Type:        "string",
 						Description: "The phone number of the company.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string"},
+							{Type: "null"},
+						},
 					},
 					"fax": {
-						Type:        "string",
 						Description: "The fax number of the company.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string"},
+							{Type: "null"},
+						},
 					},
 					"email_one": {
-						Type:        "string",
 						Description: "The primary email address of the company.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string"},
+							{Type: "null"},
+						},
 					},
 					"email_two": {
-						Type:        "string",
 						Description: "The secondary email address of the company.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string"},
+							{Type: "null"},
+						},
 					},
 					"email_three": {
-						Type:        "string",
 						Description: "The tertiary email address of the company.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string"},
+							{Type: "null"},
+						},
 					},
 					"website": {
-						Type:        "string",
 						Description: "The website of the company.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string"},
+							{Type: "null"},
+						},
 					},
 					"profile": {
-						Type:        "string",
 						Description: "A profile description for the company.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string"},
+							{Type: "null"},
+						},
 					},
 					"manager_id": {
-						Type:        "integer",
 						Description: "The ID of the user who manages the company.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "integer"},
+							{Type: "null"},
+						},
 					},
 					"industry_id": {
-						Type:        "integer",
 						Description: "The ID of the industry the company belongs to.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "integer"},
+							{Type: "null"},
+						},
 					},
 					"tag_ids": {
-						Type:        "array",
 						Description: "A list of tag IDs to associate with the company.",
-						Items: &jsonschema.Schema{
-							Type: "integer",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "array", Items: &jsonschema.Schema{Type: "integer"}},
+							{Type: "null"},
 						},
 					},
 				},
@@ -429,32 +522,45 @@ func CompanyList(engine *twapi.Engine) toolsets.ToolWrapper {
 				Type: "object",
 				Properties: map[string]*jsonschema.Schema{
 					"search_term": {
-						Type: "string",
 						Description: "A search term to filter companies by name. " +
 							"Each word from the search term is used to match against the company name.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string"},
+							{Type: "null"},
+						},
 					},
 					"tag_ids": {
-						Type:        "array",
 						Description: "A list of tag IDs to filter companies by tags",
-						Items: &jsonschema.Schema{
-							Type: "integer",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "array", Items: &jsonschema.Schema{Type: "integer"}},
+							{Type: "null"},
 						},
 					},
 					"match_all_tags": {
-						Type: "boolean",
 						Description: "If true, the search will match companies that have all the specified tags. " +
 							"If false, the search will match companies that have any of the specified tags. " +
 							"Defaults to false.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "boolean"},
+							{Type: "null"},
+						},
 					},
 					"page": {
-						Type:        "integer",
 						Description: "Page number for pagination of results.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "integer"},
+							{Type: "null"},
+						},
 					},
 					"page_size": {
-						Type:        "integer",
 						Description: "Number of results per page for pagination.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "integer"},
+							{Type: "null"},
+						},
 					},
 				},
+				Required: []string{},
 			},
 			OutputSchema: companyListOutputSchema,
 		},

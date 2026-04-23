@@ -81,187 +81,230 @@ func TaskCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 							string(MethodTasklistList) + " method to find the tasklist ID.",
 					},
 					"description": {
-						Type:        "string",
 						Description: "The description of the task.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string"},
+							{Type: "null"},
+						},
 					},
 					"priority": {
-						Type:        "string",
 						Description: "The priority of the task. Possible values are: low, medium, high.",
-						Enum:        []any{"low", "medium", "high"},
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string", Enum: []any{"low", "medium", "high"}},
+							{Type: "null"},
+						},
 					},
 					"progress": {
-						Type:        "integer",
 						Description: "The progress of the task, as a percentage (0-100). Only whole numbers are allowed.",
-						Minimum:     new(float64(0)),
-						Maximum:     new(float64(100)),
+						AnyOf: []*jsonschema.Schema{
+							{Type: "integer", Minimum: new(float64(0)), Maximum: new(float64(100))},
+							{Type: "null"},
+						},
 					},
 					"start_date": {
-						Type:        "string",
-						Format:      "date",
 						Description: "The start date of the task in ISO 8601 format (YYYY-MM-DD).",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string", Format: "date"},
+							{Type: "null"},
+						},
 					},
 					"due_date": {
-						Type:   "string",
-						Format: "date",
 						Description: "The due date of the task in ISO 8601 format (YYYY-MM-DD). When this is not provided, it " +
 							"will fallback to the milestone due date if a milestone is set.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string", Format: "date"},
+							{Type: "null"},
+						},
 					},
 					"estimated_minutes": {
-						Type:        "integer",
 						Description: "The estimated time to complete the task in minutes.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "integer"},
+							{Type: "null"},
+						},
 					},
 					"parent_task_id": {
-						Type:        "integer",
 						Description: "The ID of the parent task if creating a subtask.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "integer"},
+							{Type: "null"},
+						},
 					},
 					"assignees": {
-						Type:        "object",
 						Description: "An object containing assignees for the task.",
-						Properties: map[string]*jsonschema.Schema{
-							"user_ids": {
-								Type:        "array",
-								Description: "List of user IDs assigned to the task.",
-								Items:       &jsonschema.Schema{Type: "integer"},
-								MinItems:    new(1),
-							},
-							"company_ids": {
-								Type:        "array",
-								Description: "List of company IDs assigned to the task.",
-								Items:       &jsonschema.Schema{Type: "integer"},
-								MinItems:    new(1),
-							},
-							"team_ids": {
-								Type:        "array",
-								Description: "List of team IDs assigned to the task.",
-								Items:       &jsonschema.Schema{Type: "integer"},
-								MinItems:    new(1),
-							},
-						},
-						MinProperties: new(1),
-						MaxProperties: new(3),
 						AnyOf: []*jsonschema.Schema{
-							{Required: []string{"user_ids"}},
-							{Required: []string{"company_ids"}},
-							{Required: []string{"team_ids"}},
+							{
+								Type: "object",
+								Properties: map[string]*jsonschema.Schema{
+									"user_ids": {
+										Type:        "array",
+										Description: "List of user IDs assigned to the task.",
+										Items:       &jsonschema.Schema{Type: "integer"},
+										MinItems:    new(1),
+									},
+									"company_ids": {
+										Type:        "array",
+										Description: "List of company IDs assigned to the task.",
+										Items:       &jsonschema.Schema{Type: "integer"},
+										MinItems:    new(1),
+									},
+									"team_ids": {
+										Type:        "array",
+										Description: "List of team IDs assigned to the task.",
+										Items:       &jsonschema.Schema{Type: "integer"},
+										MinItems:    new(1),
+									},
+								},
+								MinProperties: new(1),
+								MaxProperties: new(3),
+								AnyOf: []*jsonschema.Schema{
+									{Required: []string{"user_ids"}},
+									{Required: []string{"company_ids"}},
+									{Required: []string{"team_ids"}},
+								},
+							},
+							{Type: "null"},
 						},
 					},
 					"tag_ids": {
-						Type:        "array",
 						Description: "A list of tag IDs to assign to the task.",
-						Items:       &jsonschema.Schema{Type: "integer"},
+						AnyOf: []*jsonschema.Schema{
+							{Type: "array", Items: &jsonschema.Schema{Type: "integer"}},
+							{Type: "null"},
+						},
 					},
 					"predecessors": {
-						Type: "array",
 						Description: "List of task dependencies that must be completed before this task can start, defining its " +
 							"position in the project workflow and ensuring proper sequencing of work.",
-						Items: &jsonschema.Schema{
-							Type: "object",
-							Properties: map[string]*jsonschema.Schema{
-								"task_id": {
-									Type:        "integer",
-									Description: "The ID of the predecessor task.",
-								},
-								"type": {
-									Type: "string",
-									Description: "The type of dependency. Possible values are: start or complete. 'start' means this " +
-										"task can complete when the predecessor starts, 'complete' means this task can complete when " +
-										"the predecessor completes.",
-									Enum: []any{"start", "complete"},
+						AnyOf: []*jsonschema.Schema{
+							{
+								Type: "array",
+								Items: &jsonschema.Schema{
+									Type: "object",
+									Properties: map[string]*jsonschema.Schema{
+										"task_id": {
+											Type:        "integer",
+											Description: "The ID of the predecessor task.",
+										},
+										"type": {
+											Type: "string",
+											Description: "The type of dependency. Possible values are: start or complete. 'start' means this " +
+												"task can complete when the predecessor starts, 'complete' means this task can complete when " +
+												"the predecessor completes.",
+											Enum: []any{"start", "complete"},
+										},
+									},
 								},
 							},
+							{Type: "null"},
 						},
 					},
 					"change_followers": {
-						Type:        "object",
 						Description: "An object containing the followers of any task changes.",
-						Properties: map[string]*jsonschema.Schema{
-							"user_ids": {
-								Type:        "array",
-								Description: "List of user IDs following the task changes.",
-								Items:       &jsonschema.Schema{Type: "integer"},
-								MinItems:    new(1),
-							},
-							"company_ids": {
-								Type:        "array",
-								Description: "List of company IDs following the task changes.",
-								Items:       &jsonschema.Schema{Type: "integer"},
-								MinItems:    new(1),
-							},
-							"team_ids": {
-								Type:        "array",
-								Description: "List of team IDs following the task changes.",
-								Items:       &jsonschema.Schema{Type: "integer"},
-								MinItems:    new(1),
-							},
-						},
-						MinProperties: new(1),
-						MaxProperties: new(3),
 						AnyOf: []*jsonschema.Schema{
-							{Required: []string{"user_ids"}},
-							{Required: []string{"company_ids"}},
-							{Required: []string{"team_ids"}},
+							{
+								Type: "object",
+								Properties: map[string]*jsonschema.Schema{
+									"user_ids": {
+										Type:        "array",
+										Description: "List of user IDs following the task changes.",
+										Items:       &jsonschema.Schema{Type: "integer"},
+										MinItems:    new(1),
+									},
+									"company_ids": {
+										Type:        "array",
+										Description: "List of company IDs following the task changes.",
+										Items:       &jsonschema.Schema{Type: "integer"},
+										MinItems:    new(1),
+									},
+									"team_ids": {
+										Type:        "array",
+										Description: "List of team IDs following the task changes.",
+										Items:       &jsonschema.Schema{Type: "integer"},
+										MinItems:    new(1),
+									},
+								},
+								MinProperties: new(1),
+								MaxProperties: new(3),
+								AnyOf: []*jsonschema.Schema{
+									{Required: []string{"user_ids"}},
+									{Required: []string{"company_ids"}},
+									{Required: []string{"team_ids"}},
+								},
+							},
+							{Type: "null"},
 						},
 					},
 					"comment_followers": {
-						Type:        "object",
 						Description: "An object containing the followers of any task comments.",
-						Properties: map[string]*jsonschema.Schema{
-							"user_ids": {
-								Type:        "array",
-								Description: "List of user IDs following the task comments.",
-								Items:       &jsonschema.Schema{Type: "integer"},
-								MinItems:    new(1),
-							},
-							"company_ids": {
-								Type:        "array",
-								Description: "List of company IDs following the task comments.",
-								Items:       &jsonschema.Schema{Type: "integer"},
-								MinItems:    new(1),
-							},
-							"team_ids": {
-								Type:        "array",
-								Description: "List of team IDs following the task comments.",
-								Items:       &jsonschema.Schema{Type: "integer"},
-								MinItems:    new(1),
-							},
-						},
-						MinProperties: new(1),
-						MaxProperties: new(3),
 						AnyOf: []*jsonschema.Schema{
-							{Required: []string{"user_ids"}},
-							{Required: []string{"company_ids"}},
-							{Required: []string{"team_ids"}},
+							{
+								Type: "object",
+								Properties: map[string]*jsonschema.Schema{
+									"user_ids": {
+										Type:        "array",
+										Description: "List of user IDs following the task comments.",
+										Items:       &jsonschema.Schema{Type: "integer"},
+										MinItems:    new(1),
+									},
+									"company_ids": {
+										Type:        "array",
+										Description: "List of company IDs following the task comments.",
+										Items:       &jsonschema.Schema{Type: "integer"},
+										MinItems:    new(1),
+									},
+									"team_ids": {
+										Type:        "array",
+										Description: "List of team IDs following the task comments.",
+										Items:       &jsonschema.Schema{Type: "integer"},
+										MinItems:    new(1),
+									},
+								},
+								MinProperties: new(1),
+								MaxProperties: new(3),
+								AnyOf: []*jsonschema.Schema{
+									{Required: []string{"user_ids"}},
+									{Required: []string{"company_ids"}},
+									{Required: []string{"team_ids"}},
+								},
+							},
+							{Type: "null"},
 						},
 					},
 					"complete_followers": {
-						Type:        "object",
 						Description: "An object containing the followers of any task completions.",
-						Properties: map[string]*jsonschema.Schema{
-							"user_ids": {
-								Type:        "array",
-								Description: "List of user IDs following the task completions.",
-								Items:       &jsonschema.Schema{Type: "integer"},
-								MinItems:    new(1),
-							},
-							"company_ids": {
-								Type:        "array",
-								Description: "List of company IDs following the task completions.",
-								Items:       &jsonschema.Schema{Type: "integer"},
-								MinItems:    new(1),
-							},
-							"team_ids": {
-								Type:        "array",
-								Description: "List of team IDs following the task completions.",
-								Items:       &jsonschema.Schema{Type: "integer"},
-								MinItems:    new(1),
-							},
-						},
-						MinProperties: new(1),
-						MaxProperties: new(3),
 						AnyOf: []*jsonschema.Schema{
-							{Required: []string{"user_ids"}},
-							{Required: []string{"company_ids"}},
-							{Required: []string{"team_ids"}},
+							{
+								Type: "object",
+								Properties: map[string]*jsonschema.Schema{
+									"user_ids": {
+										Type:        "array",
+										Description: "List of user IDs following the task completions.",
+										Items:       &jsonschema.Schema{Type: "integer"},
+										MinItems:    new(1),
+									},
+									"company_ids": {
+										Type:        "array",
+										Description: "List of company IDs following the task completions.",
+										Items:       &jsonschema.Schema{Type: "integer"},
+										MinItems:    new(1),
+									},
+									"team_ids": {
+										Type:        "array",
+										Description: "List of team IDs following the task completions.",
+										Items:       &jsonschema.Schema{Type: "integer"},
+										MinItems:    new(1),
+									},
+								},
+								MinProperties: new(1),
+								MaxProperties: new(3),
+								AnyOf: []*jsonschema.Schema{
+									{Required: []string{"user_ids"}},
+									{Required: []string{"company_ids"}},
+									{Required: []string{"team_ids"}},
+								},
+							},
+							{Type: "null"},
 						},
 					},
 				},
@@ -389,195 +432,244 @@ func TaskUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 						Description: "The ID of the task to update.",
 					},
 					"name": {
-						Type:        "string",
 						Description: "The name/title of the task.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string"},
+							{Type: "null"},
+						},
 					},
 					"tasklist_id": {
-						Type:        "integer",
 						Description: "The ID of the tasklist.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "integer"},
+							{Type: "null"},
+						},
 					},
 					"description": {
-						Type:        "string",
 						Description: "The description of the task.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string"},
+							{Type: "null"},
+						},
 					},
 					"priority": {
-						Type:        "string",
 						Description: "The priority of the task. Possible values are: low, medium, high.",
-						Enum:        []any{"low", "medium", "high"},
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string", Enum: []any{"low", "medium", "high"}},
+							{Type: "null"},
+						},
 					},
 					"progress": {
-						Type:        "integer",
 						Description: "The progress of the task, as a percentage (0-100). Only whole numbers are allowed.",
-						Minimum:     new(float64(0)),
-						Maximum:     new(float64(100)),
+						AnyOf: []*jsonschema.Schema{
+							{Type: "integer", Minimum: new(float64(0)), Maximum: new(float64(100))},
+							{Type: "null"},
+						},
 					},
 					"start_date": {
-						Type:        "string",
-						Format:      "date",
 						Description: "The start date of the task in ISO 8601 format (YYYY-MM-DD).",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string", Format: "date"},
+							{Type: "null"},
+						},
 					},
 					"due_date": {
-						Type:   "string",
-						Format: "date",
 						Description: "The due date of the task in ISO 8601 format (YYYY-MM-DD). When this is not provided, it " +
 							"will fallback to the milestone due date if a milestone is set.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string", Format: "date"},
+							{Type: "null"},
+						},
 					},
 					"estimated_minutes": {
-						Type:        "integer",
 						Description: "The estimated time to complete the task in minutes.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "integer"},
+							{Type: "null"},
+						},
 					},
 					"parent_task_id": {
-						Type:        "integer",
 						Description: "The ID of the parent task if creating a subtask.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "integer"},
+							{Type: "null"},
+						},
 					},
 					"assignees": {
-						Type:        "object",
 						Description: "An object containing assignees for the task.",
-						Properties: map[string]*jsonschema.Schema{
-							"user_ids": {
-								Type:        "array",
-								Description: "List of user IDs assigned to the task.",
-								Items:       &jsonschema.Schema{Type: "integer"},
-								MinItems:    new(1),
-							},
-							"company_ids": {
-								Type:        "array",
-								Description: "List of company IDs assigned to the task.",
-								Items:       &jsonschema.Schema{Type: "integer"},
-								MinItems:    new(1),
-							},
-							"team_ids": {
-								Type:        "array",
-								Description: "List of team IDs assigned to the task.",
-								Items:       &jsonschema.Schema{Type: "integer"},
-								MinItems:    new(1),
-							},
-						},
-						MinProperties: new(1),
-						MaxProperties: new(3),
 						AnyOf: []*jsonschema.Schema{
-							{Required: []string{"user_ids"}},
-							{Required: []string{"company_ids"}},
-							{Required: []string{"team_ids"}},
+							{
+								Type: "object",
+								Properties: map[string]*jsonschema.Schema{
+									"user_ids": {
+										Type:        "array",
+										Description: "List of user IDs assigned to the task.",
+										Items:       &jsonschema.Schema{Type: "integer"},
+										MinItems:    new(1),
+									},
+									"company_ids": {
+										Type:        "array",
+										Description: "List of company IDs assigned to the task.",
+										Items:       &jsonschema.Schema{Type: "integer"},
+										MinItems:    new(1),
+									},
+									"team_ids": {
+										Type:        "array",
+										Description: "List of team IDs assigned to the task.",
+										Items:       &jsonschema.Schema{Type: "integer"},
+										MinItems:    new(1),
+									},
+								},
+								MinProperties: new(1),
+								MaxProperties: new(3),
+								AnyOf: []*jsonschema.Schema{
+									{Required: []string{"user_ids"}},
+									{Required: []string{"company_ids"}},
+									{Required: []string{"team_ids"}},
+								},
+							},
+							{Type: "null"},
 						},
 					},
 					"tag_ids": {
-						Type:        "array",
 						Description: "A list of tag IDs to assign to the task.",
-						Items:       &jsonschema.Schema{Type: "integer"},
+						AnyOf: []*jsonschema.Schema{
+							{Type: "array", Items: &jsonschema.Schema{Type: "integer"}},
+							{Type: "null"},
+						},
 					},
 					"predecessors": {
-						Type: "array",
 						Description: "List of task dependencies that must be completed before this task can start, defining its " +
 							"position in the project workflow and ensuring proper sequencing of work.",
-						Items: &jsonschema.Schema{
-							Type: "object",
-							Properties: map[string]*jsonschema.Schema{
-								"task_id": {
-									Type:        "integer",
-									Description: "The ID of the predecessor task.",
-								},
-								"type": {
-									Type: "string",
-									Description: "The type of dependency. Possible values are: start or complete. 'start' means this " +
-										"task can complete when the predecessor starts, 'complete' means this task can complete when the " +
-										"predecessor completes.",
-									Enum: []any{"start", "complete"},
+						AnyOf: []*jsonschema.Schema{
+							{
+								Type: "array",
+								Items: &jsonschema.Schema{
+									Type: "object",
+									Properties: map[string]*jsonschema.Schema{
+										"task_id": {
+											Type:        "integer",
+											Description: "The ID of the predecessor task.",
+										},
+										"type": {
+											Type: "string",
+											Description: "The type of dependency. Possible values are: start or complete. 'start' means this " +
+												"task can complete when the predecessor starts, 'complete' means this task can complete when the " +
+												"predecessor completes.",
+											Enum: []any{"start", "complete"},
+										},
+									},
 								},
 							},
+							{Type: "null"},
 						},
 					},
 					"change_followers": {
-						Type:        "object",
 						Description: "An object containing the followers of any task changes.",
-						Properties: map[string]*jsonschema.Schema{
-							"user_ids": {
-								Type:        "array",
-								Description: "List of user IDs following the task changes.",
-								Items:       &jsonschema.Schema{Type: "integer"},
-								MinItems:    new(1),
-							},
-							"company_ids": {
-								Type:        "array",
-								Description: "List of company IDs following the task changes.",
-								Items:       &jsonschema.Schema{Type: "integer"},
-								MinItems:    new(1),
-							},
-							"team_ids": {
-								Type:        "array",
-								Description: "List of team IDs following the task changes.",
-								Items:       &jsonschema.Schema{Type: "integer"},
-								MinItems:    new(1),
-							},
-						},
-						MinProperties: new(1),
-						MaxProperties: new(3),
 						AnyOf: []*jsonschema.Schema{
-							{Required: []string{"user_ids"}},
-							{Required: []string{"company_ids"}},
-							{Required: []string{"team_ids"}},
+							{
+								Type: "object",
+								Properties: map[string]*jsonschema.Schema{
+									"user_ids": {
+										Type:        "array",
+										Description: "List of user IDs following the task changes.",
+										Items:       &jsonschema.Schema{Type: "integer"},
+										MinItems:    new(1),
+									},
+									"company_ids": {
+										Type:        "array",
+										Description: "List of company IDs following the task changes.",
+										Items:       &jsonschema.Schema{Type: "integer"},
+										MinItems:    new(1),
+									},
+									"team_ids": {
+										Type:        "array",
+										Description: "List of team IDs following the task changes.",
+										Items:       &jsonschema.Schema{Type: "integer"},
+										MinItems:    new(1),
+									},
+								},
+								MinProperties: new(1),
+								MaxProperties: new(3),
+								AnyOf: []*jsonschema.Schema{
+									{Required: []string{"user_ids"}},
+									{Required: []string{"company_ids"}},
+									{Required: []string{"team_ids"}},
+								},
+							},
+							{Type: "null"},
 						},
 					},
 					"comment_followers": {
-						Type:        "object",
 						Description: "An object containing the followers of any task comments.",
-						Properties: map[string]*jsonschema.Schema{
-							"user_ids": {
-								Type:        "array",
-								Description: "List of user IDs following the task comments.",
-								Items:       &jsonschema.Schema{Type: "integer"},
-								MinItems:    new(1),
-							},
-							"company_ids": {
-								Type:        "array",
-								Description: "List of company IDs following the task comments.",
-								Items:       &jsonschema.Schema{Type: "integer"},
-								MinItems:    new(1),
-							},
-							"team_ids": {
-								Type:        "array",
-								Description: "List of team IDs following the task comments.",
-								Items:       &jsonschema.Schema{Type: "integer"},
-								MinItems:    new(1),
-							},
-						},
-						MinProperties: new(1),
-						MaxProperties: new(3),
 						AnyOf: []*jsonschema.Schema{
-							{Required: []string{"user_ids"}},
-							{Required: []string{"company_ids"}},
-							{Required: []string{"team_ids"}},
+							{
+								Type: "object",
+								Properties: map[string]*jsonschema.Schema{
+									"user_ids": {
+										Type:        "array",
+										Description: "List of user IDs following the task comments.",
+										Items:       &jsonschema.Schema{Type: "integer"},
+										MinItems:    new(1),
+									},
+									"company_ids": {
+										Type:        "array",
+										Description: "List of company IDs following the task comments.",
+										Items:       &jsonschema.Schema{Type: "integer"},
+										MinItems:    new(1),
+									},
+									"team_ids": {
+										Type:        "array",
+										Description: "List of team IDs following the task comments.",
+										Items:       &jsonschema.Schema{Type: "integer"},
+										MinItems:    new(1),
+									},
+								},
+								MinProperties: new(1),
+								MaxProperties: new(3),
+								AnyOf: []*jsonschema.Schema{
+									{Required: []string{"user_ids"}},
+									{Required: []string{"company_ids"}},
+									{Required: []string{"team_ids"}},
+								},
+							},
+							{Type: "null"},
 						},
 					},
 					"complete_followers": {
-						Type:        "object",
 						Description: "An object containing the followers of any task completions.",
-						Properties: map[string]*jsonschema.Schema{
-							"user_ids": {
-								Type:        "array",
-								Description: "List of user IDs following the task completions.",
-								Items:       &jsonschema.Schema{Type: "integer"},
-								MinItems:    new(1),
-							},
-							"company_ids": {
-								Type:        "array",
-								Description: "List of company IDs following the task completions.",
-								Items:       &jsonschema.Schema{Type: "integer"},
-								MinItems:    new(1),
-							},
-							"team_ids": {
-								Type:        "array",
-								Description: "List of team IDs following the task completions.",
-								Items:       &jsonschema.Schema{Type: "integer"},
-								MinItems:    new(1),
-							},
-						},
-						MinProperties: new(1),
-						MaxProperties: new(3),
 						AnyOf: []*jsonschema.Schema{
-							{Required: []string{"user_ids"}},
-							{Required: []string{"company_ids"}},
-							{Required: []string{"team_ids"}},
+							{
+								Type: "object",
+								Properties: map[string]*jsonschema.Schema{
+									"user_ids": {
+										Type:        "array",
+										Description: "List of user IDs following the task completions.",
+										Items:       &jsonschema.Schema{Type: "integer"},
+										MinItems:    new(1),
+									},
+									"company_ids": {
+										Type:        "array",
+										Description: "List of company IDs following the task completions.",
+										Items:       &jsonschema.Schema{Type: "integer"},
+										MinItems:    new(1),
+									},
+									"team_ids": {
+										Type:        "array",
+										Description: "List of team IDs following the task completions.",
+										Items:       &jsonschema.Schema{Type: "integer"},
+										MinItems:    new(1),
+									},
+								},
+								MinProperties: new(1),
+								MaxProperties: new(3),
+								AnyOf: []*jsonschema.Schema{
+									{Required: []string{"user_ids"}},
+									{Required: []string{"company_ids"}},
+									{Required: []string{"team_ids"}},
+								},
+							},
+							{Type: "null"},
 						},
 					},
 				},
@@ -850,81 +942,98 @@ func TaskList(engine *twapi.Engine) toolsets.ToolWrapper {
 				Type: "object",
 				Properties: map[string]*jsonschema.Schema{
 					"search_term": {
-						Type:        "string",
 						Description: "A search term to filter tasks by name.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string"},
+							{Type: "null"},
+						},
 					},
 					"assignee_user_ids": {
-						Type:        "array",
 						Description: "A list of user IDs to filter tasks by assigned users",
-						Items:       &jsonschema.Schema{Type: "integer"},
+						AnyOf: []*jsonschema.Schema{
+							{Type: "array", Items: &jsonschema.Schema{Type: "integer"}},
+							{Type: "null"},
+						},
 					},
 					"created_after": {
-						Type:        "string",
-						Format:      "date-time",
 						Description: "Filter tasks created after this date and time in RFC 3339 format.",
-						Examples: []any{
-							"2023-01-01T00:00:00Z",
+						Examples:    []any{"2023-01-01T00:00:00Z"},
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string", Format: "date-time"},
+							{Type: "null"},
 						},
 					},
 					"created_before": {
-						Type:        "string",
-						Format:      "date-time",
 						Description: "Filter tasks created before this date and time in RFC 3339 format.",
-						Examples: []any{
-							"2023-12-31T23:59:59Z",
+						Examples:    []any{"2023-12-31T23:59:59Z"},
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string", Format: "date-time"},
+							{Type: "null"},
 						},
 					},
 					"updated_after": {
-						Type:        "string",
-						Format:      "date-time",
 						Description: "Filter tasks updated after this date and time in RFC 3339 format.",
-						Examples: []any{
-							"2023-01-01T00:00:00Z",
+						Examples:    []any{"2023-01-01T00:00:00Z"},
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string", Format: "date-time"},
+							{Type: "null"},
 						},
 					},
 					"updated_before": {
-						Type:        "string",
-						Format:      "date-time",
 						Description: "Filter tasks updated before this date and time in RFC 3339 format.",
-						Examples: []any{
-							"2023-12-31T23:59:59Z",
+						Examples:    []any{"2023-12-31T23:59:59Z"},
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string", Format: "date-time"},
+							{Type: "null"},
 						},
 					},
 					"completed_after": {
-						Type:        "string",
-						Format:      "date-time",
 						Description: "Filter tasks completed after this date and time in RFC 3339 format.",
-						Examples: []any{
-							"2023-01-01T00:00:00Z",
+						Examples:    []any{"2023-01-01T00:00:00Z"},
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string", Format: "date-time"},
+							{Type: "null"},
 						},
 					},
 					"completed_before": {
-						Type:        "string",
-						Format:      "date-time",
 						Description: "Filter tasks completed before this date and time in RFC 3339 format.",
-						Examples: []any{
-							"2023-12-31T23:59:59Z",
+						Examples:    []any{"2023-12-31T23:59:59Z"},
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string", Format: "date-time"},
+							{Type: "null"},
 						},
 					},
 					"tag_ids": {
-						Type:        "array",
 						Description: "A list of tag IDs to filter tasks by tags",
-						Items:       &jsonschema.Schema{Type: "integer"},
+						AnyOf: []*jsonschema.Schema{
+							{Type: "array", Items: &jsonschema.Schema{Type: "integer"}},
+							{Type: "null"},
+						},
 					},
 					"match_all_tags": {
-						Type: "boolean",
 						Description: "If true, the search will match tasks that have all the specified tags. If false, the " +
 							"search will match tasks that have any of the specified tags. Defaults to false.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "boolean"},
+							{Type: "null"},
+						},
 					},
 					"page": {
-						Type:        "integer",
 						Description: "Page number for pagination of results.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "integer"},
+							{Type: "null"},
+						},
 					},
 					"page_size": {
-						Type:        "integer",
 						Description: "Number of results per page for pagination.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "integer"},
+							{Type: "null"},
+						},
 					},
 				},
+				Required: []string{},
 			},
 			OutputSchema: taskListOutputSchema,
 		},
@@ -996,31 +1105,47 @@ func TaskListByTasklist(engine *twapi.Engine) toolsets.ToolWrapper {
 						Description: "The ID of the tasklist from which to retrieve tasks.",
 					},
 					"search_term": {
-						Type:        "string",
 						Description: "A search term to filter tasks by name.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string"},
+							{Type: "null"},
+						},
 					},
 					"tag_ids": {
-						Type:        "array",
 						Description: "A list of tag IDs to filter tasks by tags",
-						Items:       &jsonschema.Schema{Type: "integer"},
+						AnyOf: []*jsonschema.Schema{
+							{Type: "array", Items: &jsonschema.Schema{Type: "integer"}},
+							{Type: "null"},
+						},
 					},
 					"assignee_user_ids": {
-						Type:        "array",
 						Description: "A list of user IDs to filter tasks by assigned users",
-						Items:       &jsonschema.Schema{Type: "integer"},
+						AnyOf: []*jsonschema.Schema{
+							{Type: "array", Items: &jsonschema.Schema{Type: "integer"}},
+							{Type: "null"},
+						},
 					},
 					"match_all_tags": {
-						Type: "boolean",
 						Description: "If true, the search will match tasks that have all the specified tags. If false, the " +
 							"search will match tasks that have any of the specified tags. Defaults to false.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "boolean"},
+							{Type: "null"},
+						},
 					},
 					"page": {
-						Type:        "integer",
 						Description: "Page number for pagination of results.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "integer"},
+							{Type: "null"},
+						},
 					},
 					"page_size": {
-						Type:        "integer",
 						Description: "Number of results per page for pagination.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "integer"},
+							{Type: "null"},
+						},
 					},
 				},
 				Required: []string{"tasklist_id"},
@@ -1090,31 +1215,47 @@ func TaskListByProject(engine *twapi.Engine) toolsets.ToolWrapper {
 						Description: "The ID of the project from which to retrieve tasks.",
 					},
 					"search_term": {
-						Type:        "string",
 						Description: "A search term to filter tasks by name.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string"},
+							{Type: "null"},
+						},
 					},
 					"tag_ids": {
-						Type:        "array",
 						Description: "A list of tag IDs to filter tasks by tags",
-						Items:       &jsonschema.Schema{Type: "integer"},
+						AnyOf: []*jsonschema.Schema{
+							{Type: "array", Items: &jsonschema.Schema{Type: "integer"}},
+							{Type: "null"},
+						},
 					},
 					"assignee_user_ids": {
-						Type:        "array",
 						Description: "A list of user IDs to filter tasks by assigned users",
-						Items:       &jsonschema.Schema{Type: "integer"},
+						AnyOf: []*jsonschema.Schema{
+							{Type: "array", Items: &jsonschema.Schema{Type: "integer"}},
+							{Type: "null"},
+						},
 					},
 					"match_all_tags": {
-						Type: "boolean",
 						Description: "If true, the search will match tasks that have all the specified tags. If false, the " +
 							"search will match tasks that have any of the specified tags. Defaults to false.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "boolean"},
+							{Type: "null"},
+						},
 					},
 					"page": {
-						Type:        "integer",
 						Description: "Page number for pagination of results.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "integer"},
+							{Type: "null"},
+						},
 					},
 					"page_size": {
-						Type:        "integer",
 						Description: "Number of results per page for pagination.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "integer"},
+							{Type: "null"},
+						},
 					},
 				},
 				Required: []string{"project_id"},

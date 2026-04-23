@@ -43,34 +43,52 @@ func ProjectTemplateCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 						Description: "The name of the project template.",
 					},
 					"description": {
-						Type:        "string",
 						Description: "The description of the project template.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string"},
+							{Type: "null"},
+						},
 					},
 					"start_at": {
-						Type:        "string",
 						Description: "The start date of the project template in the format YYYYMMDD.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string"},
+							{Type: "null"},
+						},
 					},
 					"end_at": {
-						Type:        "string",
 						Description: "The end date of the project template in the format YYYYMMDD.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string"},
+							{Type: "null"},
+						},
 					},
 					"category_id": {
-						Type:        "integer",
 						Description: "The ID of the category to which the project template belongs.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "integer"},
+							{Type: "null"},
+						},
 					},
 					"company_id": {
-						Type:        "integer",
 						Description: "The ID of the company associated with the project template.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "integer"},
+							{Type: "null"},
+						},
 					},
 					"owned_id": {
-						Type:        "integer",
 						Description: "The ID of the user who owns the project template.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "integer"},
+							{Type: "null"},
+						},
 					},
 					"tag_ids": {
-						Type:        "array",
 						Description: "A list of tag IDs to associate with the project template.",
-						Items: &jsonschema.Schema{
-							Type: "integer",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "array", Items: &jsonschema.Schema{Type: "integer"}},
+							{Type: "null"},
 						},
 					},
 				},
@@ -121,38 +139,51 @@ func ProjectTemplateList(engine *twapi.Engine) toolsets.ToolWrapper {
 				Type: "object",
 				Properties: map[string]*jsonschema.Schema{
 					"project_category_ids": {
-						Type:        "array",
 						Description: "A list of project category IDs to filter project templates by categories.",
-						Items: &jsonschema.Schema{
-							Type: "integer",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "array", Items: &jsonschema.Schema{Type: "integer"}},
+							{Type: "null"},
 						},
 					},
 					"search_term": {
-						Type:        "string",
 						Description: "A search term to filter project templates by name or description.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string"},
+							{Type: "null"},
+						},
 					},
 					"tag_ids": {
-						Type:        "array",
 						Description: "A list of tag IDs to filter project templates by tags.",
-						Items: &jsonschema.Schema{
-							Type: "integer",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "array", Items: &jsonschema.Schema{Type: "integer"}},
+							{Type: "null"},
 						},
 					},
 					"match_all_tags": {
-						Type: "boolean",
 						Description: "If true, the search will match project templates that have all the specified tags. " +
 							"If false, the search will match project templates that have any of the specified tags. " +
 							"Defaults to false.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "boolean"},
+							{Type: "null"},
+						},
 					},
 					"page": {
-						Type:        "integer",
 						Description: "Page number for pagination of results.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "integer"},
+							{Type: "null"},
+						},
 					},
 					"page_size": {
-						Type:        "integer",
 						Description: "Number of results per page for pagination.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "integer"},
+							{Type: "null"},
+						},
 					},
 				},
+				Required: []string{},
 			},
 			OutputSchema: projectListOutputSchema,
 		},

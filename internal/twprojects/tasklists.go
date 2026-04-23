@@ -75,12 +75,18 @@ func TasklistCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 						Description: "The ID of the project to create the tasklist in.",
 					},
 					"description": {
-						Type:        "string",
 						Description: "The description of the tasklist.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string"},
+							{Type: "null"},
+						},
 					},
 					"milestone_id": {
-						Type:        "integer",
 						Description: "The ID of the milestone to associate with the tasklist.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "integer"},
+							{Type: "null"},
+						},
 					},
 				},
 				Required: []string{"name", "project_id"},
@@ -129,16 +135,25 @@ func TasklistUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 						Description: "The ID of the tasklist to update.",
 					},
 					"name": {
-						Type:        "string",
 						Description: "The name of the tasklist.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string"},
+							{Type: "null"},
+						},
 					},
 					"description": {
-						Type:        "string",
 						Description: "The description of the tasklist.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string"},
+							{Type: "null"},
+						},
 					},
 					"milestone_id": {
-						Type:        "integer",
 						Description: "The ID of the milestone to associate with the tasklist.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "integer"},
+							{Type: "null"},
+						},
 					},
 				},
 				Required: []string{"id"},
@@ -288,18 +303,28 @@ func TasklistList(engine *twapi.Engine) toolsets.ToolWrapper {
 				Type: "object",
 				Properties: map[string]*jsonschema.Schema{
 					"search_term": {
-						Type:        "string",
 						Description: "A search term to filter tasklists by name.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string"},
+							{Type: "null"},
+						},
 					},
 					"page": {
-						Type:        "integer",
 						Description: "Page number for pagination of results.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "integer"},
+							{Type: "null"},
+						},
 					},
 					"page_size": {
-						Type:        "integer",
 						Description: "Number of results per page for pagination.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "integer"},
+							{Type: "null"},
+						},
 					},
 				},
+				Required: []string{},
 			},
 			OutputSchema: tasklistListOutputSchema,
 		},
@@ -362,16 +387,25 @@ func TasklistListByProject(engine *twapi.Engine) toolsets.ToolWrapper {
 						Description: "The ID of the project from which to retrieve tasklists.",
 					},
 					"search_term": {
-						Type:        "string",
 						Description: "A search term to filter tasklists by name.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string"},
+							{Type: "null"},
+						},
 					},
 					"page": {
-						Type:        "integer",
 						Description: "Page number for pagination of results.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "integer"},
+							{Type: "null"},
+						},
 					},
 					"page_size": {
-						Type:        "integer",
 						Description: "Number of results per page for pagination.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "integer"},
+							{Type: "null"},
+						},
 					},
 				},
 				Required: []string{"project_id"},

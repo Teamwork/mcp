@@ -75,8 +75,11 @@ func MilestoneCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 						Description: "The ID of the project to create the milestone in.",
 					},
 					"description": {
-						Type:        "string",
 						Description: "A description of the milestone.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string"},
+							{Type: "null"},
+						},
 					},
 					"due_date": {
 						Type: "string",
@@ -122,17 +125,17 @@ func MilestoneCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 						},
 					},
 					"tasklist_ids": {
-						Type:        "array",
 						Description: "A list of tasklist IDs to associate with the milestone.",
-						Items: &jsonschema.Schema{
-							Type: "integer",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "array", Items: &jsonschema.Schema{Type: "integer"}},
+							{Type: "null"},
 						},
 					},
 					"tag_ids": {
-						Type:        "array",
 						Description: "A list of tag IDs to associate with the milestone.",
-						Items: &jsonschema.Schema{
-							Type: "integer",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "array", Items: &jsonschema.Schema{Type: "integer"}},
+							{Type: "null"},
 						},
 					},
 				},
@@ -203,67 +206,81 @@ func MilestoneUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 						Description: "The ID of the milestone to update.",
 					},
 					"name": {
-						Type:        "string",
 						Description: "The name of the milestone.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string"},
+							{Type: "null"},
+						},
 					},
 					"description": {
-						Type:        "string",
 						Description: "A description of the milestone.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string"},
+							{Type: "null"},
+						},
 					},
 					"due_date": {
-						Type: "string",
 						Description: "The due date of the milestone in the format YYYYMMDD. This date will be used in all tasks " +
 							"without a due date related to this milestone.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string"},
+							{Type: "null"},
+						},
 					},
 					"assignees": {
-						Type:        "object",
 						Description: "An object containing assignees for the milestone.",
-						Properties: map[string]*jsonschema.Schema{
-							"user_ids": {
-								Type:        "array",
-								Description: "List of user IDs assigned to the milestone.",
-								Items: &jsonschema.Schema{
-									Type: "integer",
-								},
-								MinItems: new(1),
-							},
-							"company_ids": {
-								Type:        "array",
-								Description: "List of company IDs assigned to the milestone.",
-								Items: &jsonschema.Schema{
-									Type: "integer",
-								},
-								MinItems: new(1),
-							},
-							"team_ids": {
-								Type:        "array",
-								Description: "List of team IDs assigned to the milestone.",
-								Items: &jsonschema.Schema{
-									Type: "integer",
-								},
-								MinItems: new(1),
-							},
-						},
-						MinProperties: new(1),
-						MaxProperties: new(3),
 						AnyOf: []*jsonschema.Schema{
-							{Required: []string{"user_ids"}},
-							{Required: []string{"company_ids"}},
-							{Required: []string{"team_ids"}},
+							{
+								Type: "object",
+								Properties: map[string]*jsonschema.Schema{
+									"user_ids": {
+										Type:        "array",
+										Description: "List of user IDs assigned to the milestone.",
+										Items: &jsonschema.Schema{
+											Type: "integer",
+										},
+										MinItems: new(1),
+									},
+									"company_ids": {
+										Type:        "array",
+										Description: "List of company IDs assigned to the milestone.",
+										Items: &jsonschema.Schema{
+											Type: "integer",
+										},
+										MinItems: new(1),
+									},
+									"team_ids": {
+										Type:        "array",
+										Description: "List of team IDs assigned to the milestone.",
+										Items: &jsonschema.Schema{
+											Type: "integer",
+										},
+										MinItems: new(1),
+									},
+								},
+								MinProperties: new(1),
+								MaxProperties: new(3),
+								AnyOf: []*jsonschema.Schema{
+									{Required: []string{"user_ids"}},
+									{Required: []string{"company_ids"}},
+									{Required: []string{"team_ids"}},
+								},
+							},
+							{Type: "null"},
 						},
 					},
 					"tasklist_ids": {
-						Type:        "array",
 						Description: "A list of tasklist IDs to associate with the milestone.",
-						Items: &jsonschema.Schema{
-							Type: "integer",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "array", Items: &jsonschema.Schema{Type: "integer"}},
+							{Type: "null"},
 						},
 					},
 					"tag_ids": {
-						Type:        "array",
 						Description: "A list of tag IDs to associate with the milestone.",
-						Items: &jsonschema.Schema{
-							Type: "integer",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "array", Items: &jsonschema.Schema{Type: "integer"}},
+							{Type: "null"},
 						},
 					},
 				},
@@ -426,34 +443,47 @@ func MilestoneList(engine *twapi.Engine) toolsets.ToolWrapper {
 				Type: "object",
 				Properties: map[string]*jsonschema.Schema{
 					"search_term": {
-						Type: "string",
 						Description: "A search term to filter milestones by name. " +
 							"Each word from the search term is used to match against the milestone name and description. " +
 							"The milestone will be selected if each word of the term matches the milestone name or description, not " +
 							"requiring that the word matches are in the same field.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string"},
+							{Type: "null"},
+						},
 					},
 					"tag_ids": {
-						Type:        "array",
 						Description: "A list of tag IDs to filter milestones by tags",
-						Items: &jsonschema.Schema{
-							Type: "integer",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "array", Items: &jsonschema.Schema{Type: "integer"}},
+							{Type: "null"},
 						},
 					},
 					"match_all_tags": {
-						Type: "boolean",
 						Description: "If true, the search will match milestones that have all the specified tags. " +
 							"If false, the search will match milestones that have any of the specified tags. " +
 							"Defaults to false.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "boolean"},
+							{Type: "null"},
+						},
 					},
 					"page": {
-						Type:        "integer",
 						Description: "Page number for pagination of results.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "integer"},
+							{Type: "null"},
+						},
 					},
 					"page_size": {
-						Type:        "integer",
 						Description: "Number of results per page for pagination.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "integer"},
+							{Type: "null"},
+						},
 					},
 				},
+				Required: []string{},
 			},
 			OutputSchema: milestoneListOutputSchema,
 		},
@@ -518,32 +548,44 @@ func MilestoneListByProject(engine *twapi.Engine) toolsets.ToolWrapper {
 						Description: "The ID of the project from which to retrieve milestones.",
 					},
 					"search_term": {
-						Type: "string",
 						Description: "A search term to filter milestones by name. " +
 							"Each word from the search term is used to match against the milestone name and description. " +
 							"The milestone will be selected if each word of the term matches the milestone name or description, not " +
 							"requiring that the word matches are in the same field.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string"},
+							{Type: "null"},
+						},
 					},
 					"tag_ids": {
-						Type:        "array",
 						Description: "A list of tag IDs to filter milestones by tags",
-						Items: &jsonschema.Schema{
-							Type: "integer",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "array", Items: &jsonschema.Schema{Type: "integer"}},
+							{Type: "null"},
 						},
 					},
 					"match_all_tags": {
-						Type: "boolean",
 						Description: "If true, the search will match milestones that have all the specified tags. " +
 							"If false, the search will match milestones that have any of the specified tags. " +
 							"Defaults to false.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "boolean"},
+							{Type: "null"},
+						},
 					},
 					"page": {
-						Type:        "integer",
 						Description: "Page number for pagination of results.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "integer"},
+							{Type: "null"},
+						},
 					},
 					"page_size": {
-						Type:        "integer",
 						Description: "Number of results per page for pagination.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "integer"},
+							{Type: "null"},
+						},
 					},
 				},
 				Required: []string{"project_id"},

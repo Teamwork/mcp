@@ -78,54 +78,62 @@ func MessageCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 						Description: "The body of the message.",
 					},
 					"notify_current_user": {
-						Type:        "boolean",
 						Description: "Whether the current user should be notified about the new message.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "boolean"},
+							{Type: "null"},
+						},
 					},
 					"notify": {
 						Description: "Who should be notified about the new message. Accepts either 'all' or an " +
 							"object specifying user, team, or company IDs. By default, all project members are notified.",
+						Default: json.RawMessage(`"all"`),
 						AnyOf: []*jsonschema.Schema{
 							{
-								Type:        "string",
-								Description: "Notify all project members.",
-								Enum: []any{
-									"all",
-								},
-							},
-							{
-								Type: "object",
-								Description: "An object containing the users, teams or companies to notify. At least one of the " +
-									"properties (user_ids, team_ids, company_ids) is required.",
-								Properties: map[string]*jsonschema.Schema{
-									"user_ids": {
-										Type:        "array",
-										Description: "List of user IDs to notify.",
-										Items:       &jsonschema.Schema{Type: "integer"},
-										MinItems:    new(1),
-									},
-									"company_ids": {
-										Type:        "array",
-										Description: "List of company IDs to notify.",
-										Items:       &jsonschema.Schema{Type: "integer"},
-										MinItems:    new(1),
-									},
-									"team_ids": {
-										Type:        "array",
-										Description: "List of team IDs to notify.",
-										Items:       &jsonschema.Schema{Type: "integer"},
-										MinItems:    new(1),
-									},
-								},
-								MinProperties: new(1),
-								MaxProperties: new(3),
 								AnyOf: []*jsonschema.Schema{
-									{Required: []string{"user_ids"}},
-									{Required: []string{"company_ids"}},
-									{Required: []string{"team_ids"}},
+									{
+										Type:        "string",
+										Description: "Notify all project members.",
+										Enum: []any{
+											"all",
+										},
+									},
+									{
+										Type: "object",
+										Description: "An object containing the users, teams or companies to notify. At least one of the " +
+											"properties (user_ids, team_ids, company_ids) is required.",
+										Properties: map[string]*jsonschema.Schema{
+											"user_ids": {
+												Type:        "array",
+												Description: "List of user IDs to notify.",
+												Items:       &jsonschema.Schema{Type: "integer"},
+												MinItems:    new(1),
+											},
+											"company_ids": {
+												Type:        "array",
+												Description: "List of company IDs to notify.",
+												Items:       &jsonschema.Schema{Type: "integer"},
+												MinItems:    new(1),
+											},
+											"team_ids": {
+												Type:        "array",
+												Description: "List of team IDs to notify.",
+												Items:       &jsonschema.Schema{Type: "integer"},
+												MinItems:    new(1),
+											},
+										},
+										MinProperties: new(1),
+										MaxProperties: new(3),
+										AnyOf: []*jsonschema.Schema{
+											{Required: []string{"user_ids"}},
+											{Required: []string{"company_ids"}},
+											{Required: []string{"team_ids"}},
+										},
+									},
 								},
 							},
+							{Type: "null"},
 						},
-						Default: json.RawMessage(`"all"`),
 					},
 				},
 				Required: []string{"title", "project_id", "body"},
@@ -201,66 +209,83 @@ func MessageUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 						Description: "The ID of the message to update.",
 					},
 					"title": {
-						Type:        "string",
 						Description: "The title of the message.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string"},
+							{Type: "null"},
+						},
 					},
 					"project_id": {
-						Type:        "integer",
 						Description: "The ID of the project to create the message in.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "integer"},
+							{Type: "null"},
+						},
 					},
 					"body": {
-						Type:        "string",
 						Description: "The body of the message.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string"},
+							{Type: "null"},
+						},
 					},
 					"notify_current_user": {
-						Type:        "boolean",
 						Description: "Whether the current user should be notified about the new message.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "boolean"},
+							{Type: "null"},
+						},
 					},
 					"notify": {
 						Description: "Who should be notified about the new message. Accepts either 'all' or an " +
 							"object specifying user, team, or company IDs. By default, all project members are notified.",
+						Default: json.RawMessage(`"all"`),
 						AnyOf: []*jsonschema.Schema{
 							{
-								Type:        "string",
-								Description: "Notify all project members.",
-								Enum: []any{
-									"all",
-								},
-							},
-							{
-								Type: "object",
-								Description: "An object containing the users, teams or companies to notify. At least one of the " +
-									"properties (user_ids, team_ids, company_ids) is required.",
-								Properties: map[string]*jsonschema.Schema{
-									"user_ids": {
-										Type:        "array",
-										Description: "List of user IDs to notify.",
-										Items:       &jsonschema.Schema{Type: "integer"},
-										MinItems:    new(1),
-									},
-									"company_ids": {
-										Type:        "array",
-										Description: "List of company IDs to notify.",
-										Items:       &jsonschema.Schema{Type: "integer"},
-										MinItems:    new(1),
-									},
-									"team_ids": {
-										Type:        "array",
-										Description: "List of team IDs to notify.",
-										Items:       &jsonschema.Schema{Type: "integer"},
-										MinItems:    new(1),
-									},
-								},
-								MinProperties: new(1),
-								MaxProperties: new(3),
 								AnyOf: []*jsonschema.Schema{
-									{Required: []string{"user_ids"}},
-									{Required: []string{"company_ids"}},
-									{Required: []string{"team_ids"}},
+									{
+										Type:        "string",
+										Description: "Notify all project members.",
+										Enum: []any{
+											"all",
+										},
+									},
+									{
+										Type: "object",
+										Description: "An object containing the users, teams or companies to notify. At least one of the " +
+											"properties (user_ids, team_ids, company_ids) is required.",
+										Properties: map[string]*jsonschema.Schema{
+											"user_ids": {
+												Type:        "array",
+												Description: "List of user IDs to notify.",
+												Items:       &jsonschema.Schema{Type: "integer"},
+												MinItems:    new(1),
+											},
+											"company_ids": {
+												Type:        "array",
+												Description: "List of company IDs to notify.",
+												Items:       &jsonschema.Schema{Type: "integer"},
+												MinItems:    new(1),
+											},
+											"team_ids": {
+												Type:        "array",
+												Description: "List of team IDs to notify.",
+												Items:       &jsonschema.Schema{Type: "integer"},
+												MinItems:    new(1),
+											},
+										},
+										MinProperties: new(1),
+										MaxProperties: new(3),
+										AnyOf: []*jsonschema.Schema{
+											{Required: []string{"user_ids"}},
+											{Required: []string{"company_ids"}},
+											{Required: []string{"team_ids"}},
+										},
+									},
 								},
 							},
+							{Type: "null"},
 						},
-						Default: json.RawMessage(`"all"`),
 					},
 				},
 				Required: []string{"id"},
@@ -437,41 +462,54 @@ func MessageList(engine *twapi.Engine) toolsets.ToolWrapper {
 				Type: "object",
 				Properties: map[string]*jsonschema.Schema{
 					"search_term": {
-						Type: "string",
 						Description: "A search term to filter messages by body or title. " +
 							"Each word from the search term is used to match against the message body or title. " +
 							"The message will be selected if each word of the term matches the message body or title, not " +
 							"requiring that the word matches are in the same field.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string"},
+							{Type: "null"},
+						},
 					},
 					"project_ids": {
-						Type:        "array",
 						Description: "A list of project IDs to filter messages by projects",
-						Items: &jsonschema.Schema{
-							Type: "integer",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "array", Items: &jsonschema.Schema{Type: "integer"}},
+							{Type: "null"},
 						},
 					},
 					"tag_ids": {
-						Type:        "array",
 						Description: "A list of tag IDs to filter messages by tags",
-						Items: &jsonschema.Schema{
-							Type: "integer",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "array", Items: &jsonschema.Schema{Type: "integer"}},
+							{Type: "null"},
 						},
 					},
 					"match_all_tags": {
-						Type: "boolean",
 						Description: "If true, the search will match messages that have all the specified tags. " +
 							"If false, the search will match messages that have any of the specified tags. " +
 							"Defaults to false.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "boolean"},
+							{Type: "null"},
+						},
 					},
 					"page": {
-						Type:        "integer",
 						Description: "Page number for pagination of results.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "integer"},
+							{Type: "null"},
+						},
 					},
 					"page_size": {
-						Type:        "integer",
 						Description: "Number of results per page for pagination.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "integer"},
+							{Type: "null"},
+						},
 					},
 				},
+				Required: []string{},
 			},
 			OutputSchema: messageListOutputSchema,
 		},

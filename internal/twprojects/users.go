@@ -82,24 +82,36 @@ func UserCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 						Description: "The last name of the user.",
 					},
 					"title": {
-						Type:        "string",
 						Description: "The job title of the user, such as 'Project Manager' or 'Senior Software Developer'.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string"},
+							{Type: "null"},
+						},
 					},
 					"email": {
 						Type:        "string",
 						Description: "The email address of the user.",
 					},
 					"admin": {
-						Type:        "boolean",
 						Description: "Indicates whether the user is an administrator.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "boolean"},
+							{Type: "null"},
+						},
 					},
 					"type": {
-						Type:        "string",
 						Description: "The type of user, such as 'account', 'collaborator', or 'contact'.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string"},
+							{Type: "null"},
+						},
 					},
 					"company_id": {
-						Type:        "integer",
 						Description: "The ID of the client/company to which the user belongs.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "integer"},
+							{Type: "null"},
+						},
 					},
 				},
 				Required: []string{"first_name", "last_name", "email"},
@@ -153,32 +165,53 @@ func UserUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 						Description: "The ID of the user to update.",
 					},
 					"first_name": {
-						Type:        "string",
 						Description: "The first name of the user.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string"},
+							{Type: "null"},
+						},
 					},
 					"last_name": {
-						Type:        "string",
 						Description: "The last name of the user.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string"},
+							{Type: "null"},
+						},
 					},
 					"title": {
-						Type:        "string",
 						Description: "The job title of the user, such as 'Project Manager' or 'Senior Software Developer'.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string"},
+							{Type: "null"},
+						},
 					},
 					"email": {
-						Type:        "string",
 						Description: "The email address of the user.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string"},
+							{Type: "null"},
+						},
 					},
 					"admin": {
-						Type:        "boolean",
 						Description: "Indicates whether the user is an administrator.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "boolean"},
+							{Type: "null"},
+						},
 					},
 					"type": {
-						Type:        "string",
 						Description: "The type of user, such as 'account', 'collaborator', or 'contact'.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string"},
+							{Type: "null"},
+						},
 					},
 					"company_id": {
-						Type:        "integer",
 						Description: "The ID of the client/company to which the user belongs.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "integer"},
+							{Type: "null"},
+						},
 					},
 				},
 				Required: []string{"id"},
@@ -377,24 +410,37 @@ func UserList(engine *twapi.Engine) toolsets.ToolWrapper {
 				Type: "object",
 				Properties: map[string]*jsonschema.Schema{
 					"search_term": {
-						Type: "string",
 						Description: "A search term to filter users by first or last names, or e-mail. " +
 							"The user will be selected if each word of the term matches the first or last name, or e-mail, not " +
 							"requiring that the word matches are in the same field.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string"},
+							{Type: "null"},
+						},
 					},
 					"type": {
-						Type:        "string",
 						Description: "Type of user to filter by. The available options are account, collaborator or contact.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string"},
+							{Type: "null"},
+						},
 					},
 					"page": {
-						Type:        "integer",
 						Description: "Page number for pagination of results.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "integer"},
+							{Type: "null"},
+						},
 					},
 					"page_size": {
-						Type:        "integer",
 						Description: "Number of results per page for pagination.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "integer"},
+							{Type: "null"},
+						},
 					},
 				},
+				Required: []string{},
 			},
 			OutputSchema: userListOutputSchema,
 		},
@@ -460,22 +506,34 @@ func UserListByProject(engine *twapi.Engine) toolsets.ToolWrapper {
 						Description: "The ID of the project from which to retrieve users.",
 					},
 					"search_term": {
-						Type: "string",
 						Description: "A search term to filter users by first or last names, or e-mail. " +
 							"The user will be selected if each word of the term matches the first or last name, or e-mail, not " +
 							"requiring that the word matches are in the same field.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string"},
+							{Type: "null"},
+						},
 					},
 					"type": {
-						Type:        "string",
 						Description: "Type of user to filter by. The available options are account, collaborator or contact.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string"},
+							{Type: "null"},
+						},
 					},
 					"page": {
-						Type:        "integer",
 						Description: "Page number for pagination of results.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "integer"},
+							{Type: "null"},
+						},
 					},
 					"page_size": {
-						Type:        "integer",
 						Description: "Number of results per page for pagination.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "integer"},
+							{Type: "null"},
+						},
 					},
 				},
 				Required: []string{"project_id"},

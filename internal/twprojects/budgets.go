@@ -68,30 +68,42 @@ func ProjectBudgetList(engine *twapi.Engine) toolsets.ToolWrapper {
 				Type: "object",
 				Properties: map[string]*jsonschema.Schema{
 					"project_ids": {
-						Type:        "array",
 						Description: "A list of project IDs to filter budgets by project.",
-						Items: &jsonschema.Schema{
-							Type: "integer",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "array", Items: &jsonschema.Schema{Type: "integer"}},
+							{Type: "null"},
 						},
 					},
 					"status": {
-						Type:        "string",
 						Description: "Filter budgets by status. Allowed values: upcoming, active, complete.",
-						Enum:        []any{"upcoming", "active", "complete"},
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string", Enum: []any{"upcoming", "active", "complete"}},
+							{Type: "null"},
+						},
 					},
 					"limit": {
-						Type:        "integer",
 						Description: "Maximum number of budgets to return.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "integer"},
+							{Type: "null"},
+						},
 					},
 					"page_size": {
-						Type:        "integer",
 						Description: "Number of budgets to return per page.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "integer"},
+							{Type: "null"},
+						},
 					},
 					"cursor": {
-						Type:        "string",
 						Description: "Cursor for fetching the next page of results.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string"},
+							{Type: "null"},
+						},
 					},
 				},
+				Required: []string{},
 			},
 			OutputSchema: projectBudgetListOutputSchema,
 		},
@@ -160,12 +172,18 @@ func TasklistBudgetList(engine *twapi.Engine) toolsets.ToolWrapper {
 						Description: "The ID of the project budget to list tasklist budgets for.",
 					},
 					"page": {
-						Type:        "integer",
 						Description: "Page number for pagination of results.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "integer"},
+							{Type: "null"},
+						},
 					},
 					"page_size": {
-						Type:        "integer",
 						Description: "Number of results per page for pagination.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "integer"},
+							{Type: "null"},
+						},
 					},
 				},
 				Required: []string{"project_budget_id"},

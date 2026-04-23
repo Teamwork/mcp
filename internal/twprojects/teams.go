@@ -71,31 +71,46 @@ func TeamCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 						Description: "The name of the team.",
 					},
 					"handle": {
-						Type: "string",
 						Description: "The handle of the team. It is a unique identifier for the team. It must not have spaces " +
 							"or special characters.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string"},
+							{Type: "null"},
+						},
 					},
 					"description": {
-						Type:        "string",
 						Description: "The description of the team.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string"},
+							{Type: "null"},
+						},
 					},
 					"parent_team_id": {
-						Type:        "integer",
 						Description: "The ID of the parent team. This is used to create a hierarchy of teams.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "integer"},
+							{Type: "null"},
+						},
 					},
 					"company_id": {
-						Type:        "integer",
 						Description: "The ID of the company. This is used to create a team scoped for a specific company.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "integer"},
+							{Type: "null"},
+						},
 					},
 					"project_id": {
-						Type:        "integer",
 						Description: "The ID of the project. This is used to create a team scoped for a specific project.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "integer"},
+							{Type: "null"},
+						},
 					},
 					"user_ids": {
-						Type:        "array",
 						Description: "A list of user IDs to add to the team.",
-						Items: &jsonschema.Schema{
-							Type: "integer",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "array", Items: &jsonschema.Schema{Type: "integer"}},
+							{Type: "null"},
 						},
 					},
 				},
@@ -148,35 +163,53 @@ func TeamUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 						Description: "The ID of the team to update.",
 					},
 					"name": {
-						Type:        "string",
 						Description: "The name of the team.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string"},
+							{Type: "null"},
+						},
 					},
 					"handle": {
-						Type: "string",
 						Description: "The handle of the team. It is a unique identifier for the team. It must not have spaces " +
 							"or special characters.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string"},
+							{Type: "null"},
+						},
 					},
 					"description": {
-						Type:        "string",
 						Description: "The description of the team.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string"},
+							{Type: "null"},
+						},
 					},
 					"parent_team_id": {
-						Type:        "integer",
 						Description: "The ID of the parent team. This is used to create a hierarchy of teams.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "integer"},
+							{Type: "null"},
+						},
 					},
 					"company_id": {
-						Type:        "integer",
 						Description: "The ID of the company. This is used to create a team scoped for a specific company.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "integer"},
+							{Type: "null"},
+						},
 					},
 					"project_id": {
-						Type:        "integer",
 						Description: "The ID of the project. This is used to create a team scoped for a specific project.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "integer"},
+							{Type: "null"},
+						},
 					},
 					"user_ids": {
-						Type:        "array",
 						Description: "A list of user IDs to add to the team.",
-						Items: &jsonschema.Schema{
-							Type: "integer",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "array", Items: &jsonschema.Schema{Type: "integer"}},
+							{Type: "null"},
 						},
 					},
 				},
@@ -330,18 +363,28 @@ func TeamList(engine *twapi.Engine) toolsets.ToolWrapper {
 				Type: "object",
 				Properties: map[string]*jsonschema.Schema{
 					"search_term": {
-						Type:        "string",
 						Description: "A search term to filter teams by name or handle.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string"},
+							{Type: "null"},
+						},
 					},
 					"page": {
-						Type:        "integer",
 						Description: "Page number for pagination of results.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "integer"},
+							{Type: "null"},
+						},
 					},
 					"page_size": {
-						Type:        "integer",
 						Description: "Number of results per page for pagination.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "integer"},
+							{Type: "null"},
+						},
 					},
 				},
+				Required: []string{},
 			},
 			OutputSchema: teamListOutputSchema,
 		},
@@ -409,16 +452,25 @@ func TeamListByCompany(engine *twapi.Engine) toolsets.ToolWrapper {
 						Description: "The ID of the company from which to retrieve teams.",
 					},
 					"search_term": {
-						Type:        "string",
 						Description: "A search term to filter teams by name or handle.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string"},
+							{Type: "null"},
+						},
 					},
 					"page": {
-						Type:        "integer",
 						Description: "Page number for pagination of results.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "integer"},
+							{Type: "null"},
+						},
 					},
 					"page_size": {
-						Type:        "integer",
 						Description: "Number of results per page for pagination.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "integer"},
+							{Type: "null"},
+						},
 					},
 				},
 				Required: []string{"company_id"},
@@ -485,16 +537,25 @@ func TeamListByProject(engine *twapi.Engine) toolsets.ToolWrapper {
 						Description: "The ID of the project from which to retrieve teams.",
 					},
 					"search_term": {
-						Type:        "string",
 						Description: "A search term to filter teams by name or handle.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string"},
+							{Type: "null"},
+						},
 					},
 					"page": {
-						Type:        "integer",
 						Description: "Page number for pagination of results.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "integer"},
+							{Type: "null"},
+						},
 					},
 					"page_size": {
-						Type:        "integer",
 						Description: "Number of results per page for pagination.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "integer"},
+							{Type: "null"},
+						},
 					},
 				},
 				Required: []string{"project_id"},
