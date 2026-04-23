@@ -29,7 +29,7 @@ func Search(httpClient *http.Client) toolsets.ToolWrapper {
 				"highlighted text snippets.",
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
-				Properties: map[string]*jsonschema.Schema{
+				Properties: paginationOptions(map[string]*jsonschema.Schema{
 					"query": {
 						Type:        "string",
 						Description: "The search query string.",
@@ -41,19 +41,11 @@ func Search(httpClient *http.Client) toolsets.ToolWrapper {
 							Type: "integer",
 						},
 					},
-					"limit": {
-						Type:        "integer",
-						Description: "Maximum number of results to return.",
-					},
-					"offset": {
-						Type:        "integer",
-						Description: "Number of results to skip for pagination.",
-					},
 					"includeDeleted": {
 						Type:        "boolean",
 						Description: "Include deleted pages in search results.",
 					},
-				},
+				}),
 				Required: []string{"query"},
 			},
 		},
@@ -76,13 +68,13 @@ func Search(httpClient *http.Client) toolsets.ToolWrapper {
 				filter.SpaceID = ids
 			}
 
-			if limit := arguments.GetInt("limit", 0); limit > 0 {
-				l := int64(limit)
+			if pageSize := arguments.GetInt("pageSize", 0); pageSize > 0 {
+				l := int64(pageSize)
 				filter.Limit = &l
 			}
 
-			if offset := arguments.GetInt("offset", 0); offset > 0 {
-				o := int64(offset)
+			if pageOffset := arguments.GetInt("pageOffset", 0); pageOffset > 0 {
+				o := int64(pageOffset)
 				filter.Offset = &o
 			}
 

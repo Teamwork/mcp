@@ -84,7 +84,7 @@ func CommentList(httpClient *http.Client) toolsets.ToolWrapper {
 				"with their replies, enabling review of discussions and feedback on documentation.",
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
-				Properties: map[string]*jsonschema.Schema{
+				Properties: paginationOptions(map[string]*jsonschema.Schema{
 					"spaceId": {
 						Type:        "integer",
 						Description: "The ID of the space containing the page.",
@@ -93,7 +93,7 @@ func CommentList(httpClient *http.Client) toolsets.ToolWrapper {
 						Type:        "integer",
 						Description: "The ID of the page to list comments for.",
 					},
-				},
+				}),
 				Required: []string{"spaceId", "pageId"},
 			},
 		},
@@ -104,10 +104,12 @@ func CommentList(httpClient *http.Client) toolsets.ToolWrapper {
 				return helpers.NewToolResultTextError("%v", err), nil
 			}
 
+			params := url.Values{}
+			setPagination(&params, arguments)
 			comments, err := client.Comments.List(ctx,
 				int64(arguments.GetInt("spaceId", 0)),
 				int64(arguments.GetInt("pageId", 0)),
-				url.Values{},
+				params,
 			)
 			if err != nil {
 				return nil, fmt.Errorf("failed to list comments: %w", err)

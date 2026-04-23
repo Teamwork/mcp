@@ -23,9 +23,9 @@ func TestSearchWithFilters(t *testing.T) {
 	defer cleanup()
 
 	testutil.ExecuteToolRequest(t, mcpServer, twspaces.MethodSearch.String(), map[string]any{
-		"query":    "api reference",
-		"spaceIds": []any{float64(1), float64(2)},
-		"limit":    float64(10),
-		"offset":   float64(0),
+		"query":      "api reference",
+		"spaceIds":   []any{float64(1), float64(2)},
+		"pageSize":   float64(10),
+		"pageOffset": float64(0),
 	})
 }
