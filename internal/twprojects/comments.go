@@ -99,67 +99,74 @@ func CommentCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 						Description: "The content of the comment. The content can be added as text or HTML.",
 					},
 					"content_type": {
-						Type:        "string",
 						Description: "The content type of the comment. It can be either 'TEXT' or 'HTML'.",
-						Enum: []any{
-							"TEXT",
-							"HTML",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string", Enum: []any{"TEXT", "HTML"}},
+							{Type: "null"},
 						},
 					},
 					"notify_current_user": {
-						Type:        "boolean",
 						Description: "Whether the current user should be notified about the new comment.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "boolean"},
+							{Type: "null"},
+						},
 					},
 					"notify": {
 						Description: "Who should be notified about the new comment. Accepts either 'all', true (followers) or an " +
 							"object specifying user, team, or company IDs. By default, followers are notified.",
+						Default: json.RawMessage(`true`),
 						AnyOf: []*jsonschema.Schema{
 							{
-								Type:        "string",
-								Description: "Notify all project members.",
-								Enum: []any{
-									"all",
-								},
-							},
-							{
-								Type:        "boolean",
-								Description: "Notify all followers of the entity this comment is related to.",
-								Enum:        []any{true},
-							},
-							{
-								Type: "object",
-								Description: "An object containing the users, teams or companies to notify. At least one of the " +
-									"properties (user_ids, team_ids, company_ids) is required.",
-								Properties: map[string]*jsonschema.Schema{
-									"user_ids": {
-										Type:        "array",
-										Description: "List of user IDs to notify.",
-										Items:       &jsonschema.Schema{Type: "integer"},
-										MinItems:    new(1),
-									},
-									"company_ids": {
-										Type:        "array",
-										Description: "List of company IDs to notify.",
-										Items:       &jsonschema.Schema{Type: "integer"},
-										MinItems:    new(1),
-									},
-									"team_ids": {
-										Type:        "array",
-										Description: "List of team IDs to notify.",
-										Items:       &jsonschema.Schema{Type: "integer"},
-										MinItems:    new(1),
-									},
-								},
-								MinProperties: new(1),
-								MaxProperties: new(3),
 								AnyOf: []*jsonschema.Schema{
-									{Required: []string{"user_ids"}},
-									{Required: []string{"company_ids"}},
-									{Required: []string{"team_ids"}},
+									{
+										Type:        "string",
+										Description: "Notify all project members.",
+										Enum: []any{
+											"all",
+										},
+									},
+									{
+										Type:        "boolean",
+										Description: "Notify all followers of the entity this comment is related to.",
+										Enum:        []any{true},
+									},
+									{
+										Type: "object",
+										Description: "An object containing the users, teams or companies to notify. At least one of the " +
+											"properties (user_ids, team_ids, company_ids) is required.",
+										Properties: map[string]*jsonschema.Schema{
+											"user_ids": {
+												Type:        "array",
+												Description: "List of user IDs to notify.",
+												Items:       &jsonschema.Schema{Type: "integer"},
+												MinItems:    new(1),
+											},
+											"company_ids": {
+												Type:        "array",
+												Description: "List of company IDs to notify.",
+												Items:       &jsonschema.Schema{Type: "integer"},
+												MinItems:    new(1),
+											},
+											"team_ids": {
+												Type:        "array",
+												Description: "List of team IDs to notify.",
+												Items:       &jsonschema.Schema{Type: "integer"},
+												MinItems:    new(1),
+											},
+										},
+										MinProperties: new(1),
+										MaxProperties: new(3),
+										AnyOf: []*jsonschema.Schema{
+											{Required: []string{"user_ids"}},
+											{Required: []string{"company_ids"}},
+											{Required: []string{"team_ids"}},
+										},
+									},
 								},
 							},
+							{Type: "null"},
 						},
-						Default: json.RawMessage(`true`),
 					},
 				},
 				Required: []string{"object", "body"},
@@ -276,67 +283,74 @@ func CommentUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 						Description: "The content of the comment. The content can be added as text or HTML.",
 					},
 					"content_type": {
-						Type:        "string",
 						Description: "The content type of the comment. It can be either 'TEXT' or 'HTML'.",
-						Enum: []any{
-							"TEXT",
-							"HTML",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string", Enum: []any{"TEXT", "HTML"}},
+							{Type: "null"},
 						},
 					},
 					"notify_current_user": {
-						Type:        "boolean",
 						Description: "Whether the current user should be notified about the comment change.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "boolean"},
+							{Type: "null"},
+						},
 					},
 					"notify": {
 						Description: "Who should be notified about the comment change. Accepts either 'all', true (followers) or " +
 							"an object specifying user, team, or company IDs. By default, followers are notified.",
+						Default: json.RawMessage(`true`),
 						AnyOf: []*jsonschema.Schema{
 							{
-								Type:        "string",
-								Description: "Notify all project members.",
-								Enum: []any{
-									"all",
-								},
-							},
-							{
-								Type:        "boolean",
-								Description: "Notify all followers of the entity this comment is related to.",
-								Enum:        []any{true},
-							},
-							{
-								Type: "object",
-								Description: "An object containing the users, teams or companies to notify. At least one of the " +
-									"properties (user_ids, team_ids, company_ids) is required.",
-								Properties: map[string]*jsonschema.Schema{
-									"user_ids": {
-										Type:        "array",
-										Description: "List of user IDs to notify.",
-										Items:       &jsonschema.Schema{Type: "integer"},
-										MinItems:    new(1),
-									},
-									"company_ids": {
-										Type:        "array",
-										Description: "List of company IDs to notify.",
-										Items:       &jsonschema.Schema{Type: "integer"},
-										MinItems:    new(1),
-									},
-									"team_ids": {
-										Type:        "array",
-										Description: "List of team IDs to notify.",
-										Items:       &jsonschema.Schema{Type: "integer"},
-										MinItems:    new(1),
-									},
-								},
-								MinProperties: new(1),
-								MaxProperties: new(3),
 								AnyOf: []*jsonschema.Schema{
-									{Required: []string{"user_ids"}},
-									{Required: []string{"company_ids"}},
-									{Required: []string{"team_ids"}},
+									{
+										Type:        "string",
+										Description: "Notify all project members.",
+										Enum: []any{
+											"all",
+										},
+									},
+									{
+										Type:        "boolean",
+										Description: "Notify all followers of the entity this comment is related to.",
+										Enum:        []any{true},
+									},
+									{
+										Type: "object",
+										Description: "An object containing the users, teams or companies to notify. At least one of the " +
+											"properties (user_ids, team_ids, company_ids) is required.",
+										Properties: map[string]*jsonschema.Schema{
+											"user_ids": {
+												Type:        "array",
+												Description: "List of user IDs to notify.",
+												Items:       &jsonschema.Schema{Type: "integer"},
+												MinItems:    new(1),
+											},
+											"company_ids": {
+												Type:        "array",
+												Description: "List of company IDs to notify.",
+												Items:       &jsonschema.Schema{Type: "integer"},
+												MinItems:    new(1),
+											},
+											"team_ids": {
+												Type:        "array",
+												Description: "List of team IDs to notify.",
+												Items:       &jsonschema.Schema{Type: "integer"},
+												MinItems:    new(1),
+											},
+										},
+										MinProperties: new(1),
+										MaxProperties: new(3),
+										AnyOf: []*jsonschema.Schema{
+											{Required: []string{"user_ids"}},
+											{Required: []string{"company_ids"}},
+											{Required: []string{"team_ids"}},
+										},
+									},
 								},
 							},
+							{Type: "null"},
 						},
-						Default: json.RawMessage(`true`),
 					},
 				},
 				Required: []string{"id", "body"},
@@ -514,25 +528,37 @@ func CommentList(engine *twapi.Engine) toolsets.ToolWrapper {
 				Type: "object",
 				Properties: map[string]*jsonschema.Schema{
 					"search_term": {
-						Type:        "string",
 						Description: "A search term to filter comments by name.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string"},
+							{Type: "null"},
+						},
 					},
 					"updated_after": {
-						Type:   "string",
-						Format: "date-time",
 						Description: "Filter comments updated after this date and time. " +
 							"The date format follows RFC3339 - YYYY-MM-DDTHH:MM:SSZ. By default it will only return comments " +
 							"updated on the last 3 months.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string", Format: "date-time"},
+							{Type: "null"},
+						},
 					},
 					"page": {
-						Type:        "integer",
 						Description: "Page number for pagination of results.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "integer"},
+							{Type: "null"},
+						},
 					},
 					"page_size": {
-						Type:        "integer",
 						Description: "Number of results per page for pagination.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "integer"},
+							{Type: "null"},
+						},
 					},
 				},
+				Required: []string{},
 			},
 			OutputSchema: commentListOutputSchema,
 		},
@@ -598,23 +624,34 @@ func CommentListByFileVersion(engine *twapi.Engine) toolsets.ToolWrapper {
 							"and comments can be associated with specific versions.",
 					},
 					"search_term": {
-						Type:        "string",
 						Description: "A search term to filter comments by name.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string"},
+							{Type: "null"},
+						},
 					},
 					"updated_after": {
-						Type:   "string",
-						Format: "date-time",
 						Description: "Filter comments updated after this date and time. " +
 							"The date format follows RFC3339 - YYYY-MM-DDTHH:MM:SSZ. By default it will only return comments " +
 							"updated on the last 3 months.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string", Format: "date-time"},
+							{Type: "null"},
+						},
 					},
 					"page": {
-						Type:        "integer",
 						Description: "Page number for pagination of results.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "integer"},
+							{Type: "null"},
+						},
 					},
 					"page_size": {
-						Type:        "integer",
 						Description: "Number of results per page for pagination.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "integer"},
+							{Type: "null"},
+						},
 					},
 				},
 				Required: []string{"file_version_id"},
@@ -683,23 +720,34 @@ func CommentListByMilestone(engine *twapi.Engine) toolsets.ToolWrapper {
 						Description: "The ID of the milestone to retrieve comments for.",
 					},
 					"search_term": {
-						Type:        "string",
 						Description: "A search term to filter comments by name.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string"},
+							{Type: "null"},
+						},
 					},
 					"updated_after": {
-						Type:   "string",
-						Format: "date-time",
 						Description: "Filter comments updated after this date and time. " +
 							"The date format follows RFC3339 - YYYY-MM-DDTHH:MM:SSZ. By default it will only return comments " +
 							"updated on the last 3 months.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string", Format: "date-time"},
+							{Type: "null"},
+						},
 					},
 					"page": {
-						Type:        "integer",
 						Description: "Page number for pagination of results.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "integer"},
+							{Type: "null"},
+						},
 					},
 					"page_size": {
-						Type:        "integer",
 						Description: "Number of results per page for pagination.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "integer"},
+							{Type: "null"},
+						},
 					},
 				},
 				Required: []string{"milestone_id"},
@@ -768,23 +816,34 @@ func CommentListByNotebook(engine *twapi.Engine) toolsets.ToolWrapper {
 						Description: "The ID of the notebook to retrieve comments for.",
 					},
 					"search_term": {
-						Type:        "string",
 						Description: "A search term to filter comments by name.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string"},
+							{Type: "null"},
+						},
 					},
 					"updated_after": {
-						Type:   "string",
-						Format: "date-time",
 						Description: "Filter comments updated after this date and time. " +
 							"The date format follows RFC3339 - YYYY-MM-DDTHH:MM:SSZ. By default it will only return comments " +
 							"updated on the last 3 months.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string", Format: "date-time"},
+							{Type: "null"},
+						},
 					},
 					"page": {
-						Type:        "integer",
 						Description: "Page number for pagination of results.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "integer"},
+							{Type: "null"},
+						},
 					},
 					"page_size": {
-						Type:        "integer",
 						Description: "Number of results per page for pagination.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "integer"},
+							{Type: "null"},
+						},
 					},
 				},
 				Required: []string{"notebook_id"},
@@ -853,23 +912,34 @@ func CommentListByTask(engine *twapi.Engine) toolsets.ToolWrapper {
 						Description: "The ID of the task to retrieve comments for.",
 					},
 					"search_term": {
-						Type:        "string",
 						Description: "A search term to filter comments by name.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string"},
+							{Type: "null"},
+						},
 					},
 					"updated_after": {
-						Type:   "string",
-						Format: "date-time",
 						Description: "Filter comments updated after this date and time. " +
 							"The date format follows RFC3339 - YYYY-MM-DDTHH:MM:SSZ. By default it will only return comments " +
 							"updated on the last 3 months.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string", Format: "date-time"},
+							{Type: "null"},
+						},
 					},
 					"page": {
-						Type:        "integer",
 						Description: "Page number for pagination of results.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "integer"},
+							{Type: "null"},
+						},
 					},
 					"page_size": {
-						Type:        "integer",
 						Description: "Number of results per page for pagination.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "integer"},
+							{Type: "null"},
+						},
 					},
 				},
 				Required: []string{"task_id"},

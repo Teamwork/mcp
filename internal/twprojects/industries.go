@@ -55,6 +55,7 @@ func IndustryList(engine *twapi.Engine) toolsets.ToolWrapper {
 			InputSchema: &jsonschema.Schema{
 				Type:       "object",
 				Properties: map[string]*jsonschema.Schema{},
+				Required:   []string{},
 			},
 			OutputSchema: industryListOutputSchema,
 		},

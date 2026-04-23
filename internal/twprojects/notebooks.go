@@ -74,8 +74,11 @@ func NotebookCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 						Description: "The ID of the project to create the notebook in.",
 					},
 					"description": {
-						Type:        "string",
 						Description: "A description of the notebook.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string"},
+							{Type: "null"},
+						},
 					},
 					"contents": {
 						Type:        "string",
@@ -87,10 +90,10 @@ func NotebookCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 						Enum:        []any{"MARKDOWN", "HTML"},
 					},
 					"tag_ids": {
-						Type:        "array",
 						Description: "A list of tag IDs to associate with the notebook.",
-						Items: &jsonschema.Schema{
-							Type: "integer",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "array", Items: &jsonschema.Schema{Type: "integer"}},
+							{Type: "null"},
 						},
 					},
 				},
@@ -147,27 +150,38 @@ func NotebookUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 						Description: "The ID of the notebook to update.",
 					},
 					"name": {
-						Type:        "string",
 						Description: "The name of the notebook.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string"},
+							{Type: "null"},
+						},
 					},
 					"description": {
-						Type:        "string",
 						Description: "A description of the notebook.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string"},
+							{Type: "null"},
+						},
 					},
 					"contents": {
-						Type:        "string",
 						Description: "The contents of the notebook.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string"},
+							{Type: "null"},
+						},
 					},
 					"type": {
-						Type:        "string",
 						Description: "The type of the notebook. Valid values are 'MARKDOWN' and 'HTML'.",
-						Enum:        []any{"MARKDOWN", "HTML"},
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string", Enum: []any{"MARKDOWN", "HTML"}},
+							{Type: "null"},
+						},
 					},
 					"tag_ids": {
-						Type:        "array",
 						Description: "A list of tag IDs to associate with the notebook.",
-						Items: &jsonschema.Schema{
-							Type: "integer",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "array", Items: &jsonschema.Schema{Type: "integer"}},
+							{Type: "null"},
 						},
 					},
 				},
@@ -325,46 +339,62 @@ func NotebookList(engine *twapi.Engine) toolsets.ToolWrapper {
 				Type: "object",
 				Properties: map[string]*jsonschema.Schema{
 					"project_ids": {
-						Type:        "array",
 						Description: "A list of project IDs to filter notebooks by projects",
-						Items: &jsonschema.Schema{
-							Type: "integer",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "array", Items: &jsonschema.Schema{Type: "integer"}},
+							{Type: "null"},
 						},
 					},
 					"search_term": {
-						Type: "string",
 						Description: "A search term to filter notebooks by name or description. " +
 							"The notebook will be selected if each word of the term matches the notebook name or description, not " +
 							"requiring that the word matches are in the same field.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string"},
+							{Type: "null"},
+						},
 					},
 					"tag_ids": {
-						Type:        "array",
 						Description: "A list of tag IDs to filter notebooks by tags",
-						Items: &jsonschema.Schema{
-							Type: "integer",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "array", Items: &jsonschema.Schema{Type: "integer"}},
+							{Type: "null"},
 						},
 					},
 					"match_all_tags": {
-						Type: "boolean",
 						Description: "If true, the search will match notebooks that have all the specified tags. " +
 							"If false, the search will match notebooks that have any of the specified tags. " +
 							"Defaults to false.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "boolean"},
+							{Type: "null"},
+						},
 					},
 					"include_contents": {
-						Type: "boolean",
 						Description: "If true, the contents of the notebook will be included in the response. " +
 							"Defaults to true.",
 						Default: json.RawMessage(`true`),
+						AnyOf: []*jsonschema.Schema{
+							{Type: "boolean"},
+							{Type: "null"},
+						},
 					},
 					"page": {
-						Type:        "integer",
 						Description: "Page number for pagination of results.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "integer"},
+							{Type: "null"},
+						},
 					},
 					"page_size": {
-						Type:        "integer",
 						Description: "Number of results per page for pagination.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "integer"},
+							{Type: "null"},
+						},
 					},
 				},
+				Required: []string{},
 			},
 			OutputSchema: notebookListOutputSchema,
 		},

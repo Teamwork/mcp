@@ -69,32 +69,50 @@ func TimerCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 				Type: "object",
 				Properties: map[string]*jsonschema.Schema{
 					"description": {
-						Type:        "string",
 						Description: "A description of the timer.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string"},
+							{Type: "null"},
+						},
 					},
 					"billable": {
-						Type:        "boolean",
 						Description: "If true, the timer is billable. Defaults to false.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "boolean"},
+							{Type: "null"},
+						},
 					},
 					"running": {
-						Type:        "boolean",
 						Description: "If true, the timer will start running immediately.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "boolean"},
+							{Type: "null"},
+						},
 					},
 					"seconds": {
-						Type:        "integer",
 						Description: "The number of seconds to set the timer for.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "integer"},
+							{Type: "null"},
+						},
 					},
 					"stop_running_timers": {
-						Type:        "boolean",
 						Description: "If true, any other running timers will be stopped when this timer is created.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "boolean"},
+							{Type: "null"},
+						},
 					},
 					"project_id": {
 						Type:        "integer",
 						Description: "The ID of the project to associate the timer with.",
 					},
 					"task_id": {
-						Type:        "integer",
 						Description: "The ID of the task to associate the timer with.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "integer"},
+							{Type: "null"},
+						},
 					},
 				},
 				Required: []string{"project_id"},
@@ -146,24 +164,39 @@ func TimerUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 						Description: "The ID of the timer to update.",
 					},
 					"description": {
-						Type:        "string",
 						Description: "A description of the timer.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string"},
+							{Type: "null"},
+						},
 					},
 					"billable": {
-						Type:        "boolean",
 						Description: "If true, the timer is billable.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "boolean"},
+							{Type: "null"},
+						},
 					},
 					"running": {
-						Type:        "boolean",
 						Description: "If true, the timer will start running immediately.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "boolean"},
+							{Type: "null"},
+						},
 					},
 					"project_id": {
-						Type:        "integer",
 						Description: "The ID of the project to associate the timer with.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "integer"},
+							{Type: "null"},
+						},
 					},
 					"task_id": {
-						Type:        "integer",
 						Description: "The ID of the task to associate the timer with.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "integer"},
+							{Type: "null"},
+						},
 					},
 				},
 				Required: []string{"id"},
@@ -444,34 +477,53 @@ func TimerList(engine *twapi.Engine) toolsets.ToolWrapper {
 				Type: "object",
 				Properties: map[string]*jsonschema.Schema{
 					"user_id": {
-						Type: "integer",
 						Description: "The ID of the user to filter timers by. " +
 							"Only timers associated with this user will be returned.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "integer"},
+							{Type: "null"},
+						},
 					},
 					"task_id": {
-						Type: "integer",
 						Description: "The ID of the task to filter timers by. " +
 							"Only timers associated with this task will be returned.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "integer"},
+							{Type: "null"},
+						},
 					},
 					"project_id": {
-						Type: "integer",
 						Description: "The ID of the project to filter timers by. " +
 							"Only timers associated with this project will be returned.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "integer"},
+							{Type: "null"},
+						},
 					},
 					"running_timers_only": {
-						Type: "boolean",
 						Description: "If true, only running timers will be returned. " +
 							"Defaults to false, which returns all timers.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "boolean"},
+							{Type: "null"},
+						},
 					},
 					"page": {
-						Type:        "integer",
 						Description: "Page number for pagination of results.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "integer"},
+							{Type: "null"},
+						},
 					},
 					"page_size": {
-						Type:        "integer",
 						Description: "Number of results per page for pagination.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "integer"},
+							{Type: "null"},
+						},
 					},
 				},
+				Required: []string{},
 			},
 			OutputSchema: timerListOutputSchema,
 		},

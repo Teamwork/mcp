@@ -72,34 +72,52 @@ func ProjectCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 						Description: "The name of the project.",
 					},
 					"description": {
-						Type:        "string",
 						Description: "The description of the project.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string"},
+							{Type: "null"},
+						},
 					},
 					"start_at": {
-						Type:        "string",
 						Description: "The start date of the project in the format YYYYMMDD.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string"},
+							{Type: "null"},
+						},
 					},
 					"end_at": {
-						Type:        "string",
 						Description: "The end date of the project in the format YYYYMMDD.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string"},
+							{Type: "null"},
+						},
 					},
 					"category_id": {
-						Type:        "integer",
 						Description: "The ID of the category to which the project belongs.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "integer"},
+							{Type: "null"},
+						},
 					},
 					"company_id": {
-						Type:        "integer",
 						Description: "The ID of the company associated with the project.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "integer"},
+							{Type: "null"},
+						},
 					},
 					"owned_id": {
-						Type:        "integer",
 						Description: "The ID of the user who owns the project.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "integer"},
+							{Type: "null"},
+						},
 					},
 					"tag_ids": {
-						Type:        "array",
 						Description: "A list of tag IDs to associate with the project.",
-						Items: &jsonschema.Schema{
-							Type: "integer",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "array", Items: &jsonschema.Schema{Type: "integer"}},
+							{Type: "null"},
 						},
 					},
 				},
@@ -153,44 +171,67 @@ func ProjectUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 						Description: "The ID of the project to update.",
 					},
 					"name": {
-						Type:        "string",
 						Description: "The name of the project.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string"},
+							{Type: "null"},
+						},
 					},
 					"description": {
-						Type:        "string",
 						Description: "The description of the project.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string"},
+							{Type: "null"},
+						},
 					},
 					"start_at": {
-						Type:        "string",
 						Description: "The start date of the project in the format YYYYMMDD.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string"},
+							{Type: "null"},
+						},
 					},
 					"end_at": {
-						Type:        "string",
 						Description: "The end date of the project in the format YYYYMMDD.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string"},
+							{Type: "null"},
+						},
 					},
 					"category_id": {
-						Type:        "integer",
 						Description: "The ID of the category to which the project belongs.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "integer"},
+							{Type: "null"},
+						},
 					},
 					"company_id": {
-						Type:        "integer",
 						Description: "The ID of the company associated with the project.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "integer"},
+							{Type: "null"},
+						},
 					},
 					"owned_id": {
-						Type:        "integer",
 						Description: "The ID of the user who owns the project.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "integer"},
+							{Type: "null"},
+						},
 					},
 					"tag_ids": {
-						Type:        "array",
 						Description: "A list of tag IDs to associate with the project.",
-						Items: &jsonschema.Schema{
-							Type: "integer",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "array", Items: &jsonschema.Schema{Type: "integer"}},
+							{Type: "null"},
 						},
 					},
 					"status": {
-						Type:        "string",
 						Description: "The status of the project. Allowed values: active or archived.",
-						Enum:        []any{"active", "archived"},
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string", Enum: []any{"active", "archived"}},
+							{Type: "null"},
+						},
 					},
 				},
 				Required: []string{"id"},
@@ -294,50 +335,73 @@ func ProjectClone(engine *twapi.Engine) toolsets.ToolWrapper {
 						Description: "The ID of the project to clone.",
 					},
 					"name": {
-						Type: "string",
 						Description: "The name of the new cloned project. If not provided, the name of the original project " +
 							"will be used with an incremental suffix (e.g., 'Project Name (1)').",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string"},
+							{Type: "null"},
+						},
 					},
 					"description": {
-						Type: "string",
 						Description: "The description of the new cloned project. If not provided, the description of the " +
 							"original project will be used.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string"},
+							{Type: "null"},
+						},
 					},
 					"company_id": {
-						Type: "integer",
 						Description: "The ID of the company associated with the new cloned project. If not provided, the company " +
 							"of the original project will be used.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "integer"},
+							{Type: "null"},
+						},
 					},
 					"new_from_template": {
-						Type:        "boolean",
 						Description: "Indicates whether the new project should be a regular one created from a template.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "boolean"},
+							{Type: "null"},
+						},
 					},
 					"to_template": {
-						Type:        "boolean",
 						Description: "Indicates whether the new project should be set as a template.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "boolean"},
+							{Type: "null"},
+						},
 					},
 					"template_date_target": {
-						Type: "string",
 						Description: "Specifies whether target_date represents the project's " +
 							"start or end date. When 'end', the start date is calculated by subtracting the template project's duration " +
 							"from target_date. Only applicable when new_from_template=true.",
-						Enum:    []any{"start", "end"},
 						Default: json.RawMessage(`"start"`),
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string", Enum: []any{"start", "end"}},
+							{Type: "null"},
+						},
 					},
 					"target_date": {
-						Type: "string",
 						Description: "Target date is the desired start or end date for the cloned project " +
 							"(determined by template_date_target). Used only when creating a project from " +
 							"a template (new_from_template=true). Accepted format: YYYYMMDD string. " +
 							"Defaults to the current user date if omitted.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string"},
+							{Type: "null"},
+						},
 					},
 					"days_offset": {
-						Type: "integer",
 						Description: "DaysOffset is the number of days to shift all scheduled dates in the cloned " +
 							"project relative to the base date. When cloning from a template, it defines " +
 							"the project duration span. When copying an existing project, it shifts the " +
 							"original start and end dates by this many days. If omitted, calculated " +
 							"automatically from the source project's date range.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "integer"},
+							{Type: "null"},
+						},
 					},
 				},
 				Required: []string{"id"},
@@ -482,37 +546,50 @@ func ProjectList(engine *twapi.Engine) toolsets.ToolWrapper {
 				Type: "object",
 				Properties: map[string]*jsonschema.Schema{
 					"project_category_ids": {
-						Type:        "array",
 						Description: "A list of project category IDs to filter projects by categories.",
-						Items: &jsonschema.Schema{
-							Type: "integer",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "array", Items: &jsonschema.Schema{Type: "integer"}},
+							{Type: "null"},
 						},
 					},
 					"search_term": {
-						Type:        "string",
 						Description: "A search term to filter projects by name or description.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string"},
+							{Type: "null"},
+						},
 					},
 					"tag_ids": {
-						Type:        "array",
 						Description: "A list of tag IDs to filter projects by tags.",
-						Items: &jsonschema.Schema{
-							Type: "integer",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "array", Items: &jsonschema.Schema{Type: "integer"}},
+							{Type: "null"},
 						},
 					},
 					"match_all_tags": {
-						Type: "boolean",
 						Description: "If true, the search will match projects that have all the specified tags. If false, the " +
 							"search will match projects that have any of the specified tags. Defaults to false.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "boolean"},
+							{Type: "null"},
+						},
 					},
 					"page": {
-						Type:        "integer",
 						Description: "Page number for pagination of results.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "integer"},
+							{Type: "null"},
+						},
 					},
 					"page_size": {
-						Type:        "integer",
 						Description: "Number of results per page for pagination.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "integer"},
+							{Type: "null"},
+						},
 					},
 				},
+				Required: []string{},
 			},
 			OutputSchema: projectListOutputSchema,
 		},

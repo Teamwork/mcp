@@ -112,8 +112,11 @@ func JobRoleUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 						Description: "The ID of the job role to update.",
 					},
 					"name": {
-						Type:        "string",
 						Description: "The name of the job role.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string"},
+							{Type: "null"},
+						},
 					},
 				},
 				Required: []string{"id"},
@@ -257,20 +260,30 @@ func JobRoleList(engine *twapi.Engine) toolsets.ToolWrapper {
 				Type: "object",
 				Properties: map[string]*jsonschema.Schema{
 					"search_term": {
-						Type: "string",
 						Description: "A search term to filter job roles by name, or assigned users. " +
 							"The job role will be selected if each word of the term matches the name, or assigned user first or " +
 							"last name, not requiring that the word matches are in the same field.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string"},
+							{Type: "null"},
+						},
 					},
 					"page": {
-						Type:        "integer",
 						Description: "Page number for pagination of results.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "integer"},
+							{Type: "null"},
+						},
 					},
 					"page_size": {
-						Type:        "integer",
 						Description: "Number of results per page for pagination.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "integer"},
+							{Type: "null"},
+						},
 					},
 				},
+				Required: []string{},
 			},
 			OutputSchema: jobRoleListOutputSchema,
 		},

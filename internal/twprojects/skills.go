@@ -70,10 +70,10 @@ func SkillCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 						Description: "The name of the skill.",
 					},
 					"user_ids": {
-						Type:        "array",
 						Description: "The user IDs associated with the skill.",
-						Items: &jsonschema.Schema{
-							Type: "integer",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "array", Items: &jsonschema.Schema{Type: "integer"}},
+							{Type: "null"},
 						},
 					},
 				},
@@ -121,14 +121,17 @@ func SkillUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 						Description: "The ID of the skill to update.",
 					},
 					"name": {
-						Type:        "string",
 						Description: "The name of the skill.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string"},
+							{Type: "null"},
+						},
 					},
 					"user_ids": {
-						Type:        "array",
 						Description: "The user IDs associated with the skill.",
-						Items: &jsonschema.Schema{
-							Type: "integer",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "array", Items: &jsonschema.Schema{Type: "integer"}},
+							{Type: "null"},
 						},
 					},
 				},
@@ -274,20 +277,30 @@ func SkillList(engine *twapi.Engine) toolsets.ToolWrapper {
 				Type: "object",
 				Properties: map[string]*jsonschema.Schema{
 					"search_term": {
-						Type: "string",
 						Description: "A search term to filter skills by name, or assigned users. " +
 							"The skill will be selected if each word of the term matches the name, or assigned user first or last " +
 							"name, not requiring that the word matches are in the same field.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string"},
+							{Type: "null"},
+						},
 					},
 					"page": {
-						Type:        "integer",
 						Description: "Page number for pagination of results.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "integer"},
+							{Type: "null"},
+						},
 					},
 					"page_size": {
-						Type:        "integer",
 						Description: "Number of results per page for pagination.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "integer"},
+							{Type: "null"},
+						},
 					},
 				},
+				Required: []string{},
 			},
 			OutputSchema: skillListOutputSchema,
 		},

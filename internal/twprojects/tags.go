@@ -69,8 +69,11 @@ func TagCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 						Description: "The name of the tag. It must have less than 50 characters.",
 					},
 					"project_id": {
-						Type:        "integer",
 						Description: "The ID of the project to associate the tag with. This is for project-scoped tags.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "integer"},
+							{Type: "null"},
+						},
 					},
 				},
 				Required: []string{"name"},
@@ -117,12 +120,18 @@ func TagUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 						Description: "The ID of the tag to update.",
 					},
 					"name": {
-						Type:        "string",
 						Description: "The name of the tag. It must have less than 50 characters.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string"},
+							{Type: "null"},
+						},
 					},
 					"project_id": {
-						Type:        "integer",
 						Description: "The ID of the project to associate the tag with. This is for project-scoped tags.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "integer"},
+							{Type: "null"},
+						},
 					},
 				},
 				Required: []string{"id"},
@@ -255,43 +264,58 @@ func TagList(engine *twapi.Engine) toolsets.ToolWrapper {
 				Type: "object",
 				Properties: map[string]*jsonschema.Schema{
 					"search_term": {
-						Type: "string",
 						Description: "A search term to filter tags by name. Each word from the search term is used to match " +
 							"against the tag name.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string"},
+							{Type: "null"},
+						},
 					},
 					"item_type": {
-						Type: "string",
 						Description: "The type of item to filter tags by. Valid values are 'project', 'task', 'tasklist', " +
 							"'milestone', 'message', 'timelog', 'notebook', 'file', 'company' and 'link'.",
-						Enum: []any{
-							"project",
-							"task",
-							"tasklist",
-							"milestone",
-							"message",
-							"timelog",
-							"notebook",
-							"file",
-							"company",
-							"link",
+						AnyOf: []*jsonschema.Schema{
+							{
+								Type: "string",
+								Enum: []any{
+									"project",
+									"task",
+									"tasklist",
+									"milestone",
+									"message",
+									"timelog",
+									"notebook",
+									"file",
+									"company",
+									"link",
+								},
+							},
+							{Type: "null"},
 						},
 					},
 					"project_ids": {
-						Type:        "array",
 						Description: "A list of project IDs to filter tags by projects",
-						Items: &jsonschema.Schema{
-							Type: "integer",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "array", Items: &jsonschema.Schema{Type: "integer"}},
+							{Type: "null"},
 						},
 					},
 					"page": {
-						Type:        "integer",
 						Description: "Page number for pagination of results.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "integer"},
+							{Type: "null"},
+						},
 					},
 					"page_size": {
-						Type:        "integer",
 						Description: "Number of results per page for pagination.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "integer"},
+							{Type: "null"},
+						},
 					},
 				},
+				Required: []string{},
 			},
 			OutputSchema: tagListOutputSchema,
 		},
