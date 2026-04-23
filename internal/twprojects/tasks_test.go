@@ -11,15 +11,16 @@ import (
 func TestTaskCreate(t *testing.T) {
 	mcpServer := mcpServerMock(t, http.StatusCreated, []byte(`{"task":{"id":123}}`))
 	testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodTaskCreate.String(), map[string]any{
-		"name":              "Example",
-		"tasklist_id":       float64(123),
-		"description":       "This is an example task.",
-		"priority":          "high",
-		"progress":          float64(50),
-		"start_date":        "2023-10-01",
-		"due_date":          "2023-10-15",
-		"estimated_minutes": float64(120),
-		"parent_task_id":    float64(456),
+		"name":                     "Example",
+		"tasklist_id":              float64(123),
+		"description":              "This is an example task.",
+		"description_content_type": "TEXT",
+		"priority":                 "high",
+		"progress":                 float64(50),
+		"start_date":               "2023-10-01",
+		"due_date":                 "2023-10-15",
+		"estimated_minutes":        float64(120),
+		"parent_task_id":           float64(456),
 		"assignees": map[string]any{
 			"user_ids":    []float64{1, 2, 3},
 			"team_ids":    []float64{4, 5},
@@ -42,16 +43,17 @@ func TestTaskCreate(t *testing.T) {
 func TestTaskUpdate(t *testing.T) {
 	mcpServer := mcpServerMock(t, http.StatusOK, []byte(`{}`))
 	testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodTaskUpdate.String(), map[string]any{
-		"id":                float64(123),
-		"name":              "Example",
-		"tasklist_id":       float64(123),
-		"description":       "This is an example task.",
-		"priority":          "high",
-		"progress":          float64(50),
-		"start_date":        "2023-10-01",
-		"due_date":          "2023-10-15",
-		"estimated_minutes": float64(120),
-		"parent_task_id":    float64(456),
+		"id":                       float64(123),
+		"name":                     "Example",
+		"tasklist_id":              float64(123),
+		"description":              "This is an example task.",
+		"description_content_type": "HTML",
+		"priority":                 "high",
+		"progress":                 float64(50),
+		"start_date":               "2023-10-01",
+		"due_date":                 "2023-10-15",
+		"estimated_minutes":        float64(120),
+		"parent_task_id":           float64(456),
 		"assignees": map[string]any{
 			"user_ids":    []float64{1, 2, 3},
 			"team_ids":    []float64{4, 5},

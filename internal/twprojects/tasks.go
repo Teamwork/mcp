@@ -87,6 +87,17 @@ func TaskCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 							{Type: "null"},
 						},
 					},
+					"description_content_type": {
+						Description: "The format of the description. Possible values are: text or html. If not provided, " +
+							"it will default to text.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string", Enum: []any{
+								projects.TaskDescriptionContentTypeText,
+								projects.TaskDescriptionContentTypeHTML,
+							}},
+							{Type: "null"},
+						},
+					},
 					"priority": {
 						Description: "The priority of the task. Possible values are: low, medium, high.",
 						AnyOf: []*jsonschema.Schema{
@@ -324,6 +335,12 @@ func TaskCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 				helpers.RequiredParam(&taskCreateRequest.Name, "name"),
 				helpers.RequiredNumericParam(&taskCreateRequest.Path.TasklistID, "tasklist_id"),
 				helpers.OptionalPointerParam(&taskCreateRequest.Description, "description"),
+				helpers.OptionalPointerParam(&taskCreateRequest.DescriptionContentType, "description_content_type",
+					helpers.RestrictValues(
+						projects.TaskDescriptionContentTypeText,
+						projects.TaskDescriptionContentTypeHTML,
+					),
+				),
 				helpers.OptionalPointerParam(&taskCreateRequest.Priority, "priority",
 					helpers.RestrictValues("low", "medium", "high"),
 				),
@@ -449,6 +466,17 @@ func TaskUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 						Description: "The description of the task.",
 						AnyOf: []*jsonschema.Schema{
 							{Type: "string"},
+							{Type: "null"},
+						},
+					},
+					"description_content_type": {
+						Description: "The format of the description. Possible values are: text or html. If not provided, " +
+							"it will default to text.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string", Enum: []any{
+								projects.TaskDescriptionContentTypeText,
+								projects.TaskDescriptionContentTypeHTML,
+							}},
 							{Type: "null"},
 						},
 					},
@@ -690,6 +718,12 @@ func TaskUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 				helpers.OptionalNumericPointerParam(&taskUpdateRequest.TasklistID, "tasklist_id"),
 				helpers.OptionalPointerParam(&taskUpdateRequest.Name, "name"),
 				helpers.OptionalPointerParam(&taskUpdateRequest.Description, "description"),
+				helpers.OptionalPointerParam(&taskUpdateRequest.DescriptionContentType, "description_content_type",
+					helpers.RestrictValues(
+						projects.TaskDescriptionContentTypeText,
+						projects.TaskDescriptionContentTypeHTML,
+					),
+				),
 				helpers.OptionalPointerParam(&taskUpdateRequest.Priority, "priority",
 					helpers.RestrictValues("low", "medium", "high"),
 				),
