@@ -72,13 +72,19 @@ func TagList(httpClient *http.Client) toolsets.ToolWrapper {
 				"and filtering.",
 			InputSchema: &jsonschema.Schema{
 				Type:       "object",
-				Properties: map[string]*jsonschema.Schema{},
+				Properties: paginationOptions(map[string]*jsonschema.Schema{}),
 			},
 		},
-		Handler: func(ctx context.Context, _ *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 			client := clientFromContext(ctx, httpClient)
+			arguments, err := helpers.NewToolArguments(request)
+			if err != nil {
+				return helpers.NewToolResultTextError("%v", err), nil
+			}
 
-			tags, err := client.Tags.List(ctx, url.Values{})
+			params := url.Values{}
+			setPagination(&params, arguments)
+			tags, err := client.Tags.List(ctx, params)
 			if err != nil {
 				return nil, fmt.Errorf("failed to list tags: %w", err)
 			}

@@ -83,12 +83,12 @@ func PageList(httpClient *http.Client) toolsets.ToolWrapper {
 				"and navigation.",
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
-				Properties: map[string]*jsonschema.Schema{
+				Properties: paginationOptions(map[string]*jsonschema.Schema{
 					"spaceId": {
 						Type:        "integer",
 						Description: "The ID of the space to list pages for.",
 					},
-				},
+				}),
 				Required: []string{"spaceId"},
 			},
 		},
@@ -99,7 +99,9 @@ func PageList(httpClient *http.Client) toolsets.ToolWrapper {
 				return helpers.NewToolResultTextError("%v", err), nil
 			}
 
-			pages, err := client.Pages.List(ctx, int64(arguments.GetInt("spaceId", 0)), url.Values{})
+			params := url.Values{}
+			setPagination(&params, arguments)
+			pages, err := client.Pages.List(ctx, int64(arguments.GetInt("spaceId", 0)), params)
 			if err != nil {
 				return nil, fmt.Errorf("failed to list pages: %w", err)
 			}
