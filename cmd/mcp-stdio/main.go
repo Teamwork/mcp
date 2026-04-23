@@ -17,6 +17,7 @@ import (
 	"github.com/teamwork/mcp/internal/toolsets"
 	"github.com/teamwork/mcp/internal/twdesk"
 	"github.com/teamwork/mcp/internal/twprojects"
+	"github.com/teamwork/mcp/internal/twspaces"
 	"github.com/teamwork/twapi-go-sdk/session"
 )
 
@@ -46,6 +47,11 @@ func init() {
 		twdesk.ToolsetTickets,
 		twdesk.ToolsetCustomers,
 		twdesk.ToolsetAdmin,
+	})
+	toolsets.RegisterProfile("knowledge-manager", []toolsets.Method{
+		twspaces.ToolsetSpaces,
+		twspaces.ToolsetPages,
+		twspaces.ToolsetContent,
 	})
 	toolsets.RegisterProfile("ops", []toolsets.Method{
 		toolsets.MethodAll,
@@ -148,7 +154,12 @@ func newMCPServer(resources config.Resources) (*mcp.Server, error) {
 		return nil, fmt.Errorf("failed to enable desk toolsets: %w", err)
 	}
 
-	return config.NewMCPServer(resources, projectsGroup, deskGroup), nil
+	spacesGroup := twspaces.DefaultToolsetGroup(readOnly, resources.TeamworkHTTPClient())
+	if err := spacesGroup.EnableToolsets(methods...); err != nil {
+		return nil, fmt.Errorf("failed to enable spaces toolsets: %w", err)
+	}
+
+	return config.NewMCPServer(resources, projectsGroup, deskGroup, spacesGroup), nil
 }
 
 func mcpError(logger *slog.Logger, err error, code jsonRPCErrorCode) {

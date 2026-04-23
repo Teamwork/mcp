@@ -251,10 +251,12 @@ func NewMCPServer(resources Resources, groups ...*toolsets.ToolsetGroup) *mcp.Se
 
 			projectsScope := slices.Contains(scopes, "projects")
 			deskScope := slices.Contains(scopes, "desk")
+			spacesScope := slices.Contains(scopes, "spaces")
 
 			listToolsResult.Tools = slices.DeleteFunc(listToolsResult.Tools, func(tool *mcp.Tool) bool {
 				return (strings.HasPrefix(tool.Name, "twprojects") && !projectsScope) ||
-					(strings.HasPrefix(tool.Name, "twdesk") && !deskScope)
+					(strings.HasPrefix(tool.Name, "twdesk") && !deskScope) ||
+					(strings.HasPrefix(tool.Name, "twspaces") && !spacesScope)
 			})
 			return listToolsResult, nil
 		}

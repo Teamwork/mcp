@@ -16,6 +16,7 @@ import (
 	"github.com/teamwork/mcp/internal/toolsets"
 	"github.com/teamwork/mcp/internal/twdesk"
 	"github.com/teamwork/mcp/internal/twprojects"
+	"github.com/teamwork/mcp/internal/twspaces"
 	"github.com/teamwork/twapi-go-sdk"
 )
 
@@ -158,6 +159,45 @@ func ExecuteToolRequestWithCheckMessage(f func(t *testing.T, result mcp.Result))
 			opts.checkMessage = f
 		}
 	}
+}
+
+// SpacesMCPServerMock creates a mock MCP server for twspaces testing.
+// It injects the test server URL into the request context so handlers use the correct endpoint.
+func SpacesMCPServerMock(t *testing.T, status int, response []byte) (*mcp.Server, func()) {
+	mcpServer := mcp.NewServer(&mcp.Implementation{
+		Name:    "test-server",
+		Version: "1.0.0",
+	}, &mcp.ServerOptions{})
+
+	testServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(status)
+		_, err := w.Write(response)
+		if err != nil {
+			slog.Error("failed to write response", "error", err.Error())
+		}
+	}))
+	testServerURL := testServer.URL
+	cleanup := func() {
+		testServer.Close()
+	}
+
+	httpClient := testServer.Client()
+	toolsetGroup := twspaces.DefaultToolsetGroup(false, httpClient)
+	if err := toolsetGroup.EnableToolsets(toolsets.MethodAll); err != nil {
+		cleanup()
+		t.Fatalf("failed to enable toolsets: %v", err)
+	}
+	toolsetGroup.RegisterAll(mcpServer)
+
+	// Add middleware to inject test server URL into context so handlers route correctly
+	mcpServer.AddReceivingMiddleware(func(next mcp.MethodHandler) mcp.MethodHandler {
+		return func(ctx context.Context, method string, req mcp.Request) (result mcp.Result, err error) {
+			ctx = config.WithCustomerURL(ctx, testServerURL)
+			return next(ctx, method, req)
+		}
+	})
+
+	return mcpServer, cleanup
 }
 
 // ExecuteToolRequest executes a tool request and validates the response
