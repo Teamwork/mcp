@@ -44,7 +44,7 @@ func TagGet(httpClient *http.Client) toolsets.ToolWrapper {
 			},
 		},
 		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-			client := ClientFromContext(ctx, httpClient)
+			client := clientFromContext(ctx, httpClient)
 			arguments, err := helpers.NewToolArguments(request)
 			if err != nil {
 				return helpers.NewToolResultTextError("%v", err), nil
@@ -76,7 +76,7 @@ func TagList(httpClient *http.Client) toolsets.ToolWrapper {
 			},
 		},
 		Handler: func(ctx context.Context, _ *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-			client := ClientFromContext(ctx, httpClient)
+			client := clientFromContext(ctx, httpClient)
 
 			tags, err := client.Tags.List(ctx, url.Values{})
 			if err != nil {
@@ -123,7 +123,7 @@ func TagCreateBatch(httpClient *http.Client) toolsets.ToolWrapper {
 			},
 		},
 		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-			client := ClientFromContext(ctx, httpClient)
+			client := clientFromContext(ctx, httpClient)
 			arguments, err := helpers.NewToolArguments(request)
 			if err != nil {
 				return helpers.NewToolResultTextError("%v", err), nil
@@ -193,7 +193,7 @@ func TagUpdate(httpClient *http.Client) toolsets.ToolWrapper {
 			},
 		},
 		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-			client := ClientFromContext(ctx, httpClient)
+			client := clientFromContext(ctx, httpClient)
 			arguments, err := helpers.NewToolArguments(request)
 			if err != nil {
 				return helpers.NewToolResultTextError("%v", err), nil
@@ -238,7 +238,7 @@ func TagDelete(httpClient *http.Client) toolsets.ToolWrapper {
 			},
 		},
 		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-			client := ClientFromContext(ctx, httpClient)
+			client := clientFromContext(ctx, httpClient)
 			arguments, err := helpers.NewToolArguments(request)
 			if err != nil {
 				return helpers.NewToolResultTextError("%v", err), nil

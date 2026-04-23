@@ -51,7 +51,7 @@ func PageGet(httpClient *http.Client) toolsets.ToolWrapper {
 			},
 		},
 		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-			client := ClientFromContext(ctx, httpClient)
+			client := clientFromContext(ctx, httpClient)
 			arguments, err := helpers.NewToolArguments(request)
 			if err != nil {
 				return helpers.NewToolResultTextError("%v", err), nil
@@ -93,7 +93,7 @@ func PageList(httpClient *http.Client) toolsets.ToolWrapper {
 			},
 		},
 		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-			client := ClientFromContext(ctx, httpClient)
+			client := clientFromContext(ctx, httpClient)
 			arguments, err := helpers.NewToolArguments(request)
 			if err != nil {
 				return helpers.NewToolResultTextError("%v", err), nil
@@ -131,7 +131,7 @@ func PageHome(httpClient *http.Client) toolsets.ToolWrapper {
 			},
 		},
 		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-			client := ClientFromContext(ctx, httpClient)
+			client := clientFromContext(ctx, httpClient)
 			arguments, err := helpers.NewToolArguments(request)
 			if err != nil {
 				return helpers.NewToolResultTextError("%v", err), nil
@@ -204,7 +204,7 @@ func PageCreate(httpClient *http.Client) toolsets.ToolWrapper {
 			},
 		},
 		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-			client := ClientFromContext(ctx, httpClient)
+			client := clientFromContext(ctx, httpClient)
 			arguments, err := helpers.NewToolArguments(request)
 			if err != nil {
 				return helpers.NewToolResultTextError("%v", err), nil
@@ -272,7 +272,7 @@ func PageDuplicate(httpClient *http.Client) toolsets.ToolWrapper {
 			},
 		},
 		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-			client := ClientFromContext(ctx, httpClient)
+			client := clientFromContext(ctx, httpClient)
 			arguments, err := helpers.NewToolArguments(request)
 			if err != nil {
 				return helpers.NewToolResultTextError("%v", err), nil
@@ -365,7 +365,7 @@ func PageUpdate(httpClient *http.Client) toolsets.ToolWrapper {
 			},
 		},
 		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-			client := ClientFromContext(ctx, httpClient)
+			client := clientFromContext(ctx, httpClient)
 			arguments, err := helpers.NewToolArguments(request)
 			if err != nil {
 				return helpers.NewToolResultTextError("%v", err), nil
@@ -449,7 +449,7 @@ func PageDelete(httpClient *http.Client) toolsets.ToolWrapper {
 			},
 		},
 		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-			client := ClientFromContext(ctx, httpClient)
+			client := clientFromContext(ctx, httpClient)
 			arguments, err := helpers.NewToolArguments(request)
 			if err != nil {
 				return helpers.NewToolResultTextError("%v", err), nil

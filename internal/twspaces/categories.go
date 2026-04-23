@@ -44,7 +44,7 @@ func CategoryGet(httpClient *http.Client) toolsets.ToolWrapper {
 			},
 		},
 		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-			client := ClientFromContext(ctx, httpClient)
+			client := clientFromContext(ctx, httpClient)
 			arguments, err := helpers.NewToolArguments(request)
 			if err != nil {
 				return helpers.NewToolResultTextError("%v", err), nil
@@ -76,7 +76,7 @@ func CategoryList(httpClient *http.Client) toolsets.ToolWrapper {
 			},
 		},
 		Handler: func(ctx context.Context, _ *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-			client := ClientFromContext(ctx, httpClient)
+			client := clientFromContext(ctx, httpClient)
 
 			categories, err := client.Categories.List(ctx, url.Values{})
 			if err != nil {
@@ -113,7 +113,7 @@ func CategoryCreate(httpClient *http.Client) toolsets.ToolWrapper {
 			},
 		},
 		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-			client := ClientFromContext(ctx, httpClient)
+			client := clientFromContext(ctx, httpClient)
 			arguments, err := helpers.NewToolArguments(request)
 			if err != nil {
 				return helpers.NewToolResultTextError("%v", err), nil
@@ -164,7 +164,7 @@ func CategoryUpdate(httpClient *http.Client) toolsets.ToolWrapper {
 			},
 		},
 		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-			client := ClientFromContext(ctx, httpClient)
+			client := clientFromContext(ctx, httpClient)
 			arguments, err := helpers.NewToolArguments(request)
 			if err != nil {
 				return helpers.NewToolResultTextError("%v", err), nil
@@ -209,7 +209,7 @@ func CategoryDelete(httpClient *http.Client) toolsets.ToolWrapper {
 			},
 		},
 		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-			client := ClientFromContext(ctx, httpClient)
+			client := clientFromContext(ctx, httpClient)
 			arguments, err := helpers.NewToolArguments(request)
 			if err != nil {
 				return helpers.NewToolResultTextError("%v", err), nil

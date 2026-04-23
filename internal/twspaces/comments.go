@@ -52,7 +52,7 @@ func CommentGet(httpClient *http.Client) toolsets.ToolWrapper {
 			},
 		},
 		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-			client := ClientFromContext(ctx, httpClient)
+			client := clientFromContext(ctx, httpClient)
 			arguments, err := helpers.NewToolArguments(request)
 			if err != nil {
 				return helpers.NewToolResultTextError("%v", err), nil
@@ -98,7 +98,7 @@ func CommentList(httpClient *http.Client) toolsets.ToolWrapper {
 			},
 		},
 		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-			client := ClientFromContext(ctx, httpClient)
+			client := clientFromContext(ctx, httpClient)
 			arguments, err := helpers.NewToolArguments(request)
 			if err != nil {
 				return helpers.NewToolResultTextError("%v", err), nil
@@ -155,7 +155,7 @@ func CommentCreate(httpClient *http.Client) toolsets.ToolWrapper {
 			},
 		},
 		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-			client := ClientFromContext(ctx, httpClient)
+			client := clientFromContext(ctx, httpClient)
 			arguments, err := helpers.NewToolArguments(request)
 			if err != nil {
 				return helpers.NewToolResultTextError("%v", err), nil
@@ -224,7 +224,7 @@ func CommentUpdate(httpClient *http.Client) toolsets.ToolWrapper {
 			},
 		},
 		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-			client := ClientFromContext(ctx, httpClient)
+			client := clientFromContext(ctx, httpClient)
 			arguments, err := helpers.NewToolArguments(request)
 			if err != nil {
 				return helpers.NewToolResultTextError("%v", err), nil
@@ -286,7 +286,7 @@ func CommentDelete(httpClient *http.Client) toolsets.ToolWrapper {
 			},
 		},
 		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-			client := ClientFromContext(ctx, httpClient)
+			client := clientFromContext(ctx, httpClient)
 			arguments, err := helpers.NewToolArguments(request)
 			if err != nil {
 				return helpers.NewToolResultTextError("%v", err), nil

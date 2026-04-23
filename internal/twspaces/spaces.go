@@ -49,7 +49,7 @@ func SpaceGet(httpClient *http.Client) toolsets.ToolWrapper {
 			},
 		},
 		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-			client := ClientFromContext(ctx, httpClient)
+			client := clientFromContext(ctx, httpClient)
 			arguments, err := helpers.NewToolArguments(request)
 			if err != nil {
 				return helpers.NewToolResultTextError("%v", err), nil
@@ -81,7 +81,7 @@ func SpaceList(httpClient *http.Client) toolsets.ToolWrapper {
 			},
 		},
 		Handler: func(ctx context.Context, _ *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-			client := ClientFromContext(ctx, httpClient)
+			client := clientFromContext(ctx, httpClient)
 
 			spaces, err := client.Spaces.List(ctx, url.Values{})
 			if err != nil {
@@ -139,7 +139,7 @@ func SpaceCreate(httpClient *http.Client) toolsets.ToolWrapper {
 			},
 		},
 		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-			client := ClientFromContext(ctx, httpClient)
+			client := clientFromContext(ctx, httpClient)
 			arguments, err := helpers.NewToolArguments(request)
 			if err != nil {
 				return helpers.NewToolResultTextError("%v", err), nil
@@ -230,7 +230,7 @@ func SpaceUpdate(httpClient *http.Client) toolsets.ToolWrapper {
 			},
 		},
 		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-			client := ClientFromContext(ctx, httpClient)
+			client := clientFromContext(ctx, httpClient)
 			arguments, err := helpers.NewToolArguments(request)
 			if err != nil {
 				return helpers.NewToolResultTextError("%v", err), nil
@@ -294,7 +294,7 @@ func SpaceDelete(httpClient *http.Client) toolsets.ToolWrapper {
 			},
 		},
 		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-			client := ClientFromContext(ctx, httpClient)
+			client := clientFromContext(ctx, httpClient)
 			arguments, err := helpers.NewToolArguments(request)
 			if err != nil {
 				return helpers.NewToolResultTextError("%v", err), nil
@@ -331,7 +331,7 @@ func SpaceCollaborators(httpClient *http.Client) toolsets.ToolWrapper {
 			},
 		},
 		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-			client := ClientFromContext(ctx, httpClient)
+			client := clientFromContext(ctx, httpClient)
 			arguments, err := helpers.NewToolArguments(request)
 			if err != nil {
 				return helpers.NewToolResultTextError("%v", err), nil
