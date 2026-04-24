@@ -157,7 +157,7 @@ func newRouter(resources config.Resources) *http.ServeMux {
   "authorization_servers": ["` + resources.Info.APIURL + `"],
   "bearer_methods_supported": ["header"],
   "resource_documentation": "https://apidocs.teamwork.com/guides/teamwork/app-login-flow",
-  "scopes_supported": [ "projects", "desk" ]
+  "scopes_supported": [ "projects", "desk", "spaces" ]
 }`))
 	})
 	return mux
