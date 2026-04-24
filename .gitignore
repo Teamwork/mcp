@@ -7,6 +7,9 @@
 *.dll
 *.so
 *.dylib
+cmd/mcp-stdio/mcp-stdio
+cmd/mcp-http/mcp-http
+cmd/mcp-http-cli/mcp-http-cli
 
 # Test binary, built with `go test -c`
 *.test

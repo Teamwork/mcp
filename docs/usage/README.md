@@ -27,6 +27,7 @@ Ask an account administrator to enable MCP under **Settings → AI**.
 | Client                           | Transport     | Guide                                                |
 |----------------------------------|---------------|------------------------------------------------------|
 | **Teamwork CLI**                 | STDIO         | [teamwork-cli.md](/docs/usage/teamwork-cli.md)       |
+| **ChatGPT**                      | HTTP          | [chat-gpt.md](/docs/usage/chat-gpt.md)             |
 | **Claude Desktop**               | STDIO         | [claude-desktop.md](/docs/usage/claude-desktop.md)   |
 | **Claude Code (CLI)**            | HTTP          | [claude-code.md](/docs/usage/claude-code.md)         |
 | **VSCode — GitHub Copilot Chat** | HTTP or STDIO | [vscode-copilot.md](/docs/usage/vscode-copilot.md)   |
