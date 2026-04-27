@@ -43,11 +43,16 @@ func FileCreate(httpClient *http.Client) toolsets.ToolWrapper {
 						Description: "The MIME type of the file.",
 					},
 					"disposition": {
-						Type:        "string",
 						Description: "The disposition of the file.",
-						Enum: []any{
-							string(deskmodels.DispositionAttachment),
-							string(deskmodels.DispositionAttachmentInline),
+						AnyOf: []*jsonschema.Schema{
+							{
+								Type: "string",
+								Enum: []any{
+									string(deskmodels.DispositionAttachment),
+									string(deskmodels.DispositionAttachmentInline),
+								},
+							},
+							{Type: "null"},
 						},
 					},
 					"data": {

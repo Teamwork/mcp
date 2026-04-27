@@ -87,116 +87,122 @@ func TicketGet(httpClient *http.Client) toolsets.ToolWrapper {
 func TicketList(httpClient *http.Client) toolsets.ToolWrapper {
 	properties := map[string]*jsonschema.Schema{
 		"inboxIDs": {
-			Type: "array",
 			Description: `
 				The IDs of the inboxes to filter by.
 				Inbox IDs can be found by using the 'twdesk-list_inboxes' tool.
 			`,
-			Items: &jsonschema.Schema{
-				Type: "integer",
+			AnyOf: []*jsonschema.Schema{
+				{Type: "array", Items: &jsonschema.Schema{Type: "integer"}},
+				{Type: "null"},
 			},
 		},
 		"customerIDs": {
-			Type: "array",
 			Description: `
-			The IDs of the customers to filter by. 
+			The IDs of the customers to filter by.
 			Customer IDs can be found by using the 'twdesk-list_customers' tool.
 		`,
-			Items: &jsonschema.Schema{
-				Type: "integer",
+			AnyOf: []*jsonschema.Schema{
+				{Type: "array", Items: &jsonschema.Schema{Type: "integer"}},
+				{Type: "null"},
 			},
 		},
 		"companyIDs": {
-			Type: "array",
 			Description: `
-			The IDs of the companies to filter by. 
+			The IDs of the companies to filter by.
 			Company IDs can be found by using the 'twdesk-list_companies' tool.
 		`,
-			Items: &jsonschema.Schema{
-				Type: "integer",
+			AnyOf: []*jsonschema.Schema{
+				{Type: "array", Items: &jsonschema.Schema{Type: "integer"}},
+				{Type: "null"},
 			},
 		},
 		"tagIDs": {
-			Type: "array",
 			Description: `
-			The IDs of the tags to filter by. 
+			The IDs of the tags to filter by.
 			Tag IDs can be found by using the 'twdesk-list_tags' tool.
 		`,
-			Items: &jsonschema.Schema{
-				Type: "integer",
+			AnyOf: []*jsonschema.Schema{
+				{Type: "array", Items: &jsonschema.Schema{Type: "integer"}},
+				{Type: "null"},
 			},
 		},
 		"taskIDs": {
-			Type: "array",
 			Description: `
 				The IDs of the tasks to filter by.
 				Task IDs can be found by using the 'twprojects-list_tasks' tool.
 			`,
-			Items: &jsonschema.Schema{
-				Type: "integer",
+			AnyOf: []*jsonschema.Schema{
+				{Type: "array", Items: &jsonschema.Schema{Type: "integer"}},
+				{Type: "null"},
 			},
 		},
 		"projectsIDs": {
-			Type: "array",
 			Description: `
 				The IDs of the projects to filter by.
 				Project IDs can be found by using the 'twprojects-list_projects' tool.
 			`,
-			Items: &jsonschema.Schema{
-				Type: "integer",
+			AnyOf: []*jsonschema.Schema{
+				{Type: "array", Items: &jsonschema.Schema{Type: "integer"}},
+				{Type: "null"},
 			},
 		},
 		"statusIDs": {
-			Type: "array",
 			Description: `
 				The IDs of the statuses to filter by.
 				Status IDs can be found by using the 'twdesk-list_statuses' tool.
 			`,
-			Items: &jsonschema.Schema{
-				Type: "integer",
+			AnyOf: []*jsonschema.Schema{
+				{Type: "array", Items: &jsonschema.Schema{Type: "integer"}},
+				{Type: "null"},
 			},
 		},
 		"priorityIDs": {
-			Type: "array",
 			Description: `
 				The IDs of the priorities to filter by.
 				Priority IDs can be found by using the 'twdesk-list_priorities' tool.
 			`,
-			Items: &jsonschema.Schema{
-				Type: "integer",
+			AnyOf: []*jsonschema.Schema{
+				{Type: "array", Items: &jsonschema.Schema{Type: "integer"}},
+				{Type: "null"},
 			},
 		},
 		"slaIDs": {
-			Type: "array",
 			Description: `
 				The IDs of the SLAs to filter by.
 				SLA IDs can be found by using the 'twdesk-list_slas' tool.
 			`,
-			Items: &jsonschema.Schema{
-				Type: "integer",
+			AnyOf: []*jsonschema.Schema{
+				{Type: "array", Items: &jsonschema.Schema{Type: "integer"}},
+				{Type: "null"},
 			},
 		},
 		"userIDs": {
-			Type: "array",
 			Description: `
 				The IDs of the users to filter by.
 				User IDs can be found by using the 'twdesk-list_users' tool.
 			`,
-			Items: &jsonschema.Schema{
-				Type: "integer",
+			AnyOf: []*jsonschema.Schema{
+				{Type: "array", Items: &jsonschema.Schema{Type: "integer"}},
+				{Type: "null"},
 			},
 		},
 		"shared": {
-			Type: "boolean",
 			Description: `
 			Find tickets shared with me outside of inboxes I have access to
 		`,
+			AnyOf: []*jsonschema.Schema{
+				{Type: "boolean"},
+				{Type: "null"},
+			},
 		},
 		"slaBreached": {
-			Type: "boolean",
 			Description: `
 			Find tickets where the SLA has been breached
 		`,
+			AnyOf: []*jsonschema.Schema{
+				{Type: "boolean"},
+				{Type: "null"},
+			},
 		},
 	}
 	properties = paginationOptions(properties)
@@ -214,6 +220,7 @@ func TicketList(httpClient *http.Client) toolsets.ToolWrapper {
 			InputSchema: &jsonschema.Schema{
 				Type:       "object",
 				Properties: properties,
+				Required:   []string{},
 			},
 		},
 		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -311,86 +318,92 @@ func TicketSearch(httpClient *http.Client) toolsets.ToolWrapper {
 			`,
 		},
 		"inboxIDs": {
-			Type: "array",
 			Description: `
 				The IDs of the inboxes to filter by.
 				Inbox IDs can be found by using the 'twdesk-list_inboxes' tool.
 			`,
-			Items: &jsonschema.Schema{
-				Type: "integer",
+			AnyOf: []*jsonschema.Schema{
+				{Type: "array", Items: &jsonschema.Schema{Type: "integer"}},
+				{Type: "null"},
 			},
 		},
 		"customerIDs": {
-			Type: "array",
 			Description: `
-			The IDs of the customers to filter by. 
+			The IDs of the customers to filter by.
 			Customer IDs can be found by using the 'twdesk-list_customers' tool.
 		`,
-			Items: &jsonschema.Schema{
-				Type: "integer",
+			AnyOf: []*jsonschema.Schema{
+				{Type: "array", Items: &jsonschema.Schema{Type: "integer"}},
+				{Type: "null"},
 			},
 		},
 		"companyIDs": {
-			Type: "array",
 			Description: `
-			The IDs of the companies to filter by. 
+			The IDs of the companies to filter by.
 			Company IDs can be found by using the 'twdesk-list_companies' tool.
 		`,
-			Items: &jsonschema.Schema{
-				Type: "integer",
+			AnyOf: []*jsonschema.Schema{
+				{Type: "array", Items: &jsonschema.Schema{Type: "integer"}},
+				{Type: "null"},
 			},
 		},
 		"tagIDs": {
-			Type: "array",
 			Description: `
-			The IDs of the tags to filter by. 
+			The IDs of the tags to filter by.
 			Tag IDs can be found by using the 'twdesk-list_tags' tool.
 		`,
-			Items: &jsonschema.Schema{
-				Type: "integer",
+			AnyOf: []*jsonschema.Schema{
+				{Type: "array", Items: &jsonschema.Schema{Type: "integer"}},
+				{Type: "null"},
 			},
 		},
 		"statusIDs": {
-			Type: "array",
 			Description: `
 				The IDs of the statuses to filter by.
 				Status IDs can be found by using the 'twdesk-list_statuses' tool.
 			`,
-			Items: &jsonschema.Schema{
-				Type: "integer",
+			AnyOf: []*jsonschema.Schema{
+				{Type: "array", Items: &jsonschema.Schema{Type: "integer"}},
+				{Type: "null"},
 			},
 		},
 		"priorityIDs": {
-			Type: "array",
 			Description: `
 				The IDs of the priorities to filter by.
 				Priority IDs can be found by using the 'twdesk-list_priorities' tool.
 			`,
-			Items: &jsonschema.Schema{
-				Type: "integer",
+			AnyOf: []*jsonschema.Schema{
+				{Type: "array", Items: &jsonschema.Schema{Type: "integer"}},
+				{Type: "null"},
 			},
 		},
 		"userIDs": {
-			Type: "array",
 			Description: `
 				The IDs of the users to filter by.
 				User IDs can be found by using the 'twdesk-list_users' tool.
 			`,
-			Items: &jsonschema.Schema{
-				Type: "integer",
+			AnyOf: []*jsonschema.Schema{
+				{Type: "array", Items: &jsonschema.Schema{Type: "integer"}},
+				{Type: "null"},
 			},
 		},
 		"shared": {
-			Type: "boolean",
 			Description: `
 			Find tickets shared with me outside of inboxes I have access to
 		`,
+			AnyOf: []*jsonschema.Schema{
+				{Type: "boolean"},
+				{Type: "null"},
+			},
 		},
 		"slaBreached": {
-			Type: "boolean",
 			Description: `
 			Find tickets where the SLA has been breached
 		`,
+			AnyOf: []*jsonschema.Schema{
+				{Type: "boolean"},
+				{Type: "null"},
+			},
 		},
 	}
 	properties = paginationOptions(properties)
@@ -473,94 +486,115 @@ func TicketCreate(httpClient *http.Client) toolsets.ToolWrapper {
 						Type:        "string",
 						Description: "The body of the ticket.",
 					},
-					"notifyCustomer": {
-						Type:        "boolean",
-						Description: "Set to true if the the customer should be sent a copy of the ticket.",
-					},
-					"bcc": {
-						Type:        "array",
-						Description: "An array of email addresses to BCC on ticket creation.",
-						Items: &jsonschema.Schema{
-							Type: "string",
-						},
-					},
-					"cc": {
-						Type:        "array",
-						Description: "An array of email addresses to CC on ticket creation.",
-						Items: &jsonschema.Schema{
-							Type: "string",
-						},
-					},
-					"files": {
-						Type: "array",
-						Description: `
-					An array of file IDs to attach to the ticket.  
-					Use the 'twdesk-create_file' tool to upload files.
-				`,
-						Items: &jsonschema.Schema{
-							Type: "integer",
-						},
-					},
-					"tags": {
-						Type: "array",
-						Description: `
-					An array of tag IDs to associate with the ticket. 
-					Tag IDs can be found by using the 'twdesk-list_tags' tool.
-				`,
-						Items: &jsonschema.Schema{
-							Type: "integer",
-						},
-					},
-					"priorityId": {
-						Type: "integer",
-						Description: `
-					The priority of the ticket. 
-					Use the 'twdesk-list_priorities' tool to find valid IDs.
-				`,
-					},
-					"statusId": {
-						Type: "integer",
-						Description: `
-					The status of the ticket. 
-					Use the 'twdesk-list_statuses' tool to find valid IDs.
-				`,
-					},
 					"inboxId": {
 						Type: "integer",
 						Description: `
-					The inbox ID of the ticket. 
+					The inbox ID of the ticket.
 					Use the 'twdesk-list_inboxes' tool to find valid IDs.
 				`,
 					},
-					"customerId": {
-						Type: "integer",
+					"notifyCustomer": {
+						Description: "Set to true if the the customer should be sent a copy of the ticket.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "boolean"},
+							{Type: "null"},
+						},
+					},
+					"bcc": {
+						Description: "An array of email addresses to BCC on ticket creation.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "array", Items: &jsonschema.Schema{Type: "string"}},
+							{Type: "null"},
+						},
+					},
+					"cc": {
+						Description: "An array of email addresses to CC on ticket creation.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "array", Items: &jsonschema.Schema{Type: "string"}},
+							{Type: "null"},
+						},
+					},
+					"files": {
 						Description: `
-					The customer ID of the ticket. 
+					An array of file IDs to attach to the ticket.
+					Use the 'twdesk-create_file' tool to upload files.
+				`,
+						AnyOf: []*jsonschema.Schema{
+							{Type: "array", Items: &jsonschema.Schema{Type: "integer"}},
+							{Type: "null"},
+						},
+					},
+					"tags": {
+						Description: `
+					An array of tag IDs to associate with the ticket.
+					Tag IDs can be found by using the 'twdesk-list_tags' tool.
+				`,
+						AnyOf: []*jsonschema.Schema{
+							{Type: "array", Items: &jsonschema.Schema{Type: "integer"}},
+							{Type: "null"},
+						},
+					},
+					"priorityId": {
+						Description: `
+					The priority of the ticket.
+					Use the 'twdesk-list_priorities' tool to find valid IDs.
+				`,
+						AnyOf: []*jsonschema.Schema{
+							{Type: "integer"},
+							{Type: "null"},
+						},
+					},
+					"statusId": {
+						Description: `
+					The status of the ticket.
+					Use the 'twdesk-list_statuses' tool to find valid IDs.
+				`,
+						AnyOf: []*jsonschema.Schema{
+							{Type: "integer"},
+							{Type: "null"},
+						},
+					},
+					"customerId": {
+						Description: `
+					The customer ID of the ticket.
 					Use the 'twdesk-list_customers' tool to find valid IDs.
 				`,
+						AnyOf: []*jsonschema.Schema{
+							{Type: "integer"},
+							{Type: "null"},
+						},
 					},
 					"customerEmail": {
-						Type: "string",
 						Description: `
-				The email address of the customer. 
+				The email address of the customer.
 				This is used to identify the customer in the system.
-				Either the customerId or customerEmail is required to create a ticket.  
+				Either the customerId or customerEmail is required to create a ticket.
 				If email is provided we will either find or create the customer.
 			`,
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string"},
+							{Type: "null"},
+						},
 					},
 					"typeId": {
-						Type: "integer",
 						Description: `
-					The type ID of the ticket. 
+					The type ID of the ticket.
 					Use the 'twdesk-list_types' tool to find valid IDs.
 				`,
+						AnyOf: []*jsonschema.Schema{
+							{Type: "integer"},
+							{Type: "null"},
+						},
 					},
 					"agentId": {
-						Type: "integer",
 						Description: `
-					The agent ID that the ticket should be assigned to. 
+					The agent ID that the ticket should be assigned to.
 					Use the 'twdesk-list_agents' tool to find valid IDs.
 				`,
+						AnyOf: []*jsonschema.Schema{
+							{Type: "integer"},
+							{Type: "null"},
+						},
 					},
 				},
 				Required: []string{"subject", "body", "inboxId"},
@@ -700,61 +734,82 @@ func TicketUpdate(httpClient *http.Client) toolsets.ToolWrapper {
 						Description: "The ID of the ticket to update.",
 					},
 					"subject": {
-						Type:        "string",
 						Description: "The subject of the ticket.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string"},
+							{Type: "null"},
+						},
 					},
 					"body": {
-						Type:        "string",
 						Description: "The body of the ticket.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string"},
+							{Type: "null"},
+						},
 					},
 					"bcc": {
-						Type:        "array",
 						Description: "An array of email addresses to BCC on ticket update.",
-						Items: &jsonschema.Schema{
-							Type: "string",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "array", Items: &jsonschema.Schema{Type: "string"}},
+							{Type: "null"},
 						},
 					},
 					"cc": {
-						Type:        "array",
 						Description: "An array of email addresses to CC on ticket update.",
-						Items: &jsonschema.Schema{
-							Type: "string",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "array", Items: &jsonschema.Schema{Type: "string"}},
+							{Type: "null"},
 						},
 					},
 					"inboxId": {
-						Type: "integer",
 						Description: `
-							The inbox ID of the ticket. 
+							The inbox ID of the ticket.
 							Use the 'twdesk-list_inboxes' tool to find valid IDs.
 						`,
+						AnyOf: []*jsonschema.Schema{
+							{Type: "integer"},
+							{Type: "null"},
+						},
 					},
 					"priorityId": {
-						Type: "integer",
 						Description: `
-					The priority of the ticket. 
+					The priority of the ticket.
 					Use the 'twdesk-list_priorities' tool to find valid IDs.
 				`,
+						AnyOf: []*jsonschema.Schema{
+							{Type: "integer"},
+							{Type: "null"},
+						},
 					},
 					"statusId": {
-						Type: "integer",
 						Description: `
-					The status of the ticket. 
+					The status of the ticket.
 					Use the 'twdesk-list_statuses' tool to find valid IDs.
 				`,
+						AnyOf: []*jsonschema.Schema{
+							{Type: "integer"},
+							{Type: "null"},
+						},
 					},
 					"typeId": {
-						Type: "integer",
 						Description: `
-					The type ID of the ticket. 
+					The type ID of the ticket.
 					Use the 'twdesk-list_types' tool to find valid IDs.
 				`,
+						AnyOf: []*jsonschema.Schema{
+							{Type: "integer"},
+							{Type: "null"},
+						},
 					},
 					"agentId": {
-						Type: "integer",
 						Description: `
-					The agent ID that the ticket should be assigned to. 
+					The agent ID that the ticket should be assigned to.
 					Use the 'twdesk-list_agents' tool to find valid IDs.
 				`,
+						AnyOf: []*jsonschema.Schema{
+							{Type: "integer"},
+							{Type: "null"},
+						},
 					},
 				},
 				Required: []string{"id"},

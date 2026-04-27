@@ -65,17 +65,17 @@ func InboxGet(httpClient *http.Client) toolsets.ToolWrapper {
 func InboxList(httpClient *http.Client) toolsets.ToolWrapper {
 	properties := map[string]*jsonschema.Schema{
 		"name": {
-			Type:        "array",
 			Description: "The name of the inbox to filter by.",
-			Items: &jsonschema.Schema{
-				Type: "string",
+			AnyOf: []*jsonschema.Schema{
+				{Type: "array", Items: &jsonschema.Schema{Type: "string"}},
+				{Type: "null"},
 			},
 		},
 		"email": {
-			Type:        "array",
 			Description: "The email of the inbox to filter by.",
-			Items: &jsonschema.Schema{
-				Type: "string",
+			AnyOf: []*jsonschema.Schema{
+				{Type: "array", Items: &jsonschema.Schema{Type: "string"}},
+				{Type: "null"},
 			},
 		},
 	}
@@ -92,6 +92,7 @@ func InboxList(httpClient *http.Client) toolsets.ToolWrapper {
 			InputSchema: &jsonschema.Schema{
 				Type:       "object",
 				Properties: properties,
+				Required:   []string{},
 			},
 		},
 		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {

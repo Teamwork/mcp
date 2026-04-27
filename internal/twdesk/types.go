@@ -68,17 +68,17 @@ func TypeGet(httpClient *http.Client) toolsets.ToolWrapper {
 func TypeList(httpClient *http.Client) toolsets.ToolWrapper {
 	properties := map[string]*jsonschema.Schema{
 		"name": {
-			Type:        "array",
 			Description: "The name of the type to filter by.",
-			Items: &jsonschema.Schema{
-				Type: "string",
+			AnyOf: []*jsonschema.Schema{
+				{Type: "array", Items: &jsonschema.Schema{Type: "string"}},
+				{Type: "null"},
 			},
 		},
 		"inboxIDs": {
-			Type:        "array",
 			Description: "The inbox IDs of the type to filter by.",
-			Items: &jsonschema.Schema{
-				Type: "string",
+			AnyOf: []*jsonschema.Schema{
+				{Type: "array", Items: &jsonschema.Schema{Type: "string"}},
+				{Type: "null"},
 			},
 		},
 	}
@@ -97,6 +97,7 @@ func TypeList(httpClient *http.Client) toolsets.ToolWrapper {
 			InputSchema: &jsonschema.Schema{
 				Type:       "object",
 				Properties: properties,
+				Required:   []string{},
 			},
 		},
 		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -150,12 +151,18 @@ func TypeCreate(httpClient *http.Client) toolsets.ToolWrapper {
 						Description: "The name of the type.",
 					},
 					"displayOrder": {
-						Type:        "integer",
 						Description: "The display order of the type.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "integer"},
+							{Type: "null"},
+						},
 					},
 					"enabledForFutureInboxes": {
-						Type:        "boolean",
 						Description: "Whether the type is enabled for future inboxes.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "boolean"},
+							{Type: "null"},
+						},
 					},
 				},
 				Required: []string{"name"},
@@ -202,16 +209,25 @@ func TypeUpdate(httpClient *http.Client) toolsets.ToolWrapper {
 						Description: "The ID of the type to update.",
 					},
 					"name": {
-						Type:        "string",
 						Description: "The new name of the type.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string"},
+							{Type: "null"},
+						},
 					},
 					"displayOrder": {
-						Type:        "integer",
 						Description: "The display order of the type.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "integer"},
+							{Type: "null"},
+						},
 					},
 					"enabledForFutureInboxes": {
-						Type:        "boolean",
 						Description: "Whether the type is enabled for future inboxes.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "boolean"},
+							{Type: "null"},
+						},
 					},
 				},
 				Required: []string{"id"},

@@ -69,24 +69,24 @@ func StatusGet(httpClient *http.Client) toolsets.ToolWrapper {
 func StatusList(httpClient *http.Client) toolsets.ToolWrapper {
 	properties := map[string]*jsonschema.Schema{
 		"name": {
-			Type:        "array",
 			Description: "The name of the status to filter by.",
-			Items: &jsonschema.Schema{
-				Type: "string",
+			AnyOf: []*jsonschema.Schema{
+				{Type: "array", Items: &jsonschema.Schema{Type: "string"}},
+				{Type: "null"},
 			},
 		},
 		"color": {
-			Type:        "array",
 			Description: "The color of the status to filter by.",
-			Items: &jsonschema.Schema{
-				Type: "string",
+			AnyOf: []*jsonschema.Schema{
+				{Type: "array", Items: &jsonschema.Schema{Type: "string"}},
+				{Type: "null"},
 			},
 		},
 		"code": {
-			Type:        "array",
 			Description: "The code of the status to filter by.",
-			Items: &jsonschema.Schema{
-				Type: "string",
+			AnyOf: []*jsonschema.Schema{
+				{Type: "array", Items: &jsonschema.Schema{Type: "string"}},
+				{Type: "null"},
 			},
 		},
 	}
@@ -105,6 +105,7 @@ func StatusList(httpClient *http.Client) toolsets.ToolWrapper {
 			InputSchema: &jsonschema.Schema{
 				Type:       "object",
 				Properties: properties,
+				Required:   []string{},
 			},
 		},
 		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -162,12 +163,18 @@ func StatusCreate(httpClient *http.Client) toolsets.ToolWrapper {
 						Description: "The name of the status.",
 					},
 					"color": {
-						Type:        "string",
 						Description: "The color of the status.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string"},
+							{Type: "null"},
+						},
 					},
 					"displayOrder": {
-						Type:        "integer",
 						Description: "The display order of the status.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "integer"},
+							{Type: "null"},
+						},
 					},
 				},
 				Required: []string{"name"},
@@ -214,16 +221,25 @@ func StatusUpdate(httpClient *http.Client) toolsets.ToolWrapper {
 						Description: "The ID of the status to update.",
 					},
 					"name": {
-						Type:        "string",
 						Description: "The new name of the status.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string"},
+							{Type: "null"},
+						},
 					},
 					"color": {
-						Type:        "string",
 						Description: "The color of the status.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string"},
+							{Type: "null"},
+						},
 					},
 					"displayOrder": {
-						Type:        "integer",
 						Description: "The display order of the status.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "integer"},
+							{Type: "null"},
+						},
 					},
 				},
 				Required: []string{"id"},

@@ -39,27 +39,28 @@ func MessageCreate(httpClient *http.Client) toolsets.ToolWrapper {
 						Description: "The ID of the ticket that the message will be sent to.",
 					},
 					"threadType": {
-						Type:        "string",
 						Description: "The thread type of the message. Valid values are 'message' or 'note'.",
-						Enum:        []any{"message", "note"},
-						Deprecated:  false,
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string", Enum: []any{"message", "note"}},
+							{Type: "null"},
+						},
 					},
 					"body": {
 						Type:        "string",
 						Description: "The body of the message.",
 					},
 					"bcc": {
-						Type:        "array",
 						Description: "An array of email addresses to BCC on message reply.",
-						Items: &jsonschema.Schema{
-							Type: "string",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "array", Items: &jsonschema.Schema{Type: "string"}},
+							{Type: "null"},
 						},
 					},
 					"cc": {
-						Type:        "array",
 						Description: "An array of email addresses to CC on message reply.",
-						Items: &jsonschema.Schema{
-							Type: "string",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "array", Items: &jsonschema.Schema{Type: "string"}},
+							{Type: "null"},
 						},
 					},
 				},

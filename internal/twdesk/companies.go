@@ -69,20 +69,25 @@ func CompanyGet(httpClient *http.Client) toolsets.ToolWrapper {
 func CompanyList(httpClient *http.Client) toolsets.ToolWrapper {
 	properties := map[string]*jsonschema.Schema{
 		"name": {
-			Type:        "string",
 			Description: "The name of the company to filter by.",
+			AnyOf: []*jsonschema.Schema{
+				{Type: "string"},
+				{Type: "null"},
+			},
 		},
 		"domains": {
-			Type:        "array",
 			Description: "The domains of the company to filter by.",
-			Items: &jsonschema.Schema{
-				Type: "string",
+			AnyOf: []*jsonschema.Schema{
+				{Type: "array", Items: &jsonschema.Schema{Type: "string"}},
+				{Type: "null"},
 			},
 		},
 		"kind": {
-			Type:        "string",
 			Description: "The kind of the company to filter by.",
-			Enum:        []any{"company", "group"},
+			AnyOf: []*jsonschema.Schema{
+				{Type: "string", Enum: []any{"company", "group"}},
+				{Type: "null"},
+			},
 		},
 	}
 	properties = paginationOptions(properties)
@@ -100,6 +105,7 @@ func CompanyList(httpClient *http.Client) toolsets.ToolWrapper {
 			InputSchema: &jsonschema.Schema{
 				Type:       "object",
 				Properties: properties,
+				Required:   []string{},
 			},
 		},
 		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -159,40 +165,59 @@ func CompanyCreate(httpClient *http.Client) toolsets.ToolWrapper {
 						Description: "The name of the company.",
 					},
 					"description": {
-						Type:        "string",
 						Description: "The description of the company.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string"},
+							{Type: "null"},
+						},
 					},
 					"details": {
-						Type:        "string",
 						Description: "The details of the company.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string"},
+							{Type: "null"},
+						},
 					},
 					"industry": {
-						Type:        "string",
 						Description: "The industry of the company.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string"},
+							{Type: "null"},
+						},
 					},
 					"website": {
-						Type:        "string",
 						Description: "The website of the company.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string"},
+							{Type: "null"},
+						},
 					},
 					"permission": {
-						Type:        "string",
 						Description: "The permission level of the company.",
-						Enum:        []any{"own", "all"},
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string", Enum: []any{"own", "all"}},
+							{Type: "null"},
+						},
 					},
 					"kind": {
-						Type:        "string",
 						Description: "The kind of the company.",
-						Enum:        []any{"company", "group"},
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string", Enum: []any{"company", "group"}},
+							{Type: "null"},
+						},
 					},
 					"note": {
-						Type:        "string",
 						Description: "The note for the company.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string"},
+							{Type: "null"},
+						},
 					},
 					"domains": {
-						Type:        "array",
 						Description: "The domains for the company.",
-						Items: &jsonschema.Schema{
-							Type: "string",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "array", Items: &jsonschema.Schema{Type: "string"}},
+							{Type: "null"},
 						},
 					},
 				},
@@ -256,44 +281,66 @@ func CompanyUpdate(httpClient *http.Client) toolsets.ToolWrapper {
 						Description: "The ID of the company to update.",
 					},
 					"name": {
-						Type:        "string",
 						Description: "The new name of the company.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string"},
+							{Type: "null"},
+						},
 					},
 					"description": {
-						Type:        "string",
 						Description: "The new description of the company.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string"},
+							{Type: "null"},
+						},
 					},
 					"details": {
-						Type:        "string",
 						Description: "The new details of the company.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string"},
+							{Type: "null"},
+						},
 					},
 					"industry": {
-						Type:        "string",
 						Description: "The new industry of the company.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string"},
+							{Type: "null"},
+						},
 					},
 					"website": {
-						Type:        "string",
 						Description: "The new website of the company.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string"},
+							{Type: "null"},
+						},
 					},
 					"permission": {
-						Type:        "string",
 						Description: "The new permission level of the company.",
-						Enum:        []any{"own", "all"},
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string", Enum: []any{"own", "all"}},
+							{Type: "null"},
+						},
 					},
 					"kind": {
-						Type:        "string",
 						Description: "The new kind of the company.",
-						Enum:        []any{"company", "group"},
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string", Enum: []any{"company", "group"}},
+							{Type: "null"},
+						},
 					},
 					"note": {
-						Type:        "string",
 						Description: "The new note for the company.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string"},
+							{Type: "null"},
+						},
 					},
 					"domains": {
-						Type:        "array",
 						Description: "The new domains for the company.",
-						Items: &jsonschema.Schema{
-							Type: "string",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "array", Items: &jsonschema.Schema{Type: "string"}},
+							{Type: "null"},
 						},
 					},
 				},

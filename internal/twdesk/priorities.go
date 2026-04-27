@@ -68,17 +68,17 @@ func PriorityGet(httpClient *http.Client) toolsets.ToolWrapper {
 func PriorityList(httpClient *http.Client) toolsets.ToolWrapper {
 	properties := map[string]*jsonschema.Schema{
 		"name": {
-			Type:        "array",
 			Description: "The name of the priority to filter by.",
-			Items: &jsonschema.Schema{
-				Type: "string",
+			AnyOf: []*jsonschema.Schema{
+				{Type: "array", Items: &jsonschema.Schema{Type: "string"}},
+				{Type: "null"},
 			},
 		},
 		"color": {
-			Type:        "array",
 			Description: "The color of the priority to filter by.",
-			Items: &jsonschema.Schema{
-				Type: "string",
+			AnyOf: []*jsonschema.Schema{
+				{Type: "array", Items: &jsonschema.Schema{Type: "string"}},
+				{Type: "null"},
 			},
 		},
 	}
@@ -97,6 +97,7 @@ func PriorityList(httpClient *http.Client) toolsets.ToolWrapper {
 			InputSchema: &jsonschema.Schema{
 				Type:       "object",
 				Properties: properties,
+				Required:   []string{},
 			},
 		},
 		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -149,8 +150,11 @@ func PriorityCreate(httpClient *http.Client) toolsets.ToolWrapper {
 						Description: "The name of the priority.",
 					},
 					"color": {
-						Type:        "string",
 						Description: "The color of the priority.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string"},
+							{Type: "null"},
+						},
 					},
 				},
 				Required: []string{"name"},
@@ -196,12 +200,18 @@ func PriorityUpdate(httpClient *http.Client) toolsets.ToolWrapper {
 						Description: "The ID of the priority to update.",
 					},
 					"name": {
-						Type:        "string",
 						Description: "The new name of the priority.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string"},
+							{Type: "null"},
+						},
 					},
 					"color": {
-						Type:        "string",
 						Description: "The color of the priority.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string"},
+							{Type: "null"},
+						},
 					},
 				},
 				Required: []string{"id"},
