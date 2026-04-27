@@ -170,36 +170,60 @@ func PageCreate(httpClient *http.Client) toolsets.ToolWrapper {
 						Description: "The title of the page.",
 					},
 					"content": {
-						Type:        "string",
 						Description: "The HTML content of the page.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string"},
+							{Type: "null"},
+						},
 					},
 					"parentId": {
-						Type:        "integer",
 						Description: "The ID of the parent page (for creating a sub-page).",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "integer"},
+							{Type: "null"},
+						},
 					},
 					"slug": {
-						Type:        "string",
 						Description: "A URL-friendly slug for the page.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string"},
+							{Type: "null"},
+						},
 					},
 					"isPublish": {
-						Type:        "boolean",
 						Description: "Set to true to publish the page immediately (default: draft).",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "boolean"},
+							{Type: "null"},
+						},
 					},
 					"isRequiredReading": {
-						Type:        "boolean",
 						Description: "Mark this page as required reading for space members.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "boolean"},
+							{Type: "null"},
+						},
 					},
 					"isFullWidth": {
-						Type:        "boolean",
 						Description: "Display the page in full-width layout.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "boolean"},
+							{Type: "null"},
+						},
 					},
 					"changeMessage": {
-						Type:        "string",
 						Description: "A message describing the changes made in this version.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string"},
+							{Type: "null"},
+						},
 					},
 					"readerInlineCommentsEnabled": {
-						Type:        "boolean",
 						Description: "Allow readers to add inline comments on this page.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "boolean"},
+							{Type: "null"},
+						},
 					},
 				},
 				Required: []string{"spaceId", "title"},
@@ -262,12 +286,18 @@ func PageDuplicate(httpClient *http.Client) toolsets.ToolWrapper {
 						Description: "The title for the duplicated page.",
 					},
 					"parentId": {
-						Type:        "integer",
 						Description: "The ID of the parent page for the duplicate (defaults to same parent).",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "integer"},
+							{Type: "null"},
+						},
 					},
 					"slug": {
-						Type:        "string",
 						Description: "A URL-friendly slug for the duplicated page.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string"},
+							{Type: "null"},
+						},
 					},
 				},
 				Required: []string{"spaceId", "pageId", "title"},
@@ -323,44 +353,74 @@ func PageUpdate(httpClient *http.Client) toolsets.ToolWrapper {
 						Description: "The ID of the page to update.",
 					},
 					"title": {
-						Type:        "string",
 						Description: "The new title of the page.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string"},
+							{Type: "null"},
+						},
 					},
 					"content": {
-						Type:        "string",
 						Description: "The new HTML content of the page.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string"},
+							{Type: "null"},
+						},
 					},
 					"parentId": {
-						Type:        "integer",
 						Description: "The ID of the new parent page (to move the page).",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "integer"},
+							{Type: "null"},
+						},
 					},
 					"slug": {
-						Type:        "string",
 						Description: "A new URL-friendly slug for the page.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string"},
+							{Type: "null"},
+						},
 					},
 					"isPublish": {
-						Type:        "boolean",
 						Description: "Set to true to publish the page, false to revert to draft.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "boolean"},
+							{Type: "null"},
+						},
 					},
 					"isRequiredReading": {
-						Type:        "boolean",
 						Description: "Mark or unmark this page as required reading.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "boolean"},
+							{Type: "null"},
+						},
 					},
 					"isFullWidth": {
-						Type:        "boolean",
 						Description: "Toggle full-width layout for this page.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "boolean"},
+							{Type: "null"},
+						},
 					},
 					"isMinorChange": {
-						Type:        "boolean",
 						Description: "Mark this update as a minor change (won't notify watchers).",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "boolean"},
+							{Type: "null"},
+						},
 					},
 					"changeMessage": {
-						Type:        "string",
 						Description: "A message describing the changes made in this version.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string"},
+							{Type: "null"},
+						},
 					},
 					"readerInlineCommentsEnabled": {
-						Type:        "boolean",
 						Description: "Allow or disallow readers from adding inline comments.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "boolean"},
+							{Type: "null"},
+						},
 					},
 				},
 				Required: []string{"spaceId", "pageId"},

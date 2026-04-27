@@ -35,15 +35,18 @@ func Search(httpClient *http.Client) toolsets.ToolWrapper {
 						Description: "The search query string.",
 					},
 					"spaceIds": {
-						Type:        "array",
 						Description: "Limit search to specific space IDs. Use 'twspaces-list_spaces' to find valid IDs.",
-						Items: &jsonschema.Schema{
-							Type: "integer",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "array", Items: &jsonschema.Schema{Type: "integer"}},
+							{Type: "null"},
 						},
 					},
 					"includeDeleted": {
-						Type:        "boolean",
 						Description: "Include deleted pages in search results.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "boolean"},
+							{Type: "null"},
+						},
 					},
 				}),
 				Required: []string{"query"},

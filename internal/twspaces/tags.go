@@ -73,6 +73,7 @@ func TagList(httpClient *http.Client) toolsets.ToolWrapper {
 			InputSchema: &jsonschema.Schema{
 				Type:       "object",
 				Properties: paginationOptions(map[string]*jsonschema.Schema{}),
+				Required:   []string{},
 			},
 		},
 		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -187,12 +188,18 @@ func TagUpdate(httpClient *http.Client) toolsets.ToolWrapper {
 						Description: "The ID of the tag to update.",
 					},
 					"name": {
-						Type:        "string",
 						Description: "The new name for the tag.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string"},
+							{Type: "null"},
+						},
 					},
 					"color": {
-						Type:        "string",
 						Description: "A new hex color code for the tag.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string"},
+							{Type: "null"},
+						},
 					},
 				},
 				Required: []string{"id"},
