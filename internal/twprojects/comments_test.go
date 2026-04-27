@@ -104,3 +104,14 @@ func TestCommentListByTask(t *testing.T) {
 		"page_size":     float64(10),
 	})
 }
+
+func TestCommentListByLink(t *testing.T) {
+	mcpServer := mcpServerMock(t, http.StatusOK, []byte(`{}`))
+	testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodCommentListByLink.String(), map[string]any{
+		"search_term":   "test",
+		"link_id":       float64(123),
+		"updated_after": "2025-01-01T00:00:00Z",
+		"page":          float64(1),
+		"page_size":     float64(10),
+	})
+}

@@ -31,6 +31,7 @@ const (
 	MethodCommentListByMilestone   toolsets.Method = "twprojects-list_comments_by_milestone"
 	MethodCommentListByNotebook    toolsets.Method = "twprojects-list_comments_by_notebook"
 	MethodCommentListByTask        toolsets.Method = "twprojects-list_comments_by_task"
+	MethodCommentListByLink        toolsets.Method = "twprojects-list_comments_by_link"
 )
 
 const commentDescription = "In the Teamwork.com context, a comment is a way for users to communicate and collaborate " +
@@ -84,6 +85,7 @@ func CommentCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 									"milestones",
 									"files",
 									"notebooks",
+									"links",
 								},
 							},
 							"id": {
@@ -249,6 +251,8 @@ func CommentCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 				commentCreateRequest.Path.FileVersionID = objectID
 			case "notebooks":
 				commentCreateRequest.Path.NotebookID = objectID
+			case "links":
+				commentCreateRequest.Path.LinkID = objectID
 			default:
 				return helpers.NewToolResultTextError("invalid object type: %s", objectType), nil
 			}
@@ -955,6 +959,102 @@ func CommentListByTask(engine *twapi.Engine) toolsets.ToolWrapper {
 			}
 			err := helpers.ParamGroup(arguments,
 				helpers.RequiredNumericParam(&commentListRequest.Path.TaskID, "task_id"),
+				helpers.OptionalParam(&commentListRequest.Filters.SearchTerm, "search_term"),
+				helpers.OptionalTimeParam(&commentListRequest.Filters.UpdatedAfter, "updated_after"),
+				helpers.OptionalNumericParam(&commentListRequest.Filters.Page, "page"),
+				helpers.OptionalNumericParam(&commentListRequest.Filters.PageSize, "page_size"),
+			)
+			if err != nil {
+				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
+			}
+
+			if commentListRequest.Filters.UpdatedAfter.IsZero() {
+				// default to last 3 months to improve performance
+				commentListRequest.Filters.UpdatedAfter = time.Now().AddDate(0, -3, 0)
+			}
+
+			commentList, err := projects.CommentList(ctx, engine, commentListRequest)
+			if err != nil {
+				return helpers.HandleAPIError(err, "failed to list comments")
+			}
+
+			encoded, err := json.Marshal(commentList)
+			if err != nil {
+				return nil, err
+			}
+			return &mcp.CallToolResult{
+				Content: []mcp.Content{
+					&mcp.TextContent{
+						Text: string(helpers.WebLinker(ctx, encoded, commentPathBuilder)),
+					},
+				},
+				StructuredContent: helpers.StructuredWebLinker(ctx, commentList, commentPathBuilder),
+			}, nil
+		},
+	}
+}
+
+// CommentListByLink lists comments by link in Teamwork.com.
+func CommentListByLink(engine *twapi.Engine) toolsets.ToolWrapper {
+	return toolsets.ToolWrapper{
+		Tool: &mcp.Tool{
+			Name:        string(MethodCommentListByLink),
+			Description: "List comments in Teamwork.com by link. " + commentDescription,
+			Annotations: &mcp.ToolAnnotations{
+				Title:        "List Comments by Link",
+				ReadOnlyHint: true,
+			},
+			InputSchema: &jsonschema.Schema{
+				Type: "object",
+				Properties: map[string]*jsonschema.Schema{
+					"link_id": {
+						Type:        "integer",
+						Description: "The ID of the link to retrieve comments for.",
+					},
+					"search_term": {
+						Description: "A search term to filter comments by name.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string"},
+							{Type: "null"},
+						},
+					},
+					"updated_after": {
+						Description: "Filter comments updated after this date and time. " +
+							"The date format follows RFC3339 - YYYY-MM-DDTHH:MM:SSZ. By default it will only return comments " +
+							"updated on the last 3 months.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string", Format: "date-time"},
+							{Type: "null"},
+						},
+					},
+					"page": {
+						Description: "Page number for pagination of results.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "integer"},
+							{Type: "null"},
+						},
+					},
+					"page_size": {
+						Description: "Number of results per page for pagination.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "integer"},
+							{Type: "null"},
+						},
+					},
+				},
+				Required: []string{"link_id"},
+			},
+			OutputSchema: commentListOutputSchema,
+		},
+		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+			var commentListRequest projects.CommentListRequest
+
+			var arguments map[string]any
+			if err := json.Unmarshal(request.Params.Arguments, &arguments); err != nil {
+				return helpers.NewToolResultTextError("failed to decode request: %s", err.Error()), nil
+			}
+			err := helpers.ParamGroup(arguments,
+				helpers.RequiredNumericParam(&commentListRequest.Path.LinkID, "link_id"),
 				helpers.OptionalParam(&commentListRequest.Filters.SearchTerm, "search_term"),
 				helpers.OptionalTimeParam(&commentListRequest.Filters.UpdatedAfter, "updated_after"),
 				helpers.OptionalNumericParam(&commentListRequest.Filters.Page, "page"),
