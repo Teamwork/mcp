@@ -78,6 +78,7 @@ func SpaceList(httpClient *http.Client) toolsets.ToolWrapper {
 			InputSchema: &jsonschema.Schema{
 				Type:       "object",
 				Properties: paginationOptions(map[string]*jsonschema.Schema{}),
+				Required:   []string{},
 			},
 		},
 		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -120,25 +121,40 @@ func SpaceCreate(httpClient *http.Client) toolsets.ToolWrapper {
 						Description: "A short unique code/identifier for the space (e.g. \"ENG\", \"DOCS\").",
 					},
 					"purpose": {
-						Type:        "string",
 						Description: "A brief description of the space's purpose.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string"},
+							{Type: "null"},
+						},
 					},
 					"spaceColor": {
-						Type:        "string",
 						Description: "A hex color code for the space (e.g. \"#FF5733\").",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string"},
+							{Type: "null"},
+						},
 					},
 					"icon": {
-						Type:        "string",
 						Description: "An icon identifier for the space.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string"},
+							{Type: "null"},
+						},
 					},
 					"projectId": {
-						Type:        "integer",
 						Description: "The ID of a Teamwork project to link to this space.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "integer"},
+							{Type: "null"},
+						},
 					},
 					"categoryId": {
-						Type: "integer",
 						Description: "The ID of the category to assign to this space. " +
 							"Use the 'twspaces-list_categories' tool to find valid IDs.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "integer"},
+							{Type: "null"},
+						},
 					},
 				},
 				Required: []string{"title", "code"},
@@ -199,37 +215,61 @@ func SpaceUpdate(httpClient *http.Client) toolsets.ToolWrapper {
 						Description: "The ID of the space to update.",
 					},
 					"title": {
-						Type:        "string",
 						Description: "The new title of the space.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string"},
+							{Type: "null"},
+						},
 					},
 					"code": {
-						Type:        "string",
 						Description: "A new short unique code/identifier for the space.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string"},
+							{Type: "null"},
+						},
 					},
 					"purpose": {
-						Type:        "string",
 						Description: "A new brief description of the space's purpose.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string"},
+							{Type: "null"},
+						},
 					},
 					"spaceColor": {
-						Type:        "string",
 						Description: "A new hex color code for the space.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string"},
+							{Type: "null"},
+						},
 					},
 					"icon": {
-						Type:        "string",
 						Description: "A new icon identifier for the space.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string"},
+							{Type: "null"},
+						},
 					},
 					"state": {
-						Type:        "string",
 						Description: "The state of the space (e.g. \"active\", \"archived\").",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string"},
+							{Type: "null"},
+						},
 					},
 					"projectId": {
-						Type:        "integer",
 						Description: "The ID of a Teamwork project to link to this space.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "integer"},
+							{Type: "null"},
+						},
 					},
 					"categoryId": {
-						Type: "integer",
 						Description: "The ID of the category to assign to this space. " +
 							"Use the 'twspaces-list_categories' tool to find valid IDs.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "integer"},
+							{Type: "null"},
+						},
 					},
 				},
 				Required: []string{"id"},

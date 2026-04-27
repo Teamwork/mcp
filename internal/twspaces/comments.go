@@ -145,12 +145,18 @@ func CommentCreate(httpClient *http.Client) toolsets.ToolWrapper {
 						Description: "The content of the comment.",
 					},
 					"parentId": {
-						Type:        "integer",
 						Description: "The ID of the parent comment (for creating a reply).",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "integer"},
+							{Type: "null"},
+						},
 					},
 					"isPrivate": {
-						Type:        "boolean",
 						Description: "Set to true to create a private comment visible only to space members.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "boolean"},
+							{Type: "null"},
+						},
 					},
 				},
 				Required: []string{"spaceId", "pageId", "content"},
@@ -210,16 +216,25 @@ func CommentUpdate(httpClient *http.Client) toolsets.ToolWrapper {
 						Description: "The ID of the comment to update.",
 					},
 					"content": {
-						Type:        "string",
 						Description: "The new content of the comment.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string"},
+							{Type: "null"},
+						},
 					},
 					"state": {
-						Type:        "string",
 						Description: "The new state of the comment (e.g. \"active\", \"resolved\").",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string"},
+							{Type: "null"},
+						},
 					},
 					"isPrivate": {
-						Type:        "boolean",
 						Description: "Change the privacy setting of the comment.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "boolean"},
+							{Type: "null"},
+						},
 					},
 				},
 				Required: []string{"spaceId", "pageId", "commentId"},

@@ -73,6 +73,7 @@ func CategoryList(httpClient *http.Client) toolsets.ToolWrapper {
 			InputSchema: &jsonschema.Schema{
 				Type:       "object",
 				Properties: paginationOptions(map[string]*jsonschema.Schema{}),
+				Required:   []string{},
 			},
 		},
 		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -111,8 +112,11 @@ func CategoryCreate(httpClient *http.Client) toolsets.ToolWrapper {
 						Description: "The name of the category.",
 					},
 					"color": {
-						Type:        "string",
 						Description: "A hex color code for the category (e.g. \"#FF5733\").",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string"},
+							{Type: "null"},
+						},
 					},
 				},
 				Required: []string{"name"},
@@ -158,12 +162,18 @@ func CategoryUpdate(httpClient *http.Client) toolsets.ToolWrapper {
 						Description: "The ID of the category to update.",
 					},
 					"name": {
-						Type:        "string",
 						Description: "The new name for the category.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string"},
+							{Type: "null"},
+						},
 					},
 					"color": {
-						Type:        "string",
 						Description: "A new hex color code for the category.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string"},
+							{Type: "null"},
+						},
 					},
 				},
 				Required: []string{"id"},
