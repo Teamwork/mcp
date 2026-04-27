@@ -70,24 +70,24 @@ func CustomerGet(httpClient *http.Client) toolsets.ToolWrapper {
 func CustomerList(httpClient *http.Client) toolsets.ToolWrapper {
 	properties := map[string]*jsonschema.Schema{
 		"companyIDs": {
-			Type:        "array",
 			Description: "The IDs of the companies to filter by.",
-			Items: &jsonschema.Schema{
-				Type: "integer",
+			AnyOf: []*jsonschema.Schema{
+				{Type: "array", Items: &jsonschema.Schema{Type: "integer"}},
+				{Type: "null"},
 			},
 		},
 		"companyNames": {
-			Type:        "array",
 			Description: "The names of the companies to filter by.",
-			Items: &jsonschema.Schema{
-				Type: "string",
+			AnyOf: []*jsonschema.Schema{
+				{Type: "array", Items: &jsonschema.Schema{Type: "string"}},
+				{Type: "null"},
 			},
 		},
 		"emails": {
-			Type:        "array",
 			Description: "The emails of the customers to filter by.",
-			Items: &jsonschema.Schema{
-				Type: "string",
+			AnyOf: []*jsonschema.Schema{
+				{Type: "array", Items: &jsonschema.Schema{Type: "string"}},
+				{Type: "null"},
 			},
 		},
 	}
@@ -106,6 +106,7 @@ func CustomerList(httpClient *http.Client) toolsets.ToolWrapper {
 			InputSchema: &jsonschema.Schema{
 				Type:       "object",
 				Properties: properties,
+				Required:   []string{},
 			},
 		},
 		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -162,58 +163,98 @@ func CustomerCreate(httpClient *http.Client) toolsets.ToolWrapper {
 				Type: "object",
 				Properties: map[string]*jsonschema.Schema{
 					"firstName": {
-						Type:        "string",
 						Description: "The first name of the customer.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string"},
+							{Type: "null"},
+						},
 					},
 					"lastName": {
-						Type:        "string",
 						Description: "The last name of the customer.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string"},
+							{Type: "null"},
+						},
 					},
 					"email": {
-						Type:        "string",
 						Description: "The email of the customer.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string"},
+							{Type: "null"},
+						},
 					},
 					"organization": {
-						Type:        "string",
 						Description: "The organization of the customer.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string"},
+							{Type: "null"},
+						},
 					},
 					"extraData": {
-						Type:        "string",
 						Description: "The extra data of the customer.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string"},
+							{Type: "null"},
+						},
 					},
 					"notes": {
-						Type:        "string",
 						Description: "The notes of the customer.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string"},
+							{Type: "null"},
+						},
 					},
 					"linkedinURL": {
-						Type:        "string",
 						Description: "The LinkedIn URL of the customer.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string"},
+							{Type: "null"},
+						},
 					},
 					"facebookURL": {
-						Type:        "string",
 						Description: "The Facebook URL of the customer.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string"},
+							{Type: "null"},
+						},
 					},
 					"twitterHandle": {
-						Type:        "string",
 						Description: "The Twitter handle of the customer.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string"},
+							{Type: "null"},
+						},
 					},
 					"jobTitle": {
-						Type:        "string",
 						Description: "The job title of the customer.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string"},
+							{Type: "null"},
+						},
 					},
 					"phone": {
-						Type:        "string",
 						Description: "The phone number of the customer.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string"},
+							{Type: "null"},
+						},
 					},
 					"mobile": {
-						Type:        "string",
 						Description: "The mobile number of the customer.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string"},
+							{Type: "null"},
+						},
 					},
 					"address": {
-						Type:        "string",
 						Description: "The address of the customer.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string"},
+							{Type: "null"},
+						},
 					},
 				},
+				Required: []string{},
 			},
 		},
 		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -279,56 +320,95 @@ func CustomerUpdate(httpClient *http.Client) toolsets.ToolWrapper {
 						Description: "The ID of the customer to update.",
 					},
 					"firstName": {
-						Type:        "string",
 						Description: "The new first name of the customer.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string"},
+							{Type: "null"},
+						},
 					},
 					"lastName": {
-						Type:        "string",
 						Description: "The new last name of the customer.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string"},
+							{Type: "null"},
+						},
 					},
 					"email": {
-						Type:        "string",
 						Description: "The new email of the customer.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string"},
+							{Type: "null"},
+						},
 					},
 					"organization": {
-						Type:        "string",
 						Description: "The new organization of the customer.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string"},
+							{Type: "null"},
+						},
 					},
 					"extraData": {
-						Type:        "string",
 						Description: "The new extra data of the customer.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string"},
+							{Type: "null"},
+						},
 					},
 					"notes": {
-						Type:        "string",
 						Description: "The new notes of the customer.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string"},
+							{Type: "null"},
+						},
 					},
 					"linkedinURL": {
-						Type:        "string",
 						Description: "The new LinkedIn URL of the customer.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string"},
+							{Type: "null"},
+						},
 					},
 					"facebookURL": {
-						Type:        "string",
 						Description: "The new Facebook URL of the customer.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string"},
+							{Type: "null"},
+						},
 					},
 					"twitterHandle": {
-						Type:        "string",
 						Description: "The new Twitter handle of the customer.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string"},
+							{Type: "null"},
+						},
 					},
 					"jobTitle": {
-						Type:        "string",
 						Description: "The new job title of the customer.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string"},
+							{Type: "null"},
+						},
 					},
 					"phone": {
-						Type:        "string",
 						Description: "The new phone number of the customer.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string"},
+							{Type: "null"},
+						},
 					},
 					"mobile": {
-						Type:        "string",
 						Description: "The new mobile number of the customer.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string"},
+							{Type: "null"},
+						},
 					},
 					"address": {
-						Type:        "string",
 						Description: "The new address of the customer.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string"},
+							{Type: "null"},
+						},
 					},
 				},
 				Required: []string{"id"},

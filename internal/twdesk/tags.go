@@ -68,18 +68,24 @@ func TagGet(httpClient *http.Client) toolsets.ToolWrapper {
 func TagList(httpClient *http.Client) toolsets.ToolWrapper {
 	properties := map[string]*jsonschema.Schema{
 		"name": {
-			Type:        "string",
 			Description: "The name of the tag to filter by.",
+			AnyOf: []*jsonschema.Schema{
+				{Type: "string"},
+				{Type: "null"},
+			},
 		},
 		"color": {
-			Type:        "string",
 			Description: "The color of the tag to filter by.",
+			AnyOf: []*jsonschema.Schema{
+				{Type: "string"},
+				{Type: "null"},
+			},
 		},
 		"inboxIDs": {
-			Type:        "array",
 			Description: "The IDs of the inboxes to filter by.",
-			Items: &jsonschema.Schema{
-				Type: "integer",
+			AnyOf: []*jsonschema.Schema{
+				{Type: "array", Items: &jsonschema.Schema{Type: "integer"}},
+				{Type: "null"},
 			},
 		},
 	}
@@ -98,6 +104,7 @@ func TagList(httpClient *http.Client) toolsets.ToolWrapper {
 			InputSchema: &jsonschema.Schema{
 				Type:       "object",
 				Properties: properties,
+				Required:   []string{},
 			},
 		},
 		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -154,8 +161,11 @@ func TagCreate(httpClient *http.Client) toolsets.ToolWrapper {
 						Description: "The name of the tag.",
 					},
 					"color": {
-						Type:        "string",
 						Description: "The color of the tag.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string"},
+							{Type: "null"},
+						},
 					},
 				},
 				Required: []string{"name"},
@@ -201,12 +211,18 @@ func TagUpdate(httpClient *http.Client) toolsets.ToolWrapper {
 						Description: "The ID of the tag to update.",
 					},
 					"name": {
-						Type:        "string",
 						Description: "The new name of the tag.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string"},
+							{Type: "null"},
+						},
 					},
 					"color": {
-						Type:        "string",
 						Description: "The color of the tag.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string"},
+							{Type: "null"},
+						},
 					},
 				},
 				Required: []string{"id"},

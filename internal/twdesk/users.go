@@ -65,36 +65,39 @@ func UserGet(httpClient *http.Client) toolsets.ToolWrapper {
 func UserList(httpClient *http.Client) toolsets.ToolWrapper {
 	properties := map[string]*jsonschema.Schema{
 		"firstName": {
-			Type:        "array",
 			Description: "The first names of the users to filter by.",
-			Items: &jsonschema.Schema{
-				Type: "string",
+			AnyOf: []*jsonschema.Schema{
+				{Type: "array", Items: &jsonschema.Schema{Type: "string"}},
+				{Type: "null"},
 			},
 		},
 		"lastName": {
-			Type:        "array",
 			Description: "The last names of the users to filter by.",
-			Items: &jsonschema.Schema{
-				Type: "string",
+			AnyOf: []*jsonschema.Schema{
+				{Type: "array", Items: &jsonschema.Schema{Type: "string"}},
+				{Type: "null"},
 			},
 		},
 		"email": {
-			Type:        "array",
 			Description: "The email addresses of the users to filter by.",
-			Items: &jsonschema.Schema{
-				Type: "string",
+			AnyOf: []*jsonschema.Schema{
+				{Type: "array", Items: &jsonschema.Schema{Type: "string"}},
+				{Type: "null"},
 			},
 		},
 		"inboxIDs": {
-			Type:        "array",
 			Description: "The IDs of the inboxes to filter by.",
-			Items: &jsonschema.Schema{
-				Type: "integer",
+			AnyOf: []*jsonschema.Schema{
+				{Type: "array", Items: &jsonschema.Schema{Type: "integer"}},
+				{Type: "null"},
 			},
 		},
 		"isPartTime": {
-			Type:        "boolean",
 			Description: "Whether to include part-time users in the results.",
+			AnyOf: []*jsonschema.Schema{
+				{Type: "boolean"},
+				{Type: "null"},
+			},
 		},
 	}
 	properties = paginationOptions(properties)
@@ -112,6 +115,7 @@ func UserList(httpClient *http.Client) toolsets.ToolWrapper {
 			InputSchema: &jsonschema.Schema{
 				Type:       "object",
 				Properties: properties,
+				Required:   []string{},
 			},
 		},
 		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
