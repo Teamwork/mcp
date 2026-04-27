@@ -196,6 +196,8 @@ func DefaultToolsetGroup(readOnly, allowDelete bool, engine *twapi.Engine) *tool
 		MessageUpdate(engine),
 		MessageReplyCreate(engine),
 		MessageReplyUpdate(engine),
+		LinkCreate(engine),
+		LinkUpdate(engine),
 	}
 	if allowDelete {
 		contentWriteTools = append(contentWriteTools,
@@ -205,6 +207,7 @@ func DefaultToolsetGroup(readOnly, allowDelete bool, engine *twapi.Engine) *tool
 			TagDelete(engine),
 			MessageDelete(engine),
 			MessageReplyDelete(engine),
+			LinkDelete(engine),
 		)
 	}
 	contentToolset := toolsets.NewToolset(ToolsetContent, contentDescription).
@@ -218,6 +221,7 @@ func DefaultToolsetGroup(readOnly, allowDelete bool, engine *twapi.Engine) *tool
 			CommentListByMilestone(engine),
 			CommentListByNotebook(engine),
 			CommentListByTask(engine),
+			CommentListByLink(engine),
 			MilestoneGet(engine),
 			MilestoneList(engine),
 			MilestoneListByProject(engine),
@@ -229,6 +233,8 @@ func DefaultToolsetGroup(readOnly, allowDelete bool, engine *twapi.Engine) *tool
 			MessageList(engine),
 			MessageReplyGet(engine),
 			MessageReplyList(engine),
+			LinkGet(engine),
+			LinkList(engine),
 		)
 	group.AddToolset(contentToolset)
 
