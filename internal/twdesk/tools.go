@@ -45,7 +45,6 @@ func DefaultToolsetGroup(readOnly bool, httpClient *http.Client) *toolsets.Tools
 			InboxList(httpClient),
 			TicketGet(httpClient),
 			TicketList(httpClient),
-			TicketSearch(httpClient),
 		))
 
 	// --- customers sub-toolset ---

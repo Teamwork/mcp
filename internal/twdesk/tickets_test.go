@@ -51,30 +51,11 @@ func TestTicketGet(t *testing.T) {
 	})
 }
 
-func TestTicketList(t *testing.T) {
-	mcpServer, cleanup := mcpServerMock(t, http.StatusOK, []byte(`{"tickets":[{"id":123,"subject":"Ticket 1"},{"id":124,"subject":"Ticket 2"}]}`))
-	defer cleanup()
-
-	testutil.ExecuteToolRequest(t, mcpServer, twdesk.MethodTicketList.String(), map[string]any{
-		"statusIDs":   []float64{1, 2},
-		"priorityIDs": []float64{1, 2, 3},
-		"page":        float64(1),
-		"pageSize":    float64(10),
-	})
-}
-
-func TestTicketListMinimal(t *testing.T) {
-	mcpServer, cleanup := mcpServerMock(t, http.StatusOK, []byte(`{"tickets":[]}`))
-	defer cleanup()
-
-	testutil.ExecuteToolRequest(t, mcpServer, twdesk.MethodTicketList.String(), map[string]any{})
-}
-
 func TestTicketSearch(t *testing.T) {
 	mcpServer, cleanup := mcpServerMock(t, http.StatusOK, []byte(`{"tickets":[{"id":123,"subject":"Ticket 1"},{"id":124,"subject":"Ticket 2"}]}`))
 	defer cleanup()
 
-	testutil.ExecuteToolRequest(t, mcpServer, twdesk.MethodTicketList.String(), map[string]any{
+	testutil.ExecuteToolRequest(t, mcpServer, twdesk.MethodTicketSearch.String(), map[string]any{
 		"search":      "Testing 123",
 		"statusIDs":   []float64{1, 2},
 		"priorityIDs": []float64{1, 2, 3},

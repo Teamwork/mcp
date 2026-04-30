@@ -23,7 +23,6 @@ const (
 	MethodTicketCreate toolsets.Method = "twdesk-create_ticket"
 	MethodTicketUpdate toolsets.Method = "twdesk-update_ticket"
 	MethodTicketGet    toolsets.Method = "twdesk-get_ticket"
-	MethodTicketList   toolsets.Method = "twdesk-list_tickets"
 	MethodTicketSearch toolsets.Method = "twdesk-search_tickets"
 )
 
@@ -83,236 +82,18 @@ func TicketGet(httpClient *http.Client) toolsets.ToolWrapper {
 	}
 }
 
-// TicketList returns a list of tickets that apply to the filters in Teamwork Desk
-func TicketList(httpClient *http.Client) toolsets.ToolWrapper {
-	properties := map[string]*jsonschema.Schema{
-		"inboxIDs": {
-			Description: `
-				The IDs of the inboxes to filter by.
-				Inbox IDs can be found by using the 'twdesk-list_inboxes' tool.
-			`,
-			AnyOf: []*jsonschema.Schema{
-				{Type: "array", Items: &jsonschema.Schema{Type: "integer"}},
-				{Type: "null"},
-			},
-		},
-		"customerIDs": {
-			Description: `
-			The IDs of the customers to filter by.
-			Customer IDs can be found by using the 'twdesk-list_customers' tool.
-		`,
-			AnyOf: []*jsonschema.Schema{
-				{Type: "array", Items: &jsonschema.Schema{Type: "integer"}},
-				{Type: "null"},
-			},
-		},
-		"companyIDs": {
-			Description: `
-			The IDs of the companies to filter by.
-			Company IDs can be found by using the 'twdesk-list_companies' tool.
-		`,
-			AnyOf: []*jsonschema.Schema{
-				{Type: "array", Items: &jsonschema.Schema{Type: "integer"}},
-				{Type: "null"},
-			},
-		},
-		"tagIDs": {
-			Description: `
-			The IDs of the tags to filter by.
-			Tag IDs can be found by using the 'twdesk-list_tags' tool.
-		`,
-			AnyOf: []*jsonschema.Schema{
-				{Type: "array", Items: &jsonschema.Schema{Type: "integer"}},
-				{Type: "null"},
-			},
-		},
-		"taskIDs": {
-			Description: `
-				The IDs of the tasks to filter by.
-				Task IDs can be found by using the 'twprojects-list_tasks' tool.
-			`,
-			AnyOf: []*jsonschema.Schema{
-				{Type: "array", Items: &jsonschema.Schema{Type: "integer"}},
-				{Type: "null"},
-			},
-		},
-		"projectsIDs": {
-			Description: `
-				The IDs of the projects to filter by.
-				Project IDs can be found by using the 'twprojects-list_projects' tool.
-			`,
-			AnyOf: []*jsonschema.Schema{
-				{Type: "array", Items: &jsonschema.Schema{Type: "integer"}},
-				{Type: "null"},
-			},
-		},
-		"statusIDs": {
-			Description: `
-				The IDs of the statuses to filter by.
-				Status IDs can be found by using the 'twdesk-list_statuses' tool.
-			`,
-			AnyOf: []*jsonschema.Schema{
-				{Type: "array", Items: &jsonschema.Schema{Type: "integer"}},
-				{Type: "null"},
-			},
-		},
-		"priorityIDs": {
-			Description: `
-				The IDs of the priorities to filter by.
-				Priority IDs can be found by using the 'twdesk-list_priorities' tool.
-			`,
-			AnyOf: []*jsonschema.Schema{
-				{Type: "array", Items: &jsonschema.Schema{Type: "integer"}},
-				{Type: "null"},
-			},
-		},
-		"slaIDs": {
-			Description: "The IDs of the SLAs to filter by. SLA IDs can be found in your Teamwork Desk admin settings.",
-			AnyOf: []*jsonschema.Schema{
-				{Type: "array", Items: &jsonschema.Schema{Type: "integer"}},
-				{Type: "null"},
-			},
-		},
-		"userIDs": {
-			Description: `
-				The IDs of the users to filter by.
-				User IDs can be found by using the 'twdesk-list_users' tool.
-			`,
-			AnyOf: []*jsonschema.Schema{
-				{Type: "array", Items: &jsonschema.Schema{Type: "integer"}},
-				{Type: "null"},
-			},
-		},
-		"shared": {
-			Description: `
-			Find tickets shared with me outside of inboxes I have access to
-		`,
-			AnyOf: []*jsonschema.Schema{
-				{Type: "boolean"},
-				{Type: "null"},
-			},
-		},
-		"slaBreached": {
-			Description: `
-			Find tickets where the SLA has been breached
-		`,
-			AnyOf: []*jsonschema.Schema{
-				{Type: "boolean"},
-				{Type: "null"},
-			},
-		},
-	}
-	properties = paginationOptions(properties)
-
-	return toolsets.ToolWrapper{
-		Tool: &mcp.Tool{
-			Name: string(MethodTicketList),
-			Annotations: &mcp.ToolAnnotations{
-				Title:        "List Tickets",
-				ReadOnlyHint: true,
-			},
-			Description: "List all tickets in Teamwork Desk, with extensive filters for inbox, customer, company, " +
-				"tag, status, priority, SLA, user, and more. Enables users to audit, analyze, or synchronize ticket data " +
-				"for support management, reporting, or integration scenarios.",
-			InputSchema: &jsonschema.Schema{
-				Type:       "object",
-				Properties: properties,
-				Required:   []string{},
-			},
-		},
-		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-			client := ClientFromContext(ctx, httpClient)
-			arguments, err := helpers.NewToolArguments(request)
-			if err != nil {
-				return helpers.NewToolResultTextError("%v", err), nil
-			}
-
-			// Apply filters to the ticket list
-			inboxIDs := arguments.GetIntSlice("inboxIDs", []int{})
-			customerIDs := arguments.GetIntSlice("customerIDs", []int{})
-			companyIDs := arguments.GetIntSlice("companyIDs", []int{})
-			tagIDs := arguments.GetIntSlice("tagIDs", []int{})
-			taskIDs := arguments.GetIntSlice("taskIDs", []int{})
-			projectsIDs := arguments.GetIntSlice("projectsIDs", []int{})
-			statusIDs := arguments.GetIntSlice("statusIDs", []int{})
-			priorityIDs := arguments.GetIntSlice("priorityIDs", []int{})
-			slaIDs := arguments.GetIntSlice("slaIDs", []int{})
-			userIDs := arguments.GetIntSlice("userIDs", []int{})
-			shared := arguments.GetBool("shared", false)
-			slaBreached := arguments.GetBool("slaBreached", false)
-
-			filter := deskclient.NewFilter()
-
-			if len(inboxIDs) > 0 {
-				filter = filter.In("inboxes.id", helpers.SliceToAny(inboxIDs))
-			}
-
-			if len(customerIDs) > 0 {
-				filter = filter.In("customers.id", helpers.SliceToAny(customerIDs))
-			}
-
-			if len(companyIDs) > 0 {
-				filter = filter.In("companies.id", helpers.SliceToAny(companyIDs))
-			}
-
-			if len(tagIDs) > 0 {
-				filter = filter.In("tags.id", helpers.SliceToAny(tagIDs))
-			}
-
-			if len(taskIDs) > 0 {
-				filter = filter.In("tasks.id", helpers.SliceToAny(taskIDs))
-			}
-
-			if len(projectsIDs) > 0 {
-				filter = filter.In("projects.id", helpers.SliceToAny(projectsIDs))
-			}
-
-			if len(statusIDs) > 0 {
-				filter = filter.In("statuses.id", helpers.SliceToAny(statusIDs))
-			}
-
-			if len(priorityIDs) > 0 {
-				filter = filter.In("priorities.id", helpers.SliceToAny(priorityIDs))
-			}
-
-			if len(slaIDs) > 0 {
-				filter = filter.In("slas.id", helpers.SliceToAny(slaIDs))
-			}
-
-			if len(userIDs) > 0 {
-				filter = filter.In("users.id", helpers.SliceToAny(userIDs))
-			}
-
-			if shared {
-				filter = filter.Eq("shared", true)
-			}
-
-			if slaBreached {
-				filter = filter.Eq("sla_breached", true)
-			}
-
-			params := url.Values{}
-			params.Set("filter", filter.Build())
-			setPagination(&params, arguments)
-
-			tickets, err := client.Tickets.List(ctx, params)
-			if err != nil {
-				return nil, fmt.Errorf("failed to list tickets: %w", err)
-			}
-			return helpers.NewToolResultJSON(tickets)
-		},
-	}
-}
-
 // TicketSearch uses the search API to find tickets in Teamwork Desk
 func TicketSearch(httpClient *http.Client) toolsets.ToolWrapper {
 	properties := map[string]*jsonschema.Schema{
 		"search": {
-			Type: "string",
 			Description: `
 				The search term to use for finding tickets.
 				This can be part of the subject, body, or other ticket fields.
 			`,
+			AnyOf: []*jsonschema.Schema{
+				{Type: "string"},
+				{Type: "null"},
+			},
 		},
 		"inboxIDs": {
 			Description: `
@@ -400,7 +181,7 @@ func TicketSearch(httpClient *http.Client) toolsets.ToolWrapper {
 			InputSchema: &jsonschema.Schema{
 				Type:       "object",
 				Properties: properties,
-				Required:   []string{"search"},
+				Required:   []string{},
 			},
 		},
 		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {

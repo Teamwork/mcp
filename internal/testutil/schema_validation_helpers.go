@@ -41,7 +41,7 @@ func NewSchemaValidationTestSuite() *SchemaValidationTestSuite {
 		"TicketCreate": twdesk.TicketCreate(httpClient),
 		"TicketUpdate": twdesk.TicketUpdate(httpClient),
 		"TicketGet":    twdesk.TicketGet(httpClient),
-		"TicketList":   twdesk.TicketList(httpClient),
+		"TicketSearch": twdesk.TicketSearch(httpClient),
 
 		// Priority tools
 		"PriorityCreate": twdesk.PriorityCreate(httpClient),
