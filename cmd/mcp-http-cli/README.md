@@ -18,6 +18,7 @@ This CLI tool is designed for:
 - **Testing MCP tools**: Execute individual tools and see their responses
 - **Development and debugging**: Validate MCP server functionality during development
 - **Exploration**: Discover available tools and their parameters
+- **Exporting tool catalogues**: Dump every tool's full schema as JSON for downstream systems
 
 ## ✨ Features
 
@@ -85,6 +86,19 @@ Lists all available tools from the MCP server.
 
 ```bash
 go run cmd/mcp-http-cli/main.go list-tools
+```
+
+#### `export-tools`
+
+Dumps every tool's full schema (name, title, description, `inputSchema`,
+`outputSchema`, `annotations`, `_meta`) as a JSON object keyed by tool name.
+Logs are written to stderr, the JSON document to stdout, so you can redirect
+output directly to a file.
+
+```bash
+go run cmd/mcp-http-cli/main.go \
+  -mcp-url=https://my-mcp.example.com \
+  export-tools > mcp-tools.json
 ```
 
 #### `call-tool <tool-name> [parameters]`
