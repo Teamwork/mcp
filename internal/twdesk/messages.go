@@ -39,7 +39,10 @@ func MessageCreate(httpClient *http.Client) toolsets.ToolWrapper {
 						Description: "The ID of the ticket that the message will be sent to.",
 					},
 					"threadType": {
-						Description: "The thread type. Use 'message' for a customer-facing reply (default), or 'note' for an internal agent note not visible to the customer.",
+						Description: `
+							The thread type. Use 'message' for a customer-facing reply (default), 
+							or 'note' for an internal agent note not visible to the customer.
+						`,
 						AnyOf: []*jsonschema.Schema{
 							{Type: "string", Enum: []any{"message", "note"}},
 							{Type: "null"},

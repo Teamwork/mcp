@@ -109,8 +109,11 @@ func UserList(httpClient *http.Client) toolsets.ToolWrapper {
 				Title:        "List Users",
 				ReadOnlyHint: true,
 			},
-			Description: "List all support agents in Teamwork Desk, with optional filters for name, email, inbox, and part-time status. " +
-				"Agents are the staff members who handle tickets; customers are managed via the 'twdesk-list_customers' tool.",
+			Description: `
+				List all support agents in Teamwork Desk, with optional 
+				filters for name, email, inbox, and part-time status. Agents are the staff 
+				members who handle tickets; customers are managed via the 'twdesk-list_customers' tool.
+			`,
 			InputSchema: &jsonschema.Schema{
 				Type:       "object",
 				Properties: properties,
