@@ -48,10 +48,8 @@ func ActivityList(engine *twapi.Engine) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
 			Name: string(MethodActivityList),
-			Description: `
-				List activities in Teamwork.com. 
-				Provide project_id to scope to a specific project. 
-			` + activityDescription,
+			Description: "List activities in Teamwork.com. Provide project_id to scope to a specific project. " +
+				activityDescription,
 			Annotations: &mcp.ToolAnnotations{
 				Title:        "List Activities",
 				ReadOnlyHint: true,

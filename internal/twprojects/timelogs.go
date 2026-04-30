@@ -406,10 +406,8 @@ func TimelogList(engine *twapi.Engine) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
 			Name: string(MethodTimelogList),
-			Description: `
-				List timelogs in Teamwork.com. 
-				Provide project_id or task_id to scope to a specific project or task. 
-			` + timelogDescription,
+			Description: "List timelogs in Teamwork.com. Provide project_id or task_id to scope to a specific project " +
+				"or task. " + timelogDescription,
 			Annotations: &mcp.ToolAnnotations{
 				Title:        "List Timelogs",
 				ReadOnlyHint: true,
@@ -418,10 +416,8 @@ func TimelogList(engine *twapi.Engine) toolsets.ToolWrapper {
 				Type: "object",
 				Properties: map[string]*jsonschema.Schema{
 					"project_id": {
-						Description: `
-							The ID of the project from which to retrieve timelogs. 
-							Omit to list timelogs across all projects.
-						`,
+						Description: "The ID of the project from which to retrieve timelogs. Omit to list timelogs across all " +
+							"projects.",
 						AnyOf: []*jsonschema.Schema{
 							{Type: "integer"},
 							{Type: "null"},
