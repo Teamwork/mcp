@@ -433,10 +433,8 @@ func MilestoneList(engine *twapi.Engine) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
 			Name: string(MethodMilestoneList),
-			Description: `
-				List milestones in Teamwork.com. 
-				Provide project_id to scope to a specific project. 
-			` + milestoneDescription,
+			Description: "List milestones in Teamwork.com. Provide project_id to scope to a specific project. " +
+				milestoneDescription,
 			Annotations: &mcp.ToolAnnotations{
 				Title:        "List Milestones",
 				ReadOnlyHint: true,
@@ -445,10 +443,8 @@ func MilestoneList(engine *twapi.Engine) toolsets.ToolWrapper {
 				Type: "object",
 				Properties: map[string]*jsonschema.Schema{
 					"project_id": {
-						Description: `
-							The ID of the project from which to retrieve milestones. 
-							Omit to list milestones across all projects.
-						`,
+						Description: "The ID of the project from which to retrieve milestones. Omit to list milestones across " +
+							"all projects.",
 						AnyOf: []*jsonschema.Schema{
 							{Type: "integer"},
 							{Type: "null"},

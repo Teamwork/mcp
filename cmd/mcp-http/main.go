@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"context"
+	"flag"
 	"fmt"
 	"io"
 	"log/slog"
@@ -20,6 +21,7 @@ import (
 	"github.com/getsentry/sentry-go"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/teamwork/mcp/internal/auth"
+	"github.com/teamwork/mcp/internal/cli"
 	"github.com/teamwork/mcp/internal/config"
 	"github.com/teamwork/mcp/internal/request"
 	"github.com/teamwork/mcp/internal/toolsets"
@@ -29,13 +31,19 @@ import (
 	"github.com/teamwork/twapi-go-sdk/session"
 )
 
-var reBearerToken = regexp.MustCompile(`^Bearer (.+)$`)
+var (
+	reBearerToken = regexp.MustCompile(`^Bearer (.+)$`)
+	methods       = cli.Methods([]toolsets.Method{toolsets.MethodAll})
+)
 
 // Limit request body size (e.g., 10MB)
 const maxBodySize = 10 * 1024 * 1024 // 10 MB
 
 func main() {
 	defer handleExit()
+
+	flag.Var(&methods, "toolsets", "Comma-separated list of toolsets to enable")
+	flag.Parse()
 
 	resources, teardown := config.Load(os.Stdout)
 	defer teardown()
@@ -103,17 +111,17 @@ func main() {
 
 func newMCPServer(resources config.Resources) (*mcp.Server, error) {
 	projectsGroup := twprojects.DefaultToolsetGroup(false, false, resources.TeamworkEngine())
-	if err := projectsGroup.EnableToolsets(toolsets.MethodAll); err != nil {
+	if err := projectsGroup.EnableToolsets(methods...); err != nil {
 		return nil, fmt.Errorf("failed to enable toolsets: %w", err)
 	}
 
 	deskGroup := twdesk.DefaultToolsetGroup(false, resources.TeamworkHTTPClient())
-	if err := deskGroup.EnableToolsets(toolsets.MethodAll); err != nil {
+	if err := deskGroup.EnableToolsets(methods...); err != nil {
 		return nil, fmt.Errorf("failed to enable desk toolsets: %w", err)
 	}
 
 	spacesGroup := twspaces.DefaultToolsetGroup(false, resources.TeamworkHTTPClient())
-	if err := spacesGroup.EnableToolsets(toolsets.MethodAll); err != nil {
+	if err := spacesGroup.EnableToolsets(methods...); err != nil {
 		return nil, fmt.Errorf("failed to enable spaces toolsets: %w", err)
 	}
 

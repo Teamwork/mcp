@@ -367,10 +367,8 @@ func TeamList(engine *twapi.Engine) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
 			Name: string(MethodTeamList),
-			Description: `
-				List teams in Teamwork.com. 
-				Provide company_id or project_id to scope to a specific company or project. 
-			` + teamDescription,
+			Description: "List teams in Teamwork.com. Provide company_id or project_id to scope to a specific company " +
+				"or project. " + teamDescription,
 			Annotations: &mcp.ToolAnnotations{
 				Title:        "List Teams",
 				ReadOnlyHint: true,
@@ -379,10 +377,7 @@ func TeamList(engine *twapi.Engine) toolsets.ToolWrapper {
 				Type: "object",
 				Properties: map[string]*jsonschema.Schema{
 					"company_id": {
-						Description: `
-							The ID of the company from which to retrieve teams. 
-							Omit to list teams across all companies.
-						`,
+						Description: "The ID of the company from which to retrieve teams. Omit to list teams across all companies.",
 						AnyOf: []*jsonschema.Schema{
 							{Type: "integer"},
 							{Type: "null"},

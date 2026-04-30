@@ -85,9 +85,16 @@ Besides the MCP endpoints, the HTTP server provides the following extended API e
 
 ## ⚙️ Configuration
 
-The server can be configured using the following environment variables:
+#### Command-Line Flags
+
+| Flag         | Description                                                     | Default | Example                                              |
+| ------------ | --------------------------------------------------------------- | ------- | ---------------------------------------------------- |
+| `-toolsets`  | Comma-separated list of sub-toolsets or profile names to enable | `all`   | `project-manager`, `twprojects-tasks,twdesk-tickets` |
 
 ### Server Configuration
+
+The server can be configured using the following environment variables:
+
 | Variable | Description | Default | Example |
 |----------|-------------|---------|---------|
 | `TW_MCP_VERSION` | Version of the MCP server | `dev` | `v1.0.0` |

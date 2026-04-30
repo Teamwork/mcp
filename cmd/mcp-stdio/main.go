@@ -7,12 +7,12 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
-	"strings"
 	"time"
 
 	"github.com/modelcontextprotocol/go-sdk/jsonrpc"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/teamwork/mcp/internal/auth"
+	"github.com/teamwork/mcp/internal/cli"
 	"github.com/teamwork/mcp/internal/config"
 	"github.com/teamwork/mcp/internal/toolsets"
 	"github.com/teamwork/mcp/internal/twdesk"
@@ -22,41 +22,10 @@ import (
 )
 
 var (
-	methods   = methodsInput([]toolsets.Method{toolsets.MethodAll})
+	methods   = cli.Methods([]toolsets.Method{toolsets.MethodAll})
 	readOnly  bool
 	logToFile string
 )
-
-func init() {
-	toolsets.RegisterProfile("project-manager", []toolsets.Method{
-		twprojects.ToolsetProjects,
-		twprojects.ToolsetTasks,
-		twprojects.ToolsetPeople,
-		twprojects.ToolsetContent,
-	})
-	toolsets.RegisterProfile("support", []toolsets.Method{
-		twdesk.ToolsetTickets,
-		twdesk.ToolsetCustomers,
-	})
-	toolsets.RegisterProfile("analyst", []toolsets.Method{
-		twprojects.ToolsetProjects,
-		twprojects.ToolsetTasks,
-		twprojects.ToolsetPeople,
-		twprojects.ToolsetTime,
-		twprojects.ToolsetContent,
-		twdesk.ToolsetTickets,
-		twdesk.ToolsetCustomers,
-		twdesk.ToolsetAdmin,
-	})
-	toolsets.RegisterProfile("knowledge-manager", []toolsets.Method{
-		twspaces.ToolsetSpaces,
-		twspaces.ToolsetPages,
-		twspaces.ToolsetContent,
-	})
-	toolsets.RegisterProfile("ops", []toolsets.Method{
-		toolsets.MethodAll,
-	})
-}
 
 func main() {
 	defer handleExit()
@@ -176,42 +145,6 @@ func mcpError(logger *slog.Logger, err error, code jsonRPCErrorCode) {
 		return
 	}
 	fmt.Printf("%s\n", string(encoded))
-}
-
-type methodsInput []toolsets.Method
-
-func (t methodsInput) String() string {
-	methods := make([]string, len(t))
-	for i, m := range t {
-		methods[i] = m.String()
-	}
-	return strings.Join(methods, ", ")
-}
-
-func (t *methodsInput) Set(value string) error {
-	if value == "" {
-		return nil
-	}
-	*t = (*t)[:0] // reset slice
-
-	var errs error
-	for token := range strings.SplitSeq(value, ",") {
-		token = strings.TrimSpace(token)
-		// expand named profiles into their constituent methods
-		if profileMethods, ok := toolsets.LookupProfile(token); ok {
-			*t = append(*t, profileMethods...)
-			continue
-		}
-		if method := toolsets.Method(token); method.IsRegistered() {
-			*t = append(*t, method)
-		} else {
-			errs = errors.Join(errs, fmt.Errorf(`
-				invalid toolset: %q (use a sub-toolset key like "twprojects-tasks", 
-				a profile like "project-manager", or "all")
-			`, token))
-		}
-	}
-	return errs
 }
 
 type jsonRPCErrorCode int64
