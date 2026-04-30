@@ -19,10 +19,10 @@ import (
 // The naming convention for methods follows a pattern described here:
 // https://github.com/github/github-mcp-server/issues/333
 const (
-	MethodTypeCreate toolsets.Method = "twdesk-create_type"
-	MethodTypeUpdate toolsets.Method = "twdesk-update_type"
-	MethodTypeGet    toolsets.Method = "twdesk-get_type"
-	MethodTypeList   toolsets.Method = "twdesk-list_types"
+	MethodTypeCreate toolsets.Method = "twdesk-create_ticket_type"
+	MethodTypeUpdate toolsets.Method = "twdesk-update_ticket_type"
+	MethodTypeGet    toolsets.Method = "twdesk-get_ticket_type"
+	MethodTypeList   toolsets.Method = "twdesk-list_ticket_types"
 )
 
 // TypeGet finds a type in Teamwork Desk.  This will find it by ID
@@ -31,7 +31,7 @@ func TypeGet(httpClient *http.Client) toolsets.ToolWrapper {
 		Tool: &mcp.Tool{
 			Name: string(MethodTypeGet),
 			Annotations: &mcp.ToolAnnotations{
-				Title:        "Get Type",
+				Title:        "Get Ticket Type",
 				ReadOnlyHint: true,
 			},
 			Description: "Retrieve detailed information about a specific ticket type in Teamwork Desk by its ID. " +
@@ -42,7 +42,7 @@ func TypeGet(httpClient *http.Client) toolsets.ToolWrapper {
 				Properties: map[string]*jsonschema.Schema{
 					"id": {
 						Type:        "integer",
-						Description: "The ID of the type to retrieve.",
+						Description: "The ID of the ticket type to retrieve.",
 					},
 				},
 				Required: []string{"id"},
@@ -75,9 +75,9 @@ func TypeList(httpClient *http.Client) toolsets.ToolWrapper {
 			},
 		},
 		"inboxIDs": {
-			Description: "The inbox IDs of the type to filter by.",
+			Description: "The IDs of the inboxes to filter by. Inbox IDs can be found by using the 'twdesk-list_inboxes' tool.",
 			AnyOf: []*jsonschema.Schema{
-				{Type: "array", Items: &jsonschema.Schema{Type: "string"}},
+				{Type: "array", Items: &jsonschema.Schema{Type: "integer"}},
 				{Type: "null"},
 			},
 		},
@@ -88,7 +88,7 @@ func TypeList(httpClient *http.Client) toolsets.ToolWrapper {
 		Tool: &mcp.Tool{
 			Name: string(MethodTypeList),
 			Annotations: &mcp.ToolAnnotations{
-				Title:        "List Types",
+				Title:        "List Ticket Types",
 				ReadOnlyHint: true,
 			},
 			Description: "List all ticket types in Teamwork Desk, with optional filters for name and inbox association. " +
@@ -109,7 +109,7 @@ func TypeList(httpClient *http.Client) toolsets.ToolWrapper {
 
 			// Apply filters to the type list
 			name := arguments.GetStringSlice("name", []string{})
-			inboxIDs := arguments.GetStringSlice("inboxIDs", []string{})
+			inboxIDs := arguments.GetIntSlice("inboxIDs", []int{})
 
 			filter := deskclient.NewFilter()
 			if len(name) > 0 {
@@ -138,7 +138,7 @@ func TypeCreate(httpClient *http.Client) toolsets.ToolWrapper {
 		Tool: &mcp.Tool{
 			Name: string(MethodTypeCreate),
 			Annotations: &mcp.ToolAnnotations{
-				Title: "Create Type",
+				Title: "Create Ticket Type",
 			},
 			Description: "Create a new ticket type in Teamwork Desk by specifying its name, display order, and future " +
 				"inbox settings. Useful for customizing ticket workflows, introducing new categories, or " +
@@ -148,7 +148,7 @@ func TypeCreate(httpClient *http.Client) toolsets.ToolWrapper {
 				Properties: map[string]*jsonschema.Schema{
 					"name": {
 						Type:        "string",
-						Description: "The name of the type.",
+						Description: "The name of the ticket type.",
 					},
 					"displayOrder": {
 						Description: "The display order of the type.",
@@ -185,7 +185,7 @@ func TypeCreate(httpClient *http.Client) toolsets.ToolWrapper {
 			if err != nil {
 				return nil, fmt.Errorf("failed to create type: %w", err)
 			}
-			return helpers.NewToolResultText("Type created successfully with ID %d", t.TicketType.ID), nil
+			return helpers.NewToolResultText("Ticket type created successfully with ID %d", t.TicketType.ID), nil
 		},
 	}
 }
@@ -196,7 +196,7 @@ func TypeUpdate(httpClient *http.Client) toolsets.ToolWrapper {
 		Tool: &mcp.Tool{
 			Name: string(MethodTypeUpdate),
 			Annotations: &mcp.ToolAnnotations{
-				Title: "Update Type",
+				Title: "Update Ticket Type",
 			},
 			Description: "Update an existing ticket type in Teamwork Desk by ID, allowing changes to its name, " +
 				"display order, and future inbox settings. Supports evolving support policies, rebranding, or correcting " +
@@ -206,7 +206,7 @@ func TypeUpdate(httpClient *http.Client) toolsets.ToolWrapper {
 				Properties: map[string]*jsonschema.Schema{
 					"id": {
 						Type:        "integer",
-						Description: "The ID of the type to update.",
+						Description: "The ID of the ticket type to update.",
 					},
 					"name": {
 						Description: "The new name of the type.",
@@ -248,10 +248,10 @@ func TypeUpdate(httpClient *http.Client) toolsets.ToolWrapper {
 				},
 			})
 			if err != nil {
-				return nil, fmt.Errorf("failed to create type: %w", err)
+				return nil, fmt.Errorf("failed to update ticket type: %w", err)
 			}
 
-			return helpers.NewToolResultText("Type updated successfully"), nil
+			return helpers.NewToolResultText("Ticket type updated successfully"), nil
 		},
 	}
 }
