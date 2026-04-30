@@ -97,43 +97,58 @@ func TestTaskGet(t *testing.T) {
 func TestTaskList(t *testing.T) {
 	mcpServer := mcpServerMock(t, http.StatusOK, []byte(`{}`))
 	testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodTaskList.String(), map[string]any{
-		"search_term":       "test",
-		"tag_ids":           []float64{1, 2, 3},
-		"match_all_tags":    true,
-		"page":              float64(1),
-		"page_size":         float64(10),
-		"assignee_user_ids": []float64{4, 5, 6},
+		"search_term":         "test",
+		"tag_ids":             []float64{1, 2, 3},
+		"match_all_tags":      true,
+		"assignee_user_ids":   []float64{4, 5, 6},
+		"created_after":       "2023-10-01T00:00:00Z",
+		"created_before":      "2023-10-31T23:59:59Z",
+		"created_by_user_ids": []float64{7, 8, 9},
+		"updated_after":       "2023-10-01T00:00:00Z",
+		"updated_before":      "2023-10-31T23:59:59Z",
+		"completed_after":     "2023-10-01T00:00:00Z",
+		"completed_before":    "2023-10-31T23:59:59Z",
+		"page":                float64(1),
+		"page_size":           float64(10),
 	})
 }
 
 func TestTaskListByTasklist(t *testing.T) {
 	mcpServer := mcpServerMock(t, http.StatusOK, []byte(`{}`))
 	testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodTaskList.String(), map[string]any{
-		"tasklist_id":       float64(123),
-		"search_term":       "test",
-		"tag_ids":           []float64{1, 2, 3},
-		"match_all_tags":    true,
-		"page":              float64(1),
-		"page_size":         float64(10),
-		"assignee_user_ids": []float64{4, 5, 6},
+		"tasklist_id":         float64(123),
+		"search_term":         "test",
+		"tag_ids":             []float64{1, 2, 3},
+		"match_all_tags":      true,
+		"assignee_user_ids":   []float64{4, 5, 6},
+		"created_after":       "2023-10-01T00:00:00Z",
+		"created_before":      "2023-10-31T23:59:59Z",
+		"created_by_user_ids": []float64{7, 8, 9},
+		"updated_after":       "2023-10-01T00:00:00Z",
+		"updated_before":      "2023-10-31T23:59:59Z",
+		"completed_after":     "2023-10-01T00:00:00Z",
+		"completed_before":    "2023-10-31T23:59:59Z",
+		"page":                float64(1),
+		"page_size":           float64(10),
 	})
 }
 
 func TestTaskListByProject(t *testing.T) {
 	mcpServer := mcpServerMock(t, http.StatusOK, []byte(`{}`))
 	testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodTaskList.String(), map[string]any{
-		"project_id":        float64(123),
-		"search_term":       "test",
-		"assignee_user_ids": []float64{4, 5, 6},
-		"created_after":     "2023-10-01T00:00:00Z",
-		"created_before":    "2023-10-31T23:59:59Z",
-		"updated_after":     "2023-10-01T00:00:00Z",
-		"updated_before":    "2023-10-31T23:59:59Z",
-		"completed_after":   "2023-10-01T00:00:00Z",
-		"completed_before":  "2023-10-31T23:59:59Z",
-		"tag_ids":           []float64{1, 2, 3},
-		"match_all_tags":    true,
-		"page":              float64(1),
-		"page_size":         float64(10),
+		"project_id":          float64(123),
+		"search_term":         "test",
+		"assignee_user_ids":   []float64{4, 5, 6},
+		"tag_ids":             []float64{1, 2, 3},
+		"match_all_tags":      true,
+		"created_after":       "2023-10-01T00:00:00Z",
+		"created_before":      "2023-10-31T23:59:59Z",
+		"created_by_user_ids": []float64{7, 8, 9},
+		"updated_after":       "2023-10-01T00:00:00Z",
+		"updated_before":      "2023-10-31T23:59:59Z",
+		"completed_after":     "2023-10-01T00:00:00Z",
+		"completed_before":    "2023-10-31T23:59:59Z",
+		"page":                float64(1),
+		"page_size":           float64(10),
 	})
 }

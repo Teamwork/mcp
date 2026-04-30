@@ -1033,6 +1033,13 @@ func TaskList(engine *twapi.Engine) toolsets.ToolWrapper {
 							{Type: "null"},
 						},
 					},
+					"created_by_user_ids": {
+						Description: "A list of user IDs to filter tasks by creator",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "array", Items: &jsonschema.Schema{Type: "integer"}},
+							{Type: "null"},
+						},
+					},
 					"updated_after": {
 						Description: "Filter tasks updated after this date and time in RFC 3339 format.",
 						Examples:    []any{"2023-01-01T00:00:00Z"},
@@ -1102,6 +1109,7 @@ func TaskList(engine *twapi.Engine) toolsets.ToolWrapper {
 				helpers.OptionalNumericParam(&taskListRequest.Filters.PageSize, "page_size"),
 				helpers.OptionalTimePointerParam(&taskListRequest.Filters.CreatedAfter, "created_after"),
 				helpers.OptionalTimePointerParam(&taskListRequest.Filters.CreatedBefore, "created_before"),
+				helpers.OptionalNumericListParam(&taskListRequest.Filters.CreatedByUserIDs, "created_by_user_ids"),
 				helpers.OptionalTimePointerParam(&taskListRequest.Filters.UpdatedAfter, "updated_after"),
 				helpers.OptionalTimePointerParam(&taskListRequest.Filters.UpdatedBefore, "updated_before"),
 				helpers.OptionalTimePointerParam(&taskListRequest.Filters.CompletedAfter, "completed_after"),
