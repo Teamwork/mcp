@@ -495,6 +495,13 @@ func ProjectGet(engine *twapi.Engine) toolsets.ToolWrapper {
 		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 			var projectGetRequest projects.ProjectGetRequest
 
+			// always include project categories in the response to provide more
+			// context about the project, as categories are commonly used for
+			// organizing projects and understanding their purpose
+			projectGetRequest.Filters.Include = []projects.ProjectRequestSideload{
+				projects.ProjectRequestSideloadProjectCategories,
+			}
+
 			var arguments map[string]any
 			if err := json.Unmarshal(request.Params.Arguments, &arguments); err != nil {
 				return helpers.NewToolResultTextError("failed to decode request: %s", err.Error()), nil
@@ -594,6 +601,13 @@ func ProjectList(engine *twapi.Engine) toolsets.ToolWrapper {
 		},
 		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 			var projectListRequest projects.ProjectListRequest
+
+			// always include project categories in the response to provide more
+			// context about the project, as categories are commonly used for
+			// organizing projects and understanding their purpose
+			projectListRequest.Filters.Include = []projects.ProjectRequestSideload{
+				projects.ProjectRequestSideloadProjectCategories,
+			}
 
 			var arguments map[string]any
 			if err := json.Unmarshal(request.Params.Arguments, &arguments); err != nil {
