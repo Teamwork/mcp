@@ -321,9 +321,8 @@ func ProjectDelete(engine *twapi.Engine) toolsets.ToolWrapper {
 func ProjectClone(engine *twapi.Engine) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
-			Name: string(MethodProjectClone),
-			Description: "Create a new project by cloning/copying an existing one or generating it from a project " +
-				"template. " + projectDescription,
+			Name:        string(MethodProjectClone),
+			Description: "Clone/copy an existing project or generate one from a project template. " + projectDescription,
 			Annotations: &mcp.ToolAnnotations{
 				Title: "Clone Project",
 			},
