@@ -588,9 +588,9 @@ func TicketCreate(httpClient *http.Client) toolsets.ToolWrapper {
 					},
 					"agentId": {
 						Description: `
-					The agent ID that the ticket should be assigned to.
-					Use the 'twdesk-list_agents' tool to find valid IDs.
-				`,
+							The agent ID that the ticket should be assigned to. 
+							Use the 'twdesk-list_users' tool to find valid IDs.
+						`,
 						AnyOf: []*jsonschema.Schema{
 							{Type: "integer"},
 							{Type: "null"},
@@ -803,9 +803,9 @@ func TicketUpdate(httpClient *http.Client) toolsets.ToolWrapper {
 					},
 					"agentId": {
 						Description: `
-					The agent ID that the ticket should be assigned to.
-					Use the 'twdesk-list_agents' tool to find valid IDs.
-				`,
+							The agent ID that the ticket should be assigned to. 
+							Use the 'twdesk-list_users' tool to find valid IDs.
+						`,
 						AnyOf: []*jsonschema.Schema{
 							{Type: "integer"},
 							{Type: "null"},
