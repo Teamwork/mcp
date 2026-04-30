@@ -292,8 +292,11 @@ func TasklistGet(engine *twapi.Engine) toolsets.ToolWrapper {
 func TasklistList(engine *twapi.Engine) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
-			Name:        string(MethodTasklistList),
-			Description: "List tasklists in Teamwork.com. Provide project_id to scope to a specific project. " + tasklistDescription,
+			Name: string(MethodTasklistList),
+			Description: `
+				List tasklists in Teamwork.com. 
+				Provide project_id to scope to a specific project. 
+			` + tasklistDescription,
 			Annotations: &mcp.ToolAnnotations{
 				Title:        "List Tasklists",
 				ReadOnlyHint: true,
@@ -302,7 +305,10 @@ func TasklistList(engine *twapi.Engine) toolsets.ToolWrapper {
 				Type: "object",
 				Properties: map[string]*jsonschema.Schema{
 					"project_id": {
-						Description: "The ID of the project from which to retrieve tasklists. Omit to list tasklists across all projects.",
+						Description: `
+							The ID of the project from which to retrieve tasklists. 
+							Omit to list tasklists across all projects.
+						`,
 						AnyOf: []*jsonschema.Schema{
 							{Type: "integer"},
 							{Type: "null"},
