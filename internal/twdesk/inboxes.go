@@ -31,9 +31,7 @@ func InboxGet(httpClient *http.Client) toolsets.ToolWrapper {
 				Title:        "Get Inbox",
 				ReadOnlyHint: true,
 			},
-			Description: `
-				Retrieve detailed information about a specific inbox in Teamwork Desk by its ID
-			`,
+			Description: "Retrieve detailed information about a specific inbox in Teamwork Desk by its ID.",
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
 				Properties: map[string]*jsonschema.Schema{

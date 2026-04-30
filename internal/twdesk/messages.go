@@ -17,7 +17,7 @@ import (
 // The naming convention for methods follows a pattern described here:
 // https://github.com/github/github-mcp-server/issues/333
 const (
-	MethodMessageCreate toolsets.Method = "twdesk-create_message"
+	MethodMessageCreate toolsets.Method = "twdesk-reply_ticket"
 )
 
 // MessageCreate replies to a ticket in Teamwork Desk.
@@ -26,9 +26,9 @@ func MessageCreate(httpClient *http.Client) toolsets.ToolWrapper {
 		Tool: &mcp.Tool{
 			Name: string(MethodMessageCreate),
 			Annotations: &mcp.ToolAnnotations{
-				Title: "Create Message",
+				Title: "Reply to Ticket",
 			},
-			Description: "Send a reply message to a ticket in Teamwork Desk by specifying the ticket ID and message body. " +
+			Description: "Send a reply to a ticket in Teamwork Desk. Supports customer-facing replies and internal agent notes. " +
 				"Useful for automating ticket responses, integrating external communication systems, or " +
 				"customizing support workflows.",
 			InputSchema: &jsonschema.Schema{
@@ -39,7 +39,7 @@ func MessageCreate(httpClient *http.Client) toolsets.ToolWrapper {
 						Description: "The ID of the ticket that the message will be sent to.",
 					},
 					"threadType": {
-						Description: "The thread type of the message. Valid values are 'message' or 'note'.",
+						Description: "The thread type. Use 'message' for a customer-facing reply (default), or 'note' for an internal agent note not visible to the customer.",
 						AnyOf: []*jsonschema.Schema{
 							{Type: "string", Enum: []any{"message", "note"}},
 							{Type: "null"},

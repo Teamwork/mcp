@@ -167,10 +167,7 @@ func TicketList(httpClient *http.Client) toolsets.ToolWrapper {
 			},
 		},
 		"slaIDs": {
-			Description: `
-				The IDs of the SLAs to filter by.
-				SLA IDs can be found by using the 'twdesk-list_slas' tool.
-			`,
+			Description: "The IDs of the SLAs to filter by. SLA IDs can be found in your Teamwork Desk admin settings.",
 			AnyOf: []*jsonschema.Schema{
 				{Type: "array", Items: &jsonschema.Schema{Type: "integer"}},
 				{Type: "null"},
@@ -387,24 +384,6 @@ func TicketSearch(httpClient *http.Client) toolsets.ToolWrapper {
 				{Type: "null"},
 			},
 		},
-		"shared": {
-			Description: `
-			Find tickets shared with me outside of inboxes I have access to
-		`,
-			AnyOf: []*jsonschema.Schema{
-				{Type: "boolean"},
-				{Type: "null"},
-			},
-		},
-		"slaBreached": {
-			Description: `
-			Find tickets where the SLA has been breached
-		`,
-			AnyOf: []*jsonschema.Schema{
-				{Type: "boolean"},
-				{Type: "null"},
-			},
-		},
 	}
 	properties = paginationOptions(properties)
 
@@ -435,6 +414,9 @@ func TicketSearch(httpClient *http.Client) toolsets.ToolWrapper {
 
 			params.Search = arguments.GetString("search", "")
 
+			if arguments.GetIntSlice("inboxIDs", nil) != nil {
+				params.Inboxes = helpers.IntSliceToInt64(arguments.GetIntSlice("inboxIDs", nil))
+			}
 			if arguments.GetIntSlice("customerIDs", nil) != nil {
 				params.Customers = helpers.IntSliceToInt64(arguments.GetIntSlice("customerIDs", nil))
 			}
@@ -471,10 +453,8 @@ func TicketCreate(httpClient *http.Client) toolsets.ToolWrapper {
 			Annotations: &mcp.ToolAnnotations{
 				Title: "Create Ticket",
 			},
-			Description: `
-				Create a new ticket in Teamwork Desk by specifying subject, description, priority, and status.
-				"Useful for automating ticket creation, integrating external systems, or customizing support workflows.
-			`,
+			Description: "Create a new ticket in Teamwork Desk by specifying subject, description, priority, and status. " +
+				"Useful for automating ticket creation, integrating external systems, or customizing support workflows.",
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
 				Properties: map[string]*jsonschema.Schema{
@@ -494,7 +474,7 @@ func TicketCreate(httpClient *http.Client) toolsets.ToolWrapper {
 				`,
 					},
 					"notifyCustomer": {
-						Description: "Set to true if the the customer should be sent a copy of the ticket.",
+						Description: "Set to true if the customer should be sent a copy of the ticket.",
 						AnyOf: []*jsonschema.Schema{
 							{Type: "boolean"},
 							{Type: "null"},
@@ -579,7 +559,7 @@ func TicketCreate(httpClient *http.Client) toolsets.ToolWrapper {
 					"typeId": {
 						Description: `
 					The type ID of the ticket.
-					Use the 'twdesk-list_types' tool to find valid IDs.
+					Use the 'twdesk-list_ticket_types' tool to find valid IDs.
 				`,
 						AnyOf: []*jsonschema.Schema{
 							{Type: "integer"},
@@ -794,7 +774,7 @@ func TicketUpdate(httpClient *http.Client) toolsets.ToolWrapper {
 					"typeId": {
 						Description: `
 					The type ID of the ticket.
-					Use the 'twdesk-list_types' tool to find valid IDs.
+					Use the 'twdesk-list_ticket_types' tool to find valid IDs.
 				`,
 						AnyOf: []*jsonschema.Schema{
 							{Type: "integer"},
