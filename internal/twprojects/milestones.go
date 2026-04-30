@@ -18,12 +18,11 @@ import (
 // The naming convention for methods follows a pattern described here:
 // https://github.com/github/github-mcp-server/issues/333
 const (
-	MethodMilestoneCreate        toolsets.Method = "twprojects-create_milestone"
-	MethodMilestoneUpdate        toolsets.Method = "twprojects-update_milestone"
-	MethodMilestoneDelete        toolsets.Method = "twprojects-delete_milestone"
-	MethodMilestoneGet           toolsets.Method = "twprojects-get_milestone"
-	MethodMilestoneList          toolsets.Method = "twprojects-list_milestones"
-	MethodMilestoneListByProject toolsets.Method = "twprojects-list_milestones_by_project"
+	MethodMilestoneCreate toolsets.Method = "twprojects-create_milestone"
+	MethodMilestoneUpdate toolsets.Method = "twprojects-update_milestone"
+	MethodMilestoneDelete toolsets.Method = "twprojects-delete_milestone"
+	MethodMilestoneGet    toolsets.Method = "twprojects-get_milestone"
+	MethodMilestoneList   toolsets.Method = "twprojects-list_milestones"
 )
 
 const milestoneDescription = "In the context of Teamwork.com, a milestone represents a significant point or goal " +
@@ -434,7 +433,7 @@ func MilestoneList(engine *twapi.Engine) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
 			Name:        string(MethodMilestoneList),
-			Description: "List milestones in Teamwork.com. " + milestoneDescription,
+			Description: "List milestones in Teamwork.com. Provide project_id to scope to a specific project. " + milestoneDescription,
 			Annotations: &mcp.ToolAnnotations{
 				Title:        "List Milestones",
 				ReadOnlyHint: true,
@@ -442,6 +441,13 @@ func MilestoneList(engine *twapi.Engine) toolsets.ToolWrapper {
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
 				Properties: map[string]*jsonschema.Schema{
+					"project_id": {
+						Description: "The ID of the project from which to retrieve milestones. Omit to list milestones across all projects.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "integer"},
+							{Type: "null"},
+						},
+					},
 					"search_term": {
 						Description: "A search term to filter milestones by name. " +
 							"Each word from the search term is used to match against the milestone name and description. " +
@@ -495,112 +501,7 @@ func MilestoneList(engine *twapi.Engine) toolsets.ToolWrapper {
 				return helpers.NewToolResultTextError("failed to decode request: %s", err.Error()), nil
 			}
 			err := helpers.ParamGroup(arguments,
-				helpers.OptionalParam(&milestoneListRequest.Filters.SearchTerm, "search_term"),
-				helpers.OptionalNumericListParam(&milestoneListRequest.Filters.TagIDs, "tag_ids"),
-				helpers.OptionalPointerParam(&milestoneListRequest.Filters.MatchAllTags, "match_all_tags"),
-				helpers.OptionalNumericParam(&milestoneListRequest.Filters.Page, "page"),
-				helpers.OptionalNumericParam(&milestoneListRequest.Filters.PageSize, "page_size"),
-			)
-			if err != nil {
-				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
-			}
-
-			milestoneList, err := projects.MilestoneList(ctx, engine, milestoneListRequest)
-			if err != nil {
-				return helpers.HandleAPIError(err, "failed to list milestones")
-			}
-
-			encoded, err := json.Marshal(milestoneList)
-			if err != nil {
-				return nil, err
-			}
-			return &mcp.CallToolResult{
-				Content: []mcp.Content{
-					&mcp.TextContent{
-						Text: string(helpers.WebLinker(ctx, encoded,
-							helpers.WebLinkerWithIDPathBuilder("/app/milestones"),
-						)),
-					},
-				},
-				StructuredContent: helpers.StructuredWebLinker(ctx, milestoneList,
-					helpers.WebLinkerWithIDPathBuilder("/app/milestones"),
-				),
-			}, nil
-		},
-	}
-}
-
-// MilestoneListByProject lists milestones in Teamwork.com by project.
-func MilestoneListByProject(engine *twapi.Engine) toolsets.ToolWrapper {
-	return toolsets.ToolWrapper{
-		Tool: &mcp.Tool{
-			Name:        string(MethodMilestoneListByProject),
-			Description: "List milestones in Teamwork.com by project. " + milestoneDescription,
-			Annotations: &mcp.ToolAnnotations{
-				Title:        "List Milestones by Project",
-				ReadOnlyHint: true,
-			},
-			InputSchema: &jsonschema.Schema{
-				Type: "object",
-				Properties: map[string]*jsonschema.Schema{
-					"project_id": {
-						Type:        "integer",
-						Description: "The ID of the project from which to retrieve milestones.",
-					},
-					"search_term": {
-						Description: "A search term to filter milestones by name. " +
-							"Each word from the search term is used to match against the milestone name and description. " +
-							"The milestone will be selected if each word of the term matches the milestone name or description, not " +
-							"requiring that the word matches are in the same field.",
-						AnyOf: []*jsonschema.Schema{
-							{Type: "string"},
-							{Type: "null"},
-						},
-					},
-					"tag_ids": {
-						Description: "A list of tag IDs to filter milestones by tags",
-						AnyOf: []*jsonschema.Schema{
-							{Type: "array", Items: &jsonschema.Schema{Type: "integer"}},
-							{Type: "null"},
-						},
-					},
-					"match_all_tags": {
-						Description: "If true, the search will match milestones that have all the specified tags. " +
-							"If false, the search will match milestones that have any of the specified tags. " +
-							"Defaults to false.",
-						AnyOf: []*jsonschema.Schema{
-							{Type: "boolean"},
-							{Type: "null"},
-						},
-					},
-					"page": {
-						Description: "Page number for pagination of results.",
-						AnyOf: []*jsonschema.Schema{
-							{Type: "integer"},
-							{Type: "null"},
-						},
-					},
-					"page_size": {
-						Description: "Number of results per page for pagination.",
-						AnyOf: []*jsonschema.Schema{
-							{Type: "integer"},
-							{Type: "null"},
-						},
-					},
-				},
-				Required: []string{"project_id"},
-			},
-			OutputSchema: milestoneListOutputSchema,
-		},
-		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-			var milestoneListRequest projects.MilestoneListRequest
-
-			var arguments map[string]any
-			if err := json.Unmarshal(request.Params.Arguments, &arguments); err != nil {
-				return helpers.NewToolResultTextError("failed to decode request: %s", err.Error()), nil
-			}
-			err := helpers.ParamGroup(arguments,
-				helpers.RequiredNumericParam(&milestoneListRequest.Path.ProjectID, "project_id"),
+				helpers.OptionalNumericParam(&milestoneListRequest.Path.ProjectID, "project_id"),
 				helpers.OptionalParam(&milestoneListRequest.Filters.SearchTerm, "search_term"),
 				helpers.OptionalNumericListParam(&milestoneListRequest.Filters.TagIDs, "tag_ids"),
 				helpers.OptionalPointerParam(&milestoneListRequest.Filters.MatchAllTags, "match_all_tags"),

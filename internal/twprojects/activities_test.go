@@ -44,8 +44,8 @@ func TestActivityList(t *testing.T) {
 
 func TestActivityListByProject(t *testing.T) {
 	mcpServer := mcpServerMock(t, http.StatusOK, []byte(`{}`))
-	testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodActivityListByProject.String(), map[string]any{
-		"project_id": 123,
+	testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodActivityList.String(), map[string]any{
+		"project_id": float64(123),
 		"start_date": "2023-10-01T00:00:00Z",
 		"end_date":   "2023-10-31T23:59:59Z",
 		"log_item_types": []any{

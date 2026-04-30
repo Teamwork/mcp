@@ -18,8 +18,7 @@ import (
 // The naming convention for methods follows a pattern described here:
 // https://github.com/github/github-mcp-server/issues/333
 const (
-	MethodActivityList          toolsets.Method = "twprojects-list_activities"
-	MethodActivityListByProject toolsets.Method = "twprojects-list_activities_by_project"
+	MethodActivityList toolsets.Method = "twprojects-list_activities"
 )
 
 const activityDescription = "Activity is a record of actions and updates that occur across your projects, tasks, and " +
@@ -49,7 +48,7 @@ func ActivityList(engine *twapi.Engine) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
 			Name:        string(MethodActivityList),
-			Description: "List activities in Teamwork.com. " + activityDescription,
+			Description: "List activities in Teamwork.com. Provide project_id to scope to a specific project. " + activityDescription,
 			Annotations: &mcp.ToolAnnotations{
 				Title:        "List Activities",
 				ReadOnlyHint: true,
@@ -57,6 +56,13 @@ func ActivityList(engine *twapi.Engine) toolsets.ToolWrapper {
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
 				Properties: map[string]*jsonschema.Schema{
+					"project_id": {
+						Description: "The ID of the project to retrieve activities from. Omit to list activities across all projects.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "integer"},
+							{Type: "null"},
+						},
+					},
 					"start_date": {
 						Description: "Start date to filter activities. The date format follows RFC3339 - YYYY-MM-DDTHH:MM:SSZ.",
 						AnyOf: []*jsonschema.Schema{
@@ -134,120 +140,7 @@ func ActivityList(engine *twapi.Engine) toolsets.ToolWrapper {
 				return helpers.NewToolResultTextError("failed to decode request: %s", err.Error()), nil
 			}
 			err := helpers.ParamGroup(arguments,
-				helpers.OptionalTimeParam(&activityListRequest.Filters.StartDate, "start_date"),
-				helpers.OptionalTimeParam(&activityListRequest.Filters.EndDate, "end_date"),
-				helpers.OptionalListParam(&activityListRequest.Filters.LogItemTypes, "log_item_types"),
-				helpers.OptionalNumericParam(&activityListRequest.Filters.Page, "page"),
-				helpers.OptionalNumericParam(&activityListRequest.Filters.PageSize, "page_size"),
-			)
-			if err != nil {
-				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
-			}
-
-			activityList, err := projects.ActivityList(ctx, engine, activityListRequest)
-			if err != nil {
-				return helpers.HandleAPIError(err, "failed to list activities")
-			}
-			return helpers.NewToolResultJSON(activityList)
-		},
-	}
-}
-
-// ActivityListByProject lists activities by project in Teamwork.com.
-func ActivityListByProject(engine *twapi.Engine) toolsets.ToolWrapper {
-	return toolsets.ToolWrapper{
-		Tool: &mcp.Tool{
-			Name:        string(MethodActivityListByProject),
-			Description: "List activities in Teamwork.com by project. " + activityDescription,
-			Annotations: &mcp.ToolAnnotations{
-				Title:        "List Activities by Project",
-				ReadOnlyHint: true,
-			},
-			InputSchema: &jsonschema.Schema{
-				Type: "object",
-				Properties: map[string]*jsonschema.Schema{
-					"project_id": {
-						Type:        "integer",
-						Description: "The ID of the project to retrieve activities from.",
-					},
-					"start_date": {
-						Description: "Start date to filter activities. The date format follows RFC3339 - YYYY-MM-DDTHH:MM:SSZ.",
-						AnyOf: []*jsonschema.Schema{
-							{Type: "string", Format: "date-time"},
-							{Type: "null"},
-						},
-					},
-					"end_date": {
-						Description: "End date to filter activities. The date format follows RFC3339 - YYYY-MM-DDTHH:MM:SSZ.",
-						AnyOf: []*jsonschema.Schema{
-							{Type: "string", Format: "date-time"},
-							{Type: "null"},
-						},
-					},
-					"log_item_types": {
-						Description: "Filter activities by item types.",
-						AnyOf: []*jsonschema.Schema{
-							{
-								Type: "array",
-								Items: &jsonschema.Schema{
-									Type: "string",
-									Enum: []any{
-										"message",
-										"comment",
-										"task",
-										"tasklist",
-										"taskgroup",
-										"milestone",
-										"file",
-										"form",
-										"notebook",
-										"timelog",
-										"task_comment",
-										"notebook_comment",
-										"file_comment",
-										"link_comment",
-										"milestone_comment",
-										"project",
-										"link",
-										"billingInvoice",
-										"risk",
-										"projectUpdate",
-										"reacted",
-										"budget",
-									},
-								},
-							},
-							{Type: "null"},
-						},
-					},
-					"page": {
-						Description: "Page number for pagination of results.",
-						AnyOf: []*jsonschema.Schema{
-							{Type: "integer"},
-							{Type: "null"},
-						},
-					},
-					"page_size": {
-						Description: "Number of results per page for pagination.",
-						AnyOf: []*jsonschema.Schema{
-							{Type: "integer"},
-							{Type: "null"},
-						},
-					},
-				},
-				Required: []string{"project_id"},
-			},
-			OutputSchema: activityListOutputSchema,
-		},
-		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-			var activityListRequest projects.ActivityListRequest
-
-			var arguments map[string]any
-			if err := json.Unmarshal(request.Params.Arguments, &arguments); err != nil {
-				return helpers.NewToolResultTextError("failed to decode request: %s", err.Error()), nil
-			}
-			err := helpers.ParamGroup(arguments,
-				helpers.RequiredNumericParam(&activityListRequest.Path.ProjectID, "project_id"),
+				helpers.OptionalNumericParam(&activityListRequest.Path.ProjectID, "project_id"),
 				helpers.OptionalTimeParam(&activityListRequest.Filters.StartDate, "start_date"),
 				helpers.OptionalTimeParam(&activityListRequest.Filters.EndDate, "end_date"),
 				helpers.OptionalListParam(&activityListRequest.Filters.LogItemTypes, "log_item_types"),

@@ -74,7 +74,7 @@ func TestTimelogList(t *testing.T) {
 
 func TestTimelogListByProject(t *testing.T) {
 	mcpServer := mcpServerMock(t, http.StatusOK, []byte(`{}`))
-	testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodTimelogListByProject.String(), map[string]any{
+	testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodTimelogList.String(), map[string]any{
 		"project_id":           float64(123),
 		"tag_ids":              []float64{1, 2, 3},
 		"match_all_tags":       true,
@@ -90,7 +90,7 @@ func TestTimelogListByProject(t *testing.T) {
 
 func TestTimelogListByTask(t *testing.T) {
 	mcpServer := mcpServerMock(t, http.StatusOK, []byte(`{}`))
-	testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodTimelogListByTask.String(), map[string]any{
+	testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodTimelogList.String(), map[string]any{
 		"task_id":              float64(123),
 		"tag_ids":              []float64{1, 2, 3},
 		"match_all_tags":       true,

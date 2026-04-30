@@ -68,7 +68,7 @@ func TestUserList(t *testing.T) {
 
 func TestUserListByProject(t *testing.T) {
 	mcpServer := mcpServerMock(t, http.StatusOK, []byte(`{}`))
-	testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodUserListByProject.String(), map[string]any{
+	testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodUserList.String(), map[string]any{
 		"project_id":  float64(123),
 		"search_term": "test",
 		"type":        "account",

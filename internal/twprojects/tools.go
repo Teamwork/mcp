@@ -92,11 +92,8 @@ func DefaultToolsetGroup(readOnly, allowDelete bool, engine *twapi.Engine) *tool
 		AddReadTools(
 			TaskGet(engine),
 			TaskList(engine),
-			TaskListByProject(engine),
-			TaskListByTasklist(engine),
 			TasklistGet(engine),
 			TasklistList(engine),
-			TasklistListByProject(engine),
 			WorkflowGet(engine),
 			WorkflowList(engine),
 			WorkflowStageGet(engine),
@@ -139,12 +136,9 @@ func DefaultToolsetGroup(readOnly, allowDelete bool, engine *twapi.Engine) *tool
 			SkillList(engine),
 			TeamGet(engine),
 			TeamList(engine),
-			TeamListByCompany(engine),
-			TeamListByProject(engine),
 			UserGet(engine),
 			UserGetMe(engine),
 			UserList(engine),
-			UserListByProject(engine),
 			UsersWorkload(engine),
 		)
 	group.AddToolset(peopleToolset)
@@ -172,8 +166,6 @@ func DefaultToolsetGroup(readOnly, allowDelete bool, engine *twapi.Engine) *tool
 			TasklistBudgetList(engine),
 			TimelogGet(engine),
 			TimelogList(engine),
-			TimelogListByProject(engine),
-			TimelogListByTask(engine),
 			TimerGet(engine),
 			TimerList(engine),
 		)
@@ -214,17 +206,10 @@ func DefaultToolsetGroup(readOnly, allowDelete bool, engine *twapi.Engine) *tool
 		AddWriteTools(contentWriteTools...).
 		AddReadTools(
 			ActivityList(engine),
-			ActivityListByProject(engine),
 			CommentGet(engine),
 			CommentList(engine),
-			CommentListByFileVersion(engine),
-			CommentListByMilestone(engine),
-			CommentListByNotebook(engine),
-			CommentListByTask(engine),
-			CommentListByLink(engine),
 			MilestoneGet(engine),
 			MilestoneList(engine),
-			MilestoneListByProject(engine),
 			NotebookGet(engine),
 			NotebookList(engine),
 			TagGet(engine),

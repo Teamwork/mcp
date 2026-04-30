@@ -18,13 +18,11 @@ import (
 // The naming convention for methods follows a pattern described here:
 // https://github.com/github/github-mcp-server/issues/333
 const (
-	MethodTimelogCreate        toolsets.Method = "twprojects-create_timelog"
-	MethodTimelogUpdate        toolsets.Method = "twprojects-update_timelog"
-	MethodTimelogDelete        toolsets.Method = "twprojects-delete_timelog"
-	MethodTimelogGet           toolsets.Method = "twprojects-get_timelog"
-	MethodTimelogList          toolsets.Method = "twprojects-list_timelogs"
-	MethodTimelogListByProject toolsets.Method = "twprojects-list_timelogs_by_project"
-	MethodTimelogListByTask    toolsets.Method = "twprojects-list_timelogs_by_task"
+	MethodTimelogCreate toolsets.Method = "twprojects-create_timelog"
+	MethodTimelogUpdate toolsets.Method = "twprojects-update_timelog"
+	MethodTimelogDelete toolsets.Method = "twprojects-delete_timelog"
+	MethodTimelogGet    toolsets.Method = "twprojects-get_timelog"
+	MethodTimelogList   toolsets.Method = "twprojects-list_timelogs"
 )
 
 const timelogDescription = "Timelog refers to a recorded entry that tracks the amount of time a person has spent " +
@@ -408,7 +406,7 @@ func TimelogList(engine *twapi.Engine) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
 			Name:        string(MethodTimelogList),
-			Description: "List timelogs in Teamwork.com. " + timelogDescription,
+			Description: "List timelogs in Teamwork.com. Provide project_id or task_id to scope to a specific project or task. " + timelogDescription,
 			Annotations: &mcp.ToolAnnotations{
 				Title:        "List Timelogs",
 				ReadOnlyHint: true,
@@ -416,6 +414,20 @@ func TimelogList(engine *twapi.Engine) toolsets.ToolWrapper {
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
 				Properties: map[string]*jsonschema.Schema{
+					"project_id": {
+						Description: "The ID of the project from which to retrieve timelogs. Omit to list timelogs across all projects.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "integer"},
+							{Type: "null"},
+						},
+					},
+					"task_id": {
+						Description: "The ID of the task from which to retrieve timelogs. Omit to list timelogs across all tasks.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "integer"},
+							{Type: "null"},
+						},
+					},
 					"tag_ids": {
 						Description: "A list of tag IDs to filter timelogs by tags",
 						AnyOf: []*jsonschema.Schema{
@@ -500,258 +512,8 @@ func TimelogList(engine *twapi.Engine) toolsets.ToolWrapper {
 				return helpers.NewToolResultTextError("failed to decode request: %s", err.Error()), nil
 			}
 			err := helpers.ParamGroup(arguments,
-				helpers.OptionalNumericListParam(&timelogListRequest.Filters.TagIDs, "tag_ids"),
-				helpers.OptionalPointerParam(&timelogListRequest.Filters.MatchAllTags, "match_all_tags"),
-				helpers.OptionalTimePointerParam(&timelogListRequest.Filters.StartDate, "start_date"),
-				helpers.OptionalTimePointerParam(&timelogListRequest.Filters.EndDate, "end_date"),
-				helpers.OptionalNumericListParam(&timelogListRequest.Filters.AssignedToUserIDs, "assigned_user_ids"),
-				helpers.OptionalNumericListParam(&timelogListRequest.Filters.AssignedToCompanyIDs, "assigned_company_ids"),
-				helpers.OptionalNumericListParam(&timelogListRequest.Filters.AssignedToTeamIDs, "assigned_team_ids"),
-				helpers.OptionalNumericListParam(&timelogListRequest.Filters.DeskTicketIDs, "ticketIds"),
-				helpers.OptionalNumericParam(&timelogListRequest.Filters.Page, "page"),
-				helpers.OptionalNumericParam(&timelogListRequest.Filters.PageSize, "page_size"),
-			)
-			if err != nil {
-				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
-			}
-
-			timelogList, err := projects.TimelogList(ctx, engine, timelogListRequest)
-			if err != nil {
-				return helpers.HandleAPIError(err, "failed to list timelogs")
-			}
-			return helpers.NewToolResultJSON(timelogList)
-		},
-	}
-}
-
-// TimelogListByProject lists timelogs in Teamwork.com by project.
-func TimelogListByProject(engine *twapi.Engine) toolsets.ToolWrapper {
-	return toolsets.ToolWrapper{
-		Tool: &mcp.Tool{
-			Name:        string(MethodTimelogListByProject),
-			Description: "List timelogs in Teamwork.com by project. " + timelogDescription,
-			Annotations: &mcp.ToolAnnotations{
-				Title:        "List Timelogs By Project",
-				ReadOnlyHint: true,
-			},
-			InputSchema: &jsonschema.Schema{
-				Type: "object",
-				Properties: map[string]*jsonschema.Schema{
-					"project_id": {
-						Type:        "integer",
-						Description: "The ID of the project from which to retrieve timelogs.",
-					},
-					"tag_ids": {
-						Description: "A list of tag IDs to filter timelogs by tags",
-						AnyOf: []*jsonschema.Schema{
-							{Type: "array", Items: &jsonschema.Schema{Type: "integer"}},
-							{Type: "null"},
-						},
-					},
-					"match_all_tags": {
-						Description: "If true, the search will match timelogs that have all the specified tags. If false, the " +
-							"search will match timelogs that have any of the specified tags. Defaults to false.",
-						AnyOf: []*jsonschema.Schema{
-							{Type: "boolean"},
-							{Type: "null"},
-						},
-					},
-					"start_date": {
-						Description: "Start date to filter timelogs. The date format follows RFC3339 - YYYY-MM-DDTHH:MM:SSZ.",
-						AnyOf: []*jsonschema.Schema{
-							{Type: "string", Format: "date-time"},
-							{Type: "null"},
-						},
-					},
-					"end_date": {
-						Description: "End date to filter timelogs. The date format follows RFC3339 - YYYY-MM-DDTHH:MM:SSZ.",
-						AnyOf: []*jsonschema.Schema{
-							{Type: "string", Format: "date-time"},
-							{Type: "null"},
-						},
-					},
-					"assigned_user_ids": {
-						Description: "A list of user IDs to filter timelogs by assigned users",
-						AnyOf: []*jsonschema.Schema{
-							{Type: "array", Items: &jsonschema.Schema{Type: "integer"}},
-							{Type: "null"},
-						},
-					},
-					"assigned_company_ids": {
-						Description: "A list of company IDs to filter timelogs by assigned companies",
-						AnyOf: []*jsonschema.Schema{
-							{Type: "array", Items: &jsonschema.Schema{Type: "integer"}},
-							{Type: "null"},
-						},
-					},
-					"assigned_team_ids": {
-						Description: "A list of team IDs to filter timelogs by assigned teams",
-						AnyOf: []*jsonschema.Schema{
-							{Type: "array", Items: &jsonschema.Schema{Type: "integer"}},
-							{Type: "null"},
-						},
-					},
-					"ticketIds": {
-						Description: "A list of desk ticket IDs to filter timelogs by associated desk tickets",
-						AnyOf: []*jsonschema.Schema{
-							{Type: "array", Items: &jsonschema.Schema{Type: "integer"}},
-							{Type: "null"},
-						},
-					},
-					"page": {
-						Description: "Page number for pagination of results.",
-						AnyOf: []*jsonschema.Schema{
-							{Type: "integer"},
-							{Type: "null"},
-						},
-					},
-					"page_size": {
-						Description: "Number of results per page for pagination.",
-						AnyOf: []*jsonschema.Schema{
-							{Type: "integer"},
-							{Type: "null"},
-						},
-					},
-				},
-				Required: []string{"project_id"},
-			},
-			OutputSchema: timelogListOutputSchema,
-		},
-		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-			var timelogListRequest projects.TimelogListRequest
-
-			var arguments map[string]any
-			if err := json.Unmarshal(request.Params.Arguments, &arguments); err != nil {
-				return helpers.NewToolResultTextError("failed to decode request: %s", err.Error()), nil
-			}
-			err := helpers.ParamGroup(arguments,
-				helpers.RequiredNumericParam(&timelogListRequest.Path.ProjectID, "project_id"),
-				helpers.OptionalNumericListParam(&timelogListRequest.Filters.TagIDs, "tag_ids"),
-				helpers.OptionalPointerParam(&timelogListRequest.Filters.MatchAllTags, "match_all_tags"),
-				helpers.OptionalTimePointerParam(&timelogListRequest.Filters.StartDate, "start_date"),
-				helpers.OptionalTimePointerParam(&timelogListRequest.Filters.EndDate, "end_date"),
-				helpers.OptionalNumericListParam(&timelogListRequest.Filters.AssignedToUserIDs, "assigned_user_ids"),
-				helpers.OptionalNumericListParam(&timelogListRequest.Filters.AssignedToCompanyIDs, "assigned_company_ids"),
-				helpers.OptionalNumericListParam(&timelogListRequest.Filters.AssignedToTeamIDs, "assigned_team_ids"),
-				helpers.OptionalNumericListParam(&timelogListRequest.Filters.DeskTicketIDs, "ticketIds"),
-				helpers.OptionalNumericParam(&timelogListRequest.Filters.Page, "page"),
-				helpers.OptionalNumericParam(&timelogListRequest.Filters.PageSize, "page_size"),
-			)
-			if err != nil {
-				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
-			}
-
-			timelogList, err := projects.TimelogList(ctx, engine, timelogListRequest)
-			if err != nil {
-				return helpers.HandleAPIError(err, "failed to list timelogs")
-			}
-			return helpers.NewToolResultJSON(timelogList)
-		},
-	}
-}
-
-// TimelogListByTask lists timelogs in Teamwork.com by task.
-func TimelogListByTask(engine *twapi.Engine) toolsets.ToolWrapper {
-	return toolsets.ToolWrapper{
-		Tool: &mcp.Tool{
-			Name:        string(MethodTimelogListByTask),
-			Description: "List timelogs in Teamwork.com by task. " + timelogDescription,
-			Annotations: &mcp.ToolAnnotations{
-				Title:        "List Timelogs By Task",
-				ReadOnlyHint: true,
-			},
-			InputSchema: &jsonschema.Schema{
-				Type: "object",
-				Properties: map[string]*jsonschema.Schema{
-					"task_id": {
-						Type:        "integer",
-						Description: "The ID of the task from which to retrieve timelogs.",
-					},
-					"tag_ids": {
-						Description: "A list of tag IDs to filter timelogs by tags",
-						AnyOf: []*jsonschema.Schema{
-							{Type: "array", Items: &jsonschema.Schema{Type: "integer"}},
-							{Type: "null"},
-						},
-					},
-					"match_all_tags": {
-						Description: "If true, the search will match timelogs that have all the specified tags. If false, the " +
-							"search will match timelogs that have any of the specified tags. Defaults to false.",
-						AnyOf: []*jsonschema.Schema{
-							{Type: "boolean"},
-							{Type: "null"},
-						},
-					},
-					"start_date": {
-						Description: "Start date to filter timelogs. The date format follows RFC3339 - YYYY-MM-DDTHH:MM:SSZ.",
-						AnyOf: []*jsonschema.Schema{
-							{Type: "string", Format: "date-time"},
-							{Type: "null"},
-						},
-					},
-					"end_date": {
-						Description: "End date to filter timelogs. The date format follows RFC3339 - YYYY-MM-DDTHH:MM:SSZ.",
-						AnyOf: []*jsonschema.Schema{
-							{Type: "string", Format: "date-time"},
-							{Type: "null"},
-						},
-					},
-					"assigned_user_ids": {
-						Description: "A list of user IDs to filter timelogs by assigned users",
-						AnyOf: []*jsonschema.Schema{
-							{Type: "array", Items: &jsonschema.Schema{Type: "integer"}},
-							{Type: "null"},
-						},
-					},
-					"assigned_company_ids": {
-						Description: "A list of company IDs to filter timelogs by assigned companies",
-						AnyOf: []*jsonschema.Schema{
-							{Type: "array", Items: &jsonschema.Schema{Type: "integer"}},
-							{Type: "null"},
-						},
-					},
-					"assigned_team_ids": {
-						Description: "A list of team IDs to filter timelogs by assigned teams",
-						AnyOf: []*jsonschema.Schema{
-							{Type: "array", Items: &jsonschema.Schema{Type: "integer"}},
-							{Type: "null"},
-						},
-					},
-					"ticketIds": {
-						Description: "A list of desk ticket IDs to filter timelogs by associated desk tickets",
-						AnyOf: []*jsonschema.Schema{
-							{Type: "array", Items: &jsonschema.Schema{Type: "integer"}},
-							{Type: "null"},
-						},
-					},
-					"page": {
-						Description: "Page number for pagination of results.",
-						AnyOf: []*jsonschema.Schema{
-							{Type: "integer"},
-							{Type: "null"},
-						},
-					},
-					"page_size": {
-						Description: "Number of results per page for pagination.",
-						AnyOf: []*jsonschema.Schema{
-							{Type: "integer"},
-							{Type: "null"},
-						},
-					},
-				},
-				Required: []string{"task_id"},
-			},
-			OutputSchema: timelogListOutputSchema,
-		},
-		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-			var timelogListRequest projects.TimelogListRequest
-
-			var arguments map[string]any
-			if err := json.Unmarshal(request.Params.Arguments, &arguments); err != nil {
-				return helpers.NewToolResultTextError("failed to decode request: %s", err.Error()), nil
-			}
-			err := helpers.ParamGroup(arguments,
-				helpers.RequiredNumericParam(&timelogListRequest.Path.TaskID, "task_id"),
+				helpers.OptionalNumericParam(&timelogListRequest.Path.ProjectID, "project_id"),
+				helpers.OptionalNumericParam(&timelogListRequest.Path.TaskID, "task_id"),
 				helpers.OptionalNumericListParam(&timelogListRequest.Filters.TagIDs, "tag_ids"),
 				helpers.OptionalPointerParam(&timelogListRequest.Filters.MatchAllTags, "match_all_tags"),
 				helpers.OptionalTimePointerParam(&timelogListRequest.Filters.StartDate, "start_date"),

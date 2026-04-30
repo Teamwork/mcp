@@ -18,14 +18,12 @@ import (
 // The naming convention for methods follows a pattern described here:
 // https://github.com/github/github-mcp-server/issues/333
 const (
-	MethodTaskCreate         toolsets.Method = "twprojects-create_task"
-	MethodTaskUpdate         toolsets.Method = "twprojects-update_task"
-	MethodTaskDelete         toolsets.Method = "twprojects-delete_task"
-	MethodTaskComplete       toolsets.Method = "twprojects-complete_task"
-	MethodTaskGet            toolsets.Method = "twprojects-get_task"
-	MethodTaskList           toolsets.Method = "twprojects-list_tasks"
-	MethodTaskListByTasklist toolsets.Method = "twprojects-list_tasks_by_tasklist"
-	MethodTaskListByProject  toolsets.Method = "twprojects-list_tasks_by_project"
+	MethodTaskCreate   toolsets.Method = "twprojects-create_task"
+	MethodTaskUpdate   toolsets.Method = "twprojects-update_task"
+	MethodTaskDelete   toolsets.Method = "twprojects-delete_task"
+	MethodTaskComplete toolsets.Method = "twprojects-complete_task"
+	MethodTaskGet      toolsets.Method = "twprojects-get_task"
+	MethodTaskList     toolsets.Method = "twprojects-list_tasks"
 )
 
 const taskDescription = "In Teamwork.com, a task represents an individual unit of work assigned to one or more team " +
@@ -966,8 +964,9 @@ func TaskGet(engine *twapi.Engine) toolsets.ToolWrapper {
 func TaskList(engine *twapi.Engine) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
-			Name:        string(MethodTaskList),
-			Description: "List tasks in Teamwork.com. " + taskDescription,
+			Name: string(MethodTaskList),
+			Description: "List tasks in Teamwork.com. Provide tasklist_id to scope to a specific tasklist, " +
+				"project_id to scope to a project, or neither to search across all tasks. " + taskDescription,
 			Annotations: &mcp.ToolAnnotations{
 				Title:        "List Tasks",
 				ReadOnlyHint: true,
@@ -975,6 +974,20 @@ func TaskList(engine *twapi.Engine) toolsets.ToolWrapper {
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
 				Properties: map[string]*jsonschema.Schema{
+					"tasklist_id": {
+						Description: "The ID of the tasklist from which to retrieve tasks. Takes precedence over project_id.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "integer"},
+							{Type: "null"},
+						},
+					},
+					"project_id": {
+						Description: "The ID of the project from which to retrieve tasks. Omit to list tasks across all projects.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "integer"},
+							{Type: "null"},
+						},
+					},
 					"search_term": {
 						Description: "A search term to filter tasks by name.",
 						AnyOf: []*jsonschema.Schema{
@@ -986,6 +999,21 @@ func TaskList(engine *twapi.Engine) toolsets.ToolWrapper {
 						Description: "A list of user IDs to filter tasks by assigned users",
 						AnyOf: []*jsonschema.Schema{
 							{Type: "array", Items: &jsonschema.Schema{Type: "integer"}},
+							{Type: "null"},
+						},
+					},
+					"tag_ids": {
+						Description: "A list of tag IDs to filter tasks by tags",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "array", Items: &jsonschema.Schema{Type: "integer"}},
+							{Type: "null"},
+						},
+					},
+					"match_all_tags": {
+						Description: "If true, the search will match tasks that have all the specified tags. If false, the " +
+							"search will match tasks that have any of the specified tags. Defaults to false.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "boolean"},
 							{Type: "null"},
 						},
 					},
@@ -1037,21 +1065,6 @@ func TaskList(engine *twapi.Engine) toolsets.ToolWrapper {
 							{Type: "null"},
 						},
 					},
-					"tag_ids": {
-						Description: "A list of tag IDs to filter tasks by tags",
-						AnyOf: []*jsonschema.Schema{
-							{Type: "array", Items: &jsonschema.Schema{Type: "integer"}},
-							{Type: "null"},
-						},
-					},
-					"match_all_tags": {
-						Description: "If true, the search will match tasks that have all the specified tags. If false, the " +
-							"search will match tasks that have any of the specified tags. Defaults to false.",
-						AnyOf: []*jsonschema.Schema{
-							{Type: "boolean"},
-							{Type: "null"},
-						},
-					},
 					"page": {
 						Description: "Page number for pagination of results.",
 						AnyOf: []*jsonschema.Schema{
@@ -1079,8 +1092,12 @@ func TaskList(engine *twapi.Engine) toolsets.ToolWrapper {
 				return helpers.NewToolResultTextError("failed to decode request: %s", err.Error()), nil
 			}
 			err := helpers.ParamGroup(arguments,
+				helpers.OptionalNumericParam(&taskListRequest.Path.TasklistID, "tasklist_id"),
+				helpers.OptionalNumericParam(&taskListRequest.Path.ProjectID, "project_id"),
 				helpers.OptionalParam(&taskListRequest.Filters.SearchTerm, "search_term"),
 				helpers.OptionalNumericListParam(&taskListRequest.Filters.AssigneeUserIDs, "assignee_user_ids"),
+				helpers.OptionalNumericListParam(&taskListRequest.Filters.TagIDs, "tag_ids"),
+				helpers.OptionalPointerParam(&taskListRequest.Filters.MatchAllTags, "match_all_tags"),
 				helpers.OptionalNumericParam(&taskListRequest.Filters.Page, "page"),
 				helpers.OptionalNumericParam(&taskListRequest.Filters.PageSize, "page_size"),
 				helpers.OptionalTimePointerParam(&taskListRequest.Filters.CreatedAfter, "created_after"),
@@ -1089,228 +1106,6 @@ func TaskList(engine *twapi.Engine) toolsets.ToolWrapper {
 				helpers.OptionalTimePointerParam(&taskListRequest.Filters.UpdatedBefore, "updated_before"),
 				helpers.OptionalTimePointerParam(&taskListRequest.Filters.CompletedAfter, "completed_after"),
 				helpers.OptionalTimePointerParam(&taskListRequest.Filters.CompletedBefore, "completed_before"),
-				helpers.OptionalNumericListParam(&taskListRequest.Filters.TagIDs, "tag_ids"),
-				helpers.OptionalPointerParam(&taskListRequest.Filters.MatchAllTags, "match_all_tags"),
-			)
-			if err != nil {
-				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
-			}
-
-			taskList, err := projects.TaskList(ctx, engine, taskListRequest)
-			if err != nil {
-				return helpers.HandleAPIError(err, "failed to list tasks")
-			}
-
-			encoded, err := json.Marshal(taskList)
-			if err != nil {
-				return nil, err
-			}
-			return &mcp.CallToolResult{
-				Content: []mcp.Content{
-					&mcp.TextContent{
-						Text: string(helpers.WebLinker(ctx, encoded,
-							helpers.WebLinkerWithIDPathBuilder("/app/tasks"),
-						)),
-					},
-				},
-				StructuredContent: helpers.StructuredWebLinker(ctx, taskList,
-					helpers.WebLinkerWithIDPathBuilder("/app/tasks"),
-				),
-			}, nil
-		},
-	}
-}
-
-// TaskListByTasklist lists tasks in Teamwork.com by tasklist.
-func TaskListByTasklist(engine *twapi.Engine) toolsets.ToolWrapper {
-	return toolsets.ToolWrapper{
-		Tool: &mcp.Tool{
-			Name:        string(MethodTaskListByTasklist),
-			Description: "List tasks in Teamwork.com by tasklist. " + taskDescription,
-			Annotations: &mcp.ToolAnnotations{
-				Title:        "List Tasks By Tasklist",
-				ReadOnlyHint: true,
-			},
-			InputSchema: &jsonschema.Schema{
-				Type: "object",
-				Properties: map[string]*jsonschema.Schema{
-					"tasklist_id": {
-						Type:        "integer",
-						Description: "The ID of the tasklist from which to retrieve tasks.",
-					},
-					"search_term": {
-						Description: "A search term to filter tasks by name.",
-						AnyOf: []*jsonschema.Schema{
-							{Type: "string"},
-							{Type: "null"},
-						},
-					},
-					"tag_ids": {
-						Description: "A list of tag IDs to filter tasks by tags",
-						AnyOf: []*jsonschema.Schema{
-							{Type: "array", Items: &jsonschema.Schema{Type: "integer"}},
-							{Type: "null"},
-						},
-					},
-					"assignee_user_ids": {
-						Description: "A list of user IDs to filter tasks by assigned users",
-						AnyOf: []*jsonschema.Schema{
-							{Type: "array", Items: &jsonschema.Schema{Type: "integer"}},
-							{Type: "null"},
-						},
-					},
-					"match_all_tags": {
-						Description: "If true, the search will match tasks that have all the specified tags. If false, the " +
-							"search will match tasks that have any of the specified tags. Defaults to false.",
-						AnyOf: []*jsonschema.Schema{
-							{Type: "boolean"},
-							{Type: "null"},
-						},
-					},
-					"page": {
-						Description: "Page number for pagination of results.",
-						AnyOf: []*jsonschema.Schema{
-							{Type: "integer"},
-							{Type: "null"},
-						},
-					},
-					"page_size": {
-						Description: "Number of results per page for pagination.",
-						AnyOf: []*jsonschema.Schema{
-							{Type: "integer"},
-							{Type: "null"},
-						},
-					},
-				},
-				Required: []string{"tasklist_id"},
-			},
-			OutputSchema: taskListOutputSchema,
-		},
-		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-			var taskListRequest projects.TaskListRequest
-
-			var arguments map[string]any
-			if err := json.Unmarshal(request.Params.Arguments, &arguments); err != nil {
-				return helpers.NewToolResultTextError("failed to decode request: %s", err.Error()), nil
-			}
-			err := helpers.ParamGroup(arguments,
-				helpers.RequiredNumericParam(&taskListRequest.Path.TasklistID, "tasklist_id"),
-				helpers.OptionalParam(&taskListRequest.Filters.SearchTerm, "search_term"),
-				helpers.OptionalNumericListParam(&taskListRequest.Filters.TagIDs, "tag_ids"),
-				helpers.OptionalNumericListParam(&taskListRequest.Filters.AssigneeUserIDs, "assignee_user_ids"),
-				helpers.OptionalPointerParam(&taskListRequest.Filters.MatchAllTags, "match_all_tags"),
-				helpers.OptionalNumericParam(&taskListRequest.Filters.Page, "page"),
-				helpers.OptionalNumericParam(&taskListRequest.Filters.PageSize, "page_size"),
-			)
-			if err != nil {
-				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
-			}
-
-			taskList, err := projects.TaskList(ctx, engine, taskListRequest)
-			if err != nil {
-				return helpers.HandleAPIError(err, "failed to list tasks")
-			}
-
-			encoded, err := json.Marshal(taskList)
-			if err != nil {
-				return nil, err
-			}
-			return &mcp.CallToolResult{
-				Content: []mcp.Content{
-					&mcp.TextContent{
-						Text: string(helpers.WebLinker(ctx, encoded,
-							helpers.WebLinkerWithIDPathBuilder("/app/tasks"),
-						)),
-					},
-				},
-				StructuredContent: helpers.StructuredWebLinker(ctx, taskList,
-					helpers.WebLinkerWithIDPathBuilder("/app/tasks"),
-				),
-			}, nil
-		},
-	}
-}
-
-// TaskListByProject lists tasks in Teamwork.com by project.
-func TaskListByProject(engine *twapi.Engine) toolsets.ToolWrapper {
-	return toolsets.ToolWrapper{
-		Tool: &mcp.Tool{
-			Name:        string(MethodTaskListByProject),
-			Description: "List tasks in Teamwork.com by project. " + taskDescription,
-			Annotations: &mcp.ToolAnnotations{
-				Title:        "List Tasks By Project",
-				ReadOnlyHint: true,
-			},
-			InputSchema: &jsonschema.Schema{
-				Type: "object",
-				Properties: map[string]*jsonschema.Schema{
-					"project_id": {
-						Type:        "integer",
-						Description: "The ID of the project from which to retrieve tasks.",
-					},
-					"search_term": {
-						Description: "A search term to filter tasks by name.",
-						AnyOf: []*jsonschema.Schema{
-							{Type: "string"},
-							{Type: "null"},
-						},
-					},
-					"tag_ids": {
-						Description: "A list of tag IDs to filter tasks by tags",
-						AnyOf: []*jsonschema.Schema{
-							{Type: "array", Items: &jsonschema.Schema{Type: "integer"}},
-							{Type: "null"},
-						},
-					},
-					"assignee_user_ids": {
-						Description: "A list of user IDs to filter tasks by assigned users",
-						AnyOf: []*jsonschema.Schema{
-							{Type: "array", Items: &jsonschema.Schema{Type: "integer"}},
-							{Type: "null"},
-						},
-					},
-					"match_all_tags": {
-						Description: "If true, the search will match tasks that have all the specified tags. If false, the " +
-							"search will match tasks that have any of the specified tags. Defaults to false.",
-						AnyOf: []*jsonschema.Schema{
-							{Type: "boolean"},
-							{Type: "null"},
-						},
-					},
-					"page": {
-						Description: "Page number for pagination of results.",
-						AnyOf: []*jsonschema.Schema{
-							{Type: "integer"},
-							{Type: "null"},
-						},
-					},
-					"page_size": {
-						Description: "Number of results per page for pagination.",
-						AnyOf: []*jsonschema.Schema{
-							{Type: "integer"},
-							{Type: "null"},
-						},
-					},
-				},
-				Required: []string{"project_id"},
-			},
-			OutputSchema: taskListOutputSchema,
-		},
-		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-			var taskListRequest projects.TaskListRequest
-
-			var arguments map[string]any
-			if err := json.Unmarshal(request.Params.Arguments, &arguments); err != nil {
-				return helpers.NewToolResultTextError("failed to decode request: %s", err.Error()), nil
-			}
-			err := helpers.ParamGroup(arguments,
-				helpers.RequiredNumericParam(&taskListRequest.Path.ProjectID, "project_id"),
-				helpers.OptionalParam(&taskListRequest.Filters.SearchTerm, "search_term"),
-				helpers.OptionalNumericListParam(&taskListRequest.Filters.TagIDs, "tag_ids"),
-				helpers.OptionalNumericListParam(&taskListRequest.Filters.AssigneeUserIDs, "assignee_user_ids"),
-				helpers.OptionalPointerParam(&taskListRequest.Filters.MatchAllTags, "match_all_tags"),
-				helpers.OptionalNumericParam(&taskListRequest.Filters.Page, "page"),
-				helpers.OptionalNumericParam(&taskListRequest.Filters.PageSize, "page_size"),
 			)
 			if err != nil {
 				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
