@@ -220,6 +220,7 @@ func DefaultToolsetGroup(readOnly, allowDelete bool, engine *twapi.Engine) *tool
 			MessageReplyList(engine),
 			LinkGet(engine),
 			LinkList(engine),
+			Search(engine),
 		)
 	group.AddToolset(contentToolset)
 
