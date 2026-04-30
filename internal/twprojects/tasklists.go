@@ -18,12 +18,11 @@ import (
 // The naming convention for methods follows a pattern described here:
 // https://github.com/github/github-mcp-server/issues/333
 const (
-	MethodTasklistCreate        toolsets.Method = "twprojects-create_tasklist"
-	MethodTasklistUpdate        toolsets.Method = "twprojects-update_tasklist"
-	MethodTasklistDelete        toolsets.Method = "twprojects-delete_tasklist"
-	MethodTasklistGet           toolsets.Method = "twprojects-get_tasklist"
-	MethodTasklistList          toolsets.Method = "twprojects-list_tasklists"
-	MethodTasklistListByProject toolsets.Method = "twprojects-list_tasklists_by_project"
+	MethodTasklistCreate toolsets.Method = "twprojects-create_tasklist"
+	MethodTasklistUpdate toolsets.Method = "twprojects-update_tasklist"
+	MethodTasklistDelete toolsets.Method = "twprojects-delete_tasklist"
+	MethodTasklistGet    toolsets.Method = "twprojects-get_tasklist"
+	MethodTasklistList   toolsets.Method = "twprojects-list_tasklists"
 )
 
 const tasklistDescription = "In the context of Teamwork.com, a task list is a way to group related tasks within a " +
@@ -293,8 +292,11 @@ func TasklistGet(engine *twapi.Engine) toolsets.ToolWrapper {
 func TasklistList(engine *twapi.Engine) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
-			Name:        string(MethodTasklistList),
-			Description: "List tasklists in Teamwork.com. " + tasklistDescription,
+			Name: string(MethodTasklistList),
+			Description: `
+				List tasklists in Teamwork.com. 
+				Provide project_id to scope to a specific project. 
+			` + tasklistDescription,
 			Annotations: &mcp.ToolAnnotations{
 				Title:        "List Tasklists",
 				ReadOnlyHint: true,
@@ -302,6 +304,16 @@ func TasklistList(engine *twapi.Engine) toolsets.ToolWrapper {
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
 				Properties: map[string]*jsonschema.Schema{
+					"project_id": {
+						Description: `
+							The ID of the project from which to retrieve tasklists. 
+							Omit to list tasklists across all projects.
+						`,
+						AnyOf: []*jsonschema.Schema{
+							{Type: "integer"},
+							{Type: "null"},
+						},
+					},
 					"search_term": {
 						Description: "A search term to filter tasklists by name.",
 						AnyOf: []*jsonschema.Schema{
@@ -336,91 +348,7 @@ func TasklistList(engine *twapi.Engine) toolsets.ToolWrapper {
 				return helpers.NewToolResultTextError("failed to decode request: %s", err.Error()), nil
 			}
 			err := helpers.ParamGroup(arguments,
-				helpers.OptionalParam(&tasklistListRequest.Filters.SearchTerm, "search_term"),
-				helpers.OptionalNumericParam(&tasklistListRequest.Filters.Page, "page"),
-				helpers.OptionalNumericParam(&tasklistListRequest.Filters.PageSize, "page_size"),
-			)
-			if err != nil {
-				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
-			}
-
-			tasklistList, err := projects.TasklistList(ctx, engine, tasklistListRequest)
-			if err != nil {
-				return helpers.HandleAPIError(err, "failed to list tasklists")
-			}
-
-			encoded, err := json.Marshal(tasklistList)
-			if err != nil {
-				return nil, err
-			}
-			return &mcp.CallToolResult{
-				Content: []mcp.Content{
-					&mcp.TextContent{
-						Text: string(helpers.WebLinker(ctx, encoded,
-							helpers.WebLinkerWithIDPathBuilder("/app/tasklists"),
-						)),
-					},
-				},
-				StructuredContent: helpers.StructuredWebLinker(ctx, tasklistList,
-					helpers.WebLinkerWithIDPathBuilder("/app/tasklists"),
-				),
-			}, nil
-		},
-	}
-}
-
-// TasklistListByProject lists tasklists in Teamwork.com by project.
-func TasklistListByProject(engine *twapi.Engine) toolsets.ToolWrapper {
-	return toolsets.ToolWrapper{
-		Tool: &mcp.Tool{
-			Name:        string(MethodTasklistListByProject),
-			Description: "List tasklists in Teamwork.com by project. " + tasklistDescription,
-			Annotations: &mcp.ToolAnnotations{
-				Title:        "List Tasklists By Project",
-				ReadOnlyHint: true,
-			},
-			InputSchema: &jsonschema.Schema{
-				Type: "object",
-				Properties: map[string]*jsonschema.Schema{
-					"project_id": {
-						Type:        "integer",
-						Description: "The ID of the project from which to retrieve tasklists.",
-					},
-					"search_term": {
-						Description: "A search term to filter tasklists by name.",
-						AnyOf: []*jsonschema.Schema{
-							{Type: "string"},
-							{Type: "null"},
-						},
-					},
-					"page": {
-						Description: "Page number for pagination of results.",
-						AnyOf: []*jsonschema.Schema{
-							{Type: "integer"},
-							{Type: "null"},
-						},
-					},
-					"page_size": {
-						Description: "Number of results per page for pagination.",
-						AnyOf: []*jsonschema.Schema{
-							{Type: "integer"},
-							{Type: "null"},
-						},
-					},
-				},
-				Required: []string{"project_id"},
-			},
-			OutputSchema: tasklistListOutputSchema,
-		},
-		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-			var tasklistListRequest projects.TasklistListRequest
-
-			var arguments map[string]any
-			if err := json.Unmarshal(request.Params.Arguments, &arguments); err != nil {
-				return helpers.NewToolResultTextError("failed to decode request: %s", err.Error()), nil
-			}
-			err := helpers.ParamGroup(arguments,
-				helpers.RequiredNumericParam(&tasklistListRequest.Path.ProjectID, "project_id"),
+				helpers.OptionalNumericParam(&tasklistListRequest.Path.ProjectID, "project_id"),
 				helpers.OptionalParam(&tasklistListRequest.Filters.SearchTerm, "search_term"),
 				helpers.OptionalNumericParam(&tasklistListRequest.Filters.Page, "page"),
 				helpers.OptionalNumericParam(&tasklistListRequest.Filters.PageSize, "page_size"),

@@ -69,7 +69,7 @@ func TestMilestoneList(t *testing.T) {
 
 func TestMilestoneListByProject(t *testing.T) {
 	mcpServer := mcpServerMock(t, http.StatusOK, []byte(`{}`))
-	testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodMilestoneListByProject.String(), map[string]any{
+	testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodMilestoneList.String(), map[string]any{
 		"project_id":     float64(123),
 		"search_term":    "test",
 		"tag_ids":        []float64{1, 2, 3},

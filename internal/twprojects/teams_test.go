@@ -68,7 +68,7 @@ func TestTeamList(t *testing.T) {
 
 func TestTeamListByCompany(t *testing.T) {
 	mcpServer := mcpServerMock(t, http.StatusOK, []byte(`{}`))
-	testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodTeamListByCompany.String(), map[string]any{
+	testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodTeamList.String(), map[string]any{
 		"company_id":  float64(123),
 		"search_term": "test",
 		"page":        float64(1),
@@ -78,7 +78,7 @@ func TestTeamListByCompany(t *testing.T) {
 
 func TestTeamListByProject(t *testing.T) {
 	mcpServer := mcpServerMock(t, http.StatusOK, []byte(`{}`))
-	testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodTeamListByProject.String(), map[string]any{
+	testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodTeamList.String(), map[string]any{
 		"project_id":  float64(123),
 		"search_term": "test",
 		"page":        float64(1),

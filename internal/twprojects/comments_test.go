@@ -63,7 +63,7 @@ func TestCommentList(t *testing.T) {
 
 func TestCommentListByFileVersion(t *testing.T) {
 	mcpServer := mcpServerMock(t, http.StatusOK, []byte(`{}`))
-	testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodCommentListByFileVersion.String(), map[string]any{
+	testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodCommentList.String(), map[string]any{
 		"search_term":     "test",
 		"file_version_id": float64(123),
 		"updated_after":   "2025-01-01T00:00:00Z",
@@ -74,7 +74,7 @@ func TestCommentListByFileVersion(t *testing.T) {
 
 func TestCommentListByMilestone(t *testing.T) {
 	mcpServer := mcpServerMock(t, http.StatusOK, []byte(`{}`))
-	testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodCommentListByMilestone.String(), map[string]any{
+	testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodCommentList.String(), map[string]any{
 		"search_term":   "test",
 		"milestone_id":  float64(123),
 		"updated_after": "2025-01-01T00:00:00Z",
@@ -85,7 +85,7 @@ func TestCommentListByMilestone(t *testing.T) {
 
 func TestCommentListByNotebook(t *testing.T) {
 	mcpServer := mcpServerMock(t, http.StatusOK, []byte(`{}`))
-	testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodCommentListByNotebook.String(), map[string]any{
+	testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodCommentList.String(), map[string]any{
 		"search_term":   "test",
 		"notebook_id":   float64(123),
 		"updated_after": "2025-01-01T00:00:00Z",
@@ -96,7 +96,7 @@ func TestCommentListByNotebook(t *testing.T) {
 
 func TestCommentListByTask(t *testing.T) {
 	mcpServer := mcpServerMock(t, http.StatusOK, []byte(`{}`))
-	testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodCommentListByTask.String(), map[string]any{
+	testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodCommentList.String(), map[string]any{
 		"search_term":   "test",
 		"task_id":       float64(123),
 		"updated_after": "2025-01-01T00:00:00Z",
@@ -107,7 +107,7 @@ func TestCommentListByTask(t *testing.T) {
 
 func TestCommentListByLink(t *testing.T) {
 	mcpServer := mcpServerMock(t, http.StatusOK, []byte(`{}`))
-	testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodCommentListByLink.String(), map[string]any{
+	testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodCommentList.String(), map[string]any{
 		"search_term":   "test",
 		"link_id":       float64(123),
 		"updated_after": "2025-01-01T00:00:00Z",

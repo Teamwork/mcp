@@ -18,13 +18,12 @@ import (
 // The naming convention for methods follows a pattern described here:
 // https://github.com/github/github-mcp-server/issues/333
 const (
-	MethodUserCreate        toolsets.Method = "twprojects-create_user"
-	MethodUserUpdate        toolsets.Method = "twprojects-update_user"
-	MethodUserDelete        toolsets.Method = "twprojects-delete_user"
-	MethodUserGet           toolsets.Method = "twprojects-get_user"
-	MethodUserGetMe         toolsets.Method = "twprojects-get_user_me"
-	MethodUserList          toolsets.Method = "twprojects-list_users"
-	MethodUserListByProject toolsets.Method = "twprojects-list_users_by_project"
+	MethodUserCreate toolsets.Method = "twprojects-create_user"
+	MethodUserUpdate toolsets.Method = "twprojects-update_user"
+	MethodUserDelete toolsets.Method = "twprojects-delete_user"
+	MethodUserGet    toolsets.Method = "twprojects-get_user"
+	MethodUserGetMe  toolsets.Method = "twprojects-get_user_me"
+	MethodUserList   toolsets.Method = "twprojects-list_users"
 )
 
 const userDescription = "A user is an individual who has access to one or more projects within a Teamwork site, " +
@@ -401,7 +400,7 @@ func UserList(engine *twapi.Engine) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
 			Name:        string(MethodUserList),
-			Description: "List users in Teamwork.com. " + userDescription,
+			Description: "List users in Teamwork.com. Provide project_id to scope to a specific project. " + userDescription,
 			Annotations: &mcp.ToolAnnotations{
 				Title:        "List Users",
 				ReadOnlyHint: true,
@@ -409,6 +408,13 @@ func UserList(engine *twapi.Engine) toolsets.ToolWrapper {
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
 				Properties: map[string]*jsonschema.Schema{
+					"project_id": {
+						Description: "The ID of the project from which to retrieve users. Omit to list users across all projects.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "integer"},
+							{Type: "null"},
+						},
+					},
 					"search_term": {
 						Description: "A search term to filter users by first or last names, or e-mail. " +
 							"The user will be selected if each word of the term matches the first or last name, or e-mail, not " +
@@ -452,103 +458,7 @@ func UserList(engine *twapi.Engine) toolsets.ToolWrapper {
 				return helpers.NewToolResultTextError("failed to decode request: %s", err.Error()), nil
 			}
 			err := helpers.ParamGroup(arguments,
-				helpers.OptionalParam(&userListRequest.Filters.SearchTerm, "search_term"),
-				helpers.OptionalParam(&userListRequest.Filters.Type, "type",
-					helpers.RestrictValues("account", "collaborator", "contact"),
-				),
-				helpers.OptionalNumericParam(&userListRequest.Filters.Page, "page"),
-				helpers.OptionalNumericParam(&userListRequest.Filters.PageSize, "page_size"),
-			)
-			if err != nil {
-				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
-			}
-
-			userList, err := projects.UserList(ctx, engine, userListRequest)
-			if err != nil {
-				return helpers.HandleAPIError(err, "failed to list users")
-			}
-
-			encoded, err := json.Marshal(userList)
-			if err != nil {
-				return nil, err
-			}
-			return &mcp.CallToolResult{
-				Content: []mcp.Content{
-					&mcp.TextContent{
-						Text: string(helpers.WebLinker(ctx, encoded,
-							helpers.WebLinkerWithIDPathBuilder("/app/people"),
-						)),
-					},
-				},
-				StructuredContent: helpers.StructuredWebLinker(ctx, userList,
-					helpers.WebLinkerWithIDPathBuilder("/app/people"),
-				),
-			}, nil
-		},
-	}
-}
-
-// UserListByProject lists users in Teamwork.com by project.
-func UserListByProject(engine *twapi.Engine) toolsets.ToolWrapper {
-	return toolsets.ToolWrapper{
-		Tool: &mcp.Tool{
-			Name:        string(MethodUserListByProject),
-			Description: "List users in Teamwork.com by project. " + userDescription,
-			Annotations: &mcp.ToolAnnotations{
-				Title:        "List Users By Project",
-				ReadOnlyHint: true,
-			},
-			InputSchema: &jsonschema.Schema{
-				Type: "object",
-				Properties: map[string]*jsonschema.Schema{
-					"project_id": {
-						Type:        "integer",
-						Description: "The ID of the project from which to retrieve users.",
-					},
-					"search_term": {
-						Description: "A search term to filter users by first or last names, or e-mail. " +
-							"The user will be selected if each word of the term matches the first or last name, or e-mail, not " +
-							"requiring that the word matches are in the same field.",
-						AnyOf: []*jsonschema.Schema{
-							{Type: "string"},
-							{Type: "null"},
-						},
-					},
-					"type": {
-						Description: "Type of user to filter by. The available options are account, collaborator or contact.",
-						AnyOf: []*jsonschema.Schema{
-							{Type: "string"},
-							{Type: "null"},
-						},
-					},
-					"page": {
-						Description: "Page number for pagination of results.",
-						AnyOf: []*jsonschema.Schema{
-							{Type: "integer"},
-							{Type: "null"},
-						},
-					},
-					"page_size": {
-						Description: "Number of results per page for pagination.",
-						AnyOf: []*jsonschema.Schema{
-							{Type: "integer"},
-							{Type: "null"},
-						},
-					},
-				},
-				Required: []string{"project_id"},
-			},
-			OutputSchema: userListOutputSchema,
-		},
-		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-			var userListRequest projects.UserListRequest
-
-			var arguments map[string]any
-			if err := json.Unmarshal(request.Params.Arguments, &arguments); err != nil {
-				return helpers.NewToolResultTextError("failed to decode request: %s", err.Error()), nil
-			}
-			err := helpers.ParamGroup(arguments,
-				helpers.RequiredNumericParam(&userListRequest.Path.ProjectID, "project_id"),
+				helpers.OptionalNumericParam(&userListRequest.Path.ProjectID, "project_id"),
 				helpers.OptionalParam(&userListRequest.Filters.SearchTerm, "search_term"),
 				helpers.OptionalParam(&userListRequest.Filters.Type, "type",
 					helpers.RestrictValues("account", "collaborator", "contact"),

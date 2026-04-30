@@ -19,13 +19,11 @@ import (
 // The naming convention for methods follows a pattern described here:
 // https://github.com/github/github-mcp-server/issues/333
 const (
-	MethodTeamCreate        toolsets.Method = "twprojects-create_team"
-	MethodTeamUpdate        toolsets.Method = "twprojects-update_team"
-	MethodTeamDelete        toolsets.Method = "twprojects-delete_team"
-	MethodTeamGet           toolsets.Method = "twprojects-get_team"
-	MethodTeamList          toolsets.Method = "twprojects-list_teams"
-	MethodTeamListByCompany toolsets.Method = "twprojects-list_teams_by_company"
-	MethodTeamListByProject toolsets.Method = "twprojects-list_teams_by_project"
+	MethodTeamCreate toolsets.Method = "twprojects-create_team"
+	MethodTeamUpdate toolsets.Method = "twprojects-update_team"
+	MethodTeamDelete toolsets.Method = "twprojects-delete_team"
+	MethodTeamGet    toolsets.Method = "twprojects-get_team"
+	MethodTeamList   toolsets.Method = "twprojects-list_teams"
 )
 
 const teamDescription = "In the context of Teamwork.com, a team is a group of users who are organized together to " +
@@ -368,8 +366,11 @@ func TeamGet(engine *twapi.Engine) toolsets.ToolWrapper {
 func TeamList(engine *twapi.Engine) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
-			Name:        string(MethodTeamList),
-			Description: "List teams in Teamwork.com. " + teamDescription,
+			Name: string(MethodTeamList),
+			Description: `
+				List teams in Teamwork.com. 
+				Provide company_id or project_id to scope to a specific company or project. 
+			` + teamDescription,
 			Annotations: &mcp.ToolAnnotations{
 				Title:        "List Teams",
 				ReadOnlyHint: true,
@@ -377,6 +378,23 @@ func TeamList(engine *twapi.Engine) toolsets.ToolWrapper {
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
 				Properties: map[string]*jsonschema.Schema{
+					"company_id": {
+						Description: `
+							The ID of the company from which to retrieve teams. 
+							Omit to list teams across all companies.
+						`,
+						AnyOf: []*jsonschema.Schema{
+							{Type: "integer"},
+							{Type: "null"},
+						},
+					},
+					"project_id": {
+						Description: "The ID of the project from which to retrieve teams. Omit to list teams across all projects.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "integer"},
+							{Type: "null"},
+						},
+					},
 					"search_term": {
 						Description: "A search term to filter teams by name or handle.",
 						AnyOf: []*jsonschema.Schema{
@@ -406,16 +424,13 @@ func TeamList(engine *twapi.Engine) toolsets.ToolWrapper {
 		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 			var teamListRequest projects.TeamListRequest
 
-			// to simplify the teams logic for the LLM, always return all team types
-			teamListRequest.Filters.IncludeCompanyTeams = true
-			teamListRequest.Filters.IncludeProjectTeams = true
-			teamListRequest.Filters.IncludeSubteams = true
-
 			var arguments map[string]any
 			if err := json.Unmarshal(request.Params.Arguments, &arguments); err != nil {
 				return helpers.NewToolResultTextError("failed to decode request: %s", err.Error()), nil
 			}
 			err := helpers.ParamGroup(arguments,
+				helpers.OptionalNumericParam(&teamListRequest.Path.CompanyID, "company_id"),
+				helpers.OptionalNumericParam(&teamListRequest.Path.ProjectID, "project_id"),
 				helpers.OptionalParam(&teamListRequest.Filters.SearchTerm, "search_term"),
 				helpers.OptionalNumericParam(&teamListRequest.Filters.Page, "page"),
 				helpers.OptionalNumericParam(&teamListRequest.Filters.PageSize, "page_size"),
@@ -424,174 +439,11 @@ func TeamList(engine *twapi.Engine) toolsets.ToolWrapper {
 				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
 			}
 
-			teamList, err := projects.TeamList(ctx, engine, teamListRequest)
-			if err != nil {
-				return helpers.HandleAPIError(err, "failed to list teams")
-			}
-
-			encoded, err := json.Marshal(teamList)
-			if err != nil {
-				return nil, err
-			}
-			return &mcp.CallToolResult{
-				Content: []mcp.Content{
-					&mcp.TextContent{
-						Text: string(helpers.WebLinker(ctx, encoded,
-							helpers.WebLinkerWithIDPathBuilder("/app/teams"),
-						)),
-					},
-				},
-				StructuredContent: helpers.StructuredWebLinker(ctx, teamList,
-					helpers.WebLinkerWithIDPathBuilder("/app/teams"),
-				),
-			}, nil
-		},
-	}
-}
-
-// TeamListByCompany lists teams in Teamwork.com by client/company.
-func TeamListByCompany(engine *twapi.Engine) toolsets.ToolWrapper {
-	return toolsets.ToolWrapper{
-		Tool: &mcp.Tool{
-			Name:        string(MethodTeamListByCompany),
-			Description: "List teams in Teamwork.com by client/company. " + teamDescription,
-			Annotations: &mcp.ToolAnnotations{
-				Title:        "List Teams By Company",
-				ReadOnlyHint: true,
-			},
-			InputSchema: &jsonschema.Schema{
-				Type: "object",
-				Properties: map[string]*jsonschema.Schema{
-					"company_id": {
-						Type:        "integer",
-						Description: "The ID of the company from which to retrieve teams.",
-					},
-					"search_term": {
-						Description: "A search term to filter teams by name or handle.",
-						AnyOf: []*jsonschema.Schema{
-							{Type: "string"},
-							{Type: "null"},
-						},
-					},
-					"page": {
-						Description: "Page number for pagination of results.",
-						AnyOf: []*jsonschema.Schema{
-							{Type: "integer"},
-							{Type: "null"},
-						},
-					},
-					"page_size": {
-						Description: "Number of results per page for pagination.",
-						AnyOf: []*jsonschema.Schema{
-							{Type: "integer"},
-							{Type: "null"},
-						},
-					},
-				},
-				Required: []string{"company_id"},
-			},
-			OutputSchema: teamListOutputSchema,
-		},
-		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-			var teamListRequest projects.TeamListRequest
-
-			var arguments map[string]any
-			if err := json.Unmarshal(request.Params.Arguments, &arguments); err != nil {
-				return helpers.NewToolResultTextError("failed to decode request: %s", err.Error()), nil
-			}
-			err := helpers.ParamGroup(arguments,
-				helpers.RequiredNumericParam(&teamListRequest.Path.CompanyID, "company_id"),
-				helpers.OptionalParam(&teamListRequest.Filters.SearchTerm, "search_term"),
-				helpers.OptionalNumericParam(&teamListRequest.Filters.Page, "page"),
-				helpers.OptionalNumericParam(&teamListRequest.Filters.PageSize, "page_size"),
-			)
-			if err != nil {
-				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
-			}
-
-			teamList, err := projects.TeamList(ctx, engine, teamListRequest)
-			if err != nil {
-				return helpers.HandleAPIError(err, "failed to list teams")
-			}
-
-			encoded, err := json.Marshal(teamList)
-			if err != nil {
-				return nil, err
-			}
-			return &mcp.CallToolResult{
-				Content: []mcp.Content{
-					&mcp.TextContent{
-						Text: string(helpers.WebLinker(ctx, encoded,
-							helpers.WebLinkerWithIDPathBuilder("/app/teams"),
-						)),
-					},
-				},
-				StructuredContent: helpers.StructuredWebLinker(ctx, teamList,
-					helpers.WebLinkerWithIDPathBuilder("/app/teams"),
-				),
-			}, nil
-		},
-	}
-}
-
-// TeamListByProject lists teams in Teamwork.com by project.
-func TeamListByProject(engine *twapi.Engine) toolsets.ToolWrapper {
-	return toolsets.ToolWrapper{
-		Tool: &mcp.Tool{
-			Name:        string(MethodTeamListByProject),
-			Description: "List teams in Teamwork.com by project. " + teamDescription,
-			Annotations: &mcp.ToolAnnotations{
-				Title:        "List Teams By Project",
-				ReadOnlyHint: true,
-			},
-			InputSchema: &jsonschema.Schema{
-				Type: "object",
-				Properties: map[string]*jsonschema.Schema{
-					"project_id": {
-						Type:        "integer",
-						Description: "The ID of the project from which to retrieve teams.",
-					},
-					"search_term": {
-						Description: "A search term to filter teams by name or handle.",
-						AnyOf: []*jsonschema.Schema{
-							{Type: "string"},
-							{Type: "null"},
-						},
-					},
-					"page": {
-						Description: "Page number for pagination of results.",
-						AnyOf: []*jsonschema.Schema{
-							{Type: "integer"},
-							{Type: "null"},
-						},
-					},
-					"page_size": {
-						Description: "Number of results per page for pagination.",
-						AnyOf: []*jsonschema.Schema{
-							{Type: "integer"},
-							{Type: "null"},
-						},
-					},
-				},
-				Required: []string{"project_id"},
-			},
-			OutputSchema: teamListOutputSchema,
-		},
-		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-			var teamListRequest projects.TeamListRequest
-
-			var arguments map[string]any
-			if err := json.Unmarshal(request.Params.Arguments, &arguments); err != nil {
-				return helpers.NewToolResultTextError("failed to decode request: %s", err.Error()), nil
-			}
-			err := helpers.ParamGroup(arguments,
-				helpers.RequiredNumericParam(&teamListRequest.Path.ProjectID, "project_id"),
-				helpers.OptionalParam(&teamListRequest.Filters.SearchTerm, "search_term"),
-				helpers.OptionalNumericParam(&teamListRequest.Filters.Page, "page"),
-				helpers.OptionalNumericParam(&teamListRequest.Filters.PageSize, "page_size"),
-			)
-			if err != nil {
-				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
+			// when no scoping ID is provided, include all team types for a complete global listing
+			if teamListRequest.Path.CompanyID == 0 && teamListRequest.Path.ProjectID == 0 {
+				teamListRequest.Filters.IncludeCompanyTeams = true
+				teamListRequest.Filters.IncludeProjectTeams = true
+				teamListRequest.Filters.IncludeSubteams = true
 			}
 
 			teamList, err := projects.TeamList(ctx, engine, teamListRequest)
