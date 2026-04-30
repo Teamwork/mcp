@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"flag"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"os"
@@ -22,7 +23,7 @@ var (
 func main() {
 	defer handleExit()
 
-	resources, teardown := config.Load(os.Stdout)
+	resources, teardown := config.Load(os.Stderr)
 	defer teardown()
 
 	if err := flag.CommandLine.Parse(os.Args[1:]); err != nil {
@@ -92,6 +93,43 @@ func main() {
 				slog.String("description", tool.Description),
 			)
 		}
+	case "export-tools":
+		toolsResult, err := mcpClientSession.ListTools(ctx, &mcp.ListToolsParams{})
+		if err != nil {
+			resources.Logger().Error("failed to list tools",
+				slog.String("error", err.Error()),
+			)
+			exit(exitCodeRunFailure)
+		}
+
+		out := make(map[string]any, len(toolsResult.Tools))
+		for _, tool := range toolsResult.Tools {
+			entry := map[string]any{
+				"description": tool.Description,
+				"title":       tool.Title,
+				"inputSchema": map[string]any{"jsonSchema": tool.InputSchema},
+				"type":        "dynamic",
+			}
+			if tool.OutputSchema != nil {
+				entry["outputSchema"] = map[string]any{"jsonSchema": tool.OutputSchema}
+			}
+			if tool.Annotations != nil {
+				entry["annotations"] = tool.Annotations
+			}
+			if tool.Meta != nil {
+				entry["_meta"] = tool.Meta
+			}
+			out[tool.Name] = entry
+		}
+
+		encoded, err := json.MarshalIndent(out, "", "  ")
+		if err != nil {
+			resources.Logger().Error("failed to marshal tools",
+				slog.String("error", err.Error()),
+			)
+			exit(exitCodeRunFailure)
+		}
+		fmt.Println(string(encoded))
 	case "call-tool":
 		if len(args) < 2 {
 			resources.Logger().Error("no tool name provided")
@@ -137,7 +175,7 @@ func main() {
 	default:
 		resources.Logger().Error("unknown command",
 			slog.String("command", args[0]),
-			slog.String("available_commands", "list-tools, call-tool"),
+			slog.String("available_commands", "list-tools, export-tools, call-tool"),
 		)
 		exit(exitCodeSetupFailure)
 	}
