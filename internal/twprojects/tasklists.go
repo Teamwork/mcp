@@ -25,13 +25,6 @@ const (
 	MethodTasklistList   toolsets.Method = "twprojects-list_tasklists"
 )
 
-const tasklistDescription = "In the context of Teamwork.com, a task list is a way to group related tasks within a " +
-	"project, helping teams organize their work into meaningful sections such as phases, categories, or deliverables. " +
-	"Each task list belongs to a specific project and can include multiple tasks that are typically aligned with a " +
-	"common goal. Task lists can be associated with milestones, and they support privacy settings that control who " +
-	"can view or interact with the tasks they contain. This structure helps teams manage progress, assign " +
-	"responsibilities, and maintain clarity across complex projects."
-
 var (
 	tasklistGetOutputSchema  *jsonschema.Schema
 	tasklistListOutputSchema *jsonschema.Schema
@@ -58,7 +51,7 @@ func TasklistCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
 			Name:        string(MethodTasklistCreate),
-			Description: "Create a new tasklist in Teamwork.com. " + tasklistDescription,
+			Description: "Create tasklist in a project.",
 			Annotations: &mcp.ToolAnnotations{
 				Title: "Create Tasklist",
 			},
@@ -122,7 +115,7 @@ func TasklistUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
 			Name:        string(MethodTasklistUpdate),
-			Description: "Update an existing tasklist in Teamwork.com. " + tasklistDescription,
+			Description: "Update tasklist.",
 			Annotations: &mcp.ToolAnnotations{
 				Title: "Update Tasklist",
 			},
@@ -189,7 +182,7 @@ func TasklistDelete(engine *twapi.Engine) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
 			Name:        string(MethodTasklistDelete),
-			Description: "Delete an existing tasklist in Teamwork.com. " + tasklistDescription,
+			Description: "Delete tasklist.",
 			Annotations: &mcp.ToolAnnotations{
 				Title: "Delete Tasklist",
 			},
@@ -232,7 +225,7 @@ func TasklistGet(engine *twapi.Engine) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
 			Name:        string(MethodTasklistGet),
-			Description: "Get an existing tasklist in Teamwork.com. " + tasklistDescription,
+			Description: "Get tasklist.",
 			Annotations: &mcp.ToolAnnotations{
 				Title:        "Get Tasklist",
 				ReadOnlyHint: true,
@@ -292,9 +285,8 @@ func TasklistGet(engine *twapi.Engine) toolsets.ToolWrapper {
 func TasklistList(engine *twapi.Engine) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
-			Name: string(MethodTasklistList),
-			Description: "List tasklists in Teamwork.com. Provide project_id to scope to a specific project. " +
-				tasklistDescription,
+			Name:        string(MethodTasklistList),
+			Description: "List tasklists. Scope by project_id or omit for site-wide.",
 			Annotations: &mcp.ToolAnnotations{
 				Title:        "List Tasklists",
 				ReadOnlyHint: true,

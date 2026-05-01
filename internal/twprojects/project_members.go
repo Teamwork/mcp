@@ -20,18 +20,12 @@ const (
 	MethodProjectMemberAdd toolsets.Method = "twprojects-add_project_member"
 )
 
-const projectMemberDescription = "In the context of Teamwork.com, a project member is a user who is assigned to a " +
-	"specific project. Project members can have different roles and permissions within the project, allowing them to " +
-	"collaborate on tasks, view project details, and contribute to the project's success. Managing project members " +
-	"effectively is crucial for ensuring that the right people are involved in the right tasks, and it helps maintain " +
-	"accountability and clarity throughout the project's lifecycle."
-
 // ProjectMemberAdd adds a user to a project in Teamwork.com.
 func ProjectMemberAdd(engine *twapi.Engine) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
 			Name:        string(MethodProjectMemberAdd),
-			Description: "Add a user to a project in Teamwork.com. " + projectMemberDescription,
+			Description: "Add a user to a project.",
 			Annotations: &mcp.ToolAnnotations{
 				Title: "Add Project Member",
 			},

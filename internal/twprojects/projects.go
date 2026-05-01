@@ -26,14 +26,6 @@ const (
 	MethodProjectList   toolsets.Method = "twprojects-list_projects"
 )
 
-const projectDescription = "The project feature in Teamwork.com serves as the central workspace for organizing and " +
-	"managing a specific piece of work or initiative. Each project provides a dedicated area where teams can plan " +
-	"tasks, assign responsibilities, set deadlines, and track progress toward shared goals. Projects include tools " +
-	"for communication, file sharing, milestones, and time tracking, allowing teams to stay aligned and informed " +
-	"throughout the entire lifecycle of the work. Whether it's a product launch, client engagement, or internal " +
-	"initiative, projects in Teamwork.com help teams structure their efforts, collaborate more effectively, and " +
-	"deliver results with greater visibility and accountability."
-
 var (
 	projectGetOutputSchema  *jsonschema.Schema
 	projectListOutputSchema *jsonschema.Schema
@@ -60,7 +52,7 @@ func ProjectCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
 			Name:        string(MethodProjectCreate),
-			Description: "Create a new project in Teamwork.com. " + projectDescription,
+			Description: "Create project.",
 			Annotations: &mcp.ToolAnnotations{
 				Title: "Create Project",
 			},
@@ -159,7 +151,7 @@ func ProjectUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
 			Name:        string(MethodProjectUpdate),
-			Description: "Update an existing project in Teamwork.com. " + projectDescription,
+			Description: "Update project.",
 			Annotations: &mcp.ToolAnnotations{
 				Title: "Update Project",
 			},
@@ -279,7 +271,7 @@ func ProjectDelete(engine *twapi.Engine) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
 			Name:        string(MethodProjectDelete),
-			Description: "Delete an existing project in Teamwork.com. " + projectDescription,
+			Description: "Delete project.",
 			Annotations: &mcp.ToolAnnotations{
 				Title: "Delete Project",
 			},
@@ -322,7 +314,7 @@ func ProjectClone(engine *twapi.Engine) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
 			Name:        string(MethodProjectClone),
-			Description: "Clone/copy an existing project or generate one from a project template. " + projectDescription,
+			Description: "Clone/copy an existing project or instantiate one from a template.",
 			Annotations: &mcp.ToolAnnotations{
 				Title: "Clone Project",
 			},
@@ -475,7 +467,7 @@ func ProjectGet(engine *twapi.Engine) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
 			Name:        string(MethodProjectGet),
-			Description: "Get an existing project in Teamwork.com. " + projectDescription,
+			Description: "Get project.",
 			Annotations: &mcp.ToolAnnotations{
 				Title:        "Get Project",
 				ReadOnlyHint: true,
@@ -543,7 +535,7 @@ func ProjectList(engine *twapi.Engine) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
 			Name:        string(MethodProjectList),
-			Description: "List projects in Teamwork.com. " + projectDescription,
+			Description: "List projects.",
 			Annotations: &mcp.ToolAnnotations{
 				Title:        "List Projects",
 				ReadOnlyHint: true,

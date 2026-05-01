@@ -21,19 +21,12 @@ const (
 	MethodUsersWorkload toolsets.Method = "twprojects-users_workload"
 )
 
-const workloadDescription = "Workload is a visual representation of how tasks are distributed across team members, " +
-	"helping you understand who is overloaded, who has capacity, and how work is balanced within a project or " +
-	"across multiple projects. It takes into account assigned tasks, due dates, estimated time, and working " +
-	"hours to give managers and teams a clear picture of availability and resource allocation. By providing " +
-	"this insight, workload makes it easier to plan effectively, prevent burnout, and ensure that deadlines are " +
-	"met without placing too much pressure on any single person."
-
 // UsersWorkload retrieves the workload of users in Teamwork.com.
 func UsersWorkload(engine *twapi.Engine) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
 			Name:        string(MethodUsersWorkload),
-			Description: "Get the workload of users in Teamwork.com. " + workloadDescription,
+			Description: "Get task allocation across users for a date range. (workload of users)",
 			Annotations: &mcp.ToolAnnotations{
 				Title:        "Get Users Workload",
 				ReadOnlyHint: true,

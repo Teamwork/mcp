@@ -26,13 +26,6 @@ const (
 	MethodTaskList     toolsets.Method = "twprojects-list_tasks"
 )
 
-const taskDescription = "In Teamwork.com, a task represents an individual unit of work assigned to one or more team " +
-	"members within a project. Each task can include details such as a title, description, priority, estimated time, " +
-	"assignees, and due date, along with the ability to attach files, leave comments, track time, and set dependencies " +
-	"on other tasks. Tasks are organized within task lists, helping structure and sequence work logically. They serve " +
-	"as the building blocks of project management in Teamwork, allowing teams to collaborate, monitor progress, and " +
-	"ensure accountability throughout the project's lifecycle."
-
 var (
 	taskGetOutputSchema  *jsonschema.Schema
 	taskListOutputSchema *jsonschema.Schema
@@ -59,7 +52,7 @@ func TaskCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
 			Name:        string(MethodTaskCreate),
-			Description: "Create a new task in Teamwork.com. " + taskDescription,
+			Description: "Create task in a tasklist.",
 			Annotations: &mcp.ToolAnnotations{
 				Title: "Create Task",
 			},
@@ -435,7 +428,7 @@ func TaskUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
 			Name:        string(MethodTaskUpdate),
-			Description: "Update an existing task in Teamwork.com. " + taskDescription,
+			Description: "Update task.",
 			Annotations: &mcp.ToolAnnotations{
 				Title: "Update Task",
 			},
@@ -818,7 +811,7 @@ func TaskDelete(engine *twapi.Engine) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
 			Name:        string(MethodTaskDelete),
-			Description: "Delete an existing task in Teamwork.com. " + taskDescription,
+			Description: "Delete task.",
 			Annotations: &mcp.ToolAnnotations{
 				Title: "Delete Task",
 			},
@@ -861,7 +854,7 @@ func TaskComplete(engine *twapi.Engine) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
 			Name:        string(MethodTaskComplete),
-			Description: "Mark an existing task as complete in Teamwork.com. " + taskDescription,
+			Description: "Mark task complete.",
 			Annotations: &mcp.ToolAnnotations{
 				Title: "Complete Task",
 			},
@@ -904,7 +897,7 @@ func TaskGet(engine *twapi.Engine) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
 			Name:        string(MethodTaskGet),
-			Description: "Get an existing task in Teamwork.com. " + taskDescription,
+			Description: "Get task.",
 			Annotations: &mcp.ToolAnnotations{
 				Title:        "Get Task",
 				ReadOnlyHint: true,
@@ -964,9 +957,8 @@ func TaskGet(engine *twapi.Engine) toolsets.ToolWrapper {
 func TaskList(engine *twapi.Engine) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
-			Name: string(MethodTaskList),
-			Description: "List tasks in Teamwork.com. Provide tasklist_id to scope to a specific tasklist, " +
-				"project_id to scope to a project, or neither to search across all tasks. " + taskDescription,
+			Name:        string(MethodTaskList),
+			Description: "List tasks. Scope by tasklist_id, project_id, or neither for site-wide.",
 			Annotations: &mcp.ToolAnnotations{
 				Title:        "List Tasks",
 				ReadOnlyHint: true,

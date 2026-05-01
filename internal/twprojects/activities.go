@@ -21,13 +21,6 @@ const (
 	MethodActivityList toolsets.Method = "twprojects-list_activities"
 )
 
-const activityDescription = "Activity is a record of actions and updates that occur across your projects, tasks, and " +
-	"communications, giving you a clear view of what’s happening within your workspace. Activities capture changes " +
-	"such as task completions, activities added, files uploaded, or milestones updated, and present them in a " +
-	"chronological feed so teams can stay aligned without needing to check each individual project or task. This " +
-	"stream of information helps improve transparency, ensures accountability, and keeps everyone aware of progress " +
-	"and decisions as they happen."
-
 var (
 	activityListOutputSchema *jsonschema.Schema
 )
@@ -47,9 +40,8 @@ func init() {
 func ActivityList(engine *twapi.Engine) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
-			Name: string(MethodActivityList),
-			Description: "List activities in Teamwork.com. Provide project_id to scope to a specific project. " +
-				activityDescription,
+			Name:        string(MethodActivityList),
+			Description: "List recent activity events. Scope by project_id or omit for site-wide.",
 			Annotations: &mcp.ToolAnnotations{
 				Title:        "List Activities",
 				ReadOnlyHint: true,

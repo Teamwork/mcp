@@ -6,9 +6,11 @@ import (
 )
 
 const (
-	peopleDescription  = "Users, companies, teams, skills, job roles, and workload management in Teamwork.com."
-	timeDescription    = "Time tracking via timelogs, timers, and budget reporting in Teamwork.com."
-	contentDescription = "Comments, notebooks, milestones, tags, and activity feeds in Teamwork.com."
+	projectsDescription = "Project, category, template, and member management in Teamwork.com."
+	tasksDescription    = "Task, tasklist, and workflow management in Teamwork.com."
+	peopleDescription   = "Users, companies, teams, skills, job roles, and workload management in Teamwork.com."
+	timeDescription     = "Time tracking via timelogs, timers, and budget reporting in Teamwork.com."
+	contentDescription  = "Comments, notebooks, milestones, tags, and activity feeds in Teamwork.com."
 )
 
 // Sub-toolset keys for twprojects. These are the valid values for the
@@ -54,7 +56,7 @@ func DefaultToolsetGroup(readOnly, allowDelete bool, engine *twapi.Engine) *tool
 			ProjectDelete(engine),
 		)
 	}
-	projectsToolset := toolsets.NewToolset(ToolsetProjects, projectDescription).
+	projectsToolset := toolsets.NewToolset(ToolsetProjects, projectsDescription).
 		AddWriteTools(projectsWriteTools...).
 		AddReadTools(
 			ProjectCategoryGet(engine),
@@ -87,7 +89,7 @@ func DefaultToolsetGroup(readOnly, allowDelete bool, engine *twapi.Engine) *tool
 			WorkflowStageDelete(engine),
 		)
 	}
-	tasksToolset := toolsets.NewToolset(ToolsetTasks, taskDescription).
+	tasksToolset := toolsets.NewToolset(ToolsetTasks, tasksDescription).
 		AddWriteTools(tasksWriteTools...).
 		AddReadTools(
 			TaskGet(engine),

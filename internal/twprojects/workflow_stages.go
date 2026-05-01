@@ -26,10 +26,6 @@ const (
 	MethodWorkflowStageList     toolsets.Method = "twprojects-list_workflow_stages"
 )
 
-const workflowStageDescription = "A workflow stage is a single step within a workflow in Teamwork.com. " +
-	"Stages are ordered and define the progression path for tasks as they move through the workflow " +
-	"from start to completion. Each stage belongs to a parent workflow."
-
 var (
 	workflowStageGetOutputSchema  *jsonschema.Schema
 	workflowStageListOutputSchema *jsonschema.Schema
@@ -56,7 +52,7 @@ func WorkflowStageCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
 			Name:        string(MethodWorkflowStageCreate),
-			Description: "Create a new stage within a workflow in Teamwork.com. " + workflowStageDescription,
+			Description: "Create workflow stage.",
 			Annotations: &mcp.ToolAnnotations{
 				Title: "Create Workflow Stage",
 			},
@@ -104,7 +100,7 @@ func WorkflowStageUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
 			Name:        string(MethodWorkflowStageUpdate),
-			Description: "Update an existing stage within a workflow in Teamwork.com. " + workflowStageDescription,
+			Description: "Update workflow stage.",
 			Annotations: &mcp.ToolAnnotations{
 				Title: "Update Workflow Stage",
 			},
@@ -160,7 +156,7 @@ func WorkflowStageDelete(engine *twapi.Engine) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
 			Name:        string(MethodWorkflowStageDelete),
-			Description: "Delete an existing stage within a workflow in Teamwork.com. " + workflowStageDescription,
+			Description: "Delete workflow stage.",
 			Annotations: &mcp.ToolAnnotations{
 				Title: "Delete Workflow Stage",
 			},
@@ -217,9 +213,8 @@ func WorkflowStageDelete(engine *twapi.Engine) toolsets.ToolWrapper {
 func WorkflowStageTaskMove(engine *twapi.Engine) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
-			Name: string(MethodWorkflowStageTaskMove),
-			Description: "Move a task to a specific stage within a workflow in Teamwork.com. " +
-				workflowStageDescription,
+			Name:        string(MethodWorkflowStageTaskMove),
+			Description: "Move a task to a workflow stage.",
 			Annotations: &mcp.ToolAnnotations{
 				Title: "Move Task to Workflow Stage",
 			},
@@ -272,7 +267,7 @@ func WorkflowStageGet(engine *twapi.Engine) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
 			Name:        string(MethodWorkflowStageGet),
-			Description: "Get an existing stage within a workflow in Teamwork.com. " + workflowStageDescription,
+			Description: "Get workflow stage.",
 			Annotations: &mcp.ToolAnnotations{
 				Title:        "Get Workflow Stage",
 				ReadOnlyHint: true,
@@ -334,7 +329,7 @@ func WorkflowStageList(engine *twapi.Engine) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
 			Name:        string(MethodWorkflowStageList),
-			Description: "List stages within a workflow in Teamwork.com. " + workflowStageDescription,
+			Description: "List workflow stages.",
 			Annotations: &mcp.ToolAnnotations{
 				Title:        "List Workflow Stages",
 				ReadOnlyHint: true,

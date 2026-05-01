@@ -26,13 +26,6 @@ const (
 	MethodUserList   toolsets.Method = "twprojects-list_users"
 )
 
-const userDescription = "A user is an individual who has access to one or more projects within a Teamwork site, " +
-	"typically as a team member, collaborator, or administrator. Users can be assigned tasks, participate in " +
-	"discussions, log time, share files, and interact with other members depending on their permission levels. Each " +
-	"user has a unique profile that defines their role, visibility, and access to features and project data. Users " +
-	"can belong to clients/companies or teams within the system, and their permissions can be customized to control " +
-	"what actions they can perform or what information they can see."
-
 var (
 	userGetOutputSchema   *jsonschema.Schema
 	userGetMeOutputSchema *jsonschema.Schema
@@ -65,7 +58,7 @@ func UserCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
 			Name:        string(MethodUserCreate),
-			Description: "Create a new user in Teamwork.com. " + userDescription,
+			Description: "Create user.",
 			Annotations: &mcp.ToolAnnotations{
 				Title: "Create User",
 			},
@@ -152,7 +145,7 @@ func UserUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
 			Name:        string(MethodUserUpdate),
-			Description: "Update an existing user in Teamwork.com. " + userDescription,
+			Description: "Update user.",
 			Annotations: &mcp.ToolAnnotations{
 				Title: "Update User",
 			},
@@ -253,7 +246,7 @@ func UserDelete(engine *twapi.Engine) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
 			Name:        string(MethodUserDelete),
-			Description: "Delete an existing user in Teamwork.com. " + userDescription,
+			Description: "Delete user.",
 			Annotations: &mcp.ToolAnnotations{
 				Title: "Delete User",
 			},
@@ -296,7 +289,7 @@ func UserGet(engine *twapi.Engine) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
 			Name:        string(MethodUserGet),
-			Description: "Get an existing user in Teamwork.com. " + userDescription,
+			Description: "Get user.",
 			Annotations: &mcp.ToolAnnotations{
 				Title:        "Get User",
 				ReadOnlyHint: true,
@@ -357,7 +350,7 @@ func UserGetMe(engine *twapi.Engine) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
 			Name:        string(MethodUserGetMe),
-			Description: "Get the logged user in Teamwork.com. " + userDescription,
+			Description: "Get the currently authenticated user.",
 			Annotations: &mcp.ToolAnnotations{
 				Title:        "Get Logged User",
 				ReadOnlyHint: true,
@@ -400,7 +393,7 @@ func UserList(engine *twapi.Engine) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
 			Name:        string(MethodUserList),
-			Description: "List users in Teamwork.com. Provide project_id to scope to a specific project. " + userDescription,
+			Description: "List users. Scope by project_id or filter by type (account/collaborator/contact).",
 			Annotations: &mcp.ToolAnnotations{
 				Title:        "List Users",
 				ReadOnlyHint: true,

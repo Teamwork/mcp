@@ -29,13 +29,6 @@ const (
 	MethodCommentList   toolsets.Method = "twprojects-list_comments"
 )
 
-const commentDescription = "In the Teamwork.com context, a comment is a way for users to communicate and collaborate " +
-	"directly within tasks, milestones, files, or other project items. Comments allow team members to provide updates, " +
-	"ask questions, give feedback, or share relevant information in a centralized and contextual manner. They support " +
-	"rich text formatting, file attachments, and @mentions to notify specific users or teams, helping keep " +
-	"discussions organized and easily accessible within the project. Comments are visible to all users with access to " +
-	"the item, promoting transparency and keeping everyone aligned."
-
 var (
 	commentGetOutputSchema  *jsonschema.Schema
 	commentListOutputSchema *jsonschema.Schema
@@ -62,7 +55,7 @@ func CommentCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
 			Name:        string(MethodCommentCreate),
-			Description: "Create a new comment in Teamwork.com. " + commentDescription,
+			Description: "Create comment on a task, milestone, notebook, file, or link.",
 			Annotations: &mcp.ToolAnnotations{
 				Title: "Create Comment",
 			},
@@ -266,7 +259,7 @@ func CommentUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
 			Name:        string(MethodCommentUpdate),
-			Description: "Update an existing comment in Teamwork.com. " + commentDescription,
+			Description: "Update comment.",
 			Annotations: &mcp.ToolAnnotations{
 				Title: "Update Comment",
 			},
@@ -418,7 +411,7 @@ func CommentDelete(engine *twapi.Engine) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
 			Name:        string(MethodCommentDelete),
-			Description: "Delete an existing comment in Teamwork.com. " + commentDescription,
+			Description: "Delete comment.",
 			Annotations: &mcp.ToolAnnotations{
 				Title: "Delete Comment",
 			},
@@ -461,7 +454,7 @@ func CommentGet(engine *twapi.Engine) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
 			Name:        string(MethodCommentGet),
-			Description: "Get an existing comment in Teamwork.com. " + commentDescription,
+			Description: "Get comment.",
 			Annotations: &mcp.ToolAnnotations{
 				Title:        "Get Comment",
 				ReadOnlyHint: true,
@@ -518,9 +511,8 @@ func CommentList(engine *twapi.Engine) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
 			Name: string(MethodCommentList),
-			Description: "List comments in Teamwork.com. Provide one of task_id, milestone_id, notebook_id, " +
-				"link_id, or file_version_id to scope to a specific object; omit all to list across all objects. " +
-				commentDescription,
+			Description: "List comments. Scope by one of task_id, milestone_id, notebook_id, link_id, or file_version_id; " +
+				"omit all for site-wide.",
 			Annotations: &mcp.ToolAnnotations{
 				Title:        "List Comments",
 				ReadOnlyHint: true,

@@ -25,13 +25,6 @@ const (
 	MethodTimelogList   toolsets.Method = "twprojects-list_timelogs"
 )
 
-const timelogDescription = "Timelog refers to a recorded entry that tracks the amount of time a person has spent " +
-	"working on a specific task, project, or piece of work. These entries typically include details such as the " +
-	"duration of time worked, the date and time it was logged, who logged it, and any optional notes describing what " +
-	"was done during that period. Timelogs are essential for understanding how time is being allocated across " +
-	"projects, enabling teams to manage resources more effectively, invoice clients accurately, and assess " +
-	"productivity. They can be created manually or with timers, and are often used for reporting and billing purposes."
-
 var (
 	timelogGetOutputSchema  *jsonschema.Schema
 	timelogListOutputSchema *jsonschema.Schema
@@ -65,7 +58,7 @@ func TimelogCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 				"openai/outputTemplate": timelogCreateAppURI,
 			},
 			Name:        string(MethodTimelogCreate),
-			Description: "Create a new timelog in Teamwork.com. " + timelogDescription,
+			Description: "Create timelog entry against a project or task.",
 			Annotations: &mcp.ToolAnnotations{
 				Title: "Create Timelog",
 			},
@@ -185,7 +178,7 @@ func TimelogUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
 			Name:        string(MethodTimelogUpdate),
-			Description: "Update an existing timelog in Teamwork.com. " + timelogDescription,
+			Description: "Update timelog.",
 			Annotations: &mcp.ToolAnnotations{
 				Title: "Update Timelog",
 			},
@@ -318,7 +311,7 @@ func TimelogDelete(engine *twapi.Engine) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
 			Name:        string(MethodTimelogDelete),
-			Description: "Delete an existing timelog in Teamwork.com. " + timelogDescription,
+			Description: "Delete timelog.",
 			Annotations: &mcp.ToolAnnotations{
 				Title: "Delete Timelog",
 			},
@@ -361,7 +354,7 @@ func TimelogGet(engine *twapi.Engine) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
 			Name:        string(MethodTimelogGet),
-			Description: "Get an existing timelog in Teamwork.com. " + timelogDescription,
+			Description: "Get timelog.",
 			Annotations: &mcp.ToolAnnotations{
 				Title:        "Get Timelog",
 				ReadOnlyHint: true,
@@ -405,9 +398,8 @@ func TimelogGet(engine *twapi.Engine) toolsets.ToolWrapper {
 func TimelogList(engine *twapi.Engine) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
-			Name: string(MethodTimelogList),
-			Description: "List timelogs in Teamwork.com. Provide project_id or task_id to scope to a specific project " +
-				"or task. " + timelogDescription,
+			Name:        string(MethodTimelogList),
+			Description: "List timelogs. Scope by project_id or task_id, or omit for site-wide.",
 			Annotations: &mcp.ToolAnnotations{
 				Title:        "List Timelogs",
 				ReadOnlyHint: true,

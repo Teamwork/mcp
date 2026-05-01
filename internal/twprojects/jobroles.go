@@ -25,12 +25,6 @@ const (
 	MethodJobRoleList   toolsets.Method = "twprojects-list_jobroles"
 )
 
-const jobRoleDescription = "Job role defines a user's primary function or position within the organization, such as " +
-	"developer, designer, project manager, or account manager. It provides high-level context about what a person is " +
-	"generally responsible for, helping teams understand who does what across projects and departments. Job roles are " +
-	"commonly used in resource planning, capacity forecasting, and reporting, allowing managers to group work by role, " +
-	"plan future demand more accurately, and ensure the right mix of roles is available to deliver projects efficiently."
-
 var (
 	jobRoleGetOutputSchema  *jsonschema.Schema
 	jobRoleListOutputSchema *jsonschema.Schema
@@ -57,7 +51,7 @@ func JobRoleCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
 			Name:        string(MethodJobRoleCreate),
-			Description: "Create a new job role in Teamwork.com. " + jobRoleDescription,
+			Description: "Create job role.",
 			Annotations: &mcp.ToolAnnotations{
 				Title: "Create Job Role",
 			},
@@ -100,7 +94,7 @@ func JobRoleUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
 			Name:        string(MethodJobRoleUpdate),
-			Description: "Update an existing job role in Teamwork.com. " + jobRoleDescription,
+			Description: "Update job role.",
 			Annotations: &mcp.ToolAnnotations{
 				Title: "Update Job Role",
 			},
@@ -151,7 +145,7 @@ func JobRoleDelete(engine *twapi.Engine) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
 			Name:        string(MethodJobRoleDelete),
-			Description: "Delete an existing job role in Teamwork.com. " + jobRoleDescription,
+			Description: "Delete job role.",
 			Annotations: &mcp.ToolAnnotations{
 				Title: "Delete Job Role",
 			},
@@ -194,7 +188,7 @@ func JobRoleGet(engine *twapi.Engine) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
 			Name:        string(MethodJobRoleGet),
-			Description: "Get an existing job role in Teamwork.com. " + jobRoleDescription,
+			Description: "Get job role.",
 			Annotations: &mcp.ToolAnnotations{
 				Title:        "Get Job Role",
 				ReadOnlyHint: true,
@@ -251,7 +245,7 @@ func JobRoleList(engine *twapi.Engine) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
 			Name:        string(MethodJobRoleList),
-			Description: "List job roles in Teamwork.com. " + jobRoleDescription,
+			Description: "List job roles.",
 			Annotations: &mcp.ToolAnnotations{
 				Title:        "List Job Roles",
 				ReadOnlyHint: true,

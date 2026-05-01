@@ -25,13 +25,6 @@ const (
 	MethodNotebookList   toolsets.Method = "twprojects-list_notebooks"
 )
 
-const notebookDescription = "Notebook is a space where teams can create, share, and organize written content in a " +
-	"structured way. It’s commonly used for documenting processes, storing meeting notes, capturing research, or " +
-	"drafting ideas that need to be revisited and refined over time. Unlike quick messages or task comments, " +
-	"notebooks provide a more permanent and organized format that can be easily searched and referenced, helping " +
-	"teams maintain a centralized source of knowledge and ensuring important information remains accessible to " +
-	"everyone who needs it."
-
 var (
 	notebookGetOutputSchema  *jsonschema.Schema
 	notebookListOutputSchema *jsonschema.Schema
@@ -58,7 +51,7 @@ func NotebookCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
 			Name:        string(MethodNotebookCreate),
-			Description: "Create a new notebook in Teamwork.com. " + notebookDescription,
+			Description: "Create notebook in a project.",
 			Annotations: &mcp.ToolAnnotations{
 				Title: "Create Notebook",
 			},
@@ -138,7 +131,7 @@ func NotebookUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
 			Name:        string(MethodNotebookUpdate),
-			Description: "Update an existing notebook in Teamwork.com. " + notebookDescription,
+			Description: "Update notebook.",
 			Annotations: &mcp.ToolAnnotations{
 				Title: "Update Notebook",
 			},
@@ -226,7 +219,7 @@ func NotebookDelete(engine *twapi.Engine) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
 			Name:        string(MethodNotebookDelete),
-			Description: "Delete an existing notebook in Teamwork.com. " + notebookDescription,
+			Description: "Delete notebook.",
 			Annotations: &mcp.ToolAnnotations{
 				Title: "Delete Notebook",
 			},
@@ -269,7 +262,7 @@ func NotebookGet(engine *twapi.Engine) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
 			Name:        string(MethodNotebookGet),
-			Description: "Get an existing notebook in Teamwork.com. " + notebookDescription,
+			Description: "Get notebook.",
 			Annotations: &mcp.ToolAnnotations{
 				Title:        "Get Notebook",
 				ReadOnlyHint: true,
@@ -330,7 +323,7 @@ func NotebookList(engine *twapi.Engine) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
 			Name:        string(MethodNotebookList),
-			Description: "List notebooks in Teamwork.com. " + notebookDescription,
+			Description: "List notebooks.",
 			Annotations: &mcp.ToolAnnotations{
 				Title:        "List Notebooks",
 				ReadOnlyHint: true,

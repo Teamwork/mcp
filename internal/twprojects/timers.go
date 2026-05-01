@@ -28,13 +28,6 @@ const (
 	MethodTimerList     toolsets.Method = "twprojects-list_timers"
 )
 
-const timerDescription = "Timer is a built-in tool that allows users to accurately track the time they spend working " +
-	"on specific tasks, projects, or client work. Instead of manually recording hours, users can start, pause, and " +
-	"stop timers directly within the platform or through the desktop and mobile apps, ensuring precise time logs " +
-	"without interrupting their workflow. Once recorded, these entries are automatically linked to the relevant task " +
-	"or project, making it easier to monitor productivity, manage billable hours, and generate detailed reports for " +
-	"both internal tracking and client invoicing."
-
 var (
 	timerGetOutputSchema  *jsonschema.Schema
 	timerListOutputSchema *jsonschema.Schema
@@ -61,7 +54,7 @@ func TimerCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
 			Name:        string(MethodTimerCreate),
-			Description: "Create a new timer in Teamwork.com. " + timerDescription,
+			Description: "Create and start a timer.",
 			Annotations: &mcp.ToolAnnotations{
 				Title: "Create Timer",
 			},
@@ -152,7 +145,7 @@ func TimerUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
 			Name:        string(MethodTimerUpdate),
-			Description: "Update an existing timer in Teamwork.com. " + timerDescription,
+			Description: "Update timer.",
 			Annotations: &mcp.ToolAnnotations{
 				Title: "Update Timer",
 			},
@@ -235,7 +228,7 @@ func TimerPause(engine *twapi.Engine) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
 			Name:        string(MethodTimerPause),
-			Description: "Pause an existing timer in Teamwork.com. " + timerDescription,
+			Description: "Pause a running timer.",
 			Annotations: &mcp.ToolAnnotations{
 				Title: "Pause Timer",
 			},
@@ -278,7 +271,7 @@ func TimerResume(engine *twapi.Engine) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
 			Name:        string(MethodTimerResume),
-			Description: "Resume an existing timer in Teamwork.com. " + timerDescription,
+			Description: "Resume a paused timer.",
 			Annotations: &mcp.ToolAnnotations{
 				Title: "Resume Timer",
 			},
@@ -321,7 +314,7 @@ func TimerComplete(engine *twapi.Engine) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
 			Name:        string(MethodTimerComplete),
-			Description: "Complete an existing timer in Teamwork.com. " + timerDescription,
+			Description: "Stop a timer and convert it to a timelog.",
 			Annotations: &mcp.ToolAnnotations{
 				Title: "Complete Timer",
 			},
@@ -364,7 +357,7 @@ func TimerDelete(engine *twapi.Engine) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
 			Name:        string(MethodTimerDelete),
-			Description: "Delete an existing timer in Teamwork.com. " + timerDescription,
+			Description: "Delete timer.",
 			Annotations: &mcp.ToolAnnotations{
 				Title: "Delete Timer",
 			},
@@ -407,7 +400,7 @@ func TimerGet(engine *twapi.Engine) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
 			Name:        string(MethodTimerGet),
-			Description: "Get an existing timer in Teamwork.com. " + timerDescription,
+			Description: "Get timer.",
 			Annotations: &mcp.ToolAnnotations{
 				Title:        "Get Timer",
 				ReadOnlyHint: true,
@@ -468,7 +461,7 @@ func TimerList(engine *twapi.Engine) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
 			Name:        string(MethodTimerList),
-			Description: "List timers in Teamwork.com. " + timerDescription,
+			Description: "List timers.",
 			Annotations: &mcp.ToolAnnotations{
 				Title:        "List Timers",
 				ReadOnlyHint: true,
