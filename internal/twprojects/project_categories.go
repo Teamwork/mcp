@@ -27,11 +27,6 @@ const (
 	MethodProjectCategoryList   toolsets.Method = "twprojects-list_project_categories"
 )
 
-const projectCategoryDescription = "The project category is a way to group and label related projects so teams can " +
-	"organize their work more clearly across the platform. By assigning a category, you create a higher-level " +
-	"structure that makes it easier to filter, report on, and navigate multiple projects, ensuring that departments, " +
-	"workflows, or strategic areas remain neatly aligned and easier to manage."
-
 var (
 	projectCategoryGetOutputSchema  *jsonschema.Schema
 	projectCategoryListOutputSchema *jsonschema.Schema
@@ -58,7 +53,7 @@ func ProjectCategoryCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
 			Name:        string(MethodProjectCategoryCreate),
-			Description: "Create a new project category in Teamwork.com. " + projectCategoryDescription,
+			Description: "Create project category.",
 			Annotations: &mcp.ToolAnnotations{
 				Title: "Create Project Category",
 			},
@@ -117,7 +112,7 @@ func ProjectCategoryUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
 			Name:        string(MethodProjectCategoryUpdate),
-			Description: "Update an existing project category in Teamwork.com. " + projectCategoryDescription,
+			Description: "Update project category.",
 			Annotations: &mcp.ToolAnnotations{
 				Title: "Update Project Category",
 			},
@@ -184,7 +179,7 @@ func ProjectCategoryDelete(engine *twapi.Engine) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
 			Name:        string(MethodProjectCategoryDelete),
-			Description: "Delete an existing project category in Teamwork.com. " + projectCategoryDescription,
+			Description: "Delete project category.",
 			Annotations: &mcp.ToolAnnotations{
 				Title: "Delete Project Category",
 			},
@@ -227,7 +222,7 @@ func ProjectCategoryGet(engine *twapi.Engine) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
 			Name:        string(MethodProjectCategoryGet),
-			Description: "Get an existing project category in Teamwork.com. " + projectCategoryDescription,
+			Description: "Get project category.",
 			Annotations: &mcp.ToolAnnotations{
 				Title:        "Get Project Category",
 				ReadOnlyHint: true,
@@ -284,7 +279,7 @@ func ProjectCategoryList(engine *twapi.Engine) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
 			Name:        string(MethodProjectCategoryList),
-			Description: "List project categories in Teamwork.com. " + projectCategoryDescription,
+			Description: "List project categories.",
 			Annotations: &mcp.ToolAnnotations{
 				Title:        "List Project Categories",
 				ReadOnlyHint: true,

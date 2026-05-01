@@ -20,13 +20,6 @@ const (
 	MethodIndustryList toolsets.Method = "twprojects-list_industries"
 )
 
-const industryDescription = "Industry refers to the business sector or market category that a company belongs to, " +
-	"such as technology, healthcare, finance, or education. It helps provide context about the nature of a company's " +
-	"work and can be used to better organize and filter data across the platform. By associating companies and " +
-	"projects with specific industries, Teamwork.com allows teams to gain clearer insights, tailor communication, " +
-	"and segment information in ways that make it easier to manage relationships and understand the broader business " +
-	"landscape in which their clients and partners operate."
-
 var (
 	industryListOutputSchema *jsonschema.Schema
 )
@@ -47,7 +40,7 @@ func IndustryList(engine *twapi.Engine) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
 			Name:        string(MethodIndustryList),
-			Description: "List industries in Teamwork.com. " + industryDescription,
+			Description: "List supported company (aka client) industries.",
 			Annotations: &mcp.ToolAnnotations{
 				Title:        "List Industries",
 				ReadOnlyHint: true,

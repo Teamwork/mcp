@@ -21,11 +21,6 @@ const (
 	MethodSearch toolsets.Method = "twprojects-search"
 )
 
-const searchDescription = "Search is a feature that allows users to " +
-	"quickly find projects, tasks, files, messages, and other items across their " +
-	"workspace by entering keywords, helping them locate information and navigate " +
-	"their work efficiently from a single place."
-
 var (
 	searchOutputSchema *jsonschema.Schema
 )
@@ -45,7 +40,7 @@ func Search(engine *twapi.Engine) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
 			Name:        string(MethodSearch),
-			Description: "Searches in Teamwork.com. " + searchDescription,
+			Description: "Cross-entity keyword search across projects, tasks, files, messages, and more.",
 			Annotations: &mcp.ToolAnnotations{
 				Title:        "Search",
 				ReadOnlyHint: true,

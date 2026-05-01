@@ -27,10 +27,6 @@ const (
 	MethodLinkList   toolsets.Method = "twprojects-list_links"
 )
 
-const linkDescription = "In the context of Teamwork.com, a link Link is a saved URL attached to a project, task, or " +
-	"other item, allowing users to quickly reference and access external resources (such as documents, tools, or " +
-	"websites) directly within their workflow."
-
 var (
 	linkGetOutputSchema  *jsonschema.Schema
 	linkListOutputSchema *jsonschema.Schema
@@ -71,7 +67,7 @@ func LinkCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
 			Name:        string(MethodLinkCreate),
-			Description: "Create a new link in Teamwork.com. " + linkDescription,
+			Description: "Create link.",
 			Annotations: &mcp.ToolAnnotations{
 				Title: "Create Link",
 			},
@@ -229,7 +225,7 @@ func LinkUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
 			Name:        string(MethodLinkUpdate),
-			Description: "Update an existing link in Teamwork.com. " + linkDescription,
+			Description: "Update link.",
 			Annotations: &mcp.ToolAnnotations{
 				Title: "Update Link",
 			},
@@ -390,7 +386,7 @@ func LinkDelete(engine *twapi.Engine) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
 			Name:        string(MethodLinkDelete),
-			Description: "Delete an existing link in Teamwork.com. " + linkDescription,
+			Description: "Delete link.",
 			Annotations: &mcp.ToolAnnotations{
 				Title: "Delete Link",
 			},
@@ -433,7 +429,7 @@ func LinkGet(engine *twapi.Engine) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
 			Name:        string(MethodLinkGet),
-			Description: "Get an existing link in Teamwork.com. " + linkDescription,
+			Description: "Get link.",
 			Annotations: &mcp.ToolAnnotations{
 				Title:        "Get Link",
 				ReadOnlyHint: true,
@@ -494,7 +490,7 @@ func LinkList(engine *twapi.Engine) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
 			Name:        string(MethodLinkList),
-			Description: "List links in Teamwork.com. " + linkDescription,
+			Description: "List links.",
 			Annotations: &mcp.ToolAnnotations{
 				Title:        "List Links",
 				ReadOnlyHint: true,

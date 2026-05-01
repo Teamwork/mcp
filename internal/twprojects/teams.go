@@ -26,12 +26,6 @@ const (
 	MethodTeamList   toolsets.Method = "twprojects-list_teams"
 )
 
-const teamDescription = "In the context of Teamwork.com, a team is a group of users who are organized together to " +
-	"collaborate more efficiently on projects and tasks. Teams help structure work by grouping individuals with " +
-	"similar roles, responsibilities, or departmental functions, making it easier to assign work, track progress, " +
-	"and manage communication. By using teams, organizations can streamline project planning and ensure the right " +
-	"people are involved in the right parts of a project, enhancing clarity and accountability across the platform."
-
 var (
 	teamGetOutputSchema  *jsonschema.Schema
 	teamListOutputSchema *jsonschema.Schema
@@ -72,7 +66,7 @@ func TeamCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
 			Name:        string(MethodTeamCreate),
-			Description: "Create a new team in Teamwork.com. " + teamDescription,
+			Description: "Create team.",
 			Annotations: &mcp.ToolAnnotations{
 				Title: "Create Team",
 			},
@@ -164,7 +158,7 @@ func TeamUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
 			Name:        string(MethodTeamUpdate),
-			Description: "Update an existing team in Teamwork.com. " + teamDescription,
+			Description: "Update team.",
 			Annotations: &mcp.ToolAnnotations{
 				Title: "Update Team",
 			},
@@ -263,7 +257,7 @@ func TeamDelete(engine *twapi.Engine) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
 			Name:        string(MethodTeamDelete),
-			Description: "Delete an existing team in Teamwork.com. " + teamDescription,
+			Description: "Delete team.",
 			Annotations: &mcp.ToolAnnotations{
 				Title: "Delete Team",
 			},
@@ -306,7 +300,7 @@ func TeamGet(engine *twapi.Engine) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
 			Name:        string(MethodTeamGet),
-			Description: "Get an existing team in Teamwork.com. " + teamDescription,
+			Description: "Get team.",
 			Annotations: &mcp.ToolAnnotations{
 				Title:        "Get Team",
 				ReadOnlyHint: true,
@@ -366,9 +360,8 @@ func TeamGet(engine *twapi.Engine) toolsets.ToolWrapper {
 func TeamList(engine *twapi.Engine) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
-			Name: string(MethodTeamList),
-			Description: "List teams in Teamwork.com. Provide company_id or project_id to scope to a specific company " +
-				"or project. " + teamDescription,
+			Name:        string(MethodTeamList),
+			Description: "List teams. Scope by company_id or project_id, or omit for site-wide.",
 			Annotations: &mcp.ToolAnnotations{
 				Title:        "List Teams",
 				ReadOnlyHint: true,

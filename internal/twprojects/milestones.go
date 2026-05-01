@@ -25,13 +25,6 @@ const (
 	MethodMilestoneList   toolsets.Method = "twprojects-list_milestones"
 )
 
-const milestoneDescription = "In the context of Teamwork.com, a milestone represents a significant point or goal " +
-	"within a project that marks the completion of a major phase or a key deliverable. It acts as a high-level " +
-	"indicator of progress, helping teams track whether work is advancing according to plan. Milestones are typically " +
-	"used to coordinate efforts across different tasks and task lists, providing a clear deadline or objective that " +
-	"multiple team members or departments can align around. They don't contain individual tasks themselves but serve " +
-	"as checkpoints to ensure the project is moving in the right direction."
-
 var (
 	milestoneGetOutputSchema  *jsonschema.Schema
 	milestoneListOutputSchema *jsonschema.Schema
@@ -58,7 +51,7 @@ func MilestoneCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
 			Name:        string(MethodMilestoneCreate),
-			Description: "Create a new milestone in Teamwork.com. " + milestoneDescription,
+			Description: "Create milestone in a project.",
 			Annotations: &mcp.ToolAnnotations{
 				Title: "Create Milestone",
 			},
@@ -193,7 +186,7 @@ func MilestoneUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
 			Name:        string(MethodMilestoneUpdate),
-			Description: "Update an existing milestone in Teamwork.com. " + milestoneDescription,
+			Description: "Update milestone.",
 			Annotations: &mcp.ToolAnnotations{
 				Title: "Update Milestone",
 			},
@@ -329,7 +322,7 @@ func MilestoneDelete(engine *twapi.Engine) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
 			Name:        string(MethodMilestoneDelete),
-			Description: "Delete an existing milestone in Teamwork.com. " + milestoneDescription,
+			Description: "Delete milestone.",
 			Annotations: &mcp.ToolAnnotations{
 				Title: "Delete Milestone",
 			},
@@ -372,7 +365,7 @@ func MilestoneGet(engine *twapi.Engine) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
 			Name:        string(MethodMilestoneGet),
-			Description: "Get an existing milestone in Teamwork.com. " + milestoneDescription,
+			Description: "Get milestone.",
 			Annotations: &mcp.ToolAnnotations{
 				Title:        "Get Milestone",
 				ReadOnlyHint: true,
@@ -432,9 +425,8 @@ func MilestoneGet(engine *twapi.Engine) toolsets.ToolWrapper {
 func MilestoneList(engine *twapi.Engine) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
-			Name: string(MethodMilestoneList),
-			Description: "List milestones in Teamwork.com. Provide project_id to scope to a specific project. " +
-				milestoneDescription,
+			Name:        string(MethodMilestoneList),
+			Description: "List milestones. Scope by project_id or omit for site-wide.",
 			Annotations: &mcp.ToolAnnotations{
 				Title:        "List Milestones",
 				ReadOnlyHint: true,

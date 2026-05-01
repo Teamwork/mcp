@@ -25,12 +25,6 @@ const (
 	MethodTagList   toolsets.Method = "twprojects-list_tags"
 )
 
-const tagDescription = "In the context of Teamwork.com, a tag is a customizable label that can be applied to various " +
-	"items such as tasks, projects, milestones, messages, and more, to help categorize and organize work efficiently. " +
-	"Tags provide a flexible way to filter, search, and group related items across the platform, making it easier for " +
-	"teams to manage complex workflows, highlight priorities, or track themes and statuses. Since tags are " +
-	"user-defined, they adapt to each team’s specific needs and can be color-coded for better visual clarity."
-
 var (
 	tagGetOutputSchema  *jsonschema.Schema
 	tagListOutputSchema *jsonschema.Schema
@@ -57,7 +51,7 @@ func TagCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
 			Name:        string(MethodTagCreate),
-			Description: "Create a new tag in Teamwork.com. " + tagDescription,
+			Description: "Create tag.",
 			Annotations: &mcp.ToolAnnotations{
 				Title: "Create Tag",
 			},
@@ -108,7 +102,7 @@ func TagUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
 			Name:        string(MethodTagUpdate),
-			Description: "Update an existing tag in Teamwork.com. " + tagDescription,
+			Description: "Update tag.",
 			Annotations: &mcp.ToolAnnotations{
 				Title: "Update Tag",
 			},
@@ -167,7 +161,7 @@ func TagDelete(engine *twapi.Engine) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
 			Name:        string(MethodTagDelete),
-			Description: "Delete an existing tag in Teamwork.com. " + tagDescription,
+			Description: "Delete tag.",
 			Annotations: &mcp.ToolAnnotations{
 				Title: "Delete Tag",
 			},
@@ -210,7 +204,7 @@ func TagGet(engine *twapi.Engine) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
 			Name:        string(MethodTagGet),
-			Description: "Get an existing tag in Teamwork.com. " + tagDescription,
+			Description: "Get tag.",
 			Annotations: &mcp.ToolAnnotations{
 				Title:        "Get Tag",
 				ReadOnlyHint: true,
@@ -255,7 +249,7 @@ func TagList(engine *twapi.Engine) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
 			Name:        string(MethodTagList),
-			Description: "List tags in Teamwork.com. " + tagDescription,
+			Description: "List tags.",
 			Annotations: &mcp.ToolAnnotations{
 				Title:        "List Tags",
 				ReadOnlyHint: true,

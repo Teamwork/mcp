@@ -25,14 +25,6 @@ const (
 	MethodCompanyList   toolsets.Method = "twprojects-list_companies"
 )
 
-const companyDescription = "In the context of Teamwork.com, a company represents an organization or business entity " +
-	"that can be associated with users, projects, and tasks within the platform, and it is often referred to as a " +
-	"“client.” It serves as a way to group related users and projects under a single organizational umbrella, making " +
-	"it easier to manage permissions, assign responsibilities, and organize work. Companies (or clients) are " +
-	"frequently used to distinguish between internal teams and external collaborators, enabling teams to work " +
-	"efficiently while maintaining clear boundaries around ownership, visibility, and access levels across different " +
-	"projects."
-
 var (
 	companyGetOutputSchema  *jsonschema.Schema
 	companyListOutputSchema *jsonschema.Schema
@@ -59,7 +51,7 @@ func CompanyCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
 			Name:        string(MethodCompanyCreate),
-			Description: "Create a new company in Teamwork.com. " + companyDescription,
+			Description: "Create company (aka client).",
 			Annotations: &mcp.ToolAnnotations{
 				Title: "Create Company",
 			},
@@ -230,7 +222,7 @@ func CompanyUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
 			Name:        string(MethodCompanyUpdate),
-			Description: "Update an existing company in Teamwork.com. " + companyDescription,
+			Description: "Update company (aka client).",
 			Annotations: &mcp.ToolAnnotations{
 				Title: "Update Company",
 			},
@@ -409,7 +401,7 @@ func CompanyDelete(engine *twapi.Engine) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
 			Name:        string(MethodCompanyDelete),
-			Description: "Delete an existing company in Teamwork.com. " + companyDescription,
+			Description: "Delete company (aka client).",
 			Annotations: &mcp.ToolAnnotations{
 				Title: "Delete Company",
 			},
@@ -452,7 +444,7 @@ func CompanyGet(engine *twapi.Engine) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
 			Name:        string(MethodCompanyGet),
-			Description: "Get an existing company in Teamwork.com. " + companyDescription,
+			Description: "Get company (aka client).",
 			Annotations: &mcp.ToolAnnotations{
 				Title:        "Get Company",
 				ReadOnlyHint: true,
@@ -513,7 +505,7 @@ func CompanyList(engine *twapi.Engine) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
 			Name:        string(MethodCompanyList),
-			Description: "List companies in Teamwork.com. " + companyDescription,
+			Description: "List companies (aka clients).",
 			Annotations: &mcp.ToolAnnotations{
 				Title:        "List Companies",
 				ReadOnlyHint: true,

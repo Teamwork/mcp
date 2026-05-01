@@ -26,11 +26,6 @@ const (
 	MethodWorkflowList        toolsets.Method = "twprojects-list_workflows"
 )
 
-const workflowDescription = "A workflow is a configurable process template in Teamwork.com that defines " +
-	"a series of stages through which tasks progress. Workflows help teams standardize their processes, " +
-	"automate stage transitions, and maintain consistency across projects by providing a structured path " +
-	"from start to completion."
-
 var (
 	workflowGetOutputSchema  *jsonschema.Schema
 	workflowListOutputSchema *jsonschema.Schema
@@ -57,7 +52,7 @@ func WorkflowCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
 			Name:        string(MethodWorkflowCreate),
-			Description: "Create a new workflow in Teamwork.com. " + workflowDescription,
+			Description: "Create workflow.",
 			Annotations: &mcp.ToolAnnotations{
 				Title: "Create Workflow",
 			},
@@ -100,7 +95,7 @@ func WorkflowUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
 			Name:        string(MethodWorkflowUpdate),
-			Description: "Update an existing workflow in Teamwork.com. " + workflowDescription,
+			Description: "Update workflow.",
 			Annotations: &mcp.ToolAnnotations{
 				Title: "Update Workflow",
 			},
@@ -151,7 +146,7 @@ func WorkflowDelete(engine *twapi.Engine) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
 			Name:        string(MethodWorkflowDelete),
-			Description: "Delete an existing workflow in Teamwork.com. " + workflowDescription,
+			Description: "Delete workflow.",
 			Annotations: &mcp.ToolAnnotations{
 				Title: "Delete Workflow",
 			},
@@ -193,9 +188,8 @@ func WorkflowDelete(engine *twapi.Engine) toolsets.ToolWrapper {
 func WorkflowProjectLink(engine *twapi.Engine) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
-			Name: string(MethodWorkflowProjectLink),
-			Description: "Link a project to a workflow in Teamwork.com, so that tasks in the project " +
-				"can be tracked through the workflow stages. " + workflowDescription,
+			Name:        string(MethodWorkflowProjectLink),
+			Description: "Link a project to a workflow so its tasks track through workflow stages.",
 			Annotations: &mcp.ToolAnnotations{
 				Title: "Link Project to Workflow",
 			},
@@ -243,7 +237,7 @@ func WorkflowGet(engine *twapi.Engine) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
 			Name:        string(MethodWorkflowGet),
-			Description: "Get an existing workflow in Teamwork.com. " + workflowDescription,
+			Description: "Get workflow.",
 			Annotations: &mcp.ToolAnnotations{
 				Title:        "Get Workflow",
 				ReadOnlyHint: true,
@@ -300,7 +294,7 @@ func WorkflowList(engine *twapi.Engine) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
 			Name:        string(MethodWorkflowList),
-			Description: "List workflows in Teamwork.com. " + workflowDescription,
+			Description: "List workflows.",
 			Annotations: &mcp.ToolAnnotations{
 				Title:        "List Workflows",
 				ReadOnlyHint: true,

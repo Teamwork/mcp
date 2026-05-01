@@ -21,17 +21,12 @@ const (
 	MethodProjectTemplateList   toolsets.Method = "twprojects-list_project_templates"
 )
 
-const projectTemplateDescription = "The project template is a reusable project structure designed to standardize " +
-	"workflows and streamline project setup. It typically includes predefined tasks, task lists, milestones, and " +
-	"timelines that reflect a repeatable process, allowing teams to quickly spin up new projects with consistent " +
-	"organization, clear responsibilities, and efficient execution from the start."
-
 // ProjectTemplateCreate creates a project template in Teamwork.com.
 func ProjectTemplateCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
 			Name:        string(MethodProjectTemplateCreate),
-			Description: "Create a new project template in Teamwork.com. " + projectTemplateDescription,
+			Description: "Create project template.",
 			Annotations: &mcp.ToolAnnotations{
 				Title: "Create Project Template",
 			},
@@ -130,7 +125,7 @@ func ProjectTemplateList(engine *twapi.Engine) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
 			Name:        string(MethodProjectTemplateList),
-			Description: "List project templates in Teamwork.com. " + projectTemplateDescription,
+			Description: "List project templates.",
 			Annotations: &mcp.ToolAnnotations{
 				Title:        "List Project Templates",
 				ReadOnlyHint: true,

@@ -22,16 +22,6 @@ const (
 	MethodProjectBudgetList  toolsets.Method = "twprojects-list_project_budgets"
 )
 
-const tasklistBudgetDescription = "In the context of Teamwork.com, a tasklist budget is a budget allocation " +
-	"attached to a specific task list within a project budget. It tracks capacity (in time or money) assigned to " +
-	"and consumed by a task list, helping teams monitor spend and effort at a granular level within a broader " +
-	"project budget."
-
-const projectBudgetDescription = "In the context of Teamwork.com, a project budget defines the overall budget " +
-	"allocation for a project, including capacity and usage tracking over time. It can be scoped by status and " +
-	"project, enabling teams to monitor financial or effort limits, track consumption, and understand budget " +
-	"performance across active, upcoming, and completed budget periods."
-
 var (
 	tasklistBudgetListOutputSchema *jsonschema.Schema
 	projectBudgetListOutputSchema  *jsonschema.Schema
@@ -59,7 +49,7 @@ func ProjectBudgetList(engine *twapi.Engine) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
 			Name:        string(MethodProjectBudgetList),
-			Description: "List project budgets in Teamwork.com. " + projectBudgetDescription,
+			Description: "List project-level budgets.",
 			Annotations: &mcp.ToolAnnotations{
 				Title:        "List Project Budgets",
 				ReadOnlyHint: true,
@@ -159,7 +149,7 @@ func TasklistBudgetList(engine *twapi.Engine) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
 			Name:        string(MethodTasklistBudgetList),
-			Description: "List tasklist budgets for a project budget in Teamwork.com. " + tasklistBudgetDescription,
+			Description: "List tasklist-level budgets for a project budget.",
 			Annotations: &mcp.ToolAnnotations{
 				Title:        "List Tasklist Budgets",
 				ReadOnlyHint: true,

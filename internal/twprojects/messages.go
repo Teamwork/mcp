@@ -26,12 +26,6 @@ const (
 	MethodMessageList   toolsets.Method = "twprojects-list_messages"
 )
 
-const messageDescription = "In the context of Teamwork.com, a message is a structured communication post within a " +
-	"project that allows team members to share updates, discuss topics, and document decisions in a centralized, " +
-	"threaded format. It includes a title, a detailed message body, and replies from collaborators, all tied to the " +
-	"project for clear context and visibility, making it ideal for important discussions that need to be organized " +
-	"and easily referenced over time."
-
 var (
 	messageGetOutputSchema  *jsonschema.Schema
 	messageListOutputSchema *jsonschema.Schema
@@ -58,7 +52,7 @@ func MessageCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
 			Name:        string(MethodMessageCreate),
-			Description: "Create a new message in Teamwork.com. " + messageDescription,
+			Description: "Create message in a project.",
 			Annotations: &mcp.ToolAnnotations{
 				Title: "Create Message",
 			},
@@ -197,7 +191,7 @@ func MessageUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
 			Name:        string(MethodMessageUpdate),
-			Description: "Update an existing message in Teamwork.com. " + messageDescription,
+			Description: "Update message.",
 			Annotations: &mcp.ToolAnnotations{
 				Title: "Update Message",
 			},
@@ -349,7 +343,7 @@ func MessageDelete(engine *twapi.Engine) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
 			Name:        string(MethodMessageDelete),
-			Description: "Delete an existing message in Teamwork.com. " + messageDescription,
+			Description: "Delete message.",
 			Annotations: &mcp.ToolAnnotations{
 				Title: "Delete Message",
 			},
@@ -392,7 +386,7 @@ func MessageGet(engine *twapi.Engine) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
 			Name:        string(MethodMessageGet),
-			Description: "Get an existing message in Teamwork.com. " + messageDescription,
+			Description: "Get message.",
 			Annotations: &mcp.ToolAnnotations{
 				Title:        "Get Message",
 				ReadOnlyHint: true,
@@ -453,7 +447,7 @@ func MessageList(engine *twapi.Engine) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
 			Name:        string(MethodMessageList),
-			Description: "List messages in Teamwork.com. " + messageDescription,
+			Description: "List messages.",
 			Annotations: &mcp.ToolAnnotations{
 				Title:        "List Messages",
 				ReadOnlyHint: true,

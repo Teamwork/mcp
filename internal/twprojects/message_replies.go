@@ -26,12 +26,6 @@ const (
 	MethodMessageReplyList   toolsets.Method = "twprojects-list_message_replies"
 )
 
-const messageReplyDescription = "In the context of Teamwork.com, a message reply is a response within a project " +
-	"message thread that allows team members to contribute to the discussion, ask questions, or provide updates while " +
-	"keeping all communication organized under the original message. Replies maintain context by staying linked to the " +
-	"main topic, include the author and timestamp, and help create a clear, ongoing conversation that is easy for " +
-	"everyone involved to follow and reference."
-
 var (
 	messageReplyGetOutputSchema  *jsonschema.Schema
 	messageReplyListOutputSchema *jsonschema.Schema
@@ -58,7 +52,7 @@ func MessageReplyCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
 			Name:        string(MethodMessageReplyCreate),
-			Description: "Create a new message reply in Teamwork.com. " + messageReplyDescription,
+			Description: "Create message reply.",
 			Annotations: &mcp.ToolAnnotations{
 				Title: "Create Message Reply",
 			},
@@ -192,7 +186,7 @@ func MessageReplyUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
 			Name:        string(MethodMessageReplyUpdate),
-			Description: "Update an existing message reply in Teamwork.com. " + messageReplyDescription,
+			Description: "Update message reply.",
 			Annotations: &mcp.ToolAnnotations{
 				Title: "Update MessageReply",
 			},
@@ -329,7 +323,7 @@ func MessageReplyDelete(engine *twapi.Engine) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
 			Name:        string(MethodMessageReplyDelete),
-			Description: "Delete an existing message reply in Teamwork.com. " + messageReplyDescription,
+			Description: "Delete message reply.",
 			Annotations: &mcp.ToolAnnotations{
 				Title: "Delete Message Reply",
 			},
@@ -372,7 +366,7 @@ func MessageReplyGet(engine *twapi.Engine) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
 			Name:        string(MethodMessageReplyGet),
-			Description: "Get an existing message reply in Teamwork.com. " + messageReplyDescription,
+			Description: "Get message reply.",
 			Annotations: &mcp.ToolAnnotations{
 				Title:        "Get Message Reply",
 				ReadOnlyHint: true,
@@ -429,7 +423,7 @@ func MessageReplyList(engine *twapi.Engine) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
 			Name:        string(MethodMessageReplyList),
-			Description: "List message replies in Teamwork.com. " + messageReplyDescription,
+			Description: "List replies for a message.",
 			Annotations: &mcp.ToolAnnotations{
 				Title:        "List Message Replies",
 				ReadOnlyHint: true,

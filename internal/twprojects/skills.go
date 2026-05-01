@@ -25,13 +25,6 @@ const (
 	MethodSkillList   toolsets.Method = "twprojects-list_skills"
 )
 
-const skillDescription = "Skill represents a specific capability, area of expertise, or proficiency that can be " +
-	"assigned to users to describe what they are good at or qualified to work on. Skills help teams understand the " +
-	"strengths available across the organization and make it easier to match the right skills to the right work when " +
-	"planning projects, assigning tasks, or managing resources. By associating skills with users and leveraging them " +
-	"in planning and reporting, Teamwork enables more effective workload distribution, better project outcomes, and " +
-	"clearer visibility into whether the team has the capabilities needed to deliver upcoming work."
-
 var (
 	skillGetOutputSchema  *jsonschema.Schema
 	skillListOutputSchema *jsonschema.Schema
@@ -58,7 +51,7 @@ func SkillCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
 			Name:        string(MethodSkillCreate),
-			Description: "Create a new skill in Teamwork.com. " + skillDescription,
+			Description: "Create skill.",
 			Annotations: &mcp.ToolAnnotations{
 				Title: "Create Skill",
 			},
@@ -109,7 +102,7 @@ func SkillUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
 			Name:        string(MethodSkillUpdate),
-			Description: "Update an existing skill in Teamwork.com. " + skillDescription,
+			Description: "Update skill.",
 			Annotations: &mcp.ToolAnnotations{
 				Title: "Update Skill",
 			},
@@ -168,7 +161,7 @@ func SkillDelete(engine *twapi.Engine) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
 			Name:        string(MethodSkillDelete),
-			Description: "Delete an existing skill in Teamwork.com. " + skillDescription,
+			Description: "Delete skill.",
 			Annotations: &mcp.ToolAnnotations{
 				Title: "Delete Skill",
 			},
@@ -211,7 +204,7 @@ func SkillGet(engine *twapi.Engine) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
 			Name:        string(MethodSkillGet),
-			Description: "Get an existing skill in Teamwork.com. " + skillDescription,
+			Description: "Get skill.",
 			Annotations: &mcp.ToolAnnotations{
 				Title:        "Get Skill",
 				ReadOnlyHint: true,
@@ -268,7 +261,7 @@ func SkillList(engine *twapi.Engine) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
 			Name:        string(MethodSkillList),
-			Description: "List skills in Teamwork.com. " + skillDescription,
+			Description: "List skills.",
 			Annotations: &mcp.ToolAnnotations{
 				Title:        "List Skills",
 				ReadOnlyHint: true,
