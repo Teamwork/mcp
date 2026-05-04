@@ -7,9 +7,9 @@ require (
 	github.com/DataDog/dd-trace-go/v2 v2.7.3
 	github.com/getsentry/sentry-go v0.46.0
 	github.com/getsentry/sentry-go/slog v0.46.0
-	github.com/google/jsonschema-go v0.4.2
+	github.com/google/jsonschema-go v0.4.3
 	github.com/google/uuid v1.6.0
-	github.com/modelcontextprotocol/go-sdk v1.5.0
+	github.com/modelcontextprotocol/go-sdk v1.6.0
 	github.com/teamwork/desksdkgo v0.0.0-20260420182446-6788c53d670d
 	github.com/teamwork/spacessdkgo v0.0.0-20260422163745-684bf200d31d
 	github.com/teamwork/twapi-go-sdk v1.15.1
