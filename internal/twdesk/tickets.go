@@ -518,6 +518,16 @@ func TicketUpdate(httpClient *http.Client) toolsets.ToolWrapper {
 							{Type: "null"},
 						},
 					},
+					"deleteTags": {
+						Description: `
+							An array of tag IDs that should be removed from the ticket.
+							Tag IDs can be found by using the 'twdesk-list_tags' tool.
+						`,
+						AnyOf: []*jsonschema.Schema{
+							{Type: "array", Items: &jsonschema.Schema{Type: "integer"}},
+							{Type: "null"},
+						},
+					},
 					"bcc": {
 						Description: "An array of email addresses to BCC on ticket update.",
 						AnyOf: []*jsonschema.Schema{
@@ -609,10 +619,21 @@ func TicketUpdate(httpClient *http.Client) toolsets.ToolWrapper {
 				data.Body = body
 			}
 
+			data.Tags = []deskmodels.EntityRef{}
 			if len(arguments.GetIntSlice("tags", []int{})) > 0 {
-				data.Tags = []deskmodels.EntityRef{}
 				for _, tagID := range arguments.GetIntSlice("tags", []int{}) {
 					data.Tags = append(data.Tags, deskmodels.EntityRef{ID: tagID})
+				}
+			}
+
+			if len(arguments.GetIntSlice("deleteTags", []int{})) > 0 {
+				for _, tagID := range arguments.GetIntSlice("deleteTags", []int{}) {
+					data.Tags = append(data.Tags, deskmodels.EntityRef{
+						ID: tagID,
+						Meta: map[string]any{
+							"delete": true,
+						},
+					})
 				}
 			}
 
