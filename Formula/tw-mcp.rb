@@ -1,15 +1,15 @@
 class TwMcp < Formula
   desc "Teamwork.com MCP server"
   homepage "https://github.com/Teamwork/mcp"
-  version "1.17.2"
+  version "1.17.3"
 
   on_macos do
     if Hardware::CPU.arm?
-      url "https://github.com/Teamwork/mcp/releases/download/v1.17.2/tw-mcp_1.17.2_darwin_arm64.tar.gz"
-      sha256 "e44aed63f7cf132280bec420365464019a4e58be0846698de5d8aa63e08450b9"
+      url "https://github.com/Teamwork/mcp/releases/download/v1.17.3/tw-mcp_1.17.3_darwin_arm64.tar.gz"
+      sha256 "a0e9bc24916e49e354d4243df83c71e965a5f440f71839cbb205b3a6ffec27e3"
     else
-      url "https://github.com/Teamwork/mcp/releases/download/v1.17.2/tw-mcp_1.17.2_darwin_amd64.tar.gz"
-      sha256 "dd066d083d0c1be0a8209ae29fb3fc8ababb310f4cb2fc2d874e70e0b2c2d08a"
+      url "https://github.com/Teamwork/mcp/releases/download/v1.17.3/tw-mcp_1.17.3_darwin_amd64.tar.gz"
+      sha256 "7c62cae5a4ddd59450f3149a8d7176966a5f4b336f2202b1220f01da0465154a"
     end
   end
 
