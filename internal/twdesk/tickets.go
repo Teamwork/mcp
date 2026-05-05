@@ -277,9 +277,9 @@ func TicketCreate(httpClient *http.Client) toolsets.ToolWrapper {
 					},
 					"files": {
 						Description: `
-					An array of file IDs to attach to the ticket.
-					Use the 'twdesk-create_file' tool to upload files.
-				`,
+							An array of file IDs to attach to the ticket.
+							Use the 'twdesk-create_file' tool to upload files.
+						`,
 						AnyOf: []*jsonschema.Schema{
 							{Type: "array", Items: &jsonschema.Schema{Type: "integer"}},
 							{Type: "null"},
@@ -287,9 +287,9 @@ func TicketCreate(httpClient *http.Client) toolsets.ToolWrapper {
 					},
 					"tags": {
 						Description: `
-					An array of tag IDs to associate with the ticket.
-					Tag IDs can be found by using the 'twdesk-list_tags' tool.
-				`,
+							An array of tag IDs to associate with the ticket.
+							Tag IDs can be found by using the 'twdesk-list_tags' tool.
+						`,
 						AnyOf: []*jsonschema.Schema{
 							{Type: "array", Items: &jsonschema.Schema{Type: "integer"}},
 							{Type: "null"},
@@ -327,11 +327,11 @@ func TicketCreate(httpClient *http.Client) toolsets.ToolWrapper {
 					},
 					"customerEmail": {
 						Description: `
-				The email address of the customer.
-				This is used to identify the customer in the system.
-				Either the customerId or customerEmail is required to create a ticket.
-				If email is provided we will either find or create the customer.
-			`,
+							The email address of the customer.
+							This is used to identify the customer in the system.
+							Either the customerId or customerEmail is required to create a ticket.
+							If email is provided we will either find or create the customer.
+						`,
 						AnyOf: []*jsonschema.Schema{
 							{Type: "string"},
 							{Type: "null"},
@@ -508,6 +508,26 @@ func TicketUpdate(httpClient *http.Client) toolsets.ToolWrapper {
 							{Type: "null"},
 						},
 					},
+					"tags": {
+						Description: `
+							An array of tag IDs to associate with the ticket.
+							Tag IDs can be found by using the 'twdesk-list_tags' tool.
+						`,
+						AnyOf: []*jsonschema.Schema{
+							{Type: "array", Items: &jsonschema.Schema{Type: "integer"}},
+							{Type: "null"},
+						},
+					},
+					"deleteTags": {
+						Description: `
+							An array of tag IDs that should be removed from the ticket.
+							Tag IDs can be found by using the 'twdesk-list_tags' tool.
+						`,
+						AnyOf: []*jsonschema.Schema{
+							{Type: "array", Items: &jsonschema.Schema{Type: "integer"}},
+							{Type: "null"},
+						},
+					},
 					"bcc": {
 						Description: "An array of email addresses to BCC on ticket update.",
 						AnyOf: []*jsonschema.Schema{
@@ -534,9 +554,9 @@ func TicketUpdate(httpClient *http.Client) toolsets.ToolWrapper {
 					},
 					"priorityId": {
 						Description: `
-					The priority of the ticket.
-					Use the 'twdesk-list_priorities' tool to find valid IDs.
-				`,
+							The priority of the ticket.
+							Use the 'twdesk-list_priorities' tool to find valid IDs.
+						`,
 						AnyOf: []*jsonschema.Schema{
 							{Type: "integer"},
 							{Type: "null"},
@@ -544,9 +564,9 @@ func TicketUpdate(httpClient *http.Client) toolsets.ToolWrapper {
 					},
 					"statusId": {
 						Description: `
-					The status of the ticket.
-					Use the 'twdesk-list_statuses' tool to find valid IDs.
-				`,
+							The status of the ticket.
+							Use the 'twdesk-list_statuses' tool to find valid IDs.
+						`,
 						AnyOf: []*jsonschema.Schema{
 							{Type: "integer"},
 							{Type: "null"},
@@ -554,9 +574,9 @@ func TicketUpdate(httpClient *http.Client) toolsets.ToolWrapper {
 					},
 					"typeId": {
 						Description: `
-					The type ID of the ticket.
-					Use the 'twdesk-list_ticket_types' tool to find valid IDs.
-				`,
+							The type ID of the ticket.
+							Use the 'twdesk-list_ticket_types' tool to find valid IDs.
+						`,
 						AnyOf: []*jsonschema.Schema{
 							{Type: "integer"},
 							{Type: "null"},
@@ -597,6 +617,24 @@ func TicketUpdate(httpClient *http.Client) toolsets.ToolWrapper {
 
 			if body := arguments.GetString("body", ""); body != "" {
 				data.Body = body
+			}
+
+			data.Tags = []deskmodels.EntityRef{}
+			if len(arguments.GetIntSlice("tags", []int{})) > 0 {
+				for _, tagID := range arguments.GetIntSlice("tags", []int{}) {
+					data.Tags = append(data.Tags, deskmodels.EntityRef{ID: tagID})
+				}
+			}
+
+			if len(arguments.GetIntSlice("deleteTags", []int{})) > 0 {
+				for _, tagID := range arguments.GetIntSlice("deleteTags", []int{}) {
+					data.Tags = append(data.Tags, deskmodels.EntityRef{
+						ID: tagID,
+						Meta: map[string]any{
+							"delete": true,
+						},
+					})
+				}
 			}
 
 			if len(arguments.GetStringSlice("bcc", []string{})) > 0 {
