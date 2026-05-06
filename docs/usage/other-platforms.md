@@ -10,6 +10,18 @@ Use the public hosted HTTP endpoint for any platform that supports MCP over HTTP
 > [!TIP]
 > See [Get a Bearer Token](teamwork-cli.md#get-a-bearer-token)
 
+### Profile Endpoints
+
+To load only the tools relevant to a specific role, replace the base URL with one of the profile endpoints:
+
+| Profile | Endpoint | Tools included |
+|---|---|---|
+| **Project Manager** | `https://mcp.ai.teamwork.com/project-manager` | Projects, tasks, people, content |
+| **Support** | `https://mcp.ai.teamwork.com/support` | Help desk tickets and customers |
+| **Analyst** | `https://mcp.ai.teamwork.com/analyst` | Projects, tasks, people, time tracking, content, tickets, customers, and desk admin |
+| **Knowledge Manager** | `https://mcp.ai.teamwork.com/knowledge-manager` | Spaces, pages, and content |
+| **Ops** | `https://mcp.ai.teamwork.com/ops` | All available tools |
+
 ## n8n
 
 1. Add an **HTTP Request** node (or an MCP-aware node if available in your version).

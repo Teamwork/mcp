@@ -9,6 +9,23 @@ guide](/docs/usage/teamwork-cli.md)
 
 ---
 
+## Profile Endpoints
+
+The main endpoint loads all available tools. If you only need a subset, use one
+of the profile endpoints to keep the tool list focused:
+
+| Profile | Endpoint | Tools included |
+|---|---|---|
+| **Project Manager** | `https://mcp.ai.teamwork.com/project-manager` | Projects, tasks, people, content |
+| **Support** | `https://mcp.ai.teamwork.com/support` | Help desk tickets and customers |
+| **Analyst** | `https://mcp.ai.teamwork.com/analyst` | Projects, tasks, people, time tracking, content, tickets, customers, and desk admin |
+| **Knowledge Manager** | `https://mcp.ai.teamwork.com/knowledge-manager` | Spaces, pages, and content |
+| **Ops** | `https://mcp.ai.teamwork.com/ops` | All available tools |
+
+Profile endpoints accept the same authentication methods as the main endpoint.
+
+---
+
 ## Prerequisites
 
 - A Teamwork.com account with permission to create an API key
