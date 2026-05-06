@@ -57,7 +57,7 @@ func OrderDirectionSchema() *jsonschema.Schema {
 	return &jsonschema.Schema{
 		Description: "The direction to order the results by (asc, desc).",
 		AnyOf: []*jsonschema.Schema{
-			{Type: "string"},
+			{Type: "string", Enum: []any{"asc", "desc"}},
 			{Type: "null"},
 		},
 	}
