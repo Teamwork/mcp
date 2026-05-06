@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/pkoukk/tiktoken-go"
+	"github.com/localit-io/tiktoken-go"
 )
 
 func TestCountToolsSmoke(t *testing.T) {

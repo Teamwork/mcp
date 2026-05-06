@@ -9,8 +9,8 @@ require (
 	github.com/getsentry/sentry-go/slog v0.46.2
 	github.com/google/jsonschema-go v0.4.3
 	github.com/google/uuid v1.6.0
+	github.com/localit-io/tiktoken-go v0.2.1
 	github.com/modelcontextprotocol/go-sdk v1.6.0
-	github.com/pkoukk/tiktoken-go v0.1.8
 	github.com/teamwork/desksdkgo v0.0.0-20260420182446-6788c53d670d
 	github.com/teamwork/spacessdkgo v0.0.0-20260422163745-684bf200d31d
 	github.com/teamwork/twapi-go-sdk v1.15.1

@@ -30,7 +30,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/pkoukk/tiktoken-go"
+	"github.com/localit-io/tiktoken-go"
 	"github.com/teamwork/mcp/internal/toolsets"
 	"github.com/teamwork/mcp/internal/twdesk"
 	"github.com/teamwork/mcp/internal/twprojects"
@@ -228,7 +228,7 @@ func runDiff(baseRef, format, encName string, enc *tiktoken.Tiktoken, groups []*
 	}
 
 	// Make sure tiktoken-go is in the base worktree's go.mod (idempotent).
-	if out, err := runIn(wt, "go", "get", "github.com/pkoukk/tiktoken-go").CombinedOutput(); err != nil {
+	if out, err := runIn(wt, "go", "get", "github.com/localit-io/tiktoken-go").CombinedOutput(); err != nil {
 		return fmt.Errorf("go get tiktoken-go in base worktree: %v: %s", err, out)
 	}
 
