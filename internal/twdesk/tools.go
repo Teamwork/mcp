@@ -7,6 +7,7 @@ import (
 )
 
 const (
+	deskTicketsDescription   = "Tickets, messages, files, and inboxes in Teamwork Desk."
 	deskCustomersDescription = "Companies, customers, and user management in Teamwork Desk."
 	deskAdminDescription     = "Inbox configuration: priorities, statuses, types, and tags in Teamwork Desk."
 )
@@ -33,7 +34,7 @@ func DefaultToolsetGroup(readOnly bool, httpClient *http.Client) *toolsets.Tools
 	group := toolsets.NewToolsetGroup(readOnly)
 
 	// --- tickets sub-toolset ---
-	group.AddToolset(toolsets.NewToolset(ToolsetTickets, projectDescription).
+	group.AddToolset(toolsets.NewToolset(ToolsetTickets, deskTicketsDescription).
 		AddWriteTools(
 			FileCreate(httpClient),
 			MessageCreate(httpClient),

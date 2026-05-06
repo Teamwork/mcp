@@ -34,9 +34,7 @@ func TypeGet(httpClient *http.Client) toolsets.ToolWrapper {
 				Title:        "Get Ticket Type",
 				ReadOnlyHint: true,
 			},
-			Description: "Retrieve detailed information about a specific ticket type in Teamwork Desk by its ID. " +
-				"Useful for auditing type usage, troubleshooting ticket categorization, or " +
-				"integrating Desk type data into automation workflows.",
+			Description: "Get ticket type.",
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
 				Properties: map[string]*jsonschema.Schema{
@@ -91,9 +89,7 @@ func TypeList(httpClient *http.Client) toolsets.ToolWrapper {
 				Title:        "List Ticket Types",
 				ReadOnlyHint: true,
 			},
-			Description: "List all ticket types in Teamwork Desk, with optional filters for name and inbox association. " +
-				"Enables users to audit, analyze, or synchronize type configurations for ticket management, " +
-				"reporting, or integration scenarios.",
+			Description: "List ticket types. Filter by name or inbox.",
 			InputSchema: &jsonschema.Schema{
 				Type:       "object",
 				Properties: properties,
@@ -140,9 +136,7 @@ func TypeCreate(httpClient *http.Client) toolsets.ToolWrapper {
 			Annotations: &mcp.ToolAnnotations{
 				Title: "Create Ticket Type",
 			},
-			Description: "Create a new ticket type in Teamwork Desk by specifying its name, display order, and future " +
-				"inbox settings. Useful for customizing ticket workflows, introducing new categories, or " +
-				"adapting Desk to evolving support processes.",
+			Description: "Create ticket type.",
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
 				Properties: map[string]*jsonschema.Schema{
@@ -198,9 +192,7 @@ func TypeUpdate(httpClient *http.Client) toolsets.ToolWrapper {
 			Annotations: &mcp.ToolAnnotations{
 				Title: "Update Ticket Type",
 			},
-			Description: "Update an existing ticket type in Teamwork Desk by ID, allowing changes to its name, " +
-				"display order, and future inbox settings. Supports evolving support policies, rebranding, or correcting " +
-				"type attributes for improved ticket handling.",
+			Description: "Update ticket type.",
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
 				Properties: map[string]*jsonschema.Schema{

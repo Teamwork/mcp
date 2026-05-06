@@ -31,7 +31,7 @@ func InboxGet(httpClient *http.Client) toolsets.ToolWrapper {
 				Title:        "Get Inbox",
 				ReadOnlyHint: true,
 			},
-			Description: "Retrieve detailed information about a specific inbox in Teamwork Desk by its ID.",
+			Description: "Get inbox.",
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
 				Properties: map[string]*jsonschema.Schema{
@@ -86,7 +86,7 @@ func InboxList(httpClient *http.Client) toolsets.ToolWrapper {
 				Title:        "List Inboxes",
 				ReadOnlyHint: true,
 			},
-			Description: "List all inboxes in Teamwork Desk, with optional filters for name and email.",
+			Description: "List inboxes. Filter by name or email.",
 			InputSchema: &jsonschema.Schema{
 				Type:       "object",
 				Properties: properties,

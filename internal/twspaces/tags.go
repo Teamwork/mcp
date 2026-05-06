@@ -31,7 +31,7 @@ func TagGet(httpClient *http.Client) toolsets.ToolWrapper {
 				Title:        "Get Tag",
 				ReadOnlyHint: true,
 			},
-			Description: "Retrieve a specific tag in Teamwork Spaces by its ID.",
+			Description: "Get Spaces tag.",
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
 				Properties: map[string]*jsonschema.Schema{
@@ -68,8 +68,7 @@ func TagList(httpClient *http.Client) toolsets.ToolWrapper {
 				Title:        "List Tags",
 				ReadOnlyHint: true,
 			},
-			Description: "List all tags in Teamwork Spaces. Tags can be applied to pages for categorization " +
-				"and filtering.",
+			Description: "List Spaces tags.",
 			InputSchema: &jsonschema.Schema{
 				Type:       "object",
 				Properties: paginationOptions(map[string]*jsonschema.Schema{}),
@@ -102,8 +101,7 @@ func TagCreateBatch(httpClient *http.Client) toolsets.ToolWrapper {
 			Annotations: &mcp.ToolAnnotations{
 				Title: "Create Tags",
 			},
-			Description: "Create one or more tags in Teamwork Spaces in a single request. Tags can then be " +
-				"applied to pages for organization and filtering.",
+			Description: "Create one or more Spaces tags in a single request.",
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
 				Properties: map[string]*jsonschema.Schema{
@@ -179,7 +177,7 @@ func TagUpdate(httpClient *http.Client) toolsets.ToolWrapper {
 			Annotations: &mcp.ToolAnnotations{
 				Title: "Update Tag",
 			},
-			Description: "Update an existing tag in Teamwork Spaces by ID. Supports changing the name and color.",
+			Description: "Update Spaces tag.",
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
 				Properties: map[string]*jsonschema.Schema{
@@ -238,7 +236,7 @@ func TagDelete(httpClient *http.Client) toolsets.ToolWrapper {
 			Annotations: &mcp.ToolAnnotations{
 				Title: "Delete Tag",
 			},
-			Description: "Delete a tag in Teamwork Spaces by its ID.",
+			Description: "Delete Spaces tag.",
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
 				Properties: map[string]*jsonschema.Schema{

@@ -24,9 +24,7 @@ func Search(httpClient *http.Client) toolsets.ToolWrapper {
 				Title:        "Search Spaces",
 				ReadOnlyHint: true,
 			},
-			Description: "Perform a full-text search across pages in Teamwork Spaces. Supports filtering by " +
-				"space, limiting results, and paginating through matches. Returns matching pages with " +
-				"highlighted text snippets.",
+			Description: "Full-text search across pages. Filter by space.",
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
 				Properties: paginationOptions(map[string]*jsonschema.Schema{

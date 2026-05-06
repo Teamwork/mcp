@@ -34,9 +34,7 @@ func StatusGet(httpClient *http.Client) toolsets.ToolWrapper {
 				Title:        "Get Status",
 				ReadOnlyHint: true,
 			},
-			Description: "Retrieve detailed information about a specific status in Teamwork Desk by its ID. " +
-				"Useful for auditing status usage, troubleshooting ticket workflows, or " +
-				"integrating Desk status data into automation workflows.",
+			Description: "Get ticket status.",
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
 				Properties: map[string]*jsonschema.Schema{
@@ -99,9 +97,7 @@ func StatusList(httpClient *http.Client) toolsets.ToolWrapper {
 				Title:        "List Statuses",
 				ReadOnlyHint: true,
 			},
-			Description: "List all statuses in Teamwork Desk, with optional filters for name, color, and code. " +
-				"Enables users to audit, analyze, or synchronize status configurations for ticket management, " +
-				"reporting, or integration scenarios.",
+			Description: "List ticket statuses. Filter by name, color, or code.",
 			InputSchema: &jsonschema.Schema{
 				Type:       "object",
 				Properties: properties,
@@ -152,9 +148,7 @@ func StatusCreate(httpClient *http.Client) toolsets.ToolWrapper {
 			Annotations: &mcp.ToolAnnotations{
 				Title: "Create Status",
 			},
-			Description: "Create a new status in Teamwork Desk by specifying its name, color, and display order. " +
-				"Useful for customizing ticket workflows, introducing new resolution states, or " +
-				"adapting Desk to evolving support processes.",
+			Description: "Create ticket status.",
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
 				Properties: map[string]*jsonschema.Schema{
@@ -210,9 +204,7 @@ func StatusUpdate(httpClient *http.Client) toolsets.ToolWrapper {
 			Annotations: &mcp.ToolAnnotations{
 				Title: "Update Status",
 			},
-			Description: "Update an existing status in Teamwork Desk by ID, allowing changes to its name, color, and " +
-				"display order. Supports evolving support policies, rebranding, or correcting status attributes for improved " +
-				"ticket handling.",
+			Description: "Update ticket status.",
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
 				Properties: map[string]*jsonschema.Schema{

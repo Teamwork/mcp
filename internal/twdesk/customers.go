@@ -34,9 +34,7 @@ func CustomerGet(httpClient *http.Client) toolsets.ToolWrapper {
 				Title:        "Get Customer",
 				ReadOnlyHint: true,
 			},
-			Description: "Retrieve detailed information about a specific customer in Teamwork Desk by their ID. " +
-				"Useful for auditing customer records, troubleshooting ticket associations, or " +
-				"integrating Desk customer data into automation workflows.",
+			Description: "Get customer.",
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
 				Properties: map[string]*jsonschema.Schema{
@@ -100,9 +98,7 @@ func CustomerList(httpClient *http.Client) toolsets.ToolWrapper {
 				Title:        "List Customers",
 				ReadOnlyHint: true,
 			},
-			Description: "List all customers in Teamwork Desk, with optional filters for company, email, and other " +
-				"attributes. Enables users to audit, analyze, or synchronize customer configurations for ticket management, " +
-				"reporting, or integration scenarios.",
+			Description: "List customers. Filter by company or email.",
 			InputSchema: &jsonschema.Schema{
 				Type:       "object",
 				Properties: properties,
@@ -156,9 +152,7 @@ func CustomerCreate(httpClient *http.Client) toolsets.ToolWrapper {
 			Annotations: &mcp.ToolAnnotations{
 				Title: "Create Customer",
 			},
-			Description: "Create a new customer in Teamwork Desk by specifying their name, contact details, and other " +
-				"attributes. Useful for onboarding new clients, customizing Desk for business relationships, or " +
-				"adapting support processes.",
+			Description: "Create customer.",
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
 				Properties: map[string]*jsonschema.Schema{
@@ -309,9 +303,7 @@ func CustomerUpdate(httpClient *http.Client) toolsets.ToolWrapper {
 			Annotations: &mcp.ToolAnnotations{
 				Title: "Update Customer",
 			},
-			Description: "Update an existing customer in Teamwork Desk by ID, allowing changes to their name, " +
-				"contact details, and other attributes. Supports evolving business relationships, " +
-				"correcting customer records, or improving ticket handling.",
+			Description: "Update customer.",
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
 				Properties: map[string]*jsonschema.Schema{

@@ -34,9 +34,7 @@ func TagGet(httpClient *http.Client) toolsets.ToolWrapper {
 				Title:        "Get Tag",
 				ReadOnlyHint: true,
 			},
-			Description: "Retrieve detailed information about a specific tag in Teamwork Desk by its ID. " +
-				"Useful for auditing tag usage, troubleshooting ticket categorization, or " +
-				"integrating Desk tag data into automation workflows.",
+			Description: "Get Desk tag.",
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
 				Properties: map[string]*jsonschema.Schema{
@@ -98,9 +96,7 @@ func TagList(httpClient *http.Client) toolsets.ToolWrapper {
 				Title:        "List Tags",
 				ReadOnlyHint: true,
 			},
-			Description: "List all tags in Teamwork Desk, with optional filters for name, color, and inbox association. " +
-				"Enables users to audit, analyze, or synchronize tag configurations for ticket management, " +
-				"reporting, or integration scenarios.",
+			Description: "List Desk tags. Filter by name, color, or inbox.",
 			InputSchema: &jsonschema.Schema{
 				Type:       "object",
 				Properties: properties,
@@ -151,8 +147,7 @@ func TagCreate(httpClient *http.Client) toolsets.ToolWrapper {
 			Annotations: &mcp.ToolAnnotations{
 				Title: "Create Tag",
 			},
-			Description: "Create a new tag in Teamwork Desk by specifying its name and color. Useful for customizing " +
-				"ticket workflows, introducing new categories, or adapting Desk to evolving support processes.",
+			Description: "Create Desk tag.",
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
 				Properties: map[string]*jsonschema.Schema{
@@ -200,9 +195,7 @@ func TagUpdate(httpClient *http.Client) toolsets.ToolWrapper {
 			Annotations: &mcp.ToolAnnotations{
 				Title: "Update Tag",
 			},
-			Description: "Update an existing tag in Teamwork Desk by ID, allowing changes to its name and color. " +
-				"Supports evolving support policies, rebranding, or correcting tag attributes for improved " +
-				"ticket handling.",
+			Description: "Update Desk tag.",
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
 				Properties: map[string]*jsonschema.Schema{

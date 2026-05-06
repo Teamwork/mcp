@@ -33,8 +33,7 @@ func PageGet(httpClient *http.Client) toolsets.ToolWrapper {
 				Title:        "Get Page",
 				ReadOnlyHint: true,
 			},
-			Description: "Retrieve detailed information about a specific page within a space in Teamwork Spaces. " +
-				"Returns the page content, metadata, tags, and revision information.",
+			Description: "Get page. Returns content, metadata, tags, and revision info.",
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
 				Properties: map[string]*jsonschema.Schema{
@@ -78,9 +77,7 @@ func PageList(httpClient *http.Client) toolsets.ToolWrapper {
 				Title:        "List Pages",
 				ReadOnlyHint: true,
 			},
-			Description: "List all pages in a space as a hierarchical tree in Teamwork Spaces. " +
-				"Returns the page tree including child pages, useful for understanding content structure " +
-				"and navigation.",
+			Description: "List pages in a space as a hierarchical tree.",
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
 				Properties: paginationOptions(map[string]*jsonschema.Schema{
@@ -119,8 +116,7 @@ func PageHome(httpClient *http.Client) toolsets.ToolWrapper {
 				Title:        "Get Space Homepage",
 				ReadOnlyHint: true,
 			},
-			Description: "Retrieve the homepage of a space in Teamwork Spaces. The homepage is the entry point " +
-				"and starting page for a space's content.",
+			Description: "Get a space's homepage.",
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
 				Properties: map[string]*jsonschema.Schema{
@@ -156,8 +152,7 @@ func PageCreate(httpClient *http.Client) toolsets.ToolWrapper {
 			Annotations: &mcp.ToolAnnotations{
 				Title: "Create Page",
 			},
-			Description: "Create a new page within a space in Teamwork Spaces. Supports setting title, content, " +
-				"parent page, slug, tags, and publishing options.",
+			Description: "Create page in a space.",
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
 				Properties: map[string]*jsonschema.Schema{
@@ -268,8 +263,7 @@ func PageDuplicate(httpClient *http.Client) toolsets.ToolWrapper {
 			Annotations: &mcp.ToolAnnotations{
 				Title: "Duplicate Page",
 			},
-			Description: "Duplicate an existing page within a space in Teamwork Spaces. Creates a copy of the " +
-				"page with a new title, optionally under a different parent page.",
+			Description: "Duplicate page with a new title.",
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
 				Properties: map[string]*jsonschema.Schema{
@@ -339,8 +333,7 @@ func PageUpdate(httpClient *http.Client) toolsets.ToolWrapper {
 			Annotations: &mcp.ToolAnnotations{
 				Title: "Update Page",
 			},
-			Description: "Update an existing page in Teamwork Spaces. Supports updating title, content, slug, " +
-				"parent page, tags, publishing status, and other page attributes.",
+			Description: "Update page.",
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
 				Properties: map[string]*jsonschema.Schema{
@@ -494,7 +487,7 @@ func PageDelete(httpClient *http.Client) toolsets.ToolWrapper {
 			Annotations: &mcp.ToolAnnotations{
 				Title: "Delete Page",
 			},
-			Description: "Delete a page from a space in Teamwork Spaces. This action is irreversible.",
+			Description: "Delete page. Irreversible.",
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
 				Properties: map[string]*jsonschema.Schema{

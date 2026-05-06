@@ -34,9 +34,7 @@ func CompanyGet(httpClient *http.Client) toolsets.ToolWrapper {
 				Title:        "Get Company",
 				ReadOnlyHint: true,
 			},
-			Description: "Retrieve detailed information about a specific company in Teamwork Desk by its ID. " +
-				"Useful for auditing company records, troubleshooting ticket associations, or " +
-				"integrating Desk company data into automation workflows.",
+			Description: "Get Desk company (customer organization).",
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
 				Properties: map[string]*jsonschema.Schema{
@@ -99,9 +97,7 @@ func CompanyList(httpClient *http.Client) toolsets.ToolWrapper {
 				Title:        "List Companies",
 				ReadOnlyHint: true,
 			},
-			Description: "List all companies in Teamwork Desk, with optional filters for name, domains, and kind. " +
-				"Enables users to audit, analyze, or synchronize company configurations for ticket management, " +
-				"reporting, or integration scenarios.",
+			Description: "List Desk companies. Filter by name, domains, or kind.",
 			InputSchema: &jsonschema.Schema{
 				Type:       "object",
 				Properties: properties,
@@ -154,9 +150,7 @@ func CompanyCreate(httpClient *http.Client) toolsets.ToolWrapper {
 			Annotations: &mcp.ToolAnnotations{
 				Title: "Create Company",
 			},
-			Description: "Create a new company in Teamwork Desk by specifying its name, domains, and other attributes. " +
-				"Useful for onboarding new organizations, customizing Desk for business relationships, or " +
-				"adapting support processes.",
+			Description: "Create Desk company.",
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
 				Properties: map[string]*jsonschema.Schema{
@@ -270,9 +264,7 @@ func CompanyUpdate(httpClient *http.Client) toolsets.ToolWrapper {
 			Annotations: &mcp.ToolAnnotations{
 				Title: "Update Company",
 			},
-			Description: "Update an existing company in Teamwork Desk by ID, allowing changes to its name, domains, and " +
-				"other attributes. Supports evolving business relationships, rebranding, or correcting company records for " +
-				"improved ticket handling.",
+			Description: "Update Desk company.",
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
 				Properties: map[string]*jsonschema.Schema{

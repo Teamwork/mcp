@@ -29,8 +29,7 @@ func FileCreate(httpClient *http.Client) toolsets.ToolWrapper {
 			Annotations: &mcp.ToolAnnotations{
 				Title: "Create File",
 			},
-			Description: "Upload a new file to Teamwork Desk, enabling attachment to tickets, articles, or " +
-				"other resources.",
+			Description: "Upload file. Attach the returned ID to tickets or messages.",
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
 				Properties: map[string]*jsonschema.Schema{
