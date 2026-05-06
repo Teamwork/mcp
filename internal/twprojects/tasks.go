@@ -64,12 +64,8 @@ func TaskCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 						Description: "The name of the task.",
 					},
 					"tasklist_id": {
-						Type: "integer",
-						Description: "The ID of the tasklist. If you only have the project's name, use the " +
-							string(MethodProjectList) + " method with the search_term parameter to find the project ID, and " +
-							"then the " + string(MethodTasklistList) + " method with the project_id to choose the tasklist ID. If " +
-							"you know the tasklist's name, you may also use the search_term parameter with the " +
-							string(MethodTasklistList) + " method to find the tasklist ID.",
+						Type:        "integer",
+						Description: "Tasklist ID. Use list_tasklists to find one.",
 					},
 					"description": {
 						Description: "The description of the task.",
@@ -946,7 +942,7 @@ func TaskList(engine *twapi.Engine) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
 			Name:        string(MethodTaskList),
-			Description: "List tasks. Scope by tasklist_id, project_id, or neither for site-wide.",
+			Description: "List tasks with structured filters (tasklist_id, project_id, or site-wide). For keyword search use search.",
 			Annotations: &mcp.ToolAnnotations{
 				Title:        "List Tasks",
 				ReadOnlyHint: true,

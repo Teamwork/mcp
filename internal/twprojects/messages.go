@@ -447,7 +447,7 @@ func MessageList(engine *twapi.Engine) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
 			Name:        string(MethodMessageList),
-			Description: "List messages.",
+			Description: "List project messages (top-level posts). Use list_message_replies for thread replies.",
 			Annotations: &mcp.ToolAnnotations{
 				Title:        "List Messages",
 				ReadOnlyHint: true,

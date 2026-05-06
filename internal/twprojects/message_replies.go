@@ -423,7 +423,7 @@ func MessageReplyList(engine *twapi.Engine) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
 			Name:        string(MethodMessageReplyList),
-			Description: "List replies for a message.",
+			Description: "List replies under a message thread. Filter by message_ids or project_ids.",
 			Annotations: &mcp.ToolAnnotations{
 				Title:        "List Message Replies",
 				ReadOnlyHint: true,

@@ -228,7 +228,7 @@ func TimerPause(engine *twapi.Engine) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
 			Name:        string(MethodTimerPause),
-			Description: "Pause a running timer.",
+			Description: "Pause a running timer; can be resumed later. Use complete_timer to stop permanently.",
 			Annotations: &mcp.ToolAnnotations{
 				Title: "Pause Timer",
 			},
@@ -271,7 +271,7 @@ func TimerResume(engine *twapi.Engine) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
 			Name:        string(MethodTimerResume),
-			Description: "Resume a paused timer.",
+			Description: "Resume a paused timer back to running.",
 			Annotations: &mcp.ToolAnnotations{
 				Title: "Resume Timer",
 			},
@@ -314,7 +314,7 @@ func TimerComplete(engine *twapi.Engine) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
 			Name:        string(MethodTimerComplete),
-			Description: "Stop a timer and convert it to a timelog.",
+			Description: "Stop a timer permanently and convert it to a timelog. Use pause_timer to pause without converting.",
 			Annotations: &mcp.ToolAnnotations{
 				Title: "Complete Timer",
 			},
