@@ -94,7 +94,7 @@ func param[T any](
 		return fmt.Errorf("target cannot be nil")
 	}
 	value, ok := params[key]
-	if !ok {
+	if !ok || value == nil {
 		if optional {
 			return nil
 		}
@@ -205,7 +205,7 @@ func numericParam[T int8 | int16 | int32 | int64 |
 		return fmt.Errorf("target cannot be nil")
 	}
 	value, ok := params[key]
-	if !ok {
+	if !ok || value == nil {
 		if optional {
 			return nil
 		}
@@ -289,7 +289,7 @@ func timeParam(
 		return fmt.Errorf("target cannot be nil")
 	}
 	value, ok := params[key]
-	if !ok {
+	if !ok || value == nil {
 		if optional {
 			return nil
 		}
@@ -383,7 +383,7 @@ func timeOnlyParam(
 		return fmt.Errorf("target cannot be nil")
 	}
 	value, ok := params[key]
-	if !ok {
+	if !ok || value == nil {
 		if optional {
 			return nil
 		}
@@ -479,7 +479,7 @@ func dateParam(
 		return fmt.Errorf("target cannot be nil")
 	}
 	value, ok := params[key]
-	if !ok {
+	if !ok || value == nil {
 		if optional {
 			return nil
 		}
@@ -576,7 +576,7 @@ func legacyDateParam(
 		return fmt.Errorf("target cannot be nil")
 	}
 	value, ok := params[key]
-	if !ok {
+	if !ok || value == nil {
 		if optional {
 			return nil
 		}
@@ -615,7 +615,7 @@ func OptionalListParam[T any](target *[]T, key string) ParamFunc {
 			return fmt.Errorf("target cannot be nil")
 		}
 		value, ok := params[key]
-		if !ok {
+		if !ok || value == nil {
 			return nil
 		}
 		array, ok := value.([]any)
@@ -673,7 +673,7 @@ func OptionalNumericListParam[T int8 | int16 | int32 | int64 |
 			return fmt.Errorf("target cannot be nil")
 		}
 		value, ok := params[key]
-		if !ok {
+		if !ok || value == nil {
 			return nil
 		}
 		array, ok := value.([]any)
@@ -699,7 +699,7 @@ func OptionalNumericListParam[T int8 | int16 | int32 | int64 |
 func OptionalCustomNumericListParam[T interface{ Add(float64) }](target T, key string) ParamFunc {
 	return func(params map[string]any) error {
 		value, ok := params[key]
-		if !ok {
+		if !ok || value == nil {
 			return nil
 		}
 		array, ok := value.([]any)
