@@ -941,8 +941,9 @@ func TaskGet(engine *twapi.Engine) toolsets.ToolWrapper {
 func TaskList(engine *twapi.Engine) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
-			Name:        string(MethodTaskList),
-			Description: "List tasks with structured filters (tasklist_id, project_id, or site-wide). For keyword search use search.",
+			Name: string(MethodTaskList),
+			Description: "List tasks with structured filters (tasklist_id, project_id, or site-wide). " +
+				"For keyword search use search.",
 			Annotations: &mcp.ToolAnnotations{
 				Title:        "List Tasks",
 				ReadOnlyHint: true,
