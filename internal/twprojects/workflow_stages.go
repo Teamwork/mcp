@@ -341,20 +341,8 @@ func WorkflowStageList(engine *twapi.Engine) toolsets.ToolWrapper {
 						Type:        "integer",
 						Description: "The ID of the workflow whose stages to list.",
 					},
-					"page": {
-						Description: "Page number for pagination of results.",
-						AnyOf: []*jsonschema.Schema{
-							{Type: "integer"},
-							{Type: "null"},
-						},
-					},
-					"page_size": {
-						Description: "Number of results per page for pagination.",
-						AnyOf: []*jsonschema.Schema{
-							{Type: "integer"},
-							{Type: "null"},
-						},
-					},
+					"page":      helpers.PageSchema(),
+					"page_size": helpers.PageSizeSchema(),
 				},
 				Required: []string{"workflow_id"},
 			},

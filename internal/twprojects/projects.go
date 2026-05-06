@@ -105,13 +105,7 @@ func ProjectCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 							{Type: "null"},
 						},
 					},
-					"tag_ids": {
-						Description: "A list of tag IDs to associate with the project.",
-						AnyOf: []*jsonschema.Schema{
-							{Type: "array", Items: &jsonschema.Schema{Type: "integer"}},
-							{Type: "null"},
-						},
-					},
+					"tag_ids": helpers.TagIDsAssociateSchema("project"),
 				},
 				Required: []string{"name"},
 			},
@@ -211,13 +205,7 @@ func ProjectUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 							{Type: "null"},
 						},
 					},
-					"tag_ids": {
-						Description: "A list of tag IDs to associate with the project.",
-						AnyOf: []*jsonschema.Schema{
-							{Type: "array", Items: &jsonschema.Schema{Type: "integer"}},
-							{Type: "null"},
-						},
-					},
+					"tag_ids": helpers.TagIDsAssociateSchema("project"),
 					"status": {
 						Description: "The status of the project. Allowed values: active or archived.",
 						AnyOf: []*jsonschema.Schema{
@@ -550,42 +538,11 @@ func ProjectList(engine *twapi.Engine) toolsets.ToolWrapper {
 							{Type: "null"},
 						},
 					},
-					"search_term": {
-						Description: "A search term to filter projects by name or description.",
-						AnyOf: []*jsonschema.Schema{
-							{Type: "string"},
-							{Type: "null"},
-						},
-					},
-					"tag_ids": {
-						Description: "A list of tag IDs to filter projects by tags.",
-						AnyOf: []*jsonschema.Schema{
-							{Type: "array", Items: &jsonschema.Schema{Type: "integer"}},
-							{Type: "null"},
-						},
-					},
-					"match_all_tags": {
-						Description: "If true, the search will match projects that have all the specified tags. If false, the " +
-							"search will match projects that have any of the specified tags. Defaults to false.",
-						AnyOf: []*jsonschema.Schema{
-							{Type: "boolean"},
-							{Type: "null"},
-						},
-					},
-					"page": {
-						Description: "Page number for pagination of results.",
-						AnyOf: []*jsonschema.Schema{
-							{Type: "integer"},
-							{Type: "null"},
-						},
-					},
-					"page_size": {
-						Description: "Number of results per page for pagination.",
-						AnyOf: []*jsonschema.Schema{
-							{Type: "integer"},
-							{Type: "null"},
-						},
-					},
+					"search_term":    helpers.SearchTermSchema("projects", "name or description"),
+					"tag_ids":        helpers.TagIDsFilterSchema("projects"),
+					"match_all_tags": helpers.MatchAllTagsSchema("projects"),
+					"page":           helpers.PageSchema(),
+					"page_size":      helpers.PageSizeSchema(),
 				},
 				Required: []string{},
 			},
