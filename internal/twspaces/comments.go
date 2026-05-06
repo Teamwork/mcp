@@ -31,7 +31,7 @@ func CommentGet(httpClient *http.Client) toolsets.ToolWrapper {
 				Title:        "Get Comment",
 				ReadOnlyHint: true,
 			},
-			Description: "Retrieve a specific comment on a page in Teamwork Spaces by its ID.",
+			Description: "Get page comment.",
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
 				Properties: map[string]*jsonschema.Schema{
@@ -80,8 +80,7 @@ func CommentList(httpClient *http.Client) toolsets.ToolWrapper {
 				Title:        "List Comments",
 				ReadOnlyHint: true,
 			},
-			Description: "List all comments on a page in Teamwork Spaces. Returns top-level comments along " +
-				"with their replies, enabling review of discussions and feedback on documentation.",
+			Description: "List comments on a page. Returns top-level comments with replies.",
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
 				Properties: paginationOptions(map[string]*jsonschema.Schema{
@@ -127,8 +126,7 @@ func CommentCreate(httpClient *http.Client) toolsets.ToolWrapper {
 			Annotations: &mcp.ToolAnnotations{
 				Title: "Create Comment",
 			},
-			Description: "Create a new comment on a page in Teamwork Spaces. Supports top-level comments and " +
-				"replies to existing comments.",
+			Description: "Create comment on a page. Use parentId for replies.",
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
 				Properties: map[string]*jsonschema.Schema{
@@ -198,8 +196,7 @@ func CommentUpdate(httpClient *http.Client) toolsets.ToolWrapper {
 			Annotations: &mcp.ToolAnnotations{
 				Title: "Update Comment",
 			},
-			Description: "Update an existing comment on a page in Teamwork Spaces. Supports modifying content, " +
-				"state, and privacy settings.",
+			Description: "Update page comment.",
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
 				Properties: map[string]*jsonschema.Schema{
@@ -282,7 +279,7 @@ func CommentDelete(httpClient *http.Client) toolsets.ToolWrapper {
 			Annotations: &mcp.ToolAnnotations{
 				Title: "Delete Comment",
 			},
-			Description: "Delete a comment from a page in Teamwork Spaces. This action is irreversible.",
+			Description: "Delete page comment. Irreversible.",
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
 				Properties: map[string]*jsonschema.Schema{

@@ -7,8 +7,9 @@ import (
 )
 
 const (
-	spacesContentDescription    = "Pages, comments, tags, and categories in Teamwork Spaces."
-	spacesCategoriesDescription = "Space categories in Teamwork Spaces."
+	spacesDescription        = "Space CRUD and collaborators in Teamwork Spaces."
+	pagesDescription         = "Page CRUD, homepage, and duplication in Teamwork Spaces."
+	spacesContentDescription = "Comments, tags, categories, and search in Teamwork Spaces."
 )
 
 // Sub-toolset keys for twspaces. These are the valid values for the
@@ -46,7 +47,7 @@ func DefaultToolsetGroup(readOnly bool, httpClient *http.Client) *toolsets.Tools
 		))
 
 	// --- pages sub-toolset ---
-	group.AddToolset(toolsets.NewToolset(ToolsetPages, spacesDescription).
+	group.AddToolset(toolsets.NewToolset(ToolsetPages, pagesDescription).
 		AddWriteTools(
 			PageCreate(httpClient),
 			PageDuplicate(httpClient),

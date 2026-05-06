@@ -28,9 +28,7 @@ func MessageCreate(httpClient *http.Client) toolsets.ToolWrapper {
 			Annotations: &mcp.ToolAnnotations{
 				Title: "Reply to Ticket",
 			},
-			Description: "Send a reply to a ticket in Teamwork Desk. Supports customer-facing replies and internal agent notes. " +
-				"Useful for automating ticket responses, integrating external communication systems, or " +
-				"customizing support workflows.",
+			Description: "Reply to a ticket. Use threadType=note for internal agent notes.",
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
 				Properties: map[string]*jsonschema.Schema{

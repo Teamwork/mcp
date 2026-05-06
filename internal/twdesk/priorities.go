@@ -34,9 +34,7 @@ func PriorityGet(httpClient *http.Client) toolsets.ToolWrapper {
 				Title:        "Get Priority",
 				ReadOnlyHint: true,
 			},
-			Description: "Retrieve detailed information about a specific priority in Teamwork Desk by its ID. " +
-				"Useful for inspecting priority attributes, troubleshooting ticket routing, or " +
-				"integrating Desk priority data into automation workflows.",
+			Description: "Get ticket priority.",
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
 				Properties: map[string]*jsonschema.Schema{
@@ -91,9 +89,7 @@ func PriorityList(httpClient *http.Client) toolsets.ToolWrapper {
 				Title:        "List Priorities",
 				ReadOnlyHint: true,
 			},
-			Description: "List all available priorities in Teamwork Desk, with optional filters for name and color. " +
-				"Enables users to audit, analyze, or synchronize priority configurations for ticket management, " +
-				"reporting, or integration scenarios.",
+			Description: "List ticket priorities. Filter by name or color.",
 			InputSchema: &jsonschema.Schema{
 				Type:       "object",
 				Properties: properties,
@@ -140,8 +136,7 @@ func PriorityCreate(httpClient *http.Client) toolsets.ToolWrapper {
 			Annotations: &mcp.ToolAnnotations{
 				Title: "Create Priority",
 			},
-			Description: "Create a new priority in Teamwork Desk by specifying its name and color. Useful for customizing " +
-				"ticket workflows, introducing new escalation levels, or adapting Desk to evolving support processes.",
+			Description: "Create ticket priority.",
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
 				Properties: map[string]*jsonschema.Schema{
@@ -189,9 +184,7 @@ func PriorityUpdate(httpClient *http.Client) toolsets.ToolWrapper {
 			Annotations: &mcp.ToolAnnotations{
 				Title: "Update Priority",
 			},
-			Description: "Update an existing priority in Teamwork Desk by ID, allowing changes to its name and color. " +
-				"Supports evolving support policies, rebranding, or correcting priority attributes for improved " +
-				"ticket handling.",
+			Description: "Update ticket priority.",
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
 				Properties: map[string]*jsonschema.Schema{

@@ -35,8 +35,7 @@ func SpaceGet(httpClient *http.Client) toolsets.ToolWrapper {
 				Title:        "Get Space",
 				ReadOnlyHint: true,
 			},
-			Description: "Retrieve detailed information about a specific space in Teamwork Spaces by its ID. " +
-				"Useful for inspecting space configuration, metadata, or linking spaces to projects.",
+			Description: "Get space.",
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
 				Properties: map[string]*jsonschema.Schema{
@@ -73,8 +72,7 @@ func SpaceList(httpClient *http.Client) toolsets.ToolWrapper {
 				Title:        "List Spaces",
 				ReadOnlyHint: true,
 			},
-			Description: "List all spaces in Teamwork Spaces. Enables users to discover, audit, or synchronize " +
-				"space data for documentation management, reporting, or integration scenarios.",
+			Description: "List spaces.",
 			InputSchema: &jsonschema.Schema{
 				Type:       "object",
 				Properties: paginationOptions(map[string]*jsonschema.Schema{}),
@@ -107,8 +105,7 @@ func SpaceCreate(httpClient *http.Client) toolsets.ToolWrapper {
 			Annotations: &mcp.ToolAnnotations{
 				Title: "Create Space",
 			},
-			Description: "Create a new space in Teamwork Spaces. Useful for setting up knowledge bases, " +
-				"team wikis, or project documentation areas.",
+			Description: "Create space.",
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
 				Properties: map[string]*jsonschema.Schema{
@@ -205,8 +202,7 @@ func SpaceUpdate(httpClient *http.Client) toolsets.ToolWrapper {
 			Annotations: &mcp.ToolAnnotations{
 				Title: "Update Space",
 			},
-			Description: "Update an existing space in Teamwork Spaces by ID. Supports changes to title, code, " +
-				"purpose, color, icon, state, linked project, and category.",
+			Description: "Update space.",
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
 				Properties: map[string]*jsonschema.Schema{
@@ -326,8 +322,7 @@ func SpaceDelete(httpClient *http.Client) toolsets.ToolWrapper {
 			Annotations: &mcp.ToolAnnotations{
 				Title: "Delete Space",
 			},
-			Description: "Delete a space in Teamwork Spaces by its ID. This action is irreversible and will " +
-				"remove the space and all its content.",
+			Description: "Delete space. Irreversible; removes all content.",
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
 				Properties: map[string]*jsonschema.Schema{
@@ -363,8 +358,7 @@ func SpaceCollaborators(httpClient *http.Client) toolsets.ToolWrapper {
 				Title:        "List Space Collaborators",
 				ReadOnlyHint: true,
 			},
-			Description: "List all collaborators (users and teams) for a specific space in Teamwork Spaces. " +
-				"Useful for auditing access, reviewing permissions, or understanding who contributes to a space.",
+			Description: "List space collaborators (users and teams).",
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
 				Properties: map[string]*jsonschema.Schema{

@@ -31,9 +31,7 @@ func UserGet(httpClient *http.Client) toolsets.ToolWrapper {
 				Title:        "Get User",
 				ReadOnlyHint: true,
 			},
-			Description: "Retrieve detailed information about a specific support agent in Teamwork Desk by their ID. " +
-				"Useful for auditing agent records, troubleshooting ticket assignments, or " +
-				"integrating Desk agent data into automation workflows.",
+			Description: "Get support agent.",
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
 				Properties: map[string]*jsonschema.Schema{
@@ -109,11 +107,7 @@ func UserList(httpClient *http.Client) toolsets.ToolWrapper {
 				Title:        "List Users",
 				ReadOnlyHint: true,
 			},
-			Description: `
-				List all support agents in Teamwork Desk, with optional 
-				filters for name, email, inbox, and part-time status. Agents are the staff 
-				members who handle tickets; customers are managed via the 'twdesk-list_customers' tool.
-			`,
+			Description: "List support agents. For customers, use twdesk-list_customers.",
 			InputSchema: &jsonschema.Schema{
 				Type:       "object",
 				Properties: properties,

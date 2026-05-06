@@ -35,9 +35,7 @@ func TicketGet(httpClient *http.Client) toolsets.ToolWrapper {
 				Title:        "Get Ticket",
 				ReadOnlyHint: true,
 			},
-			Description: "Retrieve detailed information about a specific ticket in Teamwork Desk by its ID. " +
-				"Useful for auditing ticket records, troubleshooting support workflows, or " +
-				"integrating Desk ticket data into automation and reporting systems.",
+			Description: "Get ticket.",
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
 				Properties: map[string]*jsonschema.Schema{
@@ -175,9 +173,7 @@ func TicketSearch(httpClient *http.Client) toolsets.ToolWrapper {
 				Title:        "Search Tickets",
 				ReadOnlyHint: true,
 			},
-			Description: "Search tickets in Teamwork Desk using various filters including inbox, customer, company, " +
-				"tag, status, priority, SLA, user, and more. This tool enables users to perform targeted searches " +
-				"for tickets, facilitating efficient support management, reporting, and integration with other systems.",
+			Description: "Search tickets. Filter by inbox, customer, company, tag, status, priority, or user.",
 			InputSchema: &jsonschema.Schema{
 				Type:       "object",
 				Properties: properties,
@@ -234,8 +230,7 @@ func TicketCreate(httpClient *http.Client) toolsets.ToolWrapper {
 			Annotations: &mcp.ToolAnnotations{
 				Title: "Create Ticket",
 			},
-			Description: "Create a new ticket in Teamwork Desk by specifying subject, description, priority, and status. " +
-				"Useful for automating ticket creation, integrating external systems, or customizing support workflows.",
+			Description: "Create ticket.",
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
 				Properties: map[string]*jsonschema.Schema{
@@ -484,9 +479,7 @@ func TicketUpdate(httpClient *http.Client) toolsets.ToolWrapper {
 			Annotations: &mcp.ToolAnnotations{
 				Title: "Update Ticket",
 			},
-			Description: "Update an existing ticket in Teamwork Desk by ID, allowing changes to its attributes. " +
-				"Supports evolving support processes, correcting ticket records, or integrating with automation " +
-				"systems for improved ticket handling.",
+			Description: "Update ticket.",
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
 				Properties: map[string]*jsonschema.Schema{

@@ -31,7 +31,7 @@ func CategoryGet(httpClient *http.Client) toolsets.ToolWrapper {
 				Title:        "Get Category",
 				ReadOnlyHint: true,
 			},
-			Description: "Retrieve a specific space category in Teamwork Spaces by its ID.",
+			Description: "Get space category.",
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
 				Properties: map[string]*jsonschema.Schema{
@@ -68,8 +68,7 @@ func CategoryList(httpClient *http.Client) toolsets.ToolWrapper {
 				Title:        "List Categories",
 				ReadOnlyHint: true,
 			},
-			Description: "List all space categories in Teamwork Spaces. Categories are used to organize spaces " +
-				"into logical groups for easier navigation and management.",
+			Description: "List space categories.",
 			InputSchema: &jsonschema.Schema{
 				Type:       "object",
 				Properties: paginationOptions(map[string]*jsonschema.Schema{}),
@@ -102,8 +101,7 @@ func CategoryCreate(httpClient *http.Client) toolsets.ToolWrapper {
 			Annotations: &mcp.ToolAnnotations{
 				Title: "Create Category",
 			},
-			Description: "Create a new space category in Teamwork Spaces. Categories help organize spaces into " +
-				"logical groups for easier navigation and management.",
+			Description: "Create space category.",
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
 				Properties: map[string]*jsonschema.Schema{
@@ -153,7 +151,7 @@ func CategoryUpdate(httpClient *http.Client) toolsets.ToolWrapper {
 			Annotations: &mcp.ToolAnnotations{
 				Title: "Update Category",
 			},
-			Description: "Update an existing space category in Teamwork Spaces by ID.",
+			Description: "Update space category.",
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
 				Properties: map[string]*jsonschema.Schema{
@@ -212,7 +210,7 @@ func CategoryDelete(httpClient *http.Client) toolsets.ToolWrapper {
 			Annotations: &mcp.ToolAnnotations{
 				Title: "Delete Category",
 			},
-			Description: "Delete a space category in Teamwork Spaces by its ID.",
+			Description: "Delete space category.",
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
 				Properties: map[string]*jsonschema.Schema{
