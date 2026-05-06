@@ -82,13 +82,7 @@ func NotebookCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 						Description: "The type of the notebook. Valid values are 'MARKDOWN' and 'HTML'.",
 						Enum:        []any{"MARKDOWN", "HTML"},
 					},
-					"tag_ids": {
-						Description: "A list of tag IDs to associate with the notebook.",
-						AnyOf: []*jsonschema.Schema{
-							{Type: "array", Items: &jsonschema.Schema{Type: "integer"}},
-							{Type: "null"},
-						},
-					},
+					"tag_ids": helpers.TagIDsAssociateSchema("notebook"),
 				},
 				Required: []string{"name", "project_id", "contents", "type"},
 			},
@@ -170,13 +164,7 @@ func NotebookUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 							{Type: "null"},
 						},
 					},
-					"tag_ids": {
-						Description: "A list of tag IDs to associate with the notebook.",
-						AnyOf: []*jsonschema.Schema{
-							{Type: "array", Items: &jsonschema.Schema{Type: "integer"}},
-							{Type: "null"},
-						},
-					},
+					"tag_ids": helpers.TagIDsAssociateSchema("notebook"),
 				},
 				Required: []string{"id"},
 			},
@@ -347,22 +335,8 @@ func NotebookList(engine *twapi.Engine) toolsets.ToolWrapper {
 							{Type: "null"},
 						},
 					},
-					"tag_ids": {
-						Description: "A list of tag IDs to filter notebooks by tags",
-						AnyOf: []*jsonschema.Schema{
-							{Type: "array", Items: &jsonschema.Schema{Type: "integer"}},
-							{Type: "null"},
-						},
-					},
-					"match_all_tags": {
-						Description: "If true, the search will match notebooks that have all the specified tags. " +
-							"If false, the search will match notebooks that have any of the specified tags. " +
-							"Defaults to false.",
-						AnyOf: []*jsonschema.Schema{
-							{Type: "boolean"},
-							{Type: "null"},
-						},
-					},
+					"tag_ids":        helpers.TagIDsFilterSchema("notebooks"),
+					"match_all_tags": helpers.MatchAllTagsSchema("notebooks"),
 					"include_contents": {
 						Description: "If true, the contents of the notebook will be included in the response. " +
 							"Defaults to true.",
@@ -372,20 +346,8 @@ func NotebookList(engine *twapi.Engine) toolsets.ToolWrapper {
 							{Type: "null"},
 						},
 					},
-					"page": {
-						Description: "Page number for pagination of results.",
-						AnyOf: []*jsonschema.Schema{
-							{Type: "integer"},
-							{Type: "null"},
-						},
-					},
-					"page_size": {
-						Description: "Number of results per page for pagination.",
-						AnyOf: []*jsonschema.Schema{
-							{Type: "integer"},
-							{Type: "null"},
-						},
-					},
+					"page":      helpers.PageSchema(),
+					"page_size": helpers.PageSizeSchema(),
 				},
 				Required: []string{},
 			},

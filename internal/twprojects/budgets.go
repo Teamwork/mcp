@@ -78,13 +78,7 @@ func ProjectBudgetList(engine *twapi.Engine) toolsets.ToolWrapper {
 							{Type: "null"},
 						},
 					},
-					"page_size": {
-						Description: "Number of budgets to return per page.",
-						AnyOf: []*jsonschema.Schema{
-							{Type: "integer"},
-							{Type: "null"},
-						},
-					},
+					"page_size": helpers.PageSizeSchema(),
 					"cursor": {
 						Description: "Cursor for fetching the next page of results.",
 						AnyOf: []*jsonschema.Schema{
@@ -161,20 +155,8 @@ func TasklistBudgetList(engine *twapi.Engine) toolsets.ToolWrapper {
 						Type:        "integer",
 						Description: "The ID of the project budget to list tasklist budgets for.",
 					},
-					"page": {
-						Description: "Page number for pagination of results.",
-						AnyOf: []*jsonschema.Schema{
-							{Type: "integer"},
-							{Type: "null"},
-						},
-					},
-					"page_size": {
-						Description: "Number of results per page for pagination.",
-						AnyOf: []*jsonschema.Schema{
-							{Type: "integer"},
-							{Type: "null"},
-						},
-					},
+					"page":      helpers.PageSchema(),
+					"page_size": helpers.PageSizeSchema(),
 				},
 				Required: []string{"project_budget_id"},
 			},

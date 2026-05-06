@@ -383,27 +383,9 @@ func TeamList(engine *twapi.Engine) toolsets.ToolWrapper {
 							{Type: "null"},
 						},
 					},
-					"search_term": {
-						Description: "A search term to filter teams by name or handle.",
-						AnyOf: []*jsonschema.Schema{
-							{Type: "string"},
-							{Type: "null"},
-						},
-					},
-					"page": {
-						Description: "Page number for pagination of results.",
-						AnyOf: []*jsonschema.Schema{
-							{Type: "integer"},
-							{Type: "null"},
-						},
-					},
-					"page_size": {
-						Description: "Number of results per page for pagination.",
-						AnyOf: []*jsonschema.Schema{
-							{Type: "integer"},
-							{Type: "null"},
-						},
-					},
+					"search_term": helpers.SearchTermSchema("teams", "name or handle"),
+					"page":        helpers.PageSchema(),
+					"page_size":   helpers.PageSizeSchema(),
 				},
 				Required: []string{},
 			},

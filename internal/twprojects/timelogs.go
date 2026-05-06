@@ -129,13 +129,7 @@ func TimelogCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 							{Type: "null"},
 						},
 					},
-					"tag_ids": {
-						Description: "A list of tag IDs to associate with the timelog.",
-						AnyOf: []*jsonschema.Schema{
-							{Type: "array", Items: &jsonschema.Schema{Type: "integer"}},
-							{Type: "null"},
-						},
-					},
+					"tag_ids": helpers.TagIDsAssociateSchema("timelog"),
 				},
 				Required: []string{"date", "time", "hours", "minutes"},
 			},
@@ -263,13 +257,7 @@ func TimelogUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 							{Type: "null"},
 						},
 					},
-					"tag_ids": {
-						Description: "A list of tag IDs to associate with the timelog.",
-						AnyOf: []*jsonschema.Schema{
-							{Type: "array", Items: &jsonschema.Schema{Type: "integer"}},
-							{Type: "null"},
-						},
-					},
+					"tag_ids": helpers.TagIDsAssociateSchema("timelog"),
 				},
 				Required: []string{"id"},
 			},
@@ -422,21 +410,8 @@ func TimelogList(engine *twapi.Engine) toolsets.ToolWrapper {
 							{Type: "null"},
 						},
 					},
-					"tag_ids": {
-						Description: "A list of tag IDs to filter timelogs by tags",
-						AnyOf: []*jsonschema.Schema{
-							{Type: "array", Items: &jsonschema.Schema{Type: "integer"}},
-							{Type: "null"},
-						},
-					},
-					"match_all_tags": {
-						Description: "If true, the search will match timelogs that have all the specified tags. If false, the " +
-							"search will match timelogs that have any of the specified tags. Defaults to false.",
-						AnyOf: []*jsonschema.Schema{
-							{Type: "boolean"},
-							{Type: "null"},
-						},
-					},
+					"tag_ids":        helpers.TagIDsFilterSchema("timelogs"),
+					"match_all_tags": helpers.MatchAllTagsSchema("timelogs"),
 					"start_date": {
 						Description: "Start date to filter timelogs. The date format follows RFC3339 - YYYY-MM-DDTHH:MM:SSZ.",
 						AnyOf: []*jsonschema.Schema{
@@ -479,20 +454,8 @@ func TimelogList(engine *twapi.Engine) toolsets.ToolWrapper {
 							{Type: "null"},
 						},
 					},
-					"page": {
-						Description: "Page number for pagination of results.",
-						AnyOf: []*jsonschema.Schema{
-							{Type: "integer"},
-							{Type: "null"},
-						},
-					},
-					"page_size": {
-						Description: "Number of results per page for pagination.",
-						AnyOf: []*jsonschema.Schema{
-							{Type: "integer"},
-							{Type: "null"},
-						},
-					},
+					"page":      helpers.PageSchema(),
+					"page_size": helpers.PageSizeSchema(),
 				},
 				Required: []string{},
 			},

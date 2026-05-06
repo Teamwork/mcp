@@ -168,13 +168,7 @@ func TaskCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 							{Type: "null"},
 						},
 					},
-					"tag_ids": {
-						Description: "A list of tag IDs to assign to the task.",
-						AnyOf: []*jsonschema.Schema{
-							{Type: "array", Items: &jsonschema.Schema{Type: "integer"}},
-							{Type: "null"},
-						},
-					},
+					"tag_ids": helpers.TagIDsAssociateSchema("task"),
 					"predecessors": {
 						Description: "List of task dependencies that must be completed before this task can start, defining its " +
 							"position in the project workflow and ensuring proper sequencing of work.",
@@ -550,13 +544,7 @@ func TaskUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 							{Type: "null"},
 						},
 					},
-					"tag_ids": {
-						Description: "A list of tag IDs to assign to the task.",
-						AnyOf: []*jsonschema.Schema{
-							{Type: "array", Items: &jsonschema.Schema{Type: "integer"}},
-							{Type: "null"},
-						},
-					},
+					"tag_ids": helpers.TagIDsAssociateSchema("task"),
 					"predecessors": {
 						Description: "List of task dependencies that must be completed before this task can start, defining its " +
 							"position in the project workflow and ensuring proper sequencing of work.",
@@ -980,13 +968,7 @@ func TaskList(engine *twapi.Engine) toolsets.ToolWrapper {
 							{Type: "null"},
 						},
 					},
-					"search_term": {
-						Description: "A search term to filter tasks by name.",
-						AnyOf: []*jsonschema.Schema{
-							{Type: "string"},
-							{Type: "null"},
-						},
-					},
+					"search_term": helpers.SearchTermSchema("tasks", "name"),
 					"assignee_user_ids": {
 						Description: "A list of user IDs to filter tasks by assigned users",
 						AnyOf: []*jsonschema.Schema{
@@ -994,21 +976,8 @@ func TaskList(engine *twapi.Engine) toolsets.ToolWrapper {
 							{Type: "null"},
 						},
 					},
-					"tag_ids": {
-						Description: "A list of tag IDs to filter tasks by tags",
-						AnyOf: []*jsonschema.Schema{
-							{Type: "array", Items: &jsonschema.Schema{Type: "integer"}},
-							{Type: "null"},
-						},
-					},
-					"match_all_tags": {
-						Description: "If true, the search will match tasks that have all the specified tags. If false, the " +
-							"search will match tasks that have any of the specified tags. Defaults to false.",
-						AnyOf: []*jsonschema.Schema{
-							{Type: "boolean"},
-							{Type: "null"},
-						},
-					},
+					"tag_ids":        helpers.TagIDsFilterSchema("tasks"),
+					"match_all_tags": helpers.MatchAllTagsSchema("tasks"),
 					"created_after": {
 						Description: "Filter tasks created after this date and time in RFC 3339 format.",
 						Examples:    []any{"2023-01-01T00:00:00Z"},
@@ -1064,20 +1033,8 @@ func TaskList(engine *twapi.Engine) toolsets.ToolWrapper {
 							{Type: "null"},
 						},
 					},
-					"page": {
-						Description: "Page number for pagination of results.",
-						AnyOf: []*jsonschema.Schema{
-							{Type: "integer"},
-							{Type: "null"},
-						},
-					},
-					"page_size": {
-						Description: "Number of results per page for pagination.",
-						AnyOf: []*jsonschema.Schema{
-							{Type: "integer"},
-							{Type: "null"},
-						},
-					},
+					"page":      helpers.PageSchema(),
+					"page_size": helpers.PageSizeSchema(),
 				},
 				Required: []string{},
 			},

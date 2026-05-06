@@ -12,34 +12,10 @@ func paginationOptions(properties map[string]*jsonschema.Schema) map[string]*jso
 	if properties == nil {
 		properties = make(map[string]*jsonschema.Schema)
 	}
-	properties["page"] = &jsonschema.Schema{
-		Description: "The page number to retrieve.",
-		AnyOf: []*jsonschema.Schema{
-			{Type: "integer"},
-			{Type: "null"},
-		},
-	}
-	properties["pageSize"] = &jsonschema.Schema{
-		Description: "The number of results to retrieve per page.",
-		AnyOf: []*jsonschema.Schema{
-			{Type: "integer"},
-			{Type: "null"},
-		},
-	}
-	properties["orderBy"] = &jsonschema.Schema{
-		Description: "The field to order the results by.",
-		AnyOf: []*jsonschema.Schema{
-			{Type: "string"},
-			{Type: "null"},
-		},
-	}
-	properties["orderDirection"] = &jsonschema.Schema{
-		Description: "The direction to order the results by (asc, desc).",
-		AnyOf: []*jsonschema.Schema{
-			{Type: "string"},
-			{Type: "null"},
-		},
-	}
+	properties["page"] = helpers.PageSchema()
+	properties["pageSize"] = helpers.PageSizeSchema()
+	properties["orderBy"] = helpers.OrderBySchema()
+	properties["orderDirection"] = helpers.OrderDirectionSchema()
 	return properties
 }
 
