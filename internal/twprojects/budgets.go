@@ -49,7 +49,7 @@ func ProjectBudgetList(engine *twapi.Engine) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
 			Name:        string(MethodProjectBudgetList),
-			Description: "List project-level budgets.",
+			Description: "List project budgets (top-level project financial budgets). Filter by project_ids or status.",
 			Annotations: &mcp.ToolAnnotations{
 				Title:        "List Project Budgets",
 				ReadOnlyHint: true,
@@ -143,7 +143,7 @@ func TasklistBudgetList(engine *twapi.Engine) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
 			Name:        string(MethodTasklistBudgetList),
-			Description: "List tasklist-level budgets for a project budget.",
+			Description: "List tasklist budgets nested under a project budget. Requires project_budget_id.",
 			Annotations: &mcp.ToolAnnotations{
 				Title:        "List Tasklist Budgets",
 				ReadOnlyHint: true,
