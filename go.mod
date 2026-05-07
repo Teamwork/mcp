@@ -13,7 +13,7 @@ require (
 	github.com/modelcontextprotocol/go-sdk v1.6.0
 	github.com/teamwork/desksdkgo v0.0.0-20260420182446-6788c53d670d
 	github.com/teamwork/spacessdkgo v0.0.0-20260422163745-684bf200d31d
-	github.com/teamwork/twapi-go-sdk v1.15.1
+	github.com/teamwork/twapi-go-sdk v1.15.2
 )
 
 require (

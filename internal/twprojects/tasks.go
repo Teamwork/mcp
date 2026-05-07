@@ -68,20 +68,9 @@ func TaskCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 						Description: "Tasklist ID. Use list_tasklists to find one.",
 					},
 					"description": {
-						Description: "The description of the task.",
+						Description: "The description of the task. Support for plain text and Markdown formatting.",
 						AnyOf: []*jsonschema.Schema{
 							{Type: "string"},
-							{Type: "null"},
-						},
-					},
-					"description_content_type": {
-						Description: "The format of the description. Possible values are: text or html. If not provided, " +
-							"it will default to text.",
-						AnyOf: []*jsonschema.Schema{
-							{Type: "string", Enum: []any{
-								projects.TaskDescriptionContentTypeText,
-								projects.TaskDescriptionContentTypeHTML,
-							}},
 							{Type: "null"},
 						},
 					},
@@ -316,12 +305,6 @@ func TaskCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 				helpers.RequiredParam(&taskCreateRequest.Name, "name"),
 				helpers.RequiredNumericParam(&taskCreateRequest.Path.TasklistID, "tasklist_id"),
 				helpers.OptionalPointerParam(&taskCreateRequest.Description, "description"),
-				helpers.OptionalPointerParam(&taskCreateRequest.DescriptionContentType, "description_content_type",
-					helpers.RestrictValues(
-						projects.TaskDescriptionContentTypeText,
-						projects.TaskDescriptionContentTypeHTML,
-					),
-				),
 				helpers.OptionalPointerParam(&taskCreateRequest.Priority, "priority",
 					helpers.RestrictValues("low", "medium", "high"),
 				),
@@ -444,20 +427,9 @@ func TaskUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 						},
 					},
 					"description": {
-						Description: "The description of the task.",
+						Description: "The description of the task. Support for plain text and Markdown formatting.",
 						AnyOf: []*jsonschema.Schema{
 							{Type: "string"},
-							{Type: "null"},
-						},
-					},
-					"description_content_type": {
-						Description: "The format of the description. Possible values are: text or html. If not provided, " +
-							"it will default to text.",
-						AnyOf: []*jsonschema.Schema{
-							{Type: "string", Enum: []any{
-								projects.TaskDescriptionContentTypeText,
-								projects.TaskDescriptionContentTypeHTML,
-							}},
 							{Type: "null"},
 						},
 					},
@@ -693,12 +665,6 @@ func TaskUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 				helpers.OptionalNumericPointerParam(&taskUpdateRequest.TasklistID, "tasklist_id"),
 				helpers.OptionalPointerParam(&taskUpdateRequest.Name, "name"),
 				helpers.OptionalPointerParam(&taskUpdateRequest.Description, "description"),
-				helpers.OptionalPointerParam(&taskUpdateRequest.DescriptionContentType, "description_content_type",
-					helpers.RestrictValues(
-						projects.TaskDescriptionContentTypeText,
-						projects.TaskDescriptionContentTypeHTML,
-					),
-				),
 				helpers.OptionalPointerParam(&taskUpdateRequest.Priority, "priority",
 					helpers.RestrictValues("low", "medium", "high"),
 				),
