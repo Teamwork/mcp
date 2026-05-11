@@ -33,7 +33,7 @@ import (
 
 var (
 	reBearerToken = regexp.MustCompile(`^Bearer (.+)$`)
-	methods       = cli.Methods([]toolsets.Method{toolsets.MethodAll})
+	methods       = cli.NewMethods(toolsets.MethodAll)
 )
 
 // Limit request body size (e.g., 10MB)
@@ -42,10 +42,10 @@ const maxBodySize = 10 * 1024 * 1024 // 10 MB
 func main() {
 	defer handleExit()
 
-	flag.Var(&methods, "toolsets", "Comma-separated list of toolsets to enable")
+	flag.Var(methods, "toolsets", "Comma-separated list of toolsets to enable")
 	flag.Parse()
 
-	resources, teardown := config.Load(os.Stdout)
+	resources, teardown := config.Load(os.Stdout, methods.Profiles()...)
 	defer teardown()
 
 	done := make(chan os.Signal, 1)
@@ -111,17 +111,17 @@ func main() {
 
 func newMCPServer(resources config.Resources) (*mcp.Server, error) {
 	projectsGroup := twprojects.DefaultToolsetGroup(false, false, resources.TeamworkEngine())
-	if err := projectsGroup.EnableToolsets(methods...); err != nil {
+	if err := projectsGroup.EnableToolsets(methods.Toolsets()...); err != nil {
 		return nil, fmt.Errorf("failed to enable toolsets: %w", err)
 	}
 
 	deskGroup := twdesk.DefaultToolsetGroup(false, resources.TeamworkHTTPClient())
-	if err := deskGroup.EnableToolsets(methods...); err != nil {
+	if err := deskGroup.EnableToolsets(methods.Toolsets()...); err != nil {
 		return nil, fmt.Errorf("failed to enable desk toolsets: %w", err)
 	}
 
 	spacesGroup := twspaces.DefaultToolsetGroup(false, resources.TeamworkHTTPClient())
-	if err := spacesGroup.EnableToolsets(methods...); err != nil {
+	if err := spacesGroup.EnableToolsets(methods.Toolsets()...); err != nil {
 		return nil, fmt.Errorf("failed to enable spaces toolsets: %w", err)
 	}
 
@@ -172,22 +172,44 @@ func newRouter(resources config.Resources) *http.ServeMux {
 }
 
 func addRouterMiddlewares(resources config.Resources, mux *http.ServeMux) http.Handler {
-	return limitBodyMiddleware(
-		requestInfoMiddleware(
-			logMiddleware(resources.Logger(),
-				sentryMiddleware(
-					resources,
-					tracerMiddleware(
+	return stripProfile(resources.Info.MCPProfiles,
+		limitBodyMiddleware(
+			requestInfoMiddleware(
+				logMiddleware(resources.Logger(),
+					sentryMiddleware(
 						resources,
-						authMiddleware(
+						tracerMiddleware(
 							resources,
-							mux,
+							authMiddleware(
+								resources,
+								mux,
+							),
 						),
 					),
 				),
 			),
 		),
 	)
+}
+
+// stripProfile is a middleware that checks if the request path starts with a
+// known profile name, and if so, it strips the profile from the path and sets
+// an "TW-MCP-Profile" header with the profile name. This allows clients to use
+// URLs like "/project-manager/endpoint" to access the same endpoints as
+// "/endpoint" but with a profile context.
+func stripProfile(profiles []string, next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// If the path starts with a known profile, strip it and set a header
+		r.Header.Set("TW-MCP-Profile", "")
+		for _, profile := range profiles {
+			if strings.HasPrefix(r.URL.Path, "/"+profile+"/") {
+				r.URL.Path = strings.TrimPrefix(r.URL.Path, "/"+profile)
+				r.Header.Add("TW-MCP-Profile", profile)
+				break
+			}
+		}
+		next.ServeHTTP(w, r)
+	})
 }
 
 func limitBodyMiddleware(next http.Handler) http.Handler {
