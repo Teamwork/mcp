@@ -22,7 +22,7 @@ import (
 )
 
 var (
-	methods   = cli.Methods([]toolsets.Method{toolsets.MethodAll})
+	methods   = cli.NewMethods(toolsets.MethodAll)
 	readOnly  bool
 	logToFile string
 )
@@ -30,7 +30,7 @@ var (
 func main() {
 	defer handleExit()
 
-	flag.Var(&methods, "toolsets", "Comma-separated list of toolsets to enable")
+	flag.Var(methods, "toolsets", "Comma-separated list of toolsets to enable")
 	flag.StringVar(&logToFile, "log-to-file", "", "Path to log file (if empty, logs to stderr)")
 	flag.BoolVar(&readOnly, "read-only", false, "Restrict the server to read-only operations")
 	flag.Parse()
@@ -114,17 +114,17 @@ func main() {
 
 func newMCPServer(resources config.Resources) (*mcp.Server, error) {
 	projectsGroup := twprojects.DefaultToolsetGroup(readOnly, false, resources.TeamworkEngine())
-	if err := projectsGroup.EnableToolsets(methods...); err != nil {
+	if err := projectsGroup.EnableToolsets(methods.Toolsets()...); err != nil {
 		return nil, fmt.Errorf("failed to enable projects toolsets: %w", err)
 	}
 
 	deskGroup := twdesk.DefaultToolsetGroup(readOnly, resources.TeamworkHTTPClient())
-	if err := deskGroup.EnableToolsets(methods...); err != nil {
+	if err := deskGroup.EnableToolsets(methods.Toolsets()...); err != nil {
 		return nil, fmt.Errorf("failed to enable desk toolsets: %w", err)
 	}
 
 	spacesGroup := twspaces.DefaultToolsetGroup(readOnly, resources.TeamworkHTTPClient())
-	if err := spacesGroup.EnableToolsets(methods...); err != nil {
+	if err := spacesGroup.EnableToolsets(methods.Toolsets()...); err != nil {
 		return nil, fmt.Errorf("failed to enable spaces toolsets: %w", err)
 	}
 

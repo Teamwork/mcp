@@ -33,8 +33,8 @@ const (
 )
 
 // Load loads the configuration for the MCP service.
-func Load(logOutput io.Writer) (Resources, func()) {
-	resources := newResources()
+func Load(logOutput io.Writer, profiles ...string) (Resources, func()) {
+	resources := newResources(profiles...)
 	resources.logger = slog.New(newCustomLogHandler(resources, logOutput))
 	resources.teamworkHTTPClient = new(http.Client)
 

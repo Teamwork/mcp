@@ -36,6 +36,11 @@ type Resources struct {
 		// MCPURL is the base URL of the MCP server. This is useful for the MCP
 		// server in HTTP mode.
 		MCPURL string
+		// MCPProfiles is the list of profiles to be enabled in the MCP server. This
+		// is useful for the MCP server in HTTP mode, where different profiles can
+		// be accessed via different URL paths (e.g. "/project-manager/endpoint" for
+		// the "project-manager" profile).
+		MCPProfiles []string
 		// APIURL is the base URL of the Teamwork API.
 		APIURL string
 		// HAProxyURL is the URL of the HAProxy instance. This is useful for the MCP
@@ -75,13 +80,14 @@ type Resources struct {
 	}
 }
 
-func newResources() Resources {
+func newResources(profiles ...string) Resources {
 	var resources Resources
 	resources.Info.Version = getEnv("TW_MCP_VERSION", Version)
 	resources.Info.ServerAddress = getEnv("TW_MCP_SERVER_ADDRESS", ":8080")
 	resources.Info.Environment = getEnv("TW_MCP_ENV", "dev")
 	resources.Info.AWSRegion = getEnv("TW_MCP_AWS_REGION", "us-east-1")
 	resources.Info.MCPURL = strings.TrimSuffix(getEnv("TW_MCP_URL", "https://mcp.ai.teamwork.com"), "/")
+	resources.Info.MCPProfiles = profiles
 	resources.Info.APIURL = strings.TrimSuffix(getEnv("TW_MCP_API_URL", "https://teamwork.com"), "/")
 	resources.Info.HAProxyURL = getEnv("TW_MCP_HAPROXY_URL", "")
 	resources.Info.BearerToken = getEnv("TW_MCP_BEARER_TOKEN", "")
@@ -97,6 +103,19 @@ func newResources() Resources {
 	resources.Info.DatadogAPM.StatsdPort = getEnv("DD_DOGSTATSD_PORT", "8125")
 	resources.Info.DatadogAPM.Environment = getEnv("DD_ENV", resources.Info.Environment)
 	resources.Info.DatadogAPM.Version = getEnv("DD_VERSION", resources.Info.Version)
+
+	// only append the profile to the MCP URL if there is exactly one profile, to
+	// avoid confusion with multiple profiles
+	var mcpURLHasProfile bool
+	for _, profile := range profiles {
+		if strings.HasSuffix(resources.Info.MCPURL, "/"+profile) {
+			mcpURLHasProfile = true
+			break
+		}
+	}
+	if len(profiles) == 1 && !mcpURLHasProfile {
+		resources.Info.MCPURL += "/" + profiles[0]
+	}
 
 	return resources
 }
