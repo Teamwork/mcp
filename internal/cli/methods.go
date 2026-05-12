@@ -18,7 +18,7 @@ func init() {
 		twprojects.ToolsetPeople,
 		twprojects.ToolsetContent,
 	})
-	toolsets.RegisterProfile("support", []toolsets.Method{
+	toolsets.RegisterProfiles([]string{"support", "desk"}, []toolsets.Method{
 		twdesk.ToolsetTickets,
 		twdesk.ToolsetCustomers,
 	})

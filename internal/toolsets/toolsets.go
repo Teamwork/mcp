@@ -52,11 +52,23 @@ func RegisterMethod(method Method) {
 
 // RegisterProfile registers a named profile that maps to a set of methods.
 // Profiles are a convenience for enabling a predefined collection of toolsets
-// with a single name (e.g. "project-manager", "support").
+// with a single name (e.g. "project-manager", "support"). Use RegisterProfiles
+// to register the same set of methods under multiple aliases.
 func RegisterProfile(name string, methods []Method) {
 	registeredProfilesMutex.Lock()
 	defer registeredProfilesMutex.Unlock()
 	registeredProfiles[name] = methods
+}
+
+// RegisterProfiles registers multiple named profiles that map to the same set
+// of methods. This is useful for declaring aliases — for example "support" and
+// "desk" both expand to the Teamwork Desk toolsets.
+func RegisterProfiles(names []string, methods []Method) {
+	registeredProfilesMutex.Lock()
+	defer registeredProfilesMutex.Unlock()
+	for _, name := range names {
+		registeredProfiles[name] = methods
+	}
 }
 
 // LookupProfile returns the methods associated with a named profile, and

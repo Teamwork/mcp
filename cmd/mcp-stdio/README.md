@@ -79,7 +79,7 @@ TW_MCP_BEARER_TOKEN=your-bearer-token \
 | Profile           | Toolsets included                                                                    | Intended use                                  |
 | ----------------- | ------------------------------------------------------------------------------------ | --------------------------------------------- |
 | `project-manager` | `twprojects-projects`, `twprojects-tasks`, `twprojects-people`, `twprojects-content` | Project managers working in Teamwork Projects |
-| `support`         | `twdesk-tickets`, `twdesk-customers`                                                 | Support agents working in Teamwork Desk       |
+| `support` (alias: `desk`) | `twdesk-tickets`, `twdesk-customers`                                         | Support agents working in Teamwork Desk       |
 | `analyst`         | All sub-toolsets (combine with `-read-only`)                                         | Read-only reporting across both products      |
 | `ops`             | All sub-toolsets                                                                     | Full access — same as `all`                   |
 
@@ -134,7 +134,7 @@ TW_MCP_BEARER_TOKEN=your-token go run cmd/mcp-stdio/main.go -read-only
 # project-manager profile: projects, tasks, people, and content
 TW_MCP_BEARER_TOKEN=your-token go run cmd/mcp-stdio/main.go -toolsets=project-manager
 
-# Support profile: Desk tickets and customers
+# Support profile: Desk tickets and customers (also accepts -toolsets=desk)
 TW_MCP_BEARER_TOKEN=your-token go run cmd/mcp-stdio/main.go -toolsets=support
 
 # Combine sub-toolsets across products
