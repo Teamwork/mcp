@@ -44,7 +44,7 @@ tool list smaller and reduces noise for the model.
 claude mcp add --transport http teamwork https://mcp.ai.teamwork.com/project-manager \
   --header "Authorization: Bearer <token>"
 
-# Support agents — help desk tickets and customers
+# Support agents — help desk tickets and customers (also available at /desk)
 claude mcp add --transport http teamwork https://mcp.ai.teamwork.com/support \
   --header "Authorization: Bearer <token>"
 
