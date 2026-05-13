@@ -452,6 +452,14 @@ func CompanyGet(engine *twapi.Engine) toolsets.ToolWrapper {
 		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 			var companyGetRequest projects.CompanyGetRequest
 
+			// Always include custom fields and values in the response to provide more
+			// context about the company. Custom fields often contain important
+			// metadata relevant to the company.
+			companyGetRequest.Filters.Include = []projects.CompanyRequestSideload{
+				projects.CompanyRequestSideloadCustomFields,
+				projects.CompanyRequestSideloadCustomFieldValues,
+			}
+
 			var arguments map[string]any
 			if err := json.Unmarshal(request.Params.Arguments, &arguments); err != nil {
 				return helpers.NewToolResultTextError("failed to decode request: %s", err.Error()), nil
@@ -520,6 +528,14 @@ func CompanyList(engine *twapi.Engine) toolsets.ToolWrapper {
 		},
 		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 			var companyListRequest projects.CompanyListRequest
+
+			// Always include custom fields and values in the response to provide more
+			// context about the company. Custom fields often contain important
+			// metadata relevant to the company.
+			companyListRequest.Filters.Include = []projects.CompanyRequestSideload{
+				projects.CompanyRequestSideloadCustomFields,
+				projects.CompanyRequestSideloadCustomFieldValues,
+			}
 
 			var arguments map[string]any
 			if err := json.Unmarshal(request.Params.Arguments, &arguments); err != nil {

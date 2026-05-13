@@ -609,7 +609,7 @@ func legacyDateParam(
 // OptionalListParam retrieves an optional list parameter from a map, converting
 // each item to the specified type. It returns an error if the key is not found
 // or if the type conversion fails. If the target is nil, it returns an error.
-func OptionalListParam[T any](target *[]T, key string) ParamFunc {
+func OptionalListParam[T any](target *[]T, key string, middlewares ...ParamMiddleware[T]) ParamFunc {
 	return func(params map[string]any) error {
 		if target == nil {
 			return fmt.Errorf("target cannot be nil")
@@ -652,6 +652,12 @@ func OptionalListParam[T any](target *[]T, key string) ParamFunc {
 			if !ok {
 				return fmt.Errorf("invalid type in %s: expected %T, got %T", key, zero, item)
 			}
+			for _, middleware := range middlewares {
+				var err error
+				if ok, err = middleware(&v); err != nil || !ok {
+					return err
+				}
+			}
 			*target = append(*target, v)
 		}
 		return nil
@@ -666,7 +672,7 @@ func OptionalNumericListParam[T int8 | int16 | int32 | int64 |
 	uint8 | uint16 | uint32 | uint64 |
 	float32 | float64 |
 	projects.LegacyNumber](
-	target *[]T, key string,
+	target *[]T, key string, middlewares ...ParamMiddleware[T],
 ) ParamFunc {
 	return func(params map[string]any) error {
 		if target == nil {
@@ -686,7 +692,14 @@ func OptionalNumericListParam[T int8 | int16 | int32 | int64 |
 			if !ok {
 				return fmt.Errorf("invalid type in %s: expected float64, got %T", key, item)
 			}
-			*target = append(*target, T(v))
+			t := T(v)
+			for _, middleware := range middlewares {
+				var err error
+				if ok, err = middleware(&t); err != nil || !ok {
+					return err
+				}
+			}
+			*target = append(*target, t)
 		}
 		return nil
 	}
@@ -696,7 +709,11 @@ func OptionalNumericListParam[T int8 | int16 | int32 | int64 |
 // parameters from a map, converting each item to the specified numeric type
 // using a custom type that implements the Add method. It returns an error if
 // the key is not found or if the type conversion fails.
-func OptionalCustomNumericListParam[T interface{ Add(float64) }](target T, key string) ParamFunc {
+func OptionalCustomNumericListParam[T interface{ Add(float64) }](
+	target T,
+	key string,
+	middlewares ...ParamMiddleware[T],
+) ParamFunc {
 	return func(params map[string]any) error {
 		value, ok := params[key]
 		if !ok || value == nil {
@@ -712,6 +729,12 @@ func OptionalCustomNumericListParam[T interface{ Add(float64) }](target T, key s
 				return fmt.Errorf("invalid type in %s: expected float64, got %T", key, item)
 			}
 			target.Add(v)
+		}
+		for _, middleware := range middlewares {
+			var err error
+			if ok, err = middleware(&target); err != nil || !ok {
+				return err
+			}
 		}
 		return nil
 	}

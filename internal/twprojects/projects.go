@@ -475,11 +475,14 @@ func ProjectGet(engine *twapi.Engine) toolsets.ToolWrapper {
 		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 			var projectGetRequest projects.ProjectGetRequest
 
-			// always include project categories in the response to provide more
-			// context about the project, as categories are commonly used for
-			// organizing projects and understanding their purpose
+			// Always include project categories and custom fields in the response to
+			// provide more context about the project. Categories are commonly used
+			// for organizing projects and understanding their purpose, and custom
+			// fields often contain important metadata relevant to the project.
 			projectGetRequest.Filters.Include = []projects.ProjectRequestSideload{
 				projects.ProjectRequestSideloadProjectCategories,
+				projects.ProjectRequestSideloadCustomFields,
+				projects.ProjectRequestSideloadCustomFieldValues,
 			}
 
 			var arguments map[string]any
@@ -551,11 +554,14 @@ func ProjectList(engine *twapi.Engine) toolsets.ToolWrapper {
 		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 			var projectListRequest projects.ProjectListRequest
 
-			// always include project categories in the response to provide more
-			// context about the project, as categories are commonly used for
-			// organizing projects and understanding their purpose
+			// always include project categories and custom fields in the response to
+			// provide more context about the project, as categories are commonly used
+			// for organizing projects and understanding their purpose, and custom
+			// fields often contain important metadata relevant to the project.
 			projectListRequest.Filters.Include = []projects.ProjectRequestSideload{
 				projects.ProjectRequestSideloadProjectCategories,
+				projects.ProjectRequestSideloadCustomFields,
+				projects.ProjectRequestSideloadCustomFieldValues,
 			}
 
 			var arguments map[string]any

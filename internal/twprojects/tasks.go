@@ -867,6 +867,14 @@ func TaskGet(engine *twapi.Engine) toolsets.ToolWrapper {
 		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 			var taskGetRequest projects.TaskGetRequest
 
+			// Always include custom fields and values in task get response for richer
+			// context, as they are commonly used in Teamwork projects and provide
+			// valuable information about the task.
+			taskGetRequest.Filters.Include = []projects.TaskRequestSideload{
+				projects.TaskRequestSideloadCustomFields,
+				projects.TaskRequestSideloadCustomFieldValues,
+			}
+
 			var arguments map[string]any
 			if err := json.Unmarshal(request.Params.Arguments, &arguments); err != nil {
 				return helpers.NewToolResultTextError("failed to decode request: %s", err.Error()), nil
@@ -1005,6 +1013,14 @@ func TaskList(engine *twapi.Engine) toolsets.ToolWrapper {
 		},
 		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 			var taskListRequest projects.TaskListRequest
+
+			// Always include custom fields and values in task list response for
+			// richer context, as they are commonly used in Teamwork projects and
+			// provide valuable information about the task.
+			taskListRequest.Filters.Include = []projects.TaskRequestSideload{
+				projects.TaskRequestSideloadCustomFields,
+				projects.TaskRequestSideloadCustomFieldValues,
+			}
 
 			var arguments map[string]any
 			if err := json.Unmarshal(request.Params.Arguments, &arguments); err != nil {
