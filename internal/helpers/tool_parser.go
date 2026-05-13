@@ -650,7 +650,22 @@ func OptionalListParam[T any](target *[]T, key string, middlewares ...ParamMiddl
 
 			v, ok := item.(T)
 			if !ok {
-				return fmt.Errorf("invalid type in %s: expected %T, got %T", key, zero, item)
+				// attempt to convert from string if the type is only an alias of string
+				// and the value is a string
+				var fallback bool
+				if vStr, okStr := item.(string); okStr {
+					vv := reflect.ValueOf(item)
+					if vv.Kind() == reflect.Pointer {
+						vv = vv.Elem()
+					}
+					if vv.Kind() == reflect.String {
+						v = reflect.ValueOf(vStr).Convert(reflect.TypeOf(v)).Interface().(T)
+						fallback = true
+					}
+				}
+				if !fallback {
+					return fmt.Errorf("invalid type in %s: expected %T, got %T", key, zero, item)
+				}
 			}
 			for _, middleware := range middlewares {
 				var err error
