@@ -107,7 +107,6 @@ func Search(engine *twapi.Engine) toolsets.ToolWrapper {
 		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 			var searchRequest projects.SearchRequest
 			searchRequest.Filters.Include = []projects.SearchRequestSideload{
-				projects.SearchRequestSideloadCalendarEvents,
 				projects.SearchRequestSideloadComments,
 				projects.SearchRequestSideloadCompanies,
 				projects.SearchRequestSideloadLinks,

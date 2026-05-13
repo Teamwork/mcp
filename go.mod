@@ -13,7 +13,7 @@ require (
 	github.com/modelcontextprotocol/go-sdk v1.6.0
 	github.com/teamwork/desksdkgo v0.0.0-20260420182446-6788c53d670d
 	github.com/teamwork/spacessdkgo v0.0.0-20260422163745-684bf200d31d
-	github.com/teamwork/twapi-go-sdk v1.15.2
+	github.com/teamwork/twapi-go-sdk v1.16.0
 )
 
 require (
@@ -87,7 +87,7 @@ require (
 	golang.org/x/exp v0.0.0-20260312153236-7ab1446f8b90 // indirect
 	golang.org/x/mod v0.34.0 // indirect
 	golang.org/x/oauth2 v0.36.0 // indirect
-	golang.org/x/sys v0.43.0 // indirect
+	golang.org/x/sys v0.44.0 // indirect
 	golang.org/x/text v0.35.0 // indirect
 	golang.org/x/time v0.15.0 // indirect
 	golang.org/x/xerrors v0.0.0-20240903120638-7835f813f4da // indirect
