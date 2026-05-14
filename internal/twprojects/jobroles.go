@@ -270,7 +270,7 @@ func JobRoleList(engine *twapi.Engine) toolsets.ToolWrapper {
 				},
 				Required: []string{},
 			},
-			OutputSchema: jobRoleListOutputSchema,
+			OutputSchema: helpers.WithOptionalFields(jobRoleListOutputSchema),
 		},
 		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 			var jobRoleListRequest projects.JobRoleListRequest
@@ -317,13 +317,11 @@ func JobRoleList(engine *twapi.Engine) toolsets.ToolWrapper {
 					&mcp.TextContent{Text: string(body)},
 				},
 			}
-			if verbose {
-				var structured any
-				if err := json.Unmarshal(body, &structured); err != nil {
-					return nil, fmt.Errorf("failed to decode response: %w", err)
-				}
-				result.StructuredContent = structured
+			var structured any
+			if err := json.Unmarshal(body, &structured); err != nil {
+				return nil, fmt.Errorf("failed to decode response: %w", err)
 			}
+			result.StructuredContent = structured
 			return result, nil
 		},
 	}

@@ -462,7 +462,7 @@ func TimelogList(engine *twapi.Engine) toolsets.ToolWrapper {
 				},
 				Required: []string{},
 			},
-			OutputSchema: timelogListOutputSchema,
+			OutputSchema: helpers.WithOptionalFields(timelogListOutputSchema),
 		},
 		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 			var timelogListRequest projects.TimelogListRequest
@@ -518,13 +518,11 @@ func TimelogList(engine *twapi.Engine) toolsets.ToolWrapper {
 					&mcp.TextContent{Text: string(body)},
 				},
 			}
-			if verbose {
-				var structured any
-				if err := json.Unmarshal(body, &structured); err != nil {
-					return nil, fmt.Errorf("failed to decode response: %w", err)
-				}
-				result.StructuredContent = structured
+			var structured any
+			if err := json.Unmarshal(body, &structured); err != nil {
+				return nil, fmt.Errorf("failed to decode response: %w", err)
 			}
+			result.StructuredContent = structured
 			return result, nil
 		},
 	}

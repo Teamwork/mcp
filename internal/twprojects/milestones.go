@@ -450,7 +450,7 @@ func MilestoneList(engine *twapi.Engine) toolsets.ToolWrapper {
 				},
 				Required: []string{},
 			},
-			OutputSchema: milestoneListOutputSchema,
+			OutputSchema: helpers.WithOptionalFields(milestoneListOutputSchema),
 		},
 		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 			var milestoneListRequest projects.MilestoneListRequest
@@ -501,13 +501,11 @@ func MilestoneList(engine *twapi.Engine) toolsets.ToolWrapper {
 					&mcp.TextContent{Text: string(linked)},
 				},
 			}
-			if verbose {
-				var structured any
-				if err := json.Unmarshal(linked, &structured); err != nil {
-					return nil, fmt.Errorf("failed to decode response: %w", err)
-				}
-				result.StructuredContent = structured
+			var structured any
+			if err := json.Unmarshal(linked, &structured); err != nil {
+				return nil, fmt.Errorf("failed to decode response: %w", err)
 			}
+			result.StructuredContent = structured
 			return result, nil
 		},
 	}

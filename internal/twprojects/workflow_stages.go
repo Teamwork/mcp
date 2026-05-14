@@ -349,7 +349,7 @@ func WorkflowStageList(engine *twapi.Engine) toolsets.ToolWrapper {
 				},
 				Required: []string{"workflow_id"},
 			},
-			OutputSchema: workflowStageListOutputSchema,
+			OutputSchema: helpers.WithOptionalFields(workflowStageListOutputSchema),
 		},
 		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 			var workflowStageListRequest projects.WorkflowStageListRequest
@@ -399,13 +399,11 @@ func WorkflowStageList(engine *twapi.Engine) toolsets.ToolWrapper {
 					&mcp.TextContent{Text: string(body)},
 				},
 			}
-			if verbose {
-				var structured any
-				if err := json.Unmarshal(body, &structured); err != nil {
-					return nil, fmt.Errorf("failed to decode response: %w", err)
-				}
-				result.StructuredContent = structured
+			var structured any
+			if err := json.Unmarshal(body, &structured); err != nil {
+				return nil, fmt.Errorf("failed to decode response: %w", err)
 			}
+			result.StructuredContent = structured
 			return result, nil
 		},
 	}
