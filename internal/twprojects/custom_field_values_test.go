@@ -28,6 +28,16 @@ func TestCustomFieldValueCreateProject(t *testing.T) {
 	})
 }
 
+func TestCustomFieldValueCreateMultiselect(t *testing.T) {
+	mcpServer := mcpServerMock(t, http.StatusCreated, []byte(`{"customfieldTask":{"id":123}}`))
+	testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodCustomFieldValueCreate.String(), map[string]any{
+		"entity":          "task",
+		"entity_id":       float64(777),
+		"custom_field_id": float64(555),
+		"value":           []any{float64(10), float64(20), float64(30)},
+	})
+}
+
 func TestCustomFieldValueUpdate(t *testing.T) {
 	mcpServer := mcpServerMock(t, http.StatusOK, []byte(`{"customfieldTask":{"id":123}}`))
 	testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodCustomFieldValueUpdate.String(), map[string]any{
