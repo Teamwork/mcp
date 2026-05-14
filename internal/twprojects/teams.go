@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
+	"net/http"
 	"reflect"
 
 	"github.com/google/jsonschema-go/jsonschema"
@@ -386,6 +388,7 @@ func TeamList(engine *twapi.Engine) toolsets.ToolWrapper {
 					"search_term": helpers.SearchTermSchema("teams", "name or handle"),
 					"page":        helpers.PageSchema(),
 					"page_size":   helpers.PageSizeSchema(),
+					"verbose":     helpers.VerboseSchema(),
 				},
 				Required: []string{},
 			},
@@ -398,12 +401,14 @@ func TeamList(engine *twapi.Engine) toolsets.ToolWrapper {
 			if err := json.Unmarshal(request.Params.Arguments, &arguments); err != nil {
 				return helpers.NewToolResultTextError("failed to decode request: %s", err.Error()), nil
 			}
+			verbose := true
 			err := helpers.ParamGroup(arguments,
 				helpers.OptionalNumericParam(&teamListRequest.Path.CompanyID, "company_id"),
 				helpers.OptionalNumericParam(&teamListRequest.Path.ProjectID, "project_id"),
 				helpers.OptionalParam(&teamListRequest.Filters.SearchTerm, "search_term"),
 				helpers.OptionalNumericParam(&teamListRequest.Filters.Page, "page"),
 				helpers.OptionalNumericParam(&teamListRequest.Filters.PageSize, "page_size"),
+				helpers.OptionalParam(&verbose, "verbose"),
 			)
 			if err != nil {
 				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
@@ -416,27 +421,42 @@ func TeamList(engine *twapi.Engine) toolsets.ToolWrapper {
 				teamListRequest.Filters.IncludeSubteams = true
 			}
 
-			teamList, err := projects.TeamList(ctx, engine, teamListRequest)
+			if !verbose {
+				teamListRequest.Filters.Fields.Teams = []projects.TeamField{
+					projects.TeamFieldID,
+					projects.TeamFieldName,
+				}
+			}
+
+			resp, err := twapi.ExecuteRaw(ctx, engine, teamListRequest)
 			if err != nil {
 				return helpers.HandleAPIError(err, "failed to list teams")
 			}
-
-			encoded, err := json.Marshal(teamList)
-			if err != nil {
-				return nil, err
+			defer func() {
+				_ = resp.Body.Close()
+			}()
+			if resp.StatusCode != http.StatusOK {
+				return helpers.HandleAPIError(twapi.NewHTTPError(resp, "failed to list teams"), "failed to list teams")
 			}
-			return &mcp.CallToolResult{
+			body, err := io.ReadAll(resp.Body)
+			if err != nil {
+				return nil, fmt.Errorf("failed to read response body: %w", err)
+			}
+
+			linked := helpers.WebLinker(ctx, body, helpers.WebLinkerWithIDPathBuilder("/app/teams"))
+			result := &mcp.CallToolResult{
 				Content: []mcp.Content{
-					&mcp.TextContent{
-						Text: string(helpers.WebLinker(ctx, encoded,
-							helpers.WebLinkerWithIDPathBuilder("/app/teams"),
-						)),
-					},
+					&mcp.TextContent{Text: string(linked)},
 				},
-				StructuredContent: helpers.StructuredWebLinker(ctx, teamList,
-					helpers.WebLinkerWithIDPathBuilder("/app/teams"),
-				),
-			}, nil
+			}
+			if verbose {
+				var structured any
+				if err := json.Unmarshal(linked, &structured); err != nil {
+					return nil, fmt.Errorf("failed to decode response: %w", err)
+				}
+				result.StructuredContent = structured
+			}
+			return result, nil
 		},
 	}
 }

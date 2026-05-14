@@ -67,6 +67,11 @@ Common variables (subset; see command READMEs for complete lists):
   - Write tools → `AddWriteTools(...)` (and behind `allowDelete` for deletes)
 - Add tests in the matching `*_test.go` file using `mcpServerMock(...)` and `toolRequest` helpers found in `internal/twprojects/main_test.go`.
 - JSON-Schema gotcha (OpenAI Responses API): every `Type: "array"` node — including inside `AnyOf`/`OneOf`/`AllOf` branches — must declare `Items`. OpenAI rejects bare arrays at tool-registration time even with `strict: false`; Anthropic does not, so Claude Desktop hides the bug. `TestToolInputSchemasArrayItems` in `internal/twprojects/tools_test.go` guards this — if it fires, pick the right item schema rather than weakening the test.
+- `list_*` tools follow a specific contract — see `TaskList` in `internal/twprojects/tasks.go` as the canonical pattern:
+  - Expose a `verbose` parameter (default `true`) via `helpers.VerboseSchema()`.
+  - Execute the request with `twapi.ExecuteRaw(ctx, engine, req)` and stream the body straight to the caller, instead of decoding into the typed `*XxxListResponse` (avoids re-marshalling and preserves any fields the SDK struct doesn't model).
+  - When `verbose=false`: set sparse fields on `req.Filters.Fields.<Entity>` to a minimal set (typically `id` + name/title), skip any hardcoded `Filters.Include` sideloads, and **omit `StructuredContent`** from the result (text content only). Sparse responses do not satisfy the auto-generated `OutputSchema`, so populating `StructuredContent` would break clients that strictly validate.
+  - When `verbose=true`: keep the existing typed contract (sideloads + `StructuredContent` populated from the decoded body so output-schema validation continues to work).
 - Run `go test ./internal/twprojects` until green.
 
 ## Security considerations for agents

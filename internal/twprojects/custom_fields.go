@@ -6,6 +6,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
+	"net/http"
 
 	"github.com/google/jsonschema-go/jsonschema"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
@@ -638,6 +640,7 @@ func CustomFieldList(engine *twapi.Engine) toolsets.ToolWrapper {
 					},
 					"page":      helpers.PageSchema(),
 					"page_size": helpers.PageSizeSchema(),
+					"verbose":   helpers.VerboseSchema(),
 				},
 				Required: []string{},
 			},
@@ -651,6 +654,7 @@ func CustomFieldList(engine *twapi.Engine) toolsets.ToolWrapper {
 				return helpers.NewToolResultTextError("failed to decode request: %s", err.Error()), nil
 			}
 
+			verbose := true
 			err := helpers.ParamGroup(arguments,
 				helpers.OptionalParam(&customFieldListRequest.Filters.SearchTerm, "search_term"),
 				helpers.OptionalNumericListParam(&customFieldListRequest.Filters.IDs, "ids"),
@@ -682,16 +686,50 @@ func CustomFieldList(engine *twapi.Engine) toolsets.ToolWrapper {
 				),
 				helpers.OptionalNumericParam(&customFieldListRequest.Filters.Page, "page"),
 				helpers.OptionalNumericParam(&customFieldListRequest.Filters.PageSize, "page_size"),
+				helpers.OptionalParam(&verbose, "verbose"),
 			)
 			if err != nil {
 				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
 			}
 
-			customFieldList, err := projects.CustomFieldList(ctx, engine, customFieldListRequest)
+			if !verbose {
+				customFieldListRequest.Filters.Fields.CustomFields = []projects.CustomFieldField{
+					projects.CustomFieldFieldID,
+					projects.CustomFieldFieldName,
+				}
+			}
+
+			resp, err := twapi.ExecuteRaw(ctx, engine, customFieldListRequest)
 			if err != nil {
 				return helpers.HandleAPIError(err, "failed to list custom fields")
 			}
-			return helpers.NewToolResultJSON(customFieldList)
+			defer func() {
+				_ = resp.Body.Close()
+			}()
+			if resp.StatusCode != http.StatusOK {
+				return helpers.HandleAPIError(
+					twapi.NewHTTPError(resp, "failed to list custom fields"),
+					"failed to list custom fields",
+				)
+			}
+			body, err := io.ReadAll(resp.Body)
+			if err != nil {
+				return nil, fmt.Errorf("failed to read response body: %w", err)
+			}
+
+			result := &mcp.CallToolResult{
+				Content: []mcp.Content{
+					&mcp.TextContent{Text: string(body)},
+				},
+			}
+			if verbose {
+				var structured any
+				if err := json.Unmarshal(body, &structured); err != nil {
+					return nil, fmt.Errorf("failed to decode response: %w", err)
+				}
+				result.StructuredContent = structured
+			}
+			return result, nil
 		},
 	}
 }

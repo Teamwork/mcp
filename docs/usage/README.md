@@ -51,3 +51,26 @@ Ask an account administrator to enable MCP under **Settings → AI**.
 | **VSCode — GitHub Copilot Chat** | HTTP or STDIO | [vscode-copilot.md](/docs/usage/vscode-copilot.md)   |
 | **Gemini CLI**                   | HTTP          | [gemini-cli.md](/docs/usage/gemini-cli.md)           |
 | **n8n, Appmixer, custom**        | HTTP          | [other-platforms.md](/docs/usage/other-platforms.md) |
+
+---
+
+## Tool Parameters
+
+### `verbose` flag (list tools)
+
+Most `list_*` tools accept an optional `verbose` boolean (default `true`):
+
+- **`verbose=true`** — full entity details. The response conforms to the
+  tool's declared `outputSchema` and `structuredContent` is populated
+  alongside the text content.
+- **`verbose=false`** — only a minimal subset of fields (typically `id` and a
+  name/title) is returned to reduce response size. Useful when scanning many
+  results to pick an ID before fetching details on a specific one.
+
+> [!IMPORTANT]
+> When `verbose=false`, the response will **not** match the tool's declared
+> `outputSchema` (required fields are intentionally omitted), and
+> `structuredContent` is **not** included — only `content` text. Clients that
+> strictly validate structured output against the schema should fetch each
+> item with `verbose=true` (or the corresponding `get_*` tool) when they need
+> the full payload.

@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
+	"net/http"
 
 	"github.com/google/jsonschema-go/jsonschema"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
@@ -426,6 +428,7 @@ func UserList(engine *twapi.Engine) toolsets.ToolWrapper {
 					},
 					"page":      helpers.PageSchema(),
 					"page_size": helpers.PageSizeSchema(),
+					"verbose":   helpers.VerboseSchema(),
 				},
 				Required: []string{},
 			},
@@ -438,6 +441,7 @@ func UserList(engine *twapi.Engine) toolsets.ToolWrapper {
 			if err := json.Unmarshal(request.Params.Arguments, &arguments); err != nil {
 				return helpers.NewToolResultTextError("failed to decode request: %s", err.Error()), nil
 			}
+			verbose := true
 			err := helpers.ParamGroup(arguments,
 				helpers.OptionalNumericParam(&userListRequest.Path.ProjectID, "project_id"),
 				helpers.OptionalParam(&userListRequest.Filters.SearchTerm, "search_term"),
@@ -446,32 +450,49 @@ func UserList(engine *twapi.Engine) toolsets.ToolWrapper {
 				),
 				helpers.OptionalNumericParam(&userListRequest.Filters.Page, "page"),
 				helpers.OptionalNumericParam(&userListRequest.Filters.PageSize, "page_size"),
+				helpers.OptionalParam(&verbose, "verbose"),
 			)
 			if err != nil {
 				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
 			}
 
-			userList, err := projects.UserList(ctx, engine, userListRequest)
+			if !verbose {
+				userListRequest.Filters.Fields.Users = []projects.UserField{
+					projects.UserFieldID,
+					projects.UserFieldFirstName,
+					projects.UserFieldLastName,
+				}
+			}
+
+			resp, err := twapi.ExecuteRaw(ctx, engine, userListRequest)
 			if err != nil {
 				return helpers.HandleAPIError(err, "failed to list users")
 			}
-
-			encoded, err := json.Marshal(userList)
-			if err != nil {
-				return nil, err
+			defer func() {
+				_ = resp.Body.Close()
+			}()
+			if resp.StatusCode != http.StatusOK {
+				return helpers.HandleAPIError(twapi.NewHTTPError(resp, "failed to list users"), "failed to list users")
 			}
-			return &mcp.CallToolResult{
+			body, err := io.ReadAll(resp.Body)
+			if err != nil {
+				return nil, fmt.Errorf("failed to read response body: %w", err)
+			}
+
+			linked := helpers.WebLinker(ctx, body, helpers.WebLinkerWithIDPathBuilder("/app/people"))
+			result := &mcp.CallToolResult{
 				Content: []mcp.Content{
-					&mcp.TextContent{
-						Text: string(helpers.WebLinker(ctx, encoded,
-							helpers.WebLinkerWithIDPathBuilder("/app/people"),
-						)),
-					},
+					&mcp.TextContent{Text: string(linked)},
 				},
-				StructuredContent: helpers.StructuredWebLinker(ctx, userList,
-					helpers.WebLinkerWithIDPathBuilder("/app/people"),
-				),
-			}, nil
+			}
+			if verbose {
+				var structured any
+				if err := json.Unmarshal(linked, &structured); err != nil {
+					return nil, fmt.Errorf("failed to decode response: %w", err)
+				}
+				result.StructuredContent = structured
+			}
+			return result, nil
 		},
 	}
 }

@@ -4,7 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"math"
+	"net/http"
 	"reflect"
 
 	"github.com/google/jsonschema-go/jsonschema"
@@ -290,6 +292,7 @@ func ProjectCategoryList(engine *twapi.Engine) toolsets.ToolWrapper {
 					"search_term": helpers.SearchTermSchema("project categories", "name"),
 					"page":        helpers.PageSchema(),
 					"page_size":   helpers.PageSizeSchema(),
+					"verbose":     helpers.VerboseSchema(),
 				},
 				Required: []string{},
 			},
@@ -302,32 +305,53 @@ func ProjectCategoryList(engine *twapi.Engine) toolsets.ToolWrapper {
 			if err := json.Unmarshal(request.Params.Arguments, &arguments); err != nil {
 				return helpers.NewToolResultTextError("failed to decode request: %s", err.Error()), nil
 			}
+			verbose := true
 			err := helpers.ParamGroup(arguments,
 				helpers.OptionalParam(&projectCategoryListRequest.Filters.SearchTerm, "search_term"),
 				helpers.OptionalNumericParam(&projectCategoryListRequest.Filters.Page, "page"),
 				helpers.OptionalNumericParam(&projectCategoryListRequest.Filters.PageSize, "page_size"),
+				helpers.OptionalParam(&verbose, "verbose"),
 			)
 			if err != nil {
 				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
 			}
 
-			projectCategoryList, err := projects.ProjectCategoryList(ctx, engine, projectCategoryListRequest)
+			if !verbose {
+				projectCategoryListRequest.Filters.Fields.ProjectCategories = []projects.ProjectCategoryField{
+					projects.ProjectCategoryFieldID,
+					projects.ProjectCategoryFieldName,
+				}
+			}
+
+			resp, err := twapi.ExecuteRaw(ctx, engine, projectCategoryListRequest)
 			if err != nil {
 				return helpers.HandleAPIError(err, "failed to list projects")
 			}
-
-			encoded, err := json.Marshal(projectCategoryList)
-			if err != nil {
-				return nil, err
+			defer func() {
+				_ = resp.Body.Close()
+			}()
+			if resp.StatusCode != http.StatusOK {
+				return helpers.HandleAPIError(twapi.NewHTTPError(resp, "failed to list projects"), "failed to list projects")
 			}
-			return &mcp.CallToolResult{
+			body, err := io.ReadAll(resp.Body)
+			if err != nil {
+				return nil, fmt.Errorf("failed to read response body: %w", err)
+			}
+
+			linked := helpers.WebLinker(ctx, body, projectCategoryPathBuilder)
+			result := &mcp.CallToolResult{
 				Content: []mcp.Content{
-					&mcp.TextContent{
-						Text: string(helpers.WebLinker(ctx, encoded, projectCategoryPathBuilder)),
-					},
+					&mcp.TextContent{Text: string(linked)},
 				},
-				StructuredContent: helpers.StructuredWebLinker(ctx, projectCategoryList, projectCategoryPathBuilder),
-			}, nil
+			}
+			if verbose {
+				var structured any
+				if err := json.Unmarshal(linked, &structured); err != nil {
+					return nil, fmt.Errorf("failed to decode response: %w", err)
+				}
+				result.StructuredContent = structured
+			}
+			return result, nil
 		},
 	}
 }
