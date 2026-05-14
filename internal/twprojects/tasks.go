@@ -1012,7 +1012,7 @@ func TaskList(engine *twapi.Engine) toolsets.ToolWrapper {
 				},
 				Required: []string{},
 			},
-			OutputSchema: taskListOutputSchema,
+			OutputSchema: helpers.WithOptionalFields(taskListOutputSchema),
 		},
 		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 			var taskListRequest projects.TaskListRequest
@@ -1081,13 +1081,11 @@ func TaskList(engine *twapi.Engine) toolsets.ToolWrapper {
 					},
 				},
 			}
-			if verbose {
-				var structured any
-				if err := json.Unmarshal(linked, &structured); err != nil {
-					return nil, fmt.Errorf("failed to decode response: %w", err)
-				}
-				result.StructuredContent = structured
+			var structured any
+			if err := json.Unmarshal(linked, &structured); err != nil {
+				return nil, fmt.Errorf("failed to decode response: %w", err)
 			}
+			result.StructuredContent = structured
 			return result, nil
 		},
 	}

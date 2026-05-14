@@ -92,7 +92,7 @@ func ProjectBudgetList(engine *twapi.Engine) toolsets.ToolWrapper {
 				},
 				Required: []string{},
 			},
-			OutputSchema: projectBudgetListOutputSchema,
+			OutputSchema: helpers.WithOptionalFields(projectBudgetListOutputSchema),
 		},
 		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 			projectBudgetListRequest := projects.NewProjectBudgetListRequest()
@@ -151,13 +151,11 @@ func ProjectBudgetList(engine *twapi.Engine) toolsets.ToolWrapper {
 					&mcp.TextContent{Text: string(body)},
 				},
 			}
-			if verbose {
-				var structured any
-				if err := json.Unmarshal(body, &structured); err != nil {
-					return nil, fmt.Errorf("failed to decode response: %w", err)
-				}
-				result.StructuredContent = structured
+			var structured any
+			if err := json.Unmarshal(body, &structured); err != nil {
+				return nil, fmt.Errorf("failed to decode response: %w", err)
 			}
+			result.StructuredContent = structured
 			return result, nil
 		},
 	}
@@ -186,7 +184,7 @@ func TasklistBudgetList(engine *twapi.Engine) toolsets.ToolWrapper {
 				},
 				Required: []string{"project_budget_id"},
 			},
-			OutputSchema: tasklistBudgetListOutputSchema,
+			OutputSchema: helpers.WithOptionalFields(tasklistBudgetListOutputSchema),
 		},
 		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 			var projectBudgetID int64
@@ -242,13 +240,11 @@ func TasklistBudgetList(engine *twapi.Engine) toolsets.ToolWrapper {
 					&mcp.TextContent{Text: string(body)},
 				},
 			}
-			if verbose {
-				var structured any
-				if err := json.Unmarshal(body, &structured); err != nil {
-					return nil, fmt.Errorf("failed to decode response: %w", err)
-				}
-				result.StructuredContent = structured
+			var structured any
+			if err := json.Unmarshal(body, &structured); err != nil {
+				return nil, fmt.Errorf("failed to decode response: %w", err)
 			}
+			result.StructuredContent = structured
 			return result, nil
 		},
 	}

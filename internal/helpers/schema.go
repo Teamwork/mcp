@@ -101,16 +101,16 @@ func TagIDsAssociateSchema(entity string) *jsonschema.Schema {
 
 // VerboseSchema returns the schema for a verbose flag controlling response
 // detail level. When true (default), full entity details are returned; when
-// false, sparse fieldsets are applied to reduce response size — in that case
-// the response will not conform to the tool's declared output schema and
-// structured content is omitted.
+// false, sparse fieldsets are applied to reduce response size. Structured
+// content is always returned; list-tool output schemas are relaxed (all
+// fields optional) so sparse payloads still validate.
 func VerboseSchema() *jsonschema.Schema {
 	return &jsonschema.Schema{
-		Description: "If true (default), the response includes full entity details and conforms to the tool's " +
-			"output schema, with structured content populated. " +
-			"If false, only a minimal subset of fields is returned to reduce response size; in that case the " +
-			"response will not match the declared output schema and structured content is not returned " +
-			"(text content only).",
+		Description: "If true (default), the response includes full entity details. " +
+			"If false, only a minimal subset of fields (typically an id and a name/title) is returned to " +
+			"reduce response size — useful when scanning many results to pick an id before fetching the full " +
+			"entity. Structured content is returned in both modes; the tool's output schema marks all fields " +
+			"as optional so sparse responses still validate.",
 		AnyOf: []*jsonschema.Schema{
 			{Type: "boolean"},
 			{Type: "null"},
