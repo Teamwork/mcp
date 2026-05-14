@@ -66,6 +66,7 @@ Common variables (subset; see command READMEs for complete lists):
   - Read-only tools → `AddReadTools(...)`
   - Write tools → `AddWriteTools(...)` (and behind `allowDelete` for deletes)
 - Add tests in the matching `*_test.go` file using `mcpServerMock(...)` and `toolRequest` helpers found in `internal/twprojects/main_test.go`.
+- JSON-Schema gotcha (OpenAI Responses API): every `Type: "array"` node — including inside `AnyOf`/`OneOf`/`AllOf` branches — must declare `Items`. OpenAI rejects bare arrays at tool-registration time even with `strict: false`; Anthropic does not, so Claude Desktop hides the bug. `TestToolInputSchemasArrayItems` in `internal/twprojects/tools_test.go` guards this — if it fires, pick the right item schema rather than weakening the test.
 - Run `go test ./internal/twprojects` until green.
 
 ## Security considerations for agents
