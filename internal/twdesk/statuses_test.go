@@ -25,7 +25,7 @@ func TestStatusUpdate(t *testing.T) {
 	defer cleanup()
 
 	testutil.ExecuteToolRequest(t, mcpServer, twdesk.MethodStatusUpdate.String(), map[string]any{
-		"id":           "123",
+		"id":           float64(123),
 		"name":         "Completed",
 		"color":        "green",
 		"displayOrder": float64(2),
@@ -37,7 +37,7 @@ func TestStatusGet(t *testing.T) {
 	defer cleanup()
 
 	testutil.ExecuteToolRequest(t, mcpServer, twdesk.MethodStatusGet.String(), map[string]any{
-		"id": "123",
+		"id": float64(123),
 	})
 }
 

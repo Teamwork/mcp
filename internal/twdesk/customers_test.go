@@ -36,7 +36,7 @@ func TestCustomerUpdate(t *testing.T) {
 	defer cleanup()
 
 	testutil.ExecuteToolRequest(t, mcpServer, twdesk.MethodCustomerUpdate.String(), map[string]any{
-		"id":            "123",
+		"id":            float64(123),
 		"firstName":     "Jane",
 		"lastName":      "Smith",
 		"email":         "jane@example.com",
@@ -58,7 +58,7 @@ func TestCustomerGet(t *testing.T) {
 	defer cleanup()
 
 	testutil.ExecuteToolRequest(t, mcpServer, twdesk.MethodCustomerGet.String(), map[string]any{
-		"id": "123",
+		"id": float64(123),
 	})
 }
 

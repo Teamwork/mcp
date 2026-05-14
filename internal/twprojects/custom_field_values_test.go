@@ -34,7 +34,7 @@ func TestCustomFieldValueCreateMultiselect(t *testing.T) {
 		"entity":          "task",
 		"entity_id":       float64(777),
 		"custom_field_id": float64(555),
-		"value":           []any{float64(10), float64(20), float64(30)},
+		"value":           []any{"10", "20", "30"},
 	})
 }
 

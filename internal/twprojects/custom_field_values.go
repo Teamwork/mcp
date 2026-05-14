@@ -86,7 +86,12 @@ func CustomFieldValueCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 							{Type: "string"},
 							{Type: "number"},
 							{Type: "boolean"},
-							{Type: "array", Items: &jsonschema.Schema{Type: "integer"}},
+							{
+								Type: "array",
+								Items: &jsonschema.Schema{
+									Type: "string",
+								},
+							},
 							{Type: "null"},
 						},
 					},
@@ -205,7 +210,12 @@ func CustomFieldValueUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 							{Type: "string"},
 							{Type: "number"},
 							{Type: "boolean"},
-							{Type: "array", Items: &jsonschema.Schema{Type: "integer"}},
+							{
+								Type: "array",
+								Items: &jsonschema.Schema{
+									Type: "string",
+								},
+							},
 							{Type: "null"},
 						},
 					},
