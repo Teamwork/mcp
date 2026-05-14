@@ -14,7 +14,7 @@ func TestInboxGet(t *testing.T) {
 	defer cleanup()
 
 	testutil.ExecuteToolRequest(t, mcpServer, twdesk.MethodInboxGet.String(), map[string]any{
-		"id": "123",
+		"id": float64(123),
 	})
 }
 

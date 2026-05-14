@@ -32,7 +32,7 @@ func TestCompanyUpdate(t *testing.T) {
 	defer cleanup()
 
 	testutil.ExecuteToolRequest(t, mcpServer, twdesk.MethodCompanyUpdate.String(), map[string]any{
-		"id":          "123",
+		"id":          float64(123),
 		"name":        "Updated Company",
 		"description": "Updated description",
 		"details":     "Updated details",
@@ -50,7 +50,7 @@ func TestCompanyGet(t *testing.T) {
 	defer cleanup()
 
 	testutil.ExecuteToolRequest(t, mcpServer, twdesk.MethodCompanyGet.String(), map[string]any{
-		"id": "123",
+		"id": float64(123),
 	})
 }
 

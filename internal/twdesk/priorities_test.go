@@ -24,7 +24,7 @@ func TestPriorityUpdate(t *testing.T) {
 	defer cleanup()
 
 	testutil.ExecuteToolRequest(t, mcpServer, twdesk.MethodPriorityUpdate.String(), map[string]any{
-		"id":    "123",
+		"id":    float64(123),
 		"name":  "Updated",
 		"color": "blue",
 	})
@@ -35,7 +35,7 @@ func TestPriorityGet(t *testing.T) {
 	defer cleanup()
 
 	testutil.ExecuteToolRequest(t, mcpServer, twdesk.MethodPriorityGet.String(), map[string]any{
-		"id": "123",
+		"id": float64(123),
 	})
 }
 

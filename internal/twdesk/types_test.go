@@ -24,7 +24,7 @@ func TestTypeUpdate(t *testing.T) {
 	defer cleanup()
 
 	testutil.ExecuteToolRequest(t, mcpServer, twdesk.MethodTypeUpdate.String(), map[string]any{
-		"id":    "123",
+		"id":    float64(123),
 		"name":  "Feature Request",
 		"color": "blue",
 	})
@@ -35,7 +35,7 @@ func TestTypeGet(t *testing.T) {
 	defer cleanup()
 
 	testutil.ExecuteToolRequest(t, mcpServer, twdesk.MethodTypeGet.String(), map[string]any{
-		"id": "123",
+		"id": float64(123),
 	})
 }
 

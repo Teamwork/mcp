@@ -24,7 +24,7 @@ func TestTagUpdate(t *testing.T) {
 	defer cleanup()
 
 	testutil.ExecuteToolRequest(t, mcpServer, twdesk.MethodTagUpdate.String(), map[string]any{
-		"id":    "123",
+		"id":    float64(123),
 		"name":  "important",
 		"color": "orange",
 	})
@@ -35,7 +35,7 @@ func TestTagGet(t *testing.T) {
 	defer cleanup()
 
 	testutil.ExecuteToolRequest(t, mcpServer, twdesk.MethodTagGet.String(), map[string]any{
-		"id": "123",
+		"id": float64(123),
 	})
 }
 
@@ -44,8 +44,8 @@ func TestTagList(t *testing.T) {
 	defer cleanup()
 
 	testutil.ExecuteToolRequest(t, mcpServer, twdesk.MethodTagList.String(), map[string]any{
-		"name":     []string{"urgent", "important"},
-		"color":    []string{"red", "orange"},
+		"name":     "urgent",
+		"color":    "red",
 		"page":     float64(1),
 		"pageSize": float64(10),
 	})

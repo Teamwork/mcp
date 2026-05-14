@@ -14,7 +14,7 @@ func TestUserGet(t *testing.T) {
 	defer cleanup()
 
 	testutil.ExecuteToolRequest(t, mcpServer, twdesk.MethodUserGet.String(), map[string]any{
-		"id": "123",
+		"id": float64(123),
 	})
 }
 

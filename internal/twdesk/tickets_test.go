@@ -18,12 +18,12 @@ func TestTicketCreate(t *testing.T) {
 		"body":       "This is a test ticket",
 		"cc":         []string{"cc@example.com"},
 		"bcc":        []string{"bcc@example.com"},
-		"priorityId": "1",
-		"statusId":   "1",
-		"typeId":     "1",
-		"customerId": "100",
-		"inboxId":    "1",
-		"agentId":    "1",
+		"priorityId": float64(1),
+		"statusId":   float64(1),
+		"typeId":     float64(1),
+		"customerId": float64(100),
+		"inboxId":    float64(1),
+		"agentId":    float64(1),
 	})
 }
 
@@ -32,13 +32,13 @@ func TestTicketUpdate(t *testing.T) {
 	defer cleanup()
 
 	testutil.ExecuteToolRequest(t, mcpServer, twdesk.MethodTicketUpdate.String(), map[string]any{
-		"id":         "123",
+		"id":         float64(123),
 		"subject":    "Updated Ticket",
 		"cc":         []string{"cc-update@example.com"},
 		"bcc":        []string{"bcc-update@example.com"},
-		"priorityId": "2",
-		"statusId":   "2",
-		"typeId":     "2",
+		"priorityId": float64(2),
+		"statusId":   float64(2),
+		"typeId":     float64(2),
 	})
 }
 
@@ -47,7 +47,7 @@ func TestTicketGet(t *testing.T) {
 	defer cleanup()
 
 	testutil.ExecuteToolRequest(t, mcpServer, twdesk.MethodTicketGet.String(), map[string]any{
-		"id": "123",
+		"id": float64(123),
 	})
 }
 

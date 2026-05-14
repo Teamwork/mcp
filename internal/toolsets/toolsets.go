@@ -5,9 +5,12 @@
 package toolsets
 
 import (
+	"context"
+	"encoding/json"
 	"fmt"
 	"sync"
 
+	"github.com/google/jsonschema-go/jsonschema"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
@@ -242,12 +245,51 @@ func (t *Toolset) RegisterTools(s *mcp.Server) {
 		return
 	}
 	for _, toolWrapper := range t.readTools {
-		s.AddTool(toolWrapper.Tool, toolWrapper.Handler)
+		s.AddTool(toolWrapper.Tool, withInputValidation(toolWrapper.Tool, toolWrapper.Handler))
 	}
 	if !t.readOnly {
 		for _, tool := range t.writeTools {
-			s.AddTool(tool.Tool, tool.Handler)
+			s.AddTool(tool.Tool, withInputValidation(tool.Tool, tool.Handler))
 		}
+	}
+}
+
+// withInputValidation wraps a tool handler so that incoming arguments are
+// validated against the tool's InputSchema before the handler runs. The MCP
+// go-sdk (as of v1.6.0) does not validate arguments on the client or the
+// server when tools are registered via the untyped Server.AddTool method —
+// see https://github.com/modelcontextprotocol/go-sdk/issues/648. Without this
+// wrapper, tools receive whatever JSON the caller sends, regardless of the
+// schema published via tools/list.
+func withInputValidation(tool *mcp.Tool, handler mcp.ToolHandler) mcp.ToolHandler {
+	schema, ok := tool.InputSchema.(*jsonschema.Schema)
+	if !ok || schema == nil {
+		return handler
+	}
+	resolved, err := schema.Resolve(&jsonschema.ResolveOptions{ValidateDefaults: true})
+	if err != nil {
+		panic(fmt.Sprintf("toolsets: failed to resolve input schema for %q: %v", tool.Name, err))
+	}
+	return func(ctx context.Context, req *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		args := map[string]any{}
+		if len(req.Params.Arguments) > 0 {
+			if err := json.Unmarshal(req.Params.Arguments, &args); err != nil {
+				return newInputValidationError("invalid arguments JSON: %s", err.Error()), nil
+			}
+		}
+		if err := resolved.Validate(args); err != nil {
+			return newInputValidationError("invalid arguments: %s", err.Error()), nil
+		}
+		return handler(ctx, req)
+	}
+}
+
+func newInputValidationError(format string, args ...any) *mcp.CallToolResult {
+	return &mcp.CallToolResult{
+		IsError: true,
+		Content: []mcp.Content{
+			&mcp.TextContent{Text: fmt.Sprintf(format, args...)},
+		},
 	}
 }
 
