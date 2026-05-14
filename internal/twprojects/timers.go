@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
+	"net/http"
 
 	"github.com/google/jsonschema-go/jsonschema"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
@@ -503,6 +505,7 @@ func TimerList(engine *twapi.Engine) toolsets.ToolWrapper {
 					},
 					"page":      helpers.PageSchema(),
 					"page_size": helpers.PageSizeSchema(),
+					"verbose":   helpers.VerboseSchema(),
 				},
 				Required: []string{},
 			},
@@ -515,6 +518,7 @@ func TimerList(engine *twapi.Engine) toolsets.ToolWrapper {
 			if err := json.Unmarshal(request.Params.Arguments, &arguments); err != nil {
 				return helpers.NewToolResultTextError("failed to decode request: %s", err.Error()), nil
 			}
+			verbose := true
 			err := helpers.ParamGroup(arguments,
 				helpers.OptionalNumericParam(&timerListRequest.Filters.UserID, "user_id"),
 				helpers.OptionalNumericParam(&timerListRequest.Filters.TaskID, "task_id"),
@@ -522,32 +526,48 @@ func TimerList(engine *twapi.Engine) toolsets.ToolWrapper {
 				helpers.OptionalParam(&timerListRequest.Filters.RunningTimersOnly, "running_timers_only"),
 				helpers.OptionalNumericParam(&timerListRequest.Filters.Page, "page"),
 				helpers.OptionalNumericParam(&timerListRequest.Filters.PageSize, "page_size"),
+				helpers.OptionalParam(&verbose, "verbose"),
 			)
 			if err != nil {
 				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
 			}
 
-			timerList, err := projects.TimerList(ctx, engine, timerListRequest)
+			if !verbose {
+				timerListRequest.Filters.Fields.Timers = []projects.TimerField{
+					projects.TimerFieldID,
+					projects.TimerFieldDescription,
+				}
+			}
+
+			resp, err := twapi.ExecuteRaw(ctx, engine, timerListRequest)
 			if err != nil {
 				return helpers.HandleAPIError(err, "failed to list timers")
 			}
-
-			encoded, err := json.Marshal(timerList)
-			if err != nil {
-				return nil, err
+			defer func() {
+				_ = resp.Body.Close()
+			}()
+			if resp.StatusCode != http.StatusOK {
+				return helpers.HandleAPIError(twapi.NewHTTPError(resp, "failed to list timers"), "failed to list timers")
 			}
-			return &mcp.CallToolResult{
+			body, err := io.ReadAll(resp.Body)
+			if err != nil {
+				return nil, fmt.Errorf("failed to read response body: %w", err)
+			}
+
+			linked := helpers.WebLinker(ctx, body, helpers.WebLinkerWithIDPathBuilder("/app/me/timers"))
+			result := &mcp.CallToolResult{
 				Content: []mcp.Content{
-					&mcp.TextContent{
-						Text: string(helpers.WebLinker(ctx, encoded,
-							helpers.WebLinkerWithIDPathBuilder("/app/timers"),
-						)),
-					},
+					&mcp.TextContent{Text: string(linked)},
 				},
-				StructuredContent: helpers.StructuredWebLinker(ctx, timerList,
-					helpers.WebLinkerWithIDPathBuilder("/app/timers"),
-				),
-			}, nil
+			}
+			if verbose {
+				var structured any
+				if err := json.Unmarshal(linked, &structured); err != nil {
+					return nil, fmt.Errorf("failed to decode response: %w", err)
+				}
+				result.StructuredContent = structured
+			}
+			return result, nil
 		},
 	}
 }

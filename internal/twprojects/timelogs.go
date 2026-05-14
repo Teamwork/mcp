@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
+	"net/http"
 
 	"github.com/google/jsonschema-go/jsonschema"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
@@ -456,6 +458,7 @@ func TimelogList(engine *twapi.Engine) toolsets.ToolWrapper {
 					},
 					"page":      helpers.PageSchema(),
 					"page_size": helpers.PageSizeSchema(),
+					"verbose":   helpers.VerboseSchema(),
 				},
 				Required: []string{},
 			},
@@ -468,6 +471,7 @@ func TimelogList(engine *twapi.Engine) toolsets.ToolWrapper {
 			if err := json.Unmarshal(request.Params.Arguments, &arguments); err != nil {
 				return helpers.NewToolResultTextError("failed to decode request: %s", err.Error()), nil
 			}
+			verbose := true
 			err := helpers.ParamGroup(arguments,
 				helpers.OptionalNumericParam(&timelogListRequest.Path.ProjectID, "project_id"),
 				helpers.OptionalNumericParam(&timelogListRequest.Path.TaskID, "task_id"),
@@ -481,16 +485,47 @@ func TimelogList(engine *twapi.Engine) toolsets.ToolWrapper {
 				helpers.OptionalNumericListParam(&timelogListRequest.Filters.DeskTicketIDs, "ticketIds"),
 				helpers.OptionalNumericParam(&timelogListRequest.Filters.Page, "page"),
 				helpers.OptionalNumericParam(&timelogListRequest.Filters.PageSize, "page_size"),
+				helpers.OptionalParam(&verbose, "verbose"),
 			)
 			if err != nil {
 				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
 			}
 
-			timelogList, err := projects.TimelogList(ctx, engine, timelogListRequest)
+			if !verbose {
+				timelogListRequest.Filters.Fields.Timelogs = []projects.TimelogField{
+					projects.TimelogFieldID,
+					projects.TimelogFieldDescription,
+				}
+			}
+
+			resp, err := twapi.ExecuteRaw(ctx, engine, timelogListRequest)
 			if err != nil {
 				return helpers.HandleAPIError(err, "failed to list timelogs")
 			}
-			return helpers.NewToolResultJSON(timelogList)
+			defer func() {
+				_ = resp.Body.Close()
+			}()
+			if resp.StatusCode != http.StatusOK {
+				return helpers.HandleAPIError(twapi.NewHTTPError(resp, "failed to list timelogs"), "failed to list timelogs")
+			}
+			body, err := io.ReadAll(resp.Body)
+			if err != nil {
+				return nil, fmt.Errorf("failed to read response body: %w", err)
+			}
+
+			result := &mcp.CallToolResult{
+				Content: []mcp.Content{
+					&mcp.TextContent{Text: string(body)},
+				},
+			}
+			if verbose {
+				var structured any
+				if err := json.Unmarshal(body, &structured); err != nil {
+					return nil, fmt.Errorf("failed to decode response: %w", err)
+				}
+				result.StructuredContent = structured
+			}
+			return result, nil
 		},
 	}
 }

@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
+	"net/http"
 
 	"github.com/google/jsonschema-go/jsonschema"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
@@ -521,6 +523,7 @@ func CompanyList(engine *twapi.Engine) toolsets.ToolWrapper {
 					"match_all_tags": helpers.MatchAllTagsSchema("companies"),
 					"page":           helpers.PageSchema(),
 					"page_size":      helpers.PageSizeSchema(),
+					"verbose":        helpers.VerboseSchema(),
 				},
 				Required: []string{},
 			},
@@ -529,50 +532,67 @@ func CompanyList(engine *twapi.Engine) toolsets.ToolWrapper {
 		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 			var companyListRequest projects.CompanyListRequest
 
-			// Always include custom fields and values in the response to provide more
-			// context about the company. Custom fields often contain important
-			// metadata relevant to the company.
-			companyListRequest.Filters.Include = []projects.CompanyRequestSideload{
-				projects.CompanyRequestSideloadCustomFields,
-				projects.CompanyRequestSideloadCustomFieldValues,
-			}
-
 			var arguments map[string]any
 			if err := json.Unmarshal(request.Params.Arguments, &arguments); err != nil {
 				return helpers.NewToolResultTextError("failed to decode request: %s", err.Error()), nil
 			}
+			verbose := true
 			err := helpers.ParamGroup(arguments,
 				helpers.OptionalParam(&companyListRequest.Filters.SearchTerm, "search_term"),
 				helpers.OptionalNumericListParam(&companyListRequest.Filters.TagIDs, "tag_ids"),
 				helpers.OptionalPointerParam(&companyListRequest.Filters.MatchAllTags, "match_all_tags"),
 				helpers.OptionalNumericParam(&companyListRequest.Filters.Page, "page"),
 				helpers.OptionalNumericParam(&companyListRequest.Filters.PageSize, "page_size"),
+				helpers.OptionalParam(&verbose, "verbose"),
 			)
 			if err != nil {
 				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
 			}
 
-			companyList, err := projects.CompanyList(ctx, engine, companyListRequest)
+			if verbose {
+				// Include custom fields and values in the response to provide more
+				// context about the company. Custom fields often contain important
+				// metadata relevant to the company.
+				companyListRequest.Filters.Include = []projects.CompanyRequestSideload{
+					projects.CompanyRequestSideloadCustomFields,
+					projects.CompanyRequestSideloadCustomFieldValues,
+				}
+			} else {
+				companyListRequest.Filters.Fields.Companies = []projects.CompanyField{
+					projects.CompanyFieldID,
+					projects.CompanyFieldName,
+				}
+			}
+
+			resp, err := twapi.ExecuteRaw(ctx, engine, companyListRequest)
 			if err != nil {
 				return helpers.HandleAPIError(err, "failed to list companies")
 			}
-
-			encoded, err := json.Marshal(companyList)
-			if err != nil {
-				return nil, err
+			defer func() {
+				_ = resp.Body.Close()
+			}()
+			if resp.StatusCode != http.StatusOK {
+				return helpers.HandleAPIError(twapi.NewHTTPError(resp, "failed to list companies"), "failed to list companies")
 			}
-			return &mcp.CallToolResult{
+			body, err := io.ReadAll(resp.Body)
+			if err != nil {
+				return nil, fmt.Errorf("failed to read response body: %w", err)
+			}
+
+			linked := helpers.WebLinker(ctx, body, helpers.WebLinkerWithIDPathBuilder("/app/clients"))
+			result := &mcp.CallToolResult{
 				Content: []mcp.Content{
-					&mcp.TextContent{
-						Text: string(helpers.WebLinker(ctx, encoded,
-							helpers.WebLinkerWithIDPathBuilder("/app/clients"),
-						)),
-					},
+					&mcp.TextContent{Text: string(linked)},
 				},
-				StructuredContent: helpers.StructuredWebLinker(ctx, companyList,
-					helpers.WebLinkerWithIDPathBuilder("/app/clients"),
-				),
-			}, nil
+			}
+			if verbose {
+				var structured any
+				if err := json.Unmarshal(linked, &structured); err != nil {
+					return nil, fmt.Errorf("failed to decode response: %w", err)
+				}
+				result.StructuredContent = structured
+			}
+			return result, nil
 		},
 	}
 }

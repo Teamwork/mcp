@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
+	"net/http"
 	"strings"
 
 	"github.com/google/jsonschema-go/jsonschema"
@@ -457,6 +459,7 @@ func MessageReplyList(engine *twapi.Engine) toolsets.ToolWrapper {
 					},
 					"page":      helpers.PageSchema(),
 					"page_size": helpers.PageSizeSchema(),
+					"verbose":   helpers.VerboseSchema(),
 				},
 				Required: []string{},
 			},
@@ -469,34 +472,56 @@ func MessageReplyList(engine *twapi.Engine) toolsets.ToolWrapper {
 			if err := json.Unmarshal(request.Params.Arguments, &arguments); err != nil {
 				return helpers.NewToolResultTextError("failed to decode request: %s", err.Error()), nil
 			}
+			verbose := true
 			err := helpers.ParamGroup(arguments,
 				helpers.OptionalParam(&messageReplyListRequest.Filters.SearchTerm, "search_term"),
 				helpers.OptionalNumericListParam(&messageReplyListRequest.Filters.MessageIDs, "message_ids"),
 				helpers.OptionalNumericListParam(&messageReplyListRequest.Filters.ProjectIDs, "project_ids"),
 				helpers.OptionalNumericParam(&messageReplyListRequest.Filters.Page, "page"),
 				helpers.OptionalNumericParam(&messageReplyListRequest.Filters.PageSize, "page_size"),
+				helpers.OptionalParam(&verbose, "verbose"),
 			)
 			if err != nil {
 				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
 			}
 
-			messageReplyList, err := projects.MessageReplyList(ctx, engine, messageReplyListRequest)
+			if !verbose {
+				messageReplyListRequest.Filters.Fields.MessageReplies = []projects.MessageReplyField{
+					projects.MessageReplyFieldID,
+				}
+			}
+
+			resp, err := twapi.ExecuteRaw(ctx, engine, messageReplyListRequest)
 			if err != nil {
 				return helpers.HandleAPIError(err, "failed to list message replies")
 			}
-
-			encoded, err := json.Marshal(messageReplyList)
-			if err != nil {
-				return nil, err
+			defer func() {
+				_ = resp.Body.Close()
+			}()
+			if resp.StatusCode != http.StatusOK {
+				return helpers.HandleAPIError(
+					twapi.NewHTTPError(resp, "failed to list message replies"),
+					"failed to list message replies",
+				)
 			}
-			return &mcp.CallToolResult{
+			body, err := io.ReadAll(resp.Body)
+			if err != nil {
+				return nil, fmt.Errorf("failed to read response body: %w", err)
+			}
+
+			result := &mcp.CallToolResult{
 				Content: []mcp.Content{
-					&mcp.TextContent{
-						Text: string(encoded),
-					},
+					&mcp.TextContent{Text: string(body)},
 				},
-				StructuredContent: messageReplyList,
-			}, nil
+			}
+			if verbose {
+				var structured any
+				if err := json.Unmarshal(body, &structured); err != nil {
+					return nil, fmt.Errorf("failed to decode response: %w", err)
+				}
+				result.StructuredContent = structured
+			}
+			return result, nil
 		},
 	}
 }

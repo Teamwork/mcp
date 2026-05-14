@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
+	"net/http"
 
 	"github.com/google/jsonschema-go/jsonschema"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
@@ -296,6 +298,7 @@ func TagList(engine *twapi.Engine) toolsets.ToolWrapper {
 					},
 					"page":      helpers.PageSchema(),
 					"page_size": helpers.PageSizeSchema(),
+					"verbose":   helpers.VerboseSchema(),
 				},
 				Required: []string{},
 			},
@@ -308,6 +311,7 @@ func TagList(engine *twapi.Engine) toolsets.ToolWrapper {
 			if err := json.Unmarshal(request.Params.Arguments, &arguments); err != nil {
 				return helpers.NewToolResultTextError("failed to decode request: %s", err.Error()), nil
 			}
+			verbose := true
 			err := helpers.ParamGroup(arguments,
 				helpers.OptionalParam(&tagListRequest.Filters.SearchTerm, "search_term"),
 				helpers.OptionalParam(&tagListRequest.Filters.ItemType, "item_type",
@@ -317,16 +321,47 @@ func TagList(engine *twapi.Engine) toolsets.ToolWrapper {
 				helpers.OptionalNumericListParam(&tagListRequest.Filters.ProjectIDs, "project_ids"),
 				helpers.OptionalNumericParam(&tagListRequest.Filters.Page, "page"),
 				helpers.OptionalNumericParam(&tagListRequest.Filters.PageSize, "page_size"),
+				helpers.OptionalParam(&verbose, "verbose"),
 			)
 			if err != nil {
 				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
 			}
 
-			tagList, err := projects.TagList(ctx, engine, tagListRequest)
+			if !verbose {
+				tagListRequest.Filters.Fields.Tags = []projects.TagField{
+					projects.TagFieldID,
+					projects.TagFieldName,
+				}
+			}
+
+			resp, err := twapi.ExecuteRaw(ctx, engine, tagListRequest)
 			if err != nil {
 				return helpers.HandleAPIError(err, "failed to list tags")
 			}
-			return helpers.NewToolResultJSON(tagList)
+			defer func() {
+				_ = resp.Body.Close()
+			}()
+			if resp.StatusCode != http.StatusOK {
+				return helpers.HandleAPIError(twapi.NewHTTPError(resp, "failed to list tags"), "failed to list tags")
+			}
+			body, err := io.ReadAll(resp.Body)
+			if err != nil {
+				return nil, fmt.Errorf("failed to read response body: %w", err)
+			}
+
+			result := &mcp.CallToolResult{
+				Content: []mcp.Content{
+					&mcp.TextContent{Text: string(body)},
+				},
+			}
+			if verbose {
+				var structured any
+				if err := json.Unmarshal(body, &structured); err != nil {
+					return nil, fmt.Errorf("failed to decode response: %w", err)
+				}
+				result.StructuredContent = structured
+			}
+			return result, nil
 		},
 	}
 }

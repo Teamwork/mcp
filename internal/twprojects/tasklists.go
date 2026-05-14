@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
+	"net/http"
 
 	"github.com/google/jsonschema-go/jsonschema"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
@@ -305,6 +307,7 @@ func TasklistList(engine *twapi.Engine) toolsets.ToolWrapper {
 					"search_term": helpers.SearchTermSchema("tasklists", "name"),
 					"page":        helpers.PageSchema(),
 					"page_size":   helpers.PageSizeSchema(),
+					"verbose":     helpers.VerboseSchema(),
 				},
 				Required: []string{},
 			},
@@ -317,37 +320,54 @@ func TasklistList(engine *twapi.Engine) toolsets.ToolWrapper {
 			if err := json.Unmarshal(request.Params.Arguments, &arguments); err != nil {
 				return helpers.NewToolResultTextError("failed to decode request: %s", err.Error()), nil
 			}
+			verbose := true
 			err := helpers.ParamGroup(arguments,
 				helpers.OptionalNumericParam(&tasklistListRequest.Path.ProjectID, "project_id"),
 				helpers.OptionalParam(&tasklistListRequest.Filters.SearchTerm, "search_term"),
 				helpers.OptionalNumericParam(&tasklistListRequest.Filters.Page, "page"),
 				helpers.OptionalNumericParam(&tasklistListRequest.Filters.PageSize, "page_size"),
+				helpers.OptionalParam(&verbose, "verbose"),
 			)
 			if err != nil {
 				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
 			}
 
-			tasklistList, err := projects.TasklistList(ctx, engine, tasklistListRequest)
+			if !verbose {
+				tasklistListRequest.Filters.Fields.Tasklists = []projects.TasklistField{
+					projects.TasklistFieldID,
+					projects.TasklistFieldName,
+				}
+			}
+
+			resp, err := twapi.ExecuteRaw(ctx, engine, tasklistListRequest)
 			if err != nil {
 				return helpers.HandleAPIError(err, "failed to list tasklists")
 			}
-
-			encoded, err := json.Marshal(tasklistList)
-			if err != nil {
-				return nil, err
+			defer func() {
+				_ = resp.Body.Close()
+			}()
+			if resp.StatusCode != http.StatusOK {
+				return helpers.HandleAPIError(twapi.NewHTTPError(resp, "failed to list tasklists"), "failed to list tasklists")
 			}
-			return &mcp.CallToolResult{
+			body, err := io.ReadAll(resp.Body)
+			if err != nil {
+				return nil, fmt.Errorf("failed to read response body: %w", err)
+			}
+
+			linked := helpers.WebLinker(ctx, body, helpers.WebLinkerWithIDPathBuilder("/app/tasklists"))
+			result := &mcp.CallToolResult{
 				Content: []mcp.Content{
-					&mcp.TextContent{
-						Text: string(helpers.WebLinker(ctx, encoded,
-							helpers.WebLinkerWithIDPathBuilder("/app/tasklists"),
-						)),
-					},
+					&mcp.TextContent{Text: string(linked)},
 				},
-				StructuredContent: helpers.StructuredWebLinker(ctx, tasklistList,
-					helpers.WebLinkerWithIDPathBuilder("/app/tasklists"),
-				),
-			}, nil
+			}
+			if verbose {
+				var structured any
+				if err := json.Unmarshal(linked, &structured); err != nil {
+					return nil, fmt.Errorf("failed to decode response: %w", err)
+				}
+				result.StructuredContent = structured
+			}
+			return result, nil
 		},
 	}
 }

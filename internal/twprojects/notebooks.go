@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
+	"net/http"
 
 	"github.com/google/jsonschema-go/jsonschema"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
@@ -348,6 +350,7 @@ func NotebookList(engine *twapi.Engine) toolsets.ToolWrapper {
 					},
 					"page":      helpers.PageSchema(),
 					"page_size": helpers.PageSizeSchema(),
+					"verbose":   helpers.VerboseSchema(),
 				},
 				Required: []string{},
 			},
@@ -360,6 +363,7 @@ func NotebookList(engine *twapi.Engine) toolsets.ToolWrapper {
 			if err := json.Unmarshal(request.Params.Arguments, &arguments); err != nil {
 				return helpers.NewToolResultTextError("failed to decode request: %s", err.Error()), nil
 			}
+			verbose := true
 			err := helpers.ParamGroup(arguments,
 				helpers.OptionalNumericListParam(&notebookListRequest.Filters.ProjectIDs, "project_ids"),
 				helpers.OptionalParam(&notebookListRequest.Filters.SearchTerm, "search_term"),
@@ -368,32 +372,48 @@ func NotebookList(engine *twapi.Engine) toolsets.ToolWrapper {
 				helpers.OptionalPointerParam(&notebookListRequest.Filters.IncludeContents, "include_contents"),
 				helpers.OptionalNumericParam(&notebookListRequest.Filters.Page, "page"),
 				helpers.OptionalNumericParam(&notebookListRequest.Filters.PageSize, "page_size"),
+				helpers.OptionalParam(&verbose, "verbose"),
 			)
 			if err != nil {
 				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
 			}
 
-			notebookList, err := projects.NotebookList(ctx, engine, notebookListRequest)
+			if !verbose {
+				notebookListRequest.Filters.Fields.Notebooks = []projects.NotebookField{
+					projects.NotebookFieldID,
+					projects.NotebookFieldName,
+				}
+			}
+
+			resp, err := twapi.ExecuteRaw(ctx, engine, notebookListRequest)
 			if err != nil {
 				return helpers.HandleAPIError(err, "failed to list notebooks")
 			}
-
-			encoded, err := json.Marshal(notebookList)
-			if err != nil {
-				return nil, err
+			defer func() {
+				_ = resp.Body.Close()
+			}()
+			if resp.StatusCode != http.StatusOK {
+				return helpers.HandleAPIError(twapi.NewHTTPError(resp, "failed to list notebooks"), "failed to list notebooks")
 			}
-			return &mcp.CallToolResult{
+			body, err := io.ReadAll(resp.Body)
+			if err != nil {
+				return nil, fmt.Errorf("failed to read response body: %w", err)
+			}
+
+			linked := helpers.WebLinker(ctx, body, helpers.WebLinkerWithIDPathBuilder("/app/notebooks"))
+			result := &mcp.CallToolResult{
 				Content: []mcp.Content{
-					&mcp.TextContent{
-						Text: string(helpers.WebLinker(ctx, encoded,
-							helpers.WebLinkerWithIDPathBuilder("/app/notebooks"),
-						)),
-					},
+					&mcp.TextContent{Text: string(linked)},
 				},
-				StructuredContent: helpers.StructuredWebLinker(ctx, notebookList,
-					helpers.WebLinkerWithIDPathBuilder("/app/notebooks"),
-				),
-			}, nil
+			}
+			if verbose {
+				var structured any
+				if err := json.Unmarshal(linked, &structured); err != nil {
+					return nil, fmt.Errorf("failed to decode response: %w", err)
+				}
+				result.StructuredContent = structured
+			}
+			return result, nil
 		},
 	}
 }

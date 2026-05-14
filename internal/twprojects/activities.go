@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
+	"net/http"
 
 	"github.com/google/jsonschema-go/jsonschema"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
@@ -108,6 +110,7 @@ func ActivityList(engine *twapi.Engine) toolsets.ToolWrapper {
 					},
 					"page":      helpers.PageSchema(),
 					"page_size": helpers.PageSizeSchema(),
+					"verbose":   helpers.VerboseSchema(),
 				},
 				Required: []string{},
 			},
@@ -120,6 +123,7 @@ func ActivityList(engine *twapi.Engine) toolsets.ToolWrapper {
 			if err := json.Unmarshal(request.Params.Arguments, &arguments); err != nil {
 				return helpers.NewToolResultTextError("failed to decode request: %s", err.Error()), nil
 			}
+			verbose := true
 			err := helpers.ParamGroup(arguments,
 				helpers.OptionalNumericParam(&activityListRequest.Path.ProjectID, "project_id"),
 				helpers.OptionalTimeParam(&activityListRequest.Filters.StartDate, "start_date"),
@@ -127,16 +131,47 @@ func ActivityList(engine *twapi.Engine) toolsets.ToolWrapper {
 				helpers.OptionalListParam(&activityListRequest.Filters.LogItemTypes, "log_item_types"),
 				helpers.OptionalNumericParam(&activityListRequest.Filters.Page, "page"),
 				helpers.OptionalNumericParam(&activityListRequest.Filters.PageSize, "page_size"),
+				helpers.OptionalParam(&verbose, "verbose"),
 			)
 			if err != nil {
 				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
 			}
 
-			activityList, err := projects.ActivityList(ctx, engine, activityListRequest)
+			if !verbose {
+				activityListRequest.Filters.Fields.Activities = []projects.ActivityField{
+					projects.ActivityFieldID,
+					projects.ActivityFieldDescription,
+				}
+			}
+
+			resp, err := twapi.ExecuteRaw(ctx, engine, activityListRequest)
 			if err != nil {
 				return helpers.HandleAPIError(err, "failed to list activities")
 			}
-			return helpers.NewToolResultJSON(activityList)
+			defer func() {
+				_ = resp.Body.Close()
+			}()
+			if resp.StatusCode != http.StatusOK {
+				return helpers.HandleAPIError(twapi.NewHTTPError(resp, "failed to list activities"), "failed to list activities")
+			}
+			body, err := io.ReadAll(resp.Body)
+			if err != nil {
+				return nil, fmt.Errorf("failed to read response body: %w", err)
+			}
+
+			result := &mcp.CallToolResult{
+				Content: []mcp.Content{
+					&mcp.TextContent{Text: string(body)},
+				},
+			}
+			if verbose {
+				var structured any
+				if err := json.Unmarshal(body, &structured); err != nil {
+					return nil, fmt.Errorf("failed to decode response: %w", err)
+				}
+				result.StructuredContent = structured
+			}
+			return result, nil
 		},
 	}
 }

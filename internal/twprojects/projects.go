@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
+	"net/http"
 
 	"github.com/google/jsonschema-go/jsonschema"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
@@ -546,6 +548,7 @@ func ProjectList(engine *twapi.Engine) toolsets.ToolWrapper {
 					"match_all_tags": helpers.MatchAllTagsSchema("projects"),
 					"page":           helpers.PageSchema(),
 					"page_size":      helpers.PageSizeSchema(),
+					"verbose":        helpers.VerboseSchema(),
 				},
 				Required: []string{},
 			},
@@ -554,20 +557,11 @@ func ProjectList(engine *twapi.Engine) toolsets.ToolWrapper {
 		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 			var projectListRequest projects.ProjectListRequest
 
-			// always include project categories and custom fields in the response to
-			// provide more context about the project, as categories are commonly used
-			// for organizing projects and understanding their purpose, and custom
-			// fields often contain important metadata relevant to the project.
-			projectListRequest.Filters.Include = []projects.ProjectRequestSideload{
-				projects.ProjectRequestSideloadProjectCategories,
-				projects.ProjectRequestSideloadCustomFields,
-				projects.ProjectRequestSideloadCustomFieldValues,
-			}
-
 			var arguments map[string]any
 			if err := json.Unmarshal(request.Params.Arguments, &arguments); err != nil {
 				return helpers.NewToolResultTextError("failed to decode request: %s", err.Error()), nil
 			}
+			verbose := true
 			err := helpers.ParamGroup(arguments,
 				helpers.OptionalNumericListParam(&projectListRequest.Filters.ProjectCategoryIDs, "project_category_ids"),
 				helpers.OptionalParam(&projectListRequest.Filters.SearchTerm, "search_term"),
@@ -575,32 +569,59 @@ func ProjectList(engine *twapi.Engine) toolsets.ToolWrapper {
 				helpers.OptionalPointerParam(&projectListRequest.Filters.MatchAllTags, "match_all_tags"),
 				helpers.OptionalNumericParam(&projectListRequest.Filters.Page, "page"),
 				helpers.OptionalNumericParam(&projectListRequest.Filters.PageSize, "page_size"),
+				helpers.OptionalParam(&verbose, "verbose"),
 			)
 			if err != nil {
 				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
 			}
 
-			projectList, err := projects.ProjectList(ctx, engine, projectListRequest)
+			if verbose {
+				// Include project categories and custom fields in the response to
+				// provide more context about the project, as categories are commonly
+				// used for organizing projects and understanding their purpose, and
+				// custom fields often contain important metadata relevant to the
+				// project.
+				projectListRequest.Filters.Include = []projects.ProjectRequestSideload{
+					projects.ProjectRequestSideloadProjectCategories,
+					projects.ProjectRequestSideloadCustomFields,
+					projects.ProjectRequestSideloadCustomFieldValues,
+				}
+			} else {
+				projectListRequest.Filters.Fields.Projects = []projects.ProjectField{
+					projects.ProjectFieldID,
+					projects.ProjectFieldName,
+				}
+			}
+
+			resp, err := twapi.ExecuteRaw(ctx, engine, projectListRequest)
 			if err != nil {
 				return helpers.HandleAPIError(err, "failed to list projects")
 			}
-
-			encoded, err := json.Marshal(projectList)
-			if err != nil {
-				return nil, err
+			defer func() {
+				_ = resp.Body.Close()
+			}()
+			if resp.StatusCode != http.StatusOK {
+				return helpers.HandleAPIError(twapi.NewHTTPError(resp, "failed to list projects"), "failed to list projects")
 			}
-			return &mcp.CallToolResult{
+			body, err := io.ReadAll(resp.Body)
+			if err != nil {
+				return nil, fmt.Errorf("failed to read response body: %w", err)
+			}
+
+			linked := helpers.WebLinker(ctx, body, helpers.WebLinkerWithIDPathBuilder("/app/projects"))
+			result := &mcp.CallToolResult{
 				Content: []mcp.Content{
-					&mcp.TextContent{
-						Text: string(helpers.WebLinker(ctx, encoded,
-							helpers.WebLinkerWithIDPathBuilder("/app/projects"),
-						)),
-					},
+					&mcp.TextContent{Text: string(linked)},
 				},
-				StructuredContent: helpers.StructuredWebLinker(ctx, projectList,
-					helpers.WebLinkerWithIDPathBuilder("/app/projects"),
-				),
-			}, nil
+			}
+			if verbose {
+				var structured any
+				if err := json.Unmarshal(linked, &structured); err != nil {
+					return nil, fmt.Errorf("failed to decode response: %w", err)
+				}
+				result.StructuredContent = structured
+			}
+			return result, nil
 		},
 	}
 }

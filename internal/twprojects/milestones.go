@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
+	"net/http"
 
 	"github.com/google/jsonschema-go/jsonschema"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
@@ -444,6 +446,7 @@ func MilestoneList(engine *twapi.Engine) toolsets.ToolWrapper {
 					"match_all_tags": helpers.MatchAllTagsSchema("milestones"),
 					"page":           helpers.PageSchema(),
 					"page_size":      helpers.PageSizeSchema(),
+					"verbose":        helpers.VerboseSchema(),
 				},
 				Required: []string{},
 			},
@@ -456,6 +459,7 @@ func MilestoneList(engine *twapi.Engine) toolsets.ToolWrapper {
 			if err := json.Unmarshal(request.Params.Arguments, &arguments); err != nil {
 				return helpers.NewToolResultTextError("failed to decode request: %s", err.Error()), nil
 			}
+			verbose := true
 			err := helpers.ParamGroup(arguments,
 				helpers.OptionalNumericParam(&milestoneListRequest.Path.ProjectID, "project_id"),
 				helpers.OptionalParam(&milestoneListRequest.Filters.SearchTerm, "search_term"),
@@ -463,32 +467,48 @@ func MilestoneList(engine *twapi.Engine) toolsets.ToolWrapper {
 				helpers.OptionalPointerParam(&milestoneListRequest.Filters.MatchAllTags, "match_all_tags"),
 				helpers.OptionalNumericParam(&milestoneListRequest.Filters.Page, "page"),
 				helpers.OptionalNumericParam(&milestoneListRequest.Filters.PageSize, "page_size"),
+				helpers.OptionalParam(&verbose, "verbose"),
 			)
 			if err != nil {
 				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
 			}
 
-			milestoneList, err := projects.MilestoneList(ctx, engine, milestoneListRequest)
+			if !verbose {
+				milestoneListRequest.Filters.Fields.Milestones = []projects.MilestoneField{
+					projects.MilestoneFieldID,
+					projects.MilestoneFieldName,
+				}
+			}
+
+			resp, err := twapi.ExecuteRaw(ctx, engine, milestoneListRequest)
 			if err != nil {
 				return helpers.HandleAPIError(err, "failed to list milestones")
 			}
-
-			encoded, err := json.Marshal(milestoneList)
-			if err != nil {
-				return nil, err
+			defer func() {
+				_ = resp.Body.Close()
+			}()
+			if resp.StatusCode != http.StatusOK {
+				return helpers.HandleAPIError(twapi.NewHTTPError(resp, "failed to list milestones"), "failed to list milestones")
 			}
-			return &mcp.CallToolResult{
+			body, err := io.ReadAll(resp.Body)
+			if err != nil {
+				return nil, fmt.Errorf("failed to read response body: %w", err)
+			}
+
+			linked := helpers.WebLinker(ctx, body, helpers.WebLinkerWithIDPathBuilder("/app/milestones"))
+			result := &mcp.CallToolResult{
 				Content: []mcp.Content{
-					&mcp.TextContent{
-						Text: string(helpers.WebLinker(ctx, encoded,
-							helpers.WebLinkerWithIDPathBuilder("/app/milestones"),
-						)),
-					},
+					&mcp.TextContent{Text: string(linked)},
 				},
-				StructuredContent: helpers.StructuredWebLinker(ctx, milestoneList,
-					helpers.WebLinkerWithIDPathBuilder("/app/milestones"),
-				),
-			}, nil
+			}
+			if verbose {
+				var structured any
+				if err := json.Unmarshal(linked, &structured); err != nil {
+					return nil, fmt.Errorf("failed to decode response: %w", err)
+				}
+				result.StructuredContent = structured
+			}
+			return result, nil
 		},
 	}
 }

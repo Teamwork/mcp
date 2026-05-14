@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
+	"net/http"
 	"strings"
 
 	"github.com/google/jsonschema-go/jsonschema"
@@ -476,6 +478,7 @@ func MessageList(engine *twapi.Engine) toolsets.ToolWrapper {
 					"match_all_tags": helpers.MatchAllTagsSchema("messages"),
 					"page":           helpers.PageSchema(),
 					"page_size":      helpers.PageSizeSchema(),
+					"verbose":        helpers.VerboseSchema(),
 				},
 				Required: []string{},
 			},
@@ -488,6 +491,7 @@ func MessageList(engine *twapi.Engine) toolsets.ToolWrapper {
 			if err := json.Unmarshal(request.Params.Arguments, &arguments); err != nil {
 				return helpers.NewToolResultTextError("failed to decode request: %s", err.Error()), nil
 			}
+			verbose := true
 			err := helpers.ParamGroup(arguments,
 				helpers.OptionalParam(&messageListRequest.Filters.SearchTerm, "search_term"),
 				helpers.OptionalNumericListParam(&messageListRequest.Filters.ProjectIDs, "project_ids"),
@@ -495,32 +499,48 @@ func MessageList(engine *twapi.Engine) toolsets.ToolWrapper {
 				helpers.OptionalPointerParam(&messageListRequest.Filters.MatchAllTags, "match_all_tags"),
 				helpers.OptionalNumericParam(&messageListRequest.Filters.Page, "page"),
 				helpers.OptionalNumericParam(&messageListRequest.Filters.PageSize, "page_size"),
+				helpers.OptionalParam(&verbose, "verbose"),
 			)
 			if err != nil {
 				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
 			}
 
-			messageList, err := projects.MessageList(ctx, engine, messageListRequest)
+			if !verbose {
+				messageListRequest.Filters.Fields.Messages = []projects.MessageField{
+					projects.MessageFieldID,
+					projects.MessageFieldTitle,
+				}
+			}
+
+			resp, err := twapi.ExecuteRaw(ctx, engine, messageListRequest)
 			if err != nil {
 				return helpers.HandleAPIError(err, "failed to list messages")
 			}
-
-			encoded, err := json.Marshal(messageList)
-			if err != nil {
-				return nil, err
+			defer func() {
+				_ = resp.Body.Close()
+			}()
+			if resp.StatusCode != http.StatusOK {
+				return helpers.HandleAPIError(twapi.NewHTTPError(resp, "failed to list messages"), "failed to list messages")
 			}
-			return &mcp.CallToolResult{
+			body, err := io.ReadAll(resp.Body)
+			if err != nil {
+				return nil, fmt.Errorf("failed to read response body: %w", err)
+			}
+
+			linked := helpers.WebLinker(ctx, body, helpers.WebLinkerWithIDPathBuilder("/app/messages"))
+			result := &mcp.CallToolResult{
 				Content: []mcp.Content{
-					&mcp.TextContent{
-						Text: string(helpers.WebLinker(ctx, encoded,
-							helpers.WebLinkerWithIDPathBuilder("/app/messages"),
-						)),
-					},
+					&mcp.TextContent{Text: string(linked)},
 				},
-				StructuredContent: helpers.StructuredWebLinker(ctx, messageList,
-					helpers.WebLinkerWithIDPathBuilder("/app/messages"),
-				),
-			}, nil
+			}
+			if verbose {
+				var structured any
+				if err := json.Unmarshal(linked, &structured); err != nil {
+					return nil, fmt.Errorf("failed to decode response: %w", err)
+				}
+				result.StructuredContent = structured
+			}
+			return result, nil
 		},
 	}
 }

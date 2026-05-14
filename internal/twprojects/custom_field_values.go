@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
+	"net/http"
 
 	"github.com/google/jsonschema-go/jsonschema"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
@@ -480,6 +482,7 @@ func CustomFieldValueList(engine *twapi.Engine) toolsets.ToolWrapper {
 					},
 					"page":      helpers.PageSchema(),
 					"page_size": helpers.PageSizeSchema(),
+					"verbose":   helpers.VerboseSchema(),
 				},
 				Required: []string{"entity", "entity_id"},
 			},
@@ -495,6 +498,7 @@ func CustomFieldValueList(engine *twapi.Engine) toolsets.ToolWrapper {
 			var entityID int64
 			var customFieldIDs []int64
 			var page, pageSize int64
+			verbose := true
 			err := helpers.ParamGroup(arguments,
 				helpers.RequiredParam(&entity, "entity",
 					helpers.RestrictValues(
@@ -507,6 +511,7 @@ func CustomFieldValueList(engine *twapi.Engine) toolsets.ToolWrapper {
 				helpers.OptionalNumericListParam(&customFieldIDs, "custom_field_ids"),
 				helpers.OptionalNumericParam(&page, "page"),
 				helpers.OptionalNumericParam(&pageSize, "page_size"),
+				helpers.OptionalParam(&verbose, "verbose"),
 			)
 			if err != nil {
 				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
@@ -528,12 +533,45 @@ func CustomFieldValueList(engine *twapi.Engine) toolsets.ToolWrapper {
 			if pageSize > 0 {
 				customFieldValueListRequest.Filters.PageSize = pageSize
 			}
+			if !verbose {
+				customFieldValueListRequest.Filters.Fields.CustomFieldValues = []projects.CustomFieldValueField{
+					projects.CustomFieldValueFieldID,
+					projects.CustomFieldValueFieldValue,
+					projects.CustomFieldValueFieldCustomField,
+				}
+			}
 
-			response, err := projects.CustomFieldValueList(ctx, engine, customFieldValueListRequest)
+			resp, err := twapi.ExecuteRaw(ctx, engine, customFieldValueListRequest)
 			if err != nil {
 				return helpers.HandleAPIError(err, "failed to list custom field values")
 			}
-			return helpers.NewToolResultJSON(response)
+			defer func() {
+				_ = resp.Body.Close()
+			}()
+			if resp.StatusCode != http.StatusOK {
+				return helpers.HandleAPIError(
+					twapi.NewHTTPError(resp, "failed to list custom field values"),
+					"failed to list custom field values",
+				)
+			}
+			body, err := io.ReadAll(resp.Body)
+			if err != nil {
+				return nil, fmt.Errorf("failed to read response body: %w", err)
+			}
+
+			result := &mcp.CallToolResult{
+				Content: []mcp.Content{
+					&mcp.TextContent{Text: string(body)},
+				},
+			}
+			if verbose {
+				var structured any
+				if err := json.Unmarshal(body, &structured); err != nil {
+					return nil, fmt.Errorf("failed to decode response: %w", err)
+				}
+				result.StructuredContent = structured
+			}
+			return result, nil
 		},
 	}
 }

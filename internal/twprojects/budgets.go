@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
+	"net/http"
 
 	"github.com/google/jsonschema-go/jsonschema"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
@@ -86,6 +88,7 @@ func ProjectBudgetList(engine *twapi.Engine) toolsets.ToolWrapper {
 							{Type: "null"},
 						},
 					},
+					"verbose": helpers.VerboseSchema(),
 				},
 				Required: []string{},
 			},
@@ -98,6 +101,7 @@ func ProjectBudgetList(engine *twapi.Engine) toolsets.ToolWrapper {
 			if err := json.Unmarshal(request.Params.Arguments, &arguments); err != nil {
 				return helpers.NewToolResultTextError("failed to decode request: %s", err.Error()), nil
 			}
+			verbose := true
 			err := helpers.ParamGroup(arguments,
 				helpers.OptionalNumericListParam(&projectBudgetListRequest.Filters.ProjectIDs, "project_ids"),
 				helpers.OptionalParam(
@@ -112,28 +116,49 @@ func ProjectBudgetList(engine *twapi.Engine) toolsets.ToolWrapper {
 				helpers.OptionalNumericParam(&projectBudgetListRequest.Filters.Limit, "limit"),
 				helpers.OptionalNumericParam(&projectBudgetListRequest.Filters.PageSize, "page_size"),
 				helpers.OptionalParam(&projectBudgetListRequest.Filters.Cursor, "cursor"),
+				helpers.OptionalParam(&verbose, "verbose"),
 			)
 			if err != nil {
 				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
 			}
+			if !verbose {
+				projectBudgetListRequest.Filters.Fields.Budgets = []projects.ProjectBudgetField{
+					projects.ProjectBudgetFieldID,
+					projects.ProjectBudgetFieldType,
+				}
+			}
 
-			projectBudgetList, err := projects.ProjectBudgetList(ctx, engine, projectBudgetListRequest)
+			resp, err := twapi.ExecuteRaw(ctx, engine, projectBudgetListRequest)
 			if err != nil {
 				return helpers.HandleAPIError(err, "failed to list project budgets")
 			}
-
-			encoded, err := json.Marshal(projectBudgetList)
-			if err != nil {
-				return nil, err
+			defer func() {
+				_ = resp.Body.Close()
+			}()
+			if resp.StatusCode != http.StatusOK {
+				return helpers.HandleAPIError(
+					twapi.NewHTTPError(resp, "failed to list project budgets"),
+					"failed to list project budgets",
+				)
 			}
-			return &mcp.CallToolResult{
+			body, err := io.ReadAll(resp.Body)
+			if err != nil {
+				return nil, fmt.Errorf("failed to read response body: %w", err)
+			}
+
+			result := &mcp.CallToolResult{
 				Content: []mcp.Content{
-					&mcp.TextContent{
-						Text: string(encoded),
-					},
+					&mcp.TextContent{Text: string(body)},
 				},
-				StructuredContent: projectBudgetList,
-			}, nil
+			}
+			if verbose {
+				var structured any
+				if err := json.Unmarshal(body, &structured); err != nil {
+					return nil, fmt.Errorf("failed to decode response: %w", err)
+				}
+				result.StructuredContent = structured
+			}
+			return result, nil
 		},
 	}
 }
@@ -157,6 +182,7 @@ func TasklistBudgetList(engine *twapi.Engine) toolsets.ToolWrapper {
 					},
 					"page":      helpers.PageSchema(),
 					"page_size": helpers.PageSizeSchema(),
+					"verbose":   helpers.VerboseSchema(),
 				},
 				Required: []string{"project_budget_id"},
 			},
@@ -177,31 +203,53 @@ func TasklistBudgetList(engine *twapi.Engine) toolsets.ToolWrapper {
 			}
 
 			tasklistBudgetListRequest := projects.NewTasklistBudgetListRequest(projectBudgetID)
+			verbose := true
 			err = helpers.ParamGroup(arguments,
 				helpers.OptionalNumericParam(&tasklistBudgetListRequest.Filters.Page, "page"),
 				helpers.OptionalNumericParam(&tasklistBudgetListRequest.Filters.PageSize, "page_size"),
+				helpers.OptionalParam(&verbose, "verbose"),
 			)
 			if err != nil {
 				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
 			}
+			if !verbose {
+				tasklistBudgetListRequest.Filters.Fields.TasklistBudgets = []projects.TasklistBudgetField{
+					projects.TasklistBudgetFieldID,
+					projects.TasklistBudgetFieldType,
+				}
+			}
 
-			tasklistBudgetList, err := projects.TasklistBudgetList(ctx, engine, tasklistBudgetListRequest)
+			resp, err := twapi.ExecuteRaw(ctx, engine, tasklistBudgetListRequest)
 			if err != nil {
 				return helpers.HandleAPIError(err, "failed to list tasklist budgets")
 			}
-
-			encoded, err := json.Marshal(tasklistBudgetList)
-			if err != nil {
-				return nil, err
+			defer func() {
+				_ = resp.Body.Close()
+			}()
+			if resp.StatusCode != http.StatusOK {
+				return helpers.HandleAPIError(
+					twapi.NewHTTPError(resp, "failed to list tasklist budgets"),
+					"failed to list tasklist budgets",
+				)
 			}
-			return &mcp.CallToolResult{
+			body, err := io.ReadAll(resp.Body)
+			if err != nil {
+				return nil, fmt.Errorf("failed to read response body: %w", err)
+			}
+
+			result := &mcp.CallToolResult{
 				Content: []mcp.Content{
-					&mcp.TextContent{
-						Text: string(encoded),
-					},
+					&mcp.TextContent{Text: string(body)},
 				},
-				StructuredContent: tasklistBudgetList,
-			}, nil
+			}
+			if verbose {
+				var structured any
+				if err := json.Unmarshal(body, &structured); err != nil {
+					return nil, fmt.Errorf("failed to decode response: %w", err)
+				}
+				result.StructuredContent = structured
+			}
+			return result, nil
 		},
 	}
 }
