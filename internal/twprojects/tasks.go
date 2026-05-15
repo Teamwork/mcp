@@ -765,7 +765,8 @@ func TaskDelete(engine *twapi.Engine) toolsets.ToolWrapper {
 			Name:        string(MethodTaskDelete),
 			Description: "Delete task.",
 			Annotations: &mcp.ToolAnnotations{
-				Title: "Delete Task",
+				Title:           "Delete Task",
+				DestructiveHint: new(true),
 			},
 			InputSchema: &jsonschema.Schema{
 				Type: "object",

@@ -277,7 +277,8 @@ func CommentDelete(httpClient *http.Client) toolsets.ToolWrapper {
 		Tool: &mcp.Tool{
 			Name: string(MethodCommentDelete),
 			Annotations: &mcp.ToolAnnotations{
-				Title: "Delete Comment",
+				Title:           "Delete Comment",
+				DestructiveHint: new(true),
 			},
 			Description: "Delete page comment. Irreversible.",
 			InputSchema: &jsonschema.Schema{

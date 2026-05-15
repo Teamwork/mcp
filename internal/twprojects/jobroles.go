@@ -149,7 +149,8 @@ func JobRoleDelete(engine *twapi.Engine) toolsets.ToolWrapper {
 			Name:        string(MethodJobRoleDelete),
 			Description: "Delete job role.",
 			Annotations: &mcp.ToolAnnotations{
-				Title: "Delete Job Role",
+				Title:           "Delete Job Role",
+				DestructiveHint: new(true),
 			},
 			InputSchema: &jsonschema.Schema{
 				Type: "object",

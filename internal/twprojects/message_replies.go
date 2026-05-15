@@ -327,7 +327,8 @@ func MessageReplyDelete(engine *twapi.Engine) toolsets.ToolWrapper {
 			Name:        string(MethodMessageReplyDelete),
 			Description: "Delete message reply.",
 			Annotations: &mcp.ToolAnnotations{
-				Title: "Delete Message Reply",
+				Title:           "Delete Message Reply",
+				DestructiveHint: new(true),
 			},
 			InputSchema: &jsonschema.Schema{
 				Type: "object",

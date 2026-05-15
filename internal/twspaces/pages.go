@@ -485,7 +485,8 @@ func PageDelete(httpClient *http.Client) toolsets.ToolWrapper {
 		Tool: &mcp.Tool{
 			Name: string(MethodPageDelete),
 			Annotations: &mcp.ToolAnnotations{
-				Title: "Delete Page",
+				Title:           "Delete Page",
+				DestructiveHint: new(true),
 			},
 			Description: "Delete page. Irreversible.",
 			InputSchema: &jsonschema.Schema{

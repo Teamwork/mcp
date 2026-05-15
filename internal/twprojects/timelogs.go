@@ -303,7 +303,8 @@ func TimelogDelete(engine *twapi.Engine) toolsets.ToolWrapper {
 			Name:        string(MethodTimelogDelete),
 			Description: "Delete timelog.",
 			Annotations: &mcp.ToolAnnotations{
-				Title: "Delete Timelog",
+				Title:           "Delete Timelog",
+				DestructiveHint: new(true),
 			},
 			InputSchema: &jsonschema.Schema{
 				Type: "object",

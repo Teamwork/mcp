@@ -393,7 +393,8 @@ func CompanyDelete(engine *twapi.Engine) toolsets.ToolWrapper {
 			Name:        string(MethodCompanyDelete),
 			Description: "Delete company (aka client).",
 			Annotations: &mcp.ToolAnnotations{
-				Title: "Delete Company",
+				Title:           "Delete Company",
+				DestructiveHint: new(true),
 			},
 			InputSchema: &jsonschema.Schema{
 				Type: "object",

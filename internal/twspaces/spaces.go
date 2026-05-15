@@ -320,7 +320,8 @@ func SpaceDelete(httpClient *http.Client) toolsets.ToolWrapper {
 		Tool: &mcp.Tool{
 			Name: string(MethodSpaceDelete),
 			Annotations: &mcp.ToolAnnotations{
-				Title: "Delete Space",
+				Title:           "Delete Space",
+				DestructiveHint: new(true),
 			},
 			Description: "Delete space. Irreversible; removes all content.",
 			InputSchema: &jsonschema.Schema{

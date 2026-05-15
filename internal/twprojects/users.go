@@ -250,7 +250,8 @@ func UserDelete(engine *twapi.Engine) toolsets.ToolWrapper {
 			Name:        string(MethodUserDelete),
 			Description: "Delete user.",
 			Annotations: &mcp.ToolAnnotations{
-				Title: "Delete User",
+				Title:           "Delete User",
+				DestructiveHint: new(true),
 			},
 			InputSchema: &jsonschema.Schema{
 				Type: "object",

@@ -165,7 +165,8 @@ func TagDelete(engine *twapi.Engine) toolsets.ToolWrapper {
 			Name:        string(MethodTagDelete),
 			Description: "Delete tag.",
 			Annotations: &mcp.ToolAnnotations{
-				Title: "Delete Tag",
+				Title:           "Delete Tag",
+				DestructiveHint: new(true),
 			},
 			InputSchema: &jsonschema.Schema{
 				Type: "object",

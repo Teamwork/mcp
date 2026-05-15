@@ -234,7 +234,8 @@ func TagDelete(httpClient *http.Client) toolsets.ToolWrapper {
 		Tool: &mcp.Tool{
 			Name: string(MethodTagDelete),
 			Annotations: &mcp.ToolAnnotations{
-				Title: "Delete Tag",
+				Title:           "Delete Tag",
+				DestructiveHint: new(true),
 			},
 			Description: "Delete Spaces tag.",
 			InputSchema: &jsonschema.Schema{
