@@ -34,7 +34,7 @@ func CustomerGet(httpClient *http.Client) toolsets.ToolWrapper {
 				Title:        "Get Customer",
 				ReadOnlyHint: true,
 			},
-			Description: "Get customer. Use the 'fields' parameter to request only the fields you need (e.g. [\"id\",\"firstName\",\"lastName\",\"email\"]) and reduce response size.",
+			Description: "Get customer.",
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
 				Properties: map[string]*jsonschema.Schema{
@@ -98,7 +98,7 @@ func CustomerList(httpClient *http.Client) toolsets.ToolWrapper {
 				Title:        "List Customers",
 				ReadOnlyHint: true,
 			},
-			Description: "List customers. Filter by company or email. Use the 'fields' parameter to request only the fields you need (e.g. [\"id\",\"firstName\",\"lastName\",\"email\"]) and reduce response size.",
+			Description: "List customers. Filter by company or email.",
 			InputSchema: &jsonschema.Schema{
 				Type:       "object",
 				Properties: properties,

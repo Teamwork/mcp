@@ -34,7 +34,7 @@ func TypeGet(httpClient *http.Client) toolsets.ToolWrapper {
 				Title:        "Get Ticket Type",
 				ReadOnlyHint: true,
 			},
-			Description: "Get ticket type. Use the 'fields' parameter to request only the fields you need (e.g. [\"id\",\"name\"]) and reduce response size.",
+			Description: "Get ticket type.",
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
 				Properties: map[string]*jsonschema.Schema{
@@ -90,7 +90,7 @@ func TypeList(httpClient *http.Client) toolsets.ToolWrapper {
 				Title:        "List Ticket Types",
 				ReadOnlyHint: true,
 			},
-			Description: "List ticket types. Filter by name or inbox. Use the 'fields' parameter to request only the fields you need (e.g. [\"id\",\"name\"]) and reduce response size.",
+			Description: "List ticket types. Filter by name or inbox.",
 			InputSchema: &jsonschema.Schema{
 				Type:       "object",
 				Properties: properties,

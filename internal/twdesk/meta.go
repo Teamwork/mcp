@@ -33,7 +33,7 @@ func boolPtr(b bool) *bool {
 // sparseFieldsSchema returns the JSON schema for the optional sparse fieldset parameter.
 func sparseFieldsSchema() *jsonschema.Schema {
 	return &jsonschema.Schema{
-		Description: "Sparse fieldset: list of field names to include in the response. Omit to receive all fields. Use to reduce response size when only specific data is needed (e.g. [\"id\",\"name\"]).",
+		Description: "Sparse fieldset: field names to include (e.g. [\"id\",\"name\"]). Omit to receive all fields.",
 		AnyOf: []*jsonschema.Schema{
 			{Type: "array", Items: &jsonschema.Schema{Type: "string"}},
 			{Type: "null"},
