@@ -30,6 +30,18 @@ func boolPtr(b bool) *bool {
 	return &b
 }
 
+// falseSchema returns a schema that serialises to JSON boolean false.
+// Used as AdditionalProperties: falseSchema() to satisfy OpenAI strict mode.
+func falseSchema() *jsonschema.Schema {
+	return &jsonschema.Schema{Not: &jsonschema.Schema{}}
+}
+
+// paginationRequiredKeys returns the property names that paginationOptions
+// injects, for use in strict-mode required lists.
+func paginationRequiredKeys() []string {
+	return []string{"page", "pageSize", "orderBy", "orderDirection", "fields"}
+}
+
 // sparseFieldsSchema returns the JSON schema for the optional sparse fieldset parameter.
 func sparseFieldsSchema() *jsonschema.Schema {
 	return &jsonschema.Schema{

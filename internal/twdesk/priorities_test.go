@@ -35,7 +35,8 @@ func TestPriorityGet(t *testing.T) {
 	defer cleanup()
 
 	testutil.ExecuteToolRequest(t, mcpServer, twdesk.MethodPriorityGet.String(), map[string]any{
-		"id": float64(123),
+		"id":     float64(123),
+		"fields": nil,
 	})
 }
 
@@ -44,10 +45,13 @@ func TestPriorityList(t *testing.T) {
 	defer cleanup()
 
 	testutil.ExecuteToolRequest(t, mcpServer, twdesk.MethodPriorityList.String(), map[string]any{
-		"name":     []string{"High", "Medium"},
-		"color":    []string{"red", "yellow"},
-		"page":     float64(1),
-		"pageSize": float64(10),
+		"name":           []string{"High", "Medium"},
+		"color":          []string{"red", "yellow"},
+		"page":           float64(1),
+		"pageSize":       float64(10),
+		"orderBy":        nil,
+		"orderDirection": nil,
+		"fields":         nil,
 	})
 }
 
@@ -55,5 +59,13 @@ func TestPriorityListMinimal(t *testing.T) {
 	mcpServer, cleanup := mcpServerMock(t, http.StatusOK, []byte(`{"ticket_priorities":[]}`))
 	defer cleanup()
 
-	testutil.ExecuteToolRequest(t, mcpServer, twdesk.MethodPriorityList.String(), map[string]any{})
+	testutil.ExecuteToolRequest(t, mcpServer, twdesk.MethodPriorityList.String(), map[string]any{
+		"name":           nil,
+		"color":          nil,
+		"page":           nil,
+		"pageSize":       nil,
+		"orderBy":        nil,
+		"orderDirection": nil,
+		"fields":         nil,
+	})
 }

@@ -31,7 +31,8 @@ func FileCreate(httpClient *http.Client) toolsets.ToolWrapper {
 			},
 			Description: "Upload file. Attach the returned ID to tickets or messages.",
 			InputSchema: &jsonschema.Schema{
-				Type: "object",
+				Type:                 "object",
+				AdditionalProperties: falseSchema(),
 				Properties: map[string]*jsonschema.Schema{
 					"name": {
 						Type:        "string",
@@ -59,7 +60,7 @@ func FileCreate(httpClient *http.Client) toolsets.ToolWrapper {
 						Description: "The content of the file as a base64-encoded string.",
 					},
 				},
-				Required: []string{"name", "mimeType", "data"},
+				Required: []string{"name", "mimeType", "data", "disposition"},
 			},
 		},
 		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {

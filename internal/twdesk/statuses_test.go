@@ -37,7 +37,8 @@ func TestStatusGet(t *testing.T) {
 	defer cleanup()
 
 	testutil.ExecuteToolRequest(t, mcpServer, twdesk.MethodStatusGet.String(), map[string]any{
-		"id": float64(123),
+		"id":     float64(123),
+		"fields": nil,
 	})
 }
 
@@ -46,11 +47,14 @@ func TestStatusList(t *testing.T) {
 	defer cleanup()
 
 	testutil.ExecuteToolRequest(t, mcpServer, twdesk.MethodStatusList.String(), map[string]any{
-		"name":     []string{"Open", "In Progress"},
-		"color":    []string{"red", "blue"},
-		"code":     []string{"open", "in_progress"},
-		"page":     float64(1),
-		"pageSize": float64(10),
+		"name":           []string{"Open", "In Progress"},
+		"color":          []string{"red", "blue"},
+		"code":           []string{"open", "in_progress"},
+		"page":           float64(1),
+		"pageSize":       float64(10),
+		"orderBy":        nil,
+		"orderDirection": nil,
+		"fields":         nil,
 	})
 }
 
@@ -58,5 +62,14 @@ func TestStatusListMinimal(t *testing.T) {
 	mcpServer, cleanup := mcpServerMock(t, http.StatusOK, []byte(`{"ticket_statuses":[]}`))
 	defer cleanup()
 
-	testutil.ExecuteToolRequest(t, mcpServer, twdesk.MethodStatusList.String(), map[string]any{})
+	testutil.ExecuteToolRequest(t, mcpServer, twdesk.MethodStatusList.String(), map[string]any{
+		"name":           nil,
+		"color":          nil,
+		"code":           nil,
+		"page":           nil,
+		"pageSize":       nil,
+		"orderBy":        nil,
+		"orderDirection": nil,
+		"fields":         nil,
+	})
 }

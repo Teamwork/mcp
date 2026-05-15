@@ -30,7 +30,8 @@ func MessageCreate(httpClient *http.Client) toolsets.ToolWrapper {
 			},
 			Description: "Reply to a ticket. Use threadType=note for internal agent notes.",
 			InputSchema: &jsonschema.Schema{
-				Type: "object",
+				Type:                 "object",
+				AdditionalProperties: falseSchema(),
 				Properties: map[string]*jsonschema.Schema{
 					"ticketID": {
 						Type:        "integer",
@@ -65,7 +66,7 @@ func MessageCreate(httpClient *http.Client) toolsets.ToolWrapper {
 						},
 					},
 				},
-				Required: []string{"ticketID", "body"},
+				Required: []string{"ticketID", "body", "threadType", "bcc", "cc"},
 			},
 		},
 		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {

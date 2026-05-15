@@ -36,7 +36,8 @@ func TagGet(httpClient *http.Client) toolsets.ToolWrapper {
 			},
 			Description: "Get Desk tag.",
 			InputSchema: &jsonschema.Schema{
-				Type: "object",
+				Type:                 "object",
+				AdditionalProperties: falseSchema(),
 				Properties: map[string]*jsonschema.Schema{
 					"id": {
 						Type:        "integer",
@@ -44,7 +45,7 @@ func TagGet(httpClient *http.Client) toolsets.ToolWrapper {
 					},
 					"fields": sparseFieldsSchema(),
 				},
-				Required: []string{"id"},
+				Required: []string{"id", "fields"},
 			},
 		},
 		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -99,9 +100,10 @@ func TagList(httpClient *http.Client) toolsets.ToolWrapper {
 			},
 			Description: "List Desk tags. Filter by name, color, or inbox.",
 			InputSchema: &jsonschema.Schema{
-				Type:       "object",
-				Properties: properties,
-				Required:   []string{},
+				Type:                 "object",
+				AdditionalProperties: falseSchema(),
+				Properties:           properties,
+				Required:             append(paginationRequiredKeys(), "name", "color", "inboxIDs"),
 			},
 		},
 		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -150,7 +152,8 @@ func TagCreate(httpClient *http.Client) toolsets.ToolWrapper {
 			},
 			Description: "Create Desk tag.",
 			InputSchema: &jsonschema.Schema{
-				Type: "object",
+				Type:                 "object",
+				AdditionalProperties: falseSchema(),
 				Properties: map[string]*jsonschema.Schema{
 					"name": {
 						Type:        "string",
@@ -164,7 +167,7 @@ func TagCreate(httpClient *http.Client) toolsets.ToolWrapper {
 						},
 					},
 				},
-				Required: []string{"name"},
+				Required: []string{"name", "color"},
 			},
 		},
 		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -199,7 +202,8 @@ func TagUpdate(httpClient *http.Client) toolsets.ToolWrapper {
 			},
 			Description: "Update Desk tag.",
 			InputSchema: &jsonschema.Schema{
-				Type: "object",
+				Type:                 "object",
+				AdditionalProperties: falseSchema(),
 				Properties: map[string]*jsonschema.Schema{
 					"id": {
 						Type:        "integer",
@@ -220,7 +224,7 @@ func TagUpdate(httpClient *http.Client) toolsets.ToolWrapper {
 						},
 					},
 				},
-				Required: []string{"id"},
+				Required: []string{"id", "name", "color"},
 			},
 		},
 		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {

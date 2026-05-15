@@ -36,7 +36,8 @@ func CompanyGet(httpClient *http.Client) toolsets.ToolWrapper {
 			},
 			Description: "Get Desk company (customer organization).",
 			InputSchema: &jsonschema.Schema{
-				Type: "object",
+				Type:                 "object",
+				AdditionalProperties: falseSchema(),
 				Properties: map[string]*jsonschema.Schema{
 					"id": {
 						Type:        "integer",
@@ -44,7 +45,7 @@ func CompanyGet(httpClient *http.Client) toolsets.ToolWrapper {
 					},
 					"fields": sparseFieldsSchema(),
 				},
-				Required: []string{"id"},
+				Required: []string{"id", "fields"},
 			},
 		},
 		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -100,9 +101,10 @@ func CompanyList(httpClient *http.Client) toolsets.ToolWrapper {
 			},
 			Description: "List Desk companies. Filter by name, domains, or kind.",
 			InputSchema: &jsonschema.Schema{
-				Type:       "object",
-				Properties: properties,
-				Required:   []string{},
+				Type:                 "object",
+				AdditionalProperties: falseSchema(),
+				Properties:           properties,
+				Required:             append(paginationRequiredKeys(), "name", "domains", "kind"),
 			},
 		},
 		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -153,7 +155,8 @@ func CompanyCreate(httpClient *http.Client) toolsets.ToolWrapper {
 			},
 			Description: "Create Desk company.",
 			InputSchema: &jsonschema.Schema{
-				Type: "object",
+				Type:                 "object",
+				AdditionalProperties: falseSchema(),
 				Properties: map[string]*jsonschema.Schema{
 					"name": {
 						Type:        "string",
@@ -216,7 +219,10 @@ func CompanyCreate(httpClient *http.Client) toolsets.ToolWrapper {
 						},
 					},
 				},
-				Required: []string{"name"},
+				Required: []string{
+					"name", "description", "details", "industry",
+					"website", "permission", "kind", "note", "domains",
+				},
 			},
 		},
 		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -269,7 +275,8 @@ func CompanyUpdate(httpClient *http.Client) toolsets.ToolWrapper {
 			},
 			Description: "Update Desk company.",
 			InputSchema: &jsonschema.Schema{
-				Type: "object",
+				Type:                 "object",
+				AdditionalProperties: falseSchema(),
 				Properties: map[string]*jsonschema.Schema{
 					"id": {
 						Type:        "integer",
@@ -339,7 +346,10 @@ func CompanyUpdate(httpClient *http.Client) toolsets.ToolWrapper {
 						},
 					},
 				},
-				Required: []string{"id"},
+				Required: []string{
+					"id", "name", "description", "details", "industry",
+					"website", "permission", "kind", "note", "domains",
+				},
 			},
 		},
 		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {

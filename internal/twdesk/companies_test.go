@@ -14,7 +14,6 @@ func TestCompanyCreate(t *testing.T) {
 	defer cleanup()
 
 	testutil.ExecuteToolRequest(t, mcpServer, twdesk.MethodCompanyCreate.String(), map[string]any{
-		"id":          "123",
 		"name":        "Test Company",
 		"description": "A test company",
 		"details":     "Company details",
@@ -50,7 +49,8 @@ func TestCompanyGet(t *testing.T) {
 	defer cleanup()
 
 	testutil.ExecuteToolRequest(t, mcpServer, twdesk.MethodCompanyGet.String(), map[string]any{
-		"id": float64(123),
+		"id":     float64(123),
+		"fields": nil,
 	})
 }
 
@@ -59,11 +59,14 @@ func TestCompanyList(t *testing.T) {
 	defer cleanup()
 
 	testutil.ExecuteToolRequest(t, mcpServer, twdesk.MethodCompanyList.String(), map[string]any{
-		"name":      "Test Company",
-		"domains":   []string{"example.com", "test.com"},
-		"kind":      "company",
-		"page":      float64(1),
-		"page_size": float64(10),
+		"name":           "Test Company",
+		"domains":        []string{"example.com", "test.com"},
+		"kind":           "company",
+		"page":           float64(1),
+		"pageSize":       float64(10),
+		"orderBy":        nil,
+		"orderDirection": nil,
+		"fields":         nil,
 	})
 }
 
@@ -71,5 +74,14 @@ func TestCompanyListMinimal(t *testing.T) {
 	mcpServer, cleanup := mcpServerMock(t, http.StatusOK, []byte(`{"companies":[]}`))
 	defer cleanup()
 
-	testutil.ExecuteToolRequest(t, mcpServer, twdesk.MethodCompanyList.String(), map[string]any{})
+	testutil.ExecuteToolRequest(t, mcpServer, twdesk.MethodCompanyList.String(), map[string]any{
+		"name":           nil,
+		"domains":        nil,
+		"kind":           nil,
+		"page":           nil,
+		"pageSize":       nil,
+		"orderBy":        nil,
+		"orderDirection": nil,
+		"fields":         nil,
+	})
 }

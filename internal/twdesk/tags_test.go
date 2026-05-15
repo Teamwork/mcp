@@ -35,7 +35,8 @@ func TestTagGet(t *testing.T) {
 	defer cleanup()
 
 	testutil.ExecuteToolRequest(t, mcpServer, twdesk.MethodTagGet.String(), map[string]any{
-		"id": float64(123),
+		"id":     float64(123),
+		"fields": nil,
 	})
 }
 
@@ -44,10 +45,14 @@ func TestTagList(t *testing.T) {
 	defer cleanup()
 
 	testutil.ExecuteToolRequest(t, mcpServer, twdesk.MethodTagList.String(), map[string]any{
-		"name":     "urgent",
-		"color":    "red",
-		"page":     float64(1),
-		"pageSize": float64(10),
+		"name":           "urgent",
+		"color":          "red",
+		"inboxIDs":       nil,
+		"page":           float64(1),
+		"pageSize":       float64(10),
+		"orderBy":        nil,
+		"orderDirection": nil,
+		"fields":         nil,
 	})
 }
 
@@ -55,5 +60,14 @@ func TestTagListMinimal(t *testing.T) {
 	mcpServer, cleanup := mcpServerMock(t, http.StatusOK, []byte(`{"tags":[]}`))
 	defer cleanup()
 
-	testutil.ExecuteToolRequest(t, mcpServer, twdesk.MethodTagList.String(), map[string]any{})
+	testutil.ExecuteToolRequest(t, mcpServer, twdesk.MethodTagList.String(), map[string]any{
+		"name":           nil,
+		"color":          nil,
+		"inboxIDs":       nil,
+		"page":           nil,
+		"pageSize":       nil,
+		"orderBy":        nil,
+		"orderDirection": nil,
+		"fields":         nil,
+	})
 }

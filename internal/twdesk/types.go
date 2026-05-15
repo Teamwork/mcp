@@ -36,7 +36,8 @@ func TypeGet(httpClient *http.Client) toolsets.ToolWrapper {
 			},
 			Description: "Get ticket type.",
 			InputSchema: &jsonschema.Schema{
-				Type: "object",
+				Type:                 "object",
+				AdditionalProperties: falseSchema(),
 				Properties: map[string]*jsonschema.Schema{
 					"id": {
 						Type:        "integer",
@@ -44,7 +45,7 @@ func TypeGet(httpClient *http.Client) toolsets.ToolWrapper {
 					},
 					"fields": sparseFieldsSchema(),
 				},
-				Required: []string{"id"},
+				Required: []string{"id", "fields"},
 			},
 		},
 		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -92,9 +93,10 @@ func TypeList(httpClient *http.Client) toolsets.ToolWrapper {
 			},
 			Description: "List ticket types. Filter by name or inbox.",
 			InputSchema: &jsonschema.Schema{
-				Type:       "object",
-				Properties: properties,
-				Required:   []string{},
+				Type:                 "object",
+				AdditionalProperties: falseSchema(),
+				Properties:           properties,
+				Required:             append(paginationRequiredKeys(), "name", "inboxIDs"),
 			},
 		},
 		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -139,7 +141,8 @@ func TypeCreate(httpClient *http.Client) toolsets.ToolWrapper {
 			},
 			Description: "Create ticket type.",
 			InputSchema: &jsonschema.Schema{
-				Type: "object",
+				Type:                 "object",
+				AdditionalProperties: falseSchema(),
 				Properties: map[string]*jsonschema.Schema{
 					"name": {
 						Type:        "string",
@@ -160,7 +163,7 @@ func TypeCreate(httpClient *http.Client) toolsets.ToolWrapper {
 						},
 					},
 				},
-				Required: []string{"name"},
+				Required: []string{"name", "displayOrder", "enabledForFutureInboxes"},
 			},
 		},
 		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -197,7 +200,8 @@ func TypeUpdate(httpClient *http.Client) toolsets.ToolWrapper {
 			},
 			Description: "Update ticket type.",
 			InputSchema: &jsonschema.Schema{
-				Type: "object",
+				Type:                 "object",
+				AdditionalProperties: falseSchema(),
 				Properties: map[string]*jsonschema.Schema{
 					"id": {
 						Type:        "integer",
@@ -225,7 +229,7 @@ func TypeUpdate(httpClient *http.Client) toolsets.ToolWrapper {
 						},
 					},
 				},
-				Required: []string{"id"},
+				Required: []string{"id", "name", "displayOrder", "enabledForFutureInboxes"},
 			},
 		},
 		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {

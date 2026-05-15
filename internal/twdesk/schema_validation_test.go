@@ -92,53 +92,37 @@ func isArrayType(s *jsonschema.Schema) bool {
 	return false
 }
 
-// TestToolInputSchemasOpenAIStrictMode documents the current state of OpenAI
-// strict mode compatibility. Strict mode requires:
-//   - All properties (including optional ones) listed in `required`
-//   - `additionalProperties: false` on every object schema
-//
-// Optional parameters currently use `anyOf: [{type: T}, {type: null}]` but are
-// NOT listed in `required`, which means they are incompatible with strict mode.
-// This is a pre-existing pattern across ALL optional parameters in every twdesk
-// tool — it applies equally to `inboxIDs`, `statusIDs`, `fields`, etc. and is
-// NOT something introduced by sparse-fields support.
-//
-// If strict mode support is needed in the future the fix is:
-//  1. Add every optional property to the `required` slice (it already allows
-//     null, satisfying the "typed nullable" requirement).
-//  2. Set `AdditionalProperties: boolSchema(false)` on every object schema.
-//
-// This test intentionally passes today as a documentation anchor; adjust it
-// when strict mode support is implemented.
+// TestToolInputSchemasOpenAIStrictMode verifies that all twdesk tools satisfy
+// OpenAI strict mode requirements:
+//   - Every property (including optional nullable ones) is listed in `required`
+//   - The top-level object schema has `additionalProperties: false`
 func TestToolInputSchemasOpenAIStrictMode(t *testing.T) {
 	group := twdesk.DefaultToolsetGroup(false, &http.Client{})
 
-	toolsWithOptionalParams := 0
-	for _, ts := range group.Toolsets {
+	for method, ts := range group.Toolsets {
 		for _, tool := range ts.GetAvailableTools() {
+			name := tool.Tool.Name
 			schema, ok := tool.Tool.InputSchema.(*jsonschema.Schema)
 			if !ok {
+				t.Errorf("toolset %s tool %s: InputSchema is not *jsonschema.Schema", method, name)
 				continue
 			}
+
+			// Every property must appear in required.
 			requiredSet := make(map[string]bool, len(schema.Required))
 			for _, r := range schema.Required {
 				requiredSet[r] = true
 			}
 			for propName := range schema.Properties {
 				if !requiredSet[propName] {
-					toolsWithOptionalParams++
-					break
+					t.Errorf("toolset %s tool %s: property %q not in required", method, name, propName)
 				}
 			}
-		}
-	}
 
-	// All tools with optional params are currently not strict-mode compatible.
-	// Update this expectation (to 0) once strict mode support is implemented.
-	if toolsWithOptionalParams == 0 {
-		t.Log("All tools appear strict-mode compatible — remove this test and the comment above")
-	} else {
-		t.Logf("%d tool(s) have optional properties not in 'required' (pre-existing; not strict-mode compatible)",
-			toolsWithOptionalParams)
+			// Top-level schema must have additionalProperties: false.
+			if schema.AdditionalProperties == nil {
+				t.Errorf("toolset %s tool %s: missing additionalProperties: false", method, name)
+			}
+		}
 	}
 }

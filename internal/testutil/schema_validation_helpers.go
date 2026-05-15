@@ -221,163 +221,190 @@ func (s *SchemaValidationTestSuite) validateArrayItemTypes(t *testing.T, toolNam
 	}
 }
 
-// GetValidTestData returns valid test data for all tools
+// GetValidTestData returns valid test data for all tools.
+// All required fields (including nullable optional ones) must be provided —
+// pass nil to satisfy a required nullable field without setting a value.
 func GetValidTestData() map[string]map[string]map[string]any {
 	return map[string]map[string]map[string]any{
 		"CompanyCreate": {
 			"minimal": {
-				"name": "Test Company",
+				"name": "Test Company", "description": nil, "details": nil,
+				"industry": nil, "website": nil, "permission": nil,
+				"kind": nil, "note": nil, "domains": nil,
 			},
 			"complete": {
-				"name":        "Test Company",
-				"description": "A test company",
-				"details":     "Company details",
-				"industry":    "Technology",
-				"website":     "https://example.com",
-				"permission":  "own",
-				"kind":        "company",
-				"note":        "Test note",
-				"domains":     []string{"example.com", "test.com"},
+				"name": "Test Company", "description": "A test company",
+				"details": "Company details", "industry": "Technology",
+				"website": "https://example.com", "permission": "own",
+				"kind": "company", "note": "Test note",
+				"domains": []string{"example.com", "test.com"},
 			},
 		},
 		"CompanyUpdate": {
 			"minimal": {
-				"id": 123,
+				"id": 123, "name": nil, "description": nil, "details": nil,
+				"industry": nil, "website": nil, "permission": nil,
+				"kind": nil, "note": nil, "domains": nil,
 			},
 			"complete": {
-				"id":          123,
-				"name":        "Updated Company",
-				"description": "Updated description",
-				"domains":     []string{"updated.com"},
+				"id": 123, "name": "Updated Company",
+				"description": "Updated description", "details": nil,
+				"industry": nil, "website": nil, "permission": nil,
+				"kind": nil, "note": nil, "domains": []string{"updated.com"},
 			},
 		},
 		"CompanyGet": {
-			"valid": {
-				"id": 123,
-			},
+			"valid": {"id": 123, "fields": nil},
 		},
 		"CompanyList": {
-			"empty": {},
+			"empty": {
+				"name": nil, "domains": nil, "kind": nil,
+				"page": nil, "pageSize": nil, "orderBy": nil,
+				"orderDirection": nil, "fields": nil,
+			},
 			"with_filters": {
-				"name":      "Test Company",
-				"domains":   []string{"example.com"},
-				"kind":      "company",
-				"page":      1,
-				"page_size": 10,
+				"name": "Test Company", "domains": []string{"example.com"},
+				"kind": "company", "page": 1, "pageSize": 10,
+				"orderBy": nil, "orderDirection": nil, "fields": nil,
 			},
 		},
 		"CustomerCreate": {
 			"minimal": {
-				"firstName": "John",
-				"lastName":  "Doe",
-				"email":     "john.doe@example.com",
+				"firstName": nil, "lastName": nil, "email": "john.doe@example.com",
+				"organization": nil, "extraData": nil, "notes": nil,
+				"linkedinURL": nil, "facebookURL": nil, "twitterHandle": nil,
+				"jobTitle": nil, "phone": nil, "mobile": nil, "address": nil,
+			},
+		},
+		"CustomerUpdate": {
+			"minimal": {
+				"id": 123, "firstName": nil, "lastName": nil, "email": nil,
+				"organization": nil, "extraData": nil, "notes": nil,
+				"linkedinURL": nil, "facebookURL": nil, "twitterHandle": nil,
+				"jobTitle": nil, "phone": nil, "mobile": nil, "address": nil,
 			},
 		},
 		"CustomerGet": {
-			"valid": {
-				"id": 123,
-			},
+			"valid": {"id": 123, "fields": nil},
 		},
 		"CustomerList": {
-			"empty": {},
+			"empty": {
+				"companyIDs": nil, "companyNames": nil, "emails": nil,
+				"page": nil, "pageSize": nil, "orderBy": nil,
+				"orderDirection": nil, "fields": nil,
+			},
 		},
 		"TicketCreate": {
 			"minimal": {
-				"subject":    "Test Ticket",
-				"body":       "Test message",
-				"priorityId": 1,
-				"statusId":   1,
-				"inboxId":    1,
-				"customerId": 1,
-				"typeId":     1,
-				"agentId":    1,
+				"subject": "Test Ticket", "body": "Test message", "inboxId": 1,
+				"notifyCustomer": nil, "bcc": nil, "cc": nil, "files": nil,
+				"tags": nil, "priorityId": 1, "statusId": 1,
+				"customerId": 1, "customerEmail": nil, "typeId": 1, "agentId": 1,
 			},
 		},
 		"TicketUpdate": {
 			"minimal": {
-				"id":      123,
-				"subject": "Updated Ticket",
+				"id": 123, "subject": "Updated Ticket", "body": nil,
+				"tags": nil, "deleteTags": nil, "bcc": nil, "cc": nil,
+				"inboxId": nil, "priorityId": nil, "statusId": nil,
+				"typeId": nil, "agentId": nil,
 			},
 		},
 		"TicketGet": {
-			"valid": {
-				"id": 123,
-			},
+			"valid": {"id": 123, "fields": nil},
 		},
-		"TicketList": {
-			"empty": {},
+		"TicketSearch": {
+			"empty": {
+				"search": nil, "inboxIDs": nil, "customerIDs": nil,
+				"companyIDs": nil, "tagIDs": nil, "statusIDs": nil,
+				"priorityIDs": nil, "userIDs": nil,
+				"page": nil, "pageSize": nil, "orderBy": nil,
+				"orderDirection": nil, "fields": nil,
+			},
 		},
 		"PriorityCreate": {
-			"minimal": {
-				"name": "High Priority",
-			},
+			"minimal": {"name": "High Priority", "color": nil},
+		},
+		"PriorityUpdate": {
+			"minimal": {"id": 123, "name": nil, "color": nil},
 		},
 		"PriorityGet": {
-			"valid": {
-				"id": 123,
-			},
+			"valid": {"id": 123, "fields": nil},
 		},
 		"PriorityList": {
-			"empty": {},
+			"empty": {
+				"name": nil, "color": nil, "page": nil, "pageSize": nil,
+				"orderBy": nil, "orderDirection": nil, "fields": nil,
+			},
 		},
 		"StatusCreate": {
-			"minimal": {
-				"name": "Open",
-			},
+			"minimal": {"name": "Open", "color": nil, "displayOrder": nil},
+		},
+		"StatusUpdate": {
+			"minimal": {"id": 123, "name": nil, "color": nil, "displayOrder": nil},
 		},
 		"StatusGet": {
-			"valid": {
-				"id": 123,
-			},
+			"valid": {"id": 123, "fields": nil},
 		},
 		"StatusList": {
-			"empty": {},
+			"empty": {
+				"name": nil, "color": nil, "code": nil,
+				"page": nil, "pageSize": nil, "orderBy": nil,
+				"orderDirection": nil, "fields": nil,
+			},
 		},
 		"TagCreate": {
-			"minimal": {
-				"name": "Important",
-			},
+			"minimal": {"name": "Important", "color": nil},
+		},
+		"TagUpdate": {
+			"minimal": {"id": 123, "name": nil, "color": nil},
 		},
 		"TagGet": {
-			"valid": {
-				"id": 123,
-			},
+			"valid": {"id": 123, "fields": nil},
 		},
 		"TagList": {
-			"empty": {},
+			"empty": {
+				"name": nil, "color": nil, "inboxIDs": nil,
+				"page": nil, "pageSize": nil, "orderBy": nil,
+				"orderDirection": nil, "fields": nil,
+			},
 		},
 		"TypeCreate": {
-			"minimal": {
-				"name": "Bug Report",
-			},
+			"minimal": {"name": "Bug Report", "displayOrder": nil, "enabledForFutureInboxes": nil},
+		},
+		"TypeUpdate": {
+			"minimal": {"id": 123, "name": nil, "displayOrder": nil, "enabledForFutureInboxes": nil},
 		},
 		"TypeGet": {
-			"valid": {
-				"id": 123,
-			},
+			"valid": {"id": 123, "fields": nil},
 		},
 		"TypeList": {
-			"empty": {},
-		},
-		"UserGet": {
-			"valid": {
-				"id": 123,
+			"empty": {
+				"name": nil, "inboxIDs": nil, "page": nil, "pageSize": nil,
+				"orderBy": nil, "orderDirection": nil, "fields": nil,
 			},
 		},
+		"UserGet": {
+			"valid": {"id": 123, "fields": nil},
+		},
 		"UserList": {
-			"empty": {},
+			"empty": {
+				"firstName": nil, "lastName": nil, "email": nil,
+				"inboxIDs": nil, "isPartTime": nil,
+				"page": nil, "pageSize": nil, "orderBy": nil,
+				"orderDirection": nil, "fields": nil,
+			},
 		},
 		"MessageCreate": {
 			"minimal": {
-				"ticketID": 123,
-				"body":     "Test message",
+				"ticketID": 123, "body": "Test message",
+				"threadType": nil, "bcc": nil, "cc": nil,
 			},
 		},
 		"FileCreate": {
 			"minimal": {
-				"name":     "test.txt",
-				"mimeType": "text/plain",
-				"data":     "VGVzdCBjb250ZW50", // base64 encoded "Test content"
+				"name": "test.txt", "mimeType": "text/plain",
+				"data": "VGVzdCBjb250ZW50", "disposition": nil,
 			},
 		},
 	}
