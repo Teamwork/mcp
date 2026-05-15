@@ -34,7 +34,7 @@ func StatusGet(httpClient *http.Client) toolsets.ToolWrapper {
 				Title:        "Get Status",
 				ReadOnlyHint: true,
 			},
-			Description: "Get ticket status. Use the 'fields' parameter to request only the fields you need (e.g. [\"id\",\"name\",\"color\",\"code\"]) and reduce response size.",
+			Description: "Get ticket status.",
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
 				Properties: map[string]*jsonschema.Schema{
@@ -98,7 +98,7 @@ func StatusList(httpClient *http.Client) toolsets.ToolWrapper {
 				Title:        "List Statuses",
 				ReadOnlyHint: true,
 			},
-			Description: "List ticket statuses. Filter by name, color, or code. Use the 'fields' parameter to request only the fields you need (e.g. [\"id\",\"name\",\"code\"]) and reduce response size.",
+			Description: "List ticket statuses. Filter by name, color, or code.",
 			InputSchema: &jsonschema.Schema{
 				Type:       "object",
 				Properties: properties,

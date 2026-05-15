@@ -34,7 +34,7 @@ func PriorityGet(httpClient *http.Client) toolsets.ToolWrapper {
 				Title:        "Get Priority",
 				ReadOnlyHint: true,
 			},
-			Description: "Get ticket priority. Use the 'fields' parameter to request only the fields you need (e.g. [\"id\",\"name\",\"color\"]) and reduce response size.",
+			Description: "Get ticket priority.",
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
 				Properties: map[string]*jsonschema.Schema{
@@ -90,7 +90,7 @@ func PriorityList(httpClient *http.Client) toolsets.ToolWrapper {
 				Title:        "List Priorities",
 				ReadOnlyHint: true,
 			},
-			Description: "List ticket priorities. Filter by name or color. Use the 'fields' parameter to request only the fields you need (e.g. [\"id\",\"name\",\"color\"]) and reduce response size.",
+			Description: "List ticket priorities. Filter by name or color.",
 			InputSchema: &jsonschema.Schema{
 				Type:       "object",
 				Properties: properties,

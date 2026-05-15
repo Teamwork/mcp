@@ -35,7 +35,7 @@ func TicketGet(httpClient *http.Client) toolsets.ToolWrapper {
 				Title:        "Get Ticket",
 				ReadOnlyHint: true,
 			},
-			Description: "Get ticket. Use the 'fields' parameter to request only the fields you need (e.g. [\"id\",\"subject\",\"status\",\"agent\"]) and reduce response size.",
+			Description: "Get ticket.",
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
 				Properties: map[string]*jsonschema.Schema{
@@ -174,7 +174,7 @@ func TicketSearch(httpClient *http.Client) toolsets.ToolWrapper {
 				Title:        "Search Tickets",
 				ReadOnlyHint: true,
 			},
-			Description: "Search tickets. Filter by inbox, customer, company, tag, status, priority, or user. Use the 'fields' parameter to request only the fields you need (e.g. [\"id\",\"subject\",\"status\",\"agent\"]) and reduce response size.",
+			Description: "Search tickets. Filter by inbox, customer, company, tag, status, priority, or user.",
 			InputSchema: &jsonschema.Schema{
 				Type:       "object",
 				Properties: properties,
