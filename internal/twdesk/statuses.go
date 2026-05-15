@@ -42,6 +42,7 @@ func StatusGet(httpClient *http.Client) toolsets.ToolWrapper {
 						Type:        "integer",
 						Description: "The ID of the status to retrieve.",
 					},
+					"fields": sparseFieldsSchema(),
 				},
 				Required: []string{"id"},
 			},
@@ -53,12 +54,12 @@ func StatusGet(httpClient *http.Client) toolsets.ToolWrapper {
 				return helpers.NewToolResultTextError("%v", err), nil
 			}
 
-			status, err := client.TicketStatuses.Get(ctx, arguments.GetInt("id", 0))
+			status, err := client.TicketStatuses.Get(ctx, arguments.GetInt("id", 0), getParams(arguments))
 			if err != nil {
 				return nil, fmt.Errorf("failed to get status: %w", err)
 			}
 
-			return helpers.NewToolResultText("Status retrieved successfully: %s", status.TicketStatus.Name), nil
+			return helpers.NewToolResultJSON(status)
 		},
 	}
 }
@@ -181,11 +182,12 @@ func StatusCreate(httpClient *http.Client) toolsets.ToolWrapper {
 				return helpers.NewToolResultTextError("%v", err), nil
 			}
 
+			name := arguments.GetString("name", "")
 			status, err := client.TicketStatuses.Create(ctx, &deskmodels.TicketStatusResponse{
 				TicketStatus: deskmodels.TicketStatus{
-					Name:         arguments.GetString("name", ""),
-					Color:        arguments.GetString("color", ""),
-					DisplayOrder: arguments.GetInt("displayOrder", 0),
+					Name:         &name,
+					Color:        strPtr(arguments.GetString("color", "")),
+					DisplayOrder: intPtr(arguments.GetInt("displayOrder", 0)),
 				},
 			})
 			if err != nil {
@@ -246,13 +248,13 @@ func StatusUpdate(httpClient *http.Client) toolsets.ToolWrapper {
 
 			_, err = client.TicketStatuses.Update(ctx, arguments.GetInt("id", 0), &deskmodels.TicketStatusResponse{
 				TicketStatus: deskmodels.TicketStatus{
-					Name:         arguments.GetString("name", ""),
-					Color:        arguments.GetString("color", ""),
-					DisplayOrder: arguments.GetInt("displayOrder", 0),
+					Name:         strPtr(arguments.GetString("name", "")),
+					Color:        strPtr(arguments.GetString("color", "")),
+					DisplayOrder: intPtr(arguments.GetInt("displayOrder", 0)),
 				},
 			})
 			if err != nil {
-				return nil, fmt.Errorf("failed to create status: %w", err)
+				return nil, fmt.Errorf("failed to update status: %w", err)
 			}
 
 			return helpers.NewToolResultText("Status updated successfully"), nil

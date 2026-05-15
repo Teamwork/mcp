@@ -39,6 +39,7 @@ func InboxGet(httpClient *http.Client) toolsets.ToolWrapper {
 						Type:        "integer",
 						Description: "The ID of the inbox to retrieve.",
 					},
+					"fields": sparseFieldsSchema(),
 				},
 				Required: []string{"id"},
 			},
@@ -50,11 +51,11 @@ func InboxGet(httpClient *http.Client) toolsets.ToolWrapper {
 				return helpers.NewToolResultTextError("%v", err), nil
 			}
 
-			inbox, err := client.Inboxes.Get(ctx, arguments.GetInt("id", 0))
+			inbox, err := client.Inboxes.Get(ctx, arguments.GetInt("id", 0), getParams(arguments))
 			if err != nil {
 				return nil, fmt.Errorf("failed to get inbox: %w", err)
 			}
-			return helpers.NewToolResultText("Inbox retrieved successfully: %s", inbox.Inbox.Name), nil
+			return helpers.NewToolResultJSON(inbox)
 		},
 	}
 }

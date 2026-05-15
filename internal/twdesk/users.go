@@ -39,6 +39,7 @@ func UserGet(httpClient *http.Client) toolsets.ToolWrapper {
 						Type:        "integer",
 						Description: "The ID of the user to retrieve.",
 					},
+					"fields": sparseFieldsSchema(),
 				},
 				Required: []string{"id"},
 			},
@@ -50,7 +51,7 @@ func UserGet(httpClient *http.Client) toolsets.ToolWrapper {
 				return helpers.NewToolResultTextError("%v", err), nil
 			}
 
-			user, err := client.Users.Get(ctx, arguments.GetInt("id", 0))
+			user, err := client.Users.Get(ctx, arguments.GetInt("id", 0), getParams(arguments))
 			if err != nil {
 				return nil, fmt.Errorf("failed to get user: %w", err)
 			}

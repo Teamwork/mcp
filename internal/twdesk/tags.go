@@ -42,6 +42,7 @@ func TagGet(httpClient *http.Client) toolsets.ToolWrapper {
 						Type:        "integer",
 						Description: "The ID of the tag to retrieve.",
 					},
+					"fields": sparseFieldsSchema(),
 				},
 				Required: []string{"id"},
 			},
@@ -53,7 +54,7 @@ func TagGet(httpClient *http.Client) toolsets.ToolWrapper {
 				return helpers.NewToolResultTextError("%v", err), nil
 			}
 
-			tag, err := client.Tags.Get(ctx, arguments.GetInt("id", 0))
+			tag, err := client.Tags.Get(ctx, arguments.GetInt("id", 0), getParams(arguments))
 			if err != nil {
 				return nil, fmt.Errorf("failed to get tag: %w", err)
 			}
@@ -173,10 +174,11 @@ func TagCreate(httpClient *http.Client) toolsets.ToolWrapper {
 				return helpers.NewToolResultTextError("%v", err), nil
 			}
 
+			name := arguments.GetString("name", "")
 			tag, err := client.Tags.Create(ctx, &deskmodels.TagResponse{
 				Tag: deskmodels.Tag{
-					Name:  arguments.GetString("name", ""),
-					Color: arguments.GetString("color", ""),
+					Name:  &name,
+					Color: strPtr(arguments.GetString("color", "")),
 				},
 			})
 			if err != nil {
@@ -230,12 +232,12 @@ func TagUpdate(httpClient *http.Client) toolsets.ToolWrapper {
 
 			_, err = client.Tags.Update(ctx, arguments.GetInt("id", 0), &deskmodels.TagResponse{
 				Tag: deskmodels.Tag{
-					Name:  arguments.GetString("name", ""),
-					Color: arguments.GetString("color", ""),
+					Name:  strPtr(arguments.GetString("name", "")),
+					Color: strPtr(arguments.GetString("color", "")),
 				},
 			})
 			if err != nil {
-				return nil, fmt.Errorf("failed to create tag: %w", err)
+				return nil, fmt.Errorf("failed to update tag: %w", err)
 			}
 
 			return helpers.NewToolResultText("Tag updated successfully"), nil
