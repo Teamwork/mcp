@@ -34,7 +34,7 @@ func CustomerGet(httpClient *http.Client) toolsets.ToolWrapper {
 				Title:        "Get Customer",
 				ReadOnlyHint: true,
 			},
-			Description: "Get customer.",
+			Description: "Get customer. Use the 'fields' parameter to request only the fields you need (e.g. [\"id\",\"firstName\",\"lastName\",\"email\"]) and reduce response size.",
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
 				Properties: map[string]*jsonschema.Schema{
@@ -42,6 +42,7 @@ func CustomerGet(httpClient *http.Client) toolsets.ToolWrapper {
 						Type:        "integer",
 						Description: "The ID of the customer to retrieve.",
 					},
+					"fields": sparseFieldsSchema(),
 				},
 				Required: []string{"id"},
 			},
@@ -53,13 +54,12 @@ func CustomerGet(httpClient *http.Client) toolsets.ToolWrapper {
 				return helpers.NewToolResultTextError("%v", err), nil
 			}
 
-			customer, err := client.Customers.Get(ctx, arguments.GetInt("id", 0))
+			customer, err := client.Customers.Get(ctx, arguments.GetInt("id", 0), getParams(arguments))
 			if err != nil {
 				return nil, fmt.Errorf("failed to get customer: %w", err)
 			}
 
-			firstName := customer.Customer.FirstName
-			return helpers.NewToolResultText("Customer retrieved successfully: %s", firstName), nil
+			return helpers.NewToolResultJSON(customer)
 		},
 	}
 }
@@ -98,7 +98,7 @@ func CustomerList(httpClient *http.Client) toolsets.ToolWrapper {
 				Title:        "List Customers",
 				ReadOnlyHint: true,
 			},
-			Description: "List customers. Filter by company or email.",
+			Description: "List customers. Filter by company or email. Use the 'fields' parameter to request only the fields you need (e.g. [\"id\",\"firstName\",\"lastName\",\"email\"]) and reduce response size.",
 			InputSchema: &jsonschema.Schema{
 				Type:       "object",
 				Properties: properties,
@@ -258,33 +258,22 @@ func CustomerCreate(httpClient *http.Client) toolsets.ToolWrapper {
 				return helpers.NewToolResultTextError("%v", err), nil
 			}
 
-			domains := arguments.GetStringSlice("domains", []string{})
-			domainEntities := make([]deskmodels.Domain, len(domains))
-			for i, domain := range domains {
-				domainEntities[i] = deskmodels.Domain{
-					Name: domain,
-				}
-			}
-
+			trusted := arguments.GetBool("trusted", false)
 			customer, err := client.Customers.Create(ctx, &deskmodels.CustomerResponse{
 				Customer: deskmodels.Customer{
-					FirstName:     arguments.GetString("firstName", ""),
-					LastName:      arguments.GetString("lastName", ""),
-					Email:         arguments.GetString("email", ""),
-					Organization:  arguments.GetString("organization", ""),
-					ExtraData:     arguments.GetString("extraData", ""),
-					Notes:         arguments.GetString("notes", ""),
-					LinkedinURL:   arguments.GetString("linkedinURL", ""),
-					FacebookURL:   arguments.GetString("facebookURL", ""),
-					TwitterHandle: arguments.GetString("twitterHandle", ""),
-					JobTitle:      arguments.GetString("jobTitle", ""),
-					Phone:         arguments.GetString("phone", ""),
-					Mobile:        arguments.GetString("mobile", ""),
-					Address:       arguments.GetString("address", ""),
-					Trusted:       arguments.GetBool("trusted", false),
-				},
-				Included: deskmodels.IncludedData{
-					Domains: domainEntities,
+					FirstName:     strPtr(arguments.GetString("firstName", "")),
+					LastName:      strPtr(arguments.GetString("lastName", "")),
+					Email:         strPtr(arguments.GetString("email", "")),
+					Organization:  strPtr(arguments.GetString("organization", "")),
+					ExtraData:     strPtr(arguments.GetString("extraData", "")),
+					Notes:         strPtr(arguments.GetString("notes", "")),
+					LinkedinURL:   strPtr(arguments.GetString("linkedinURL", "")),
+					FacebookURL:   strPtr(arguments.GetString("facebookURL", "")),
+					TwitterHandle: strPtr(arguments.GetString("twitterHandle", "")),
+					Phone:         strPtr(arguments.GetString("phone", "")),
+					Mobile:        strPtr(arguments.GetString("mobile", "")),
+					Address:       strPtr(arguments.GetString("address", "")),
+					Trusted:       boolPtr(trusted),
 				},
 			})
 			if err != nil {
@@ -413,36 +402,26 @@ func CustomerUpdate(httpClient *http.Client) toolsets.ToolWrapper {
 				return helpers.NewToolResultTextError("%v", err), nil
 			}
 
-			domains := arguments.GetStringSlice("domains", []string{})
-			domainEntities := make([]deskmodels.Domain, len(domains))
-			for i, domain := range domains {
-				domainEntities[i] = deskmodels.Domain{
-					Name: domain,
-				}
-			}
+			trusted := arguments.GetBool("trusted", false)
 			_, err = client.Customers.Update(ctx, arguments.GetInt("id", 0), &deskmodels.CustomerResponse{
 				Customer: deskmodels.Customer{
-					FirstName:     arguments.GetString("firstName", ""),
-					LastName:      arguments.GetString("lastName", ""),
-					Email:         arguments.GetString("email", ""),
-					Organization:  arguments.GetString("organization", ""),
-					ExtraData:     arguments.GetString("extraData", ""),
-					Notes:         arguments.GetString("notes", ""),
-					LinkedinURL:   arguments.GetString("linkedinURL", ""),
-					FacebookURL:   arguments.GetString("facebookURL", ""),
-					TwitterHandle: arguments.GetString("twitterHandle", ""),
-					JobTitle:      arguments.GetString("jobTitle", ""),
-					Phone:         arguments.GetString("phone", ""),
-					Mobile:        arguments.GetString("mobile", ""),
-					Address:       arguments.GetString("address", ""),
-					Trusted:       arguments.GetBool("trusted", false),
-				},
-				Included: deskmodels.IncludedData{
-					Domains: domainEntities,
+					FirstName:     strPtr(arguments.GetString("firstName", "")),
+					LastName:      strPtr(arguments.GetString("lastName", "")),
+					Email:         strPtr(arguments.GetString("email", "")),
+					Organization:  strPtr(arguments.GetString("organization", "")),
+					ExtraData:     strPtr(arguments.GetString("extraData", "")),
+					Notes:         strPtr(arguments.GetString("notes", "")),
+					LinkedinURL:   strPtr(arguments.GetString("linkedinURL", "")),
+					FacebookURL:   strPtr(arguments.GetString("facebookURL", "")),
+					TwitterHandle: strPtr(arguments.GetString("twitterHandle", "")),
+					Phone:         strPtr(arguments.GetString("phone", "")),
+					Mobile:        strPtr(arguments.GetString("mobile", "")),
+					Address:       strPtr(arguments.GetString("address", "")),
+					Trusted:       boolPtr(trusted),
 				},
 			})
 			if err != nil {
-				return nil, fmt.Errorf("failed to create customer: %w", err)
+				return nil, fmt.Errorf("failed to update customer: %w", err)
 			}
 
 			return helpers.NewToolResultText("Customer updated successfully"), nil

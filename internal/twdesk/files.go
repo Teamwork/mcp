@@ -69,17 +69,16 @@ func FileCreate(httpClient *http.Client) toolsets.ToolWrapper {
 				return helpers.NewToolResultTextError("%v", err), nil
 			}
 
+			filename := arguments.GetString("name", "")
+			mimeType := arguments.GetString("mimeType", "application/octet-stream")
+			disposition := deskmodels.Disposition(arguments.GetString("disposition", string(deskmodels.DispositionAttachment)))
+			fileType := deskmodels.FileTypeAttachment
 			file, err := client.Files.Create(ctx, &deskmodels.FileResponse{
 				File: deskmodels.File{
-					Filename: arguments.GetString("name", ""),
-					MIMEType: arguments.GetString("mimeType", "application/octet-stream"),
-					Disposition: deskmodels.Disposition(
-						arguments.GetString(
-							"disposition",
-							string(deskmodels.DispositionAttachment),
-						),
-					),
-					Type: deskmodels.FileTypeAttachment,
+					Filename:    &filename,
+					MIMEType:    &mimeType,
+					Disposition: &disposition,
+					Type:        &fileType,
 				},
 			})
 			if err != nil {

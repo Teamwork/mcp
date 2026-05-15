@@ -34,7 +34,7 @@ func CompanyGet(httpClient *http.Client) toolsets.ToolWrapper {
 				Title:        "Get Company",
 				ReadOnlyHint: true,
 			},
-			Description: "Get Desk company (customer organization).",
+			Description: "Get Desk company (customer organization). Use the 'fields' parameter to request only the fields you need (e.g. [\"id\",\"name\",\"website\"]) and reduce response size.",
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
 				Properties: map[string]*jsonschema.Schema{
@@ -42,6 +42,7 @@ func CompanyGet(httpClient *http.Client) toolsets.ToolWrapper {
 						Type:        "integer",
 						Description: "The ID of the company to retrieve.",
 					},
+					"fields": sparseFieldsSchema(),
 				},
 				Required: []string{"id"},
 			},
@@ -53,12 +54,12 @@ func CompanyGet(httpClient *http.Client) toolsets.ToolWrapper {
 				return helpers.NewToolResultTextError("%v", err), nil
 			}
 
-			company, err := client.Companies.Get(ctx, arguments.GetInt("id", 0))
+			company, err := client.Companies.Get(ctx, arguments.GetInt("id", 0), getParams(arguments))
 			if err != nil {
 				return nil, fmt.Errorf("failed to get company: %w", err)
 			}
 
-			return helpers.NewToolResultText("Company retrieved successfully: %s", company.Company.Name), nil
+			return helpers.NewToolResultJSON(company)
 		},
 	}
 }
@@ -97,7 +98,7 @@ func CompanyList(httpClient *http.Client) toolsets.ToolWrapper {
 				Title:        "List Companies",
 				ReadOnlyHint: true,
 			},
-			Description: "List Desk companies. Filter by name, domains, or kind.",
+			Description: "List Desk companies. Filter by name, domains, or kind. Use the 'fields' parameter to request only the fields you need (e.g. [\"id\",\"name\",\"domains\"]) and reduce response size.",
 			InputSchema: &jsonschema.Schema{
 				Type:       "object",
 				Properties: properties,
@@ -228,21 +229,23 @@ func CompanyCreate(httpClient *http.Client) toolsets.ToolWrapper {
 			domains := arguments.GetStringSlice("domains", []string{})
 			domainEntities := make([]deskmodels.Domain, len(domains))
 			for i, domain := range domains {
+				d := domain
 				domainEntities[i] = deskmodels.Domain{
-					Name: domain,
+					Name: &d,
 				}
 			}
 
+			name := arguments.GetString("name", "")
 			company, err := client.Companies.Create(ctx, &deskmodels.CompanyResponse{
 				Company: deskmodels.Company{
-					Name:        arguments.GetString("name", ""),
-					Description: arguments.GetString("description", ""),
-					Details:     arguments.GetString("details", ""),
-					Industry:    arguments.GetString("industry", ""),
-					Website:     arguments.GetString("website", ""),
-					Permission:  arguments.GetString("permission", ""),
-					Kind:        arguments.GetString("kind", ""),
-					Note:        arguments.GetString("note", ""),
+					Name:        &name,
+					Description: strPtr(arguments.GetString("description", "")),
+					Details:     strPtr(arguments.GetString("details", "")),
+					Industry:    strPtr(arguments.GetString("industry", "")),
+					Website:     strPtr(arguments.GetString("website", "")),
+					Permission:  strPtr(arguments.GetString("permission", "")),
+					Kind:        strPtr(arguments.GetString("kind", "")),
+					Note:        strPtr(arguments.GetString("note", "")),
 				},
 				Included: deskmodels.IncludedData{
 					Domains: domainEntities,
@@ -349,27 +352,28 @@ func CompanyUpdate(httpClient *http.Client) toolsets.ToolWrapper {
 			domains := arguments.GetStringSlice("domains", []string{})
 			domainEntities := make([]deskmodels.Domain, len(domains))
 			for i, domain := range domains {
+				d := domain
 				domainEntities[i] = deskmodels.Domain{
-					Name: domain,
+					Name: &d,
 				}
 			}
 			_, err = client.Companies.Update(ctx, arguments.GetInt("id", 0), &deskmodels.CompanyResponse{
 				Company: deskmodels.Company{
-					Name:        arguments.GetString("name", ""),
-					Description: arguments.GetString("description", ""),
-					Details:     arguments.GetString("details", ""),
-					Industry:    arguments.GetString("industry", ""),
-					Website:     arguments.GetString("website", ""),
-					Permission:  arguments.GetString("permission", ""),
-					Kind:        arguments.GetString("kind", ""),
-					Note:        arguments.GetString("note", ""),
+					Name:        strPtr(arguments.GetString("name", "")),
+					Description: strPtr(arguments.GetString("description", "")),
+					Details:     strPtr(arguments.GetString("details", "")),
+					Industry:    strPtr(arguments.GetString("industry", "")),
+					Website:     strPtr(arguments.GetString("website", "")),
+					Permission:  strPtr(arguments.GetString("permission", "")),
+					Kind:        strPtr(arguments.GetString("kind", "")),
+					Note:        strPtr(arguments.GetString("note", "")),
 				},
 				Included: deskmodels.IncludedData{
 					Domains: domainEntities,
 				},
 			})
 			if err != nil {
-				return nil, fmt.Errorf("failed to create company: %w", err)
+				return nil, fmt.Errorf("failed to update company: %w", err)
 			}
 
 			return helpers.NewToolResultText("Company updated successfully"), nil

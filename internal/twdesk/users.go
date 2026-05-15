@@ -31,7 +31,7 @@ func UserGet(httpClient *http.Client) toolsets.ToolWrapper {
 				Title:        "Get User",
 				ReadOnlyHint: true,
 			},
-			Description: "Get support agent.",
+			Description: "Get support agent. Use the 'fields' parameter to request only the fields you need (e.g. [\"id\",\"firstName\",\"lastName\",\"email\"]) and reduce response size.",
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
 				Properties: map[string]*jsonschema.Schema{
@@ -39,6 +39,7 @@ func UserGet(httpClient *http.Client) toolsets.ToolWrapper {
 						Type:        "integer",
 						Description: "The ID of the user to retrieve.",
 					},
+					"fields": sparseFieldsSchema(),
 				},
 				Required: []string{"id"},
 			},
@@ -50,7 +51,7 @@ func UserGet(httpClient *http.Client) toolsets.ToolWrapper {
 				return helpers.NewToolResultTextError("%v", err), nil
 			}
 
-			user, err := client.Users.Get(ctx, arguments.GetInt("id", 0))
+			user, err := client.Users.Get(ctx, arguments.GetInt("id", 0), getParams(arguments))
 			if err != nil {
 				return nil, fmt.Errorf("failed to get user: %w", err)
 			}
@@ -107,7 +108,7 @@ func UserList(httpClient *http.Client) toolsets.ToolWrapper {
 				Title:        "List Users",
 				ReadOnlyHint: true,
 			},
-			Description: "List support agents. For customers, use twdesk-list_customers.",
+			Description: "List support agents. For customers, use twdesk-list_customers. Use the 'fields' parameter to request only the fields you need (e.g. [\"id\",\"firstName\",\"lastName\",\"email\"]) and reduce response size.",
 			InputSchema: &jsonschema.Schema{
 				Type:       "object",
 				Properties: properties,

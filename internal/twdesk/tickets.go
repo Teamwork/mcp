@@ -35,7 +35,7 @@ func TicketGet(httpClient *http.Client) toolsets.ToolWrapper {
 				Title:        "Get Ticket",
 				ReadOnlyHint: true,
 			},
-			Description: "Get ticket.",
+			Description: "Get ticket. Use the 'fields' parameter to request only the fields you need (e.g. [\"id\",\"subject\",\"status\",\"agent\"]) and reduce response size.",
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
 				Properties: map[string]*jsonschema.Schema{
@@ -43,6 +43,7 @@ func TicketGet(httpClient *http.Client) toolsets.ToolWrapper {
 						Type:        "integer",
 						Description: "The ID of the ticket to retrieve.",
 					},
+					"fields": sparseFieldsSchema(),
 				},
 				Required: []string{"id"},
 			},
@@ -54,7 +55,7 @@ func TicketGet(httpClient *http.Client) toolsets.ToolWrapper {
 				return helpers.NewToolResultTextError("%v", err), nil
 			}
 
-			ticket, err := client.Tickets.Get(ctx, arguments.GetInt("id", 0))
+			ticket, err := client.Tickets.Get(ctx, arguments.GetInt("id", 0), getParams(arguments))
 			if err != nil {
 				return nil, fmt.Errorf("failed to get ticket: %w", err)
 			}
@@ -173,7 +174,7 @@ func TicketSearch(httpClient *http.Client) toolsets.ToolWrapper {
 				Title:        "Search Tickets",
 				ReadOnlyHint: true,
 			},
-			Description: "Search tickets. Filter by inbox, customer, company, tag, status, priority, or user.",
+			Description: "Search tickets. Filter by inbox, customer, company, tag, status, priority, or user. Use the 'fields' parameter to request only the fields you need (e.g. [\"id\",\"subject\",\"status\",\"agent\"]) and reduce response size.",
 			InputSchema: &jsonschema.Schema{
 				Type:       "object",
 				Properties: properties,
@@ -344,7 +345,7 @@ func TicketCreate(httpClient *http.Client) toolsets.ToolWrapper {
 					},
 					"agentId": {
 						Description: `
-							The agent ID that the ticket should be assigned to. 
+							The agent ID that the ticket should be assigned to.
 							Use the 'twdesk-list_users' tool to find valid IDs.
 						`,
 						AnyOf: []*jsonschema.Schema{
@@ -363,9 +364,11 @@ func TicketCreate(httpClient *http.Client) toolsets.ToolWrapper {
 				return helpers.NewToolResultTextError("%v", err), nil
 			}
 
+			subject := arguments.GetString("subject", "")
+			body := arguments.GetString("body", "")
 			data := deskmodels.Ticket{
-				Subject: arguments.GetString("subject", ""),
-				Body:    arguments.GetString("body", ""),
+				Subject: &subject,
+				Body:    &body,
 				Inbox: &deskmodels.EntityRef{
 					ID: arguments.GetInt("inboxId", 0),
 				},
@@ -398,7 +401,7 @@ func TicketCreate(httpClient *http.Client) toolsets.ToolWrapper {
 					// Create the customer
 					customer, err := client.Customers.Create(ctx, &deskmodels.CustomerResponse{
 						Customer: deskmodels.Customer{
-							Email: email,
+							Email: strPtr(email),
 						},
 					})
 					if err != nil {
@@ -435,7 +438,7 @@ func TicketCreate(httpClient *http.Client) toolsets.ToolWrapper {
 			}
 
 			if arguments.GetBool("notifyCustomer", false) {
-				data.NotifyCustomer = true
+				data.NotifyCustomer = boolPtr(true)
 			}
 
 			if len(arguments.GetIntSlice("files", []int{})) > 0 {
@@ -577,7 +580,7 @@ func TicketUpdate(httpClient *http.Client) toolsets.ToolWrapper {
 					},
 					"agentId": {
 						Description: `
-							The agent ID that the ticket should be assigned to. 
+							The agent ID that the ticket should be assigned to.
 							Use the 'twdesk-list_users' tool to find valid IDs.
 						`,
 						AnyOf: []*jsonschema.Schema{
@@ -599,7 +602,7 @@ func TicketUpdate(httpClient *http.Client) toolsets.ToolWrapper {
 			data := deskmodels.Ticket{}
 
 			if subject := arguments.GetString("subject", ""); subject != "" {
-				data.Subject = subject
+				data.Subject = &subject
 			}
 
 			if inboxId := arguments.GetInt("inboxId", 0); inboxId > 0 {
@@ -609,7 +612,7 @@ func TicketUpdate(httpClient *http.Client) toolsets.ToolWrapper {
 			}
 
 			if body := arguments.GetString("body", ""); body != "" {
-				data.Body = body
+				data.Body = &body
 			}
 
 			data.Tags = []deskmodels.EntityRef{}

@@ -75,10 +75,12 @@ func MessageCreate(httpClient *http.Client) toolsets.ToolWrapper {
 				return helpers.NewToolResultTextError("%v", err), nil
 			}
 
+			body := arguments.GetString("body", "")
+			threadType := arguments.GetString("threadType", "message")
 			data := deskmodels.MessageResponse{
 				Message: deskmodels.Message{
-					Message:    arguments.GetString("body", ""),
-					ThreadType: arguments.GetString("threadType", "message"),
+					Message:    &body,
+					ThreadType: &threadType,
 				},
 			}
 

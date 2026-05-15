@@ -31,7 +31,7 @@ func InboxGet(httpClient *http.Client) toolsets.ToolWrapper {
 				Title:        "Get Inbox",
 				ReadOnlyHint: true,
 			},
-			Description: "Get inbox.",
+			Description: "Get inbox. Use the 'fields' parameter to request only the fields you need (e.g. [\"id\",\"name\",\"email\"]) and reduce response size.",
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
 				Properties: map[string]*jsonschema.Schema{
@@ -39,6 +39,7 @@ func InboxGet(httpClient *http.Client) toolsets.ToolWrapper {
 						Type:        "integer",
 						Description: "The ID of the inbox to retrieve.",
 					},
+					"fields": sparseFieldsSchema(),
 				},
 				Required: []string{"id"},
 			},
@@ -50,11 +51,11 @@ func InboxGet(httpClient *http.Client) toolsets.ToolWrapper {
 				return helpers.NewToolResultTextError("%v", err), nil
 			}
 
-			inbox, err := client.Inboxes.Get(ctx, arguments.GetInt("id", 0))
+			inbox, err := client.Inboxes.Get(ctx, arguments.GetInt("id", 0), getParams(arguments))
 			if err != nil {
 				return nil, fmt.Errorf("failed to get inbox: %w", err)
 			}
-			return helpers.NewToolResultText("Inbox retrieved successfully: %s", inbox.Inbox.Name), nil
+			return helpers.NewToolResultJSON(inbox)
 		},
 	}
 }
@@ -86,7 +87,7 @@ func InboxList(httpClient *http.Client) toolsets.ToolWrapper {
 				Title:        "List Inboxes",
 				ReadOnlyHint: true,
 			},
-			Description: "List inboxes. Filter by name or email.",
+			Description: "List inboxes. Filter by name or email. Use the 'fields' parameter to request only the fields you need (e.g. [\"id\",\"name\",\"email\"]) and reduce response size.",
 			InputSchema: &jsonschema.Schema{
 				Type:       "object",
 				Properties: properties,

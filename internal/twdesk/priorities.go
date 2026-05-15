@@ -34,7 +34,7 @@ func PriorityGet(httpClient *http.Client) toolsets.ToolWrapper {
 				Title:        "Get Priority",
 				ReadOnlyHint: true,
 			},
-			Description: "Get ticket priority.",
+			Description: "Get ticket priority. Use the 'fields' parameter to request only the fields you need (e.g. [\"id\",\"name\",\"color\"]) and reduce response size.",
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
 				Properties: map[string]*jsonschema.Schema{
@@ -42,6 +42,7 @@ func PriorityGet(httpClient *http.Client) toolsets.ToolWrapper {
 						Type:        "integer",
 						Description: "The ID of the priority to retrieve.",
 					},
+					"fields": sparseFieldsSchema(),
 				},
 				Required: []string{"id"},
 			},
@@ -53,7 +54,7 @@ func PriorityGet(httpClient *http.Client) toolsets.ToolWrapper {
 				return helpers.NewToolResultTextError("%v", err), nil
 			}
 
-			priority, err := client.TicketPriorities.Get(ctx, arguments.GetInt("id", 0))
+			priority, err := client.TicketPriorities.Get(ctx, arguments.GetInt("id", 0), getParams(arguments))
 			if err != nil {
 				return nil, fmt.Errorf("failed to get priority: %w", err)
 			}
@@ -89,7 +90,7 @@ func PriorityList(httpClient *http.Client) toolsets.ToolWrapper {
 				Title:        "List Priorities",
 				ReadOnlyHint: true,
 			},
-			Description: "List ticket priorities. Filter by name or color.",
+			Description: "List ticket priorities. Filter by name or color. Use the 'fields' parameter to request only the fields you need (e.g. [\"id\",\"name\",\"color\"]) and reduce response size.",
 			InputSchema: &jsonschema.Schema{
 				Type:       "object",
 				Properties: properties,
@@ -162,10 +163,11 @@ func PriorityCreate(httpClient *http.Client) toolsets.ToolWrapper {
 				return helpers.NewToolResultTextError("%v", err), nil
 			}
 
+			name := arguments.GetString("name", "")
 			priority, err := client.TicketPriorities.Create(ctx, &deskmodels.TicketPriorityResponse{
 				TicketPriority: deskmodels.TicketPriority{
-					Name:  arguments.GetString("name", ""),
-					Color: arguments.GetString("color", ""),
+					Name:  &name,
+					Color: strPtr(arguments.GetString("color", "")),
 				},
 			})
 			if err != nil {
@@ -219,12 +221,12 @@ func PriorityUpdate(httpClient *http.Client) toolsets.ToolWrapper {
 
 			_, err = client.TicketPriorities.Update(ctx, arguments.GetInt("id", 0), &deskmodels.TicketPriorityResponse{
 				TicketPriority: deskmodels.TicketPriority{
-					Name:  arguments.GetString("name", ""),
-					Color: arguments.GetString("color", ""),
+					Name:  strPtr(arguments.GetString("name", "")),
+					Color: strPtr(arguments.GetString("color", "")),
 				},
 			})
 			if err != nil {
-				return nil, fmt.Errorf("failed to create priority: %w", err)
+				return nil, fmt.Errorf("failed to update priority: %w", err)
 			}
 
 			return helpers.NewToolResultText("Priority updated successfully"), nil

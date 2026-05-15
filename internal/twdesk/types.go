@@ -34,7 +34,7 @@ func TypeGet(httpClient *http.Client) toolsets.ToolWrapper {
 				Title:        "Get Ticket Type",
 				ReadOnlyHint: true,
 			},
-			Description: "Get ticket type.",
+			Description: "Get ticket type. Use the 'fields' parameter to request only the fields you need (e.g. [\"id\",\"name\"]) and reduce response size.",
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
 				Properties: map[string]*jsonschema.Schema{
@@ -42,6 +42,7 @@ func TypeGet(httpClient *http.Client) toolsets.ToolWrapper {
 						Type:        "integer",
 						Description: "The ID of the ticket type to retrieve.",
 					},
+					"fields": sparseFieldsSchema(),
 				},
 				Required: []string{"id"},
 			},
@@ -53,7 +54,7 @@ func TypeGet(httpClient *http.Client) toolsets.ToolWrapper {
 				return helpers.NewToolResultTextError("%v", err), nil
 			}
 
-			t, err := client.TicketTypes.Get(ctx, arguments.GetInt("id", 0))
+			t, err := client.TicketTypes.Get(ctx, arguments.GetInt("id", 0), getParams(arguments))
 			if err != nil {
 				return nil, fmt.Errorf("failed to get type: %w", err)
 			}
@@ -89,7 +90,7 @@ func TypeList(httpClient *http.Client) toolsets.ToolWrapper {
 				Title:        "List Ticket Types",
 				ReadOnlyHint: true,
 			},
-			Description: "List ticket types. Filter by name or inbox.",
+			Description: "List ticket types. Filter by name or inbox. Use the 'fields' parameter to request only the fields you need (e.g. [\"id\",\"name\"]) and reduce response size.",
 			InputSchema: &jsonschema.Schema{
 				Type:       "object",
 				Properties: properties,
@@ -169,11 +170,13 @@ func TypeCreate(httpClient *http.Client) toolsets.ToolWrapper {
 				return helpers.NewToolResultTextError("%v", err), nil
 			}
 
+			name := arguments.GetString("name", "")
+			enabledForFutureInboxes := arguments.GetBool("enabledForFutureInboxes", false)
 			t, err := client.TicketTypes.Create(ctx, &deskmodels.TicketTypeResponse{
 				TicketType: deskmodels.TicketType{
-					Name:                    arguments.GetString("name", ""),
-					DisplayOrder:            arguments.GetInt("displayOrder", 0),
-					EnabledForFutureInboxes: arguments.GetBool("enabledForFutureInboxes", false),
+					Name:                    &name,
+					DisplayOrder:            intPtr(arguments.GetInt("displayOrder", 0)),
+					EnabledForFutureInboxes: boolPtr(enabledForFutureInboxes),
 				},
 			})
 			if err != nil {
@@ -232,11 +235,12 @@ func TypeUpdate(httpClient *http.Client) toolsets.ToolWrapper {
 				return helpers.NewToolResultTextError("%v", err), nil
 			}
 
+			enabledForFutureInboxes := arguments.GetBool("enabledForFutureInboxes", false)
 			_, err = client.TicketTypes.Update(ctx, arguments.GetInt("id", 0), &deskmodels.TicketTypeResponse{
 				TicketType: deskmodels.TicketType{
-					Name:                    arguments.GetString("name", ""),
-					DisplayOrder:            arguments.GetInt("displayOrder", 0),
-					EnabledForFutureInboxes: arguments.GetBool("enabledForFutureInboxes", false),
+					Name:                    strPtr(arguments.GetString("name", "")),
+					DisplayOrder:            intPtr(arguments.GetInt("displayOrder", 0)),
+					EnabledForFutureInboxes: boolPtr(enabledForFutureInboxes),
 				},
 			})
 			if err != nil {
