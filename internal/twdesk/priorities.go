@@ -36,7 +36,8 @@ func PriorityGet(httpClient *http.Client) toolsets.ToolWrapper {
 			},
 			Description: "Get ticket priority.",
 			InputSchema: &jsonschema.Schema{
-				Type: "object",
+				Type:                 "object",
+				AdditionalProperties: falseSchema(),
 				Properties: map[string]*jsonschema.Schema{
 					"id": {
 						Type:        "integer",
@@ -44,7 +45,7 @@ func PriorityGet(httpClient *http.Client) toolsets.ToolWrapper {
 					},
 					"fields": sparseFieldsSchema(),
 				},
-				Required: []string{"id"},
+				Required: []string{"id", "fields"},
 			},
 		},
 		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -92,9 +93,10 @@ func PriorityList(httpClient *http.Client) toolsets.ToolWrapper {
 			},
 			Description: "List ticket priorities. Filter by name or color.",
 			InputSchema: &jsonschema.Schema{
-				Type:       "object",
-				Properties: properties,
-				Required:   []string{},
+				Type:                 "object",
+				AdditionalProperties: falseSchema(),
+				Properties:           properties,
+				Required:             append(paginationRequiredKeys(), "name", "color"),
 			},
 		},
 		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -139,7 +141,8 @@ func PriorityCreate(httpClient *http.Client) toolsets.ToolWrapper {
 			},
 			Description: "Create ticket priority.",
 			InputSchema: &jsonschema.Schema{
-				Type: "object",
+				Type:                 "object",
+				AdditionalProperties: falseSchema(),
 				Properties: map[string]*jsonschema.Schema{
 					"name": {
 						Type:        "string",
@@ -153,7 +156,7 @@ func PriorityCreate(httpClient *http.Client) toolsets.ToolWrapper {
 						},
 					},
 				},
-				Required: []string{"name"},
+				Required: []string{"name", "color"},
 			},
 		},
 		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -188,7 +191,8 @@ func PriorityUpdate(httpClient *http.Client) toolsets.ToolWrapper {
 			},
 			Description: "Update ticket priority.",
 			InputSchema: &jsonschema.Schema{
-				Type: "object",
+				Type:                 "object",
+				AdditionalProperties: falseSchema(),
 				Properties: map[string]*jsonschema.Schema{
 					"id": {
 						Type:        "integer",
@@ -209,7 +213,7 @@ func PriorityUpdate(httpClient *http.Client) toolsets.ToolWrapper {
 						},
 					},
 				},
-				Required: []string{"id"},
+				Required: []string{"id", "name", "color"},
 			},
 		},
 		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {

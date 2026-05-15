@@ -14,7 +14,8 @@ func TestUserGet(t *testing.T) {
 	defer cleanup()
 
 	testutil.ExecuteToolRequest(t, mcpServer, twdesk.MethodUserGet.String(), map[string]any{
-		"id": float64(123),
+		"id":     float64(123),
+		"fields": nil,
 	})
 }
 
@@ -23,8 +24,16 @@ func TestUserList(t *testing.T) {
 	defer cleanup()
 
 	testutil.ExecuteToolRequest(t, mcpServer, twdesk.MethodUserList.String(), map[string]any{
-		"page":     float64(1),
-		"pageSize": float64(10),
+		"firstName":      nil,
+		"lastName":       nil,
+		"email":          nil,
+		"inboxIDs":       nil,
+		"isPartTime":     nil,
+		"page":           float64(1),
+		"pageSize":       float64(10),
+		"orderBy":        nil,
+		"orderDirection": nil,
+		"fields":         nil,
 	})
 }
 
@@ -32,5 +41,16 @@ func TestUserListMinimal(t *testing.T) {
 	mcpServer, cleanup := mcpServerMock(t, http.StatusOK, []byte(`{"users":[]}`))
 	defer cleanup()
 
-	testutil.ExecuteToolRequest(t, mcpServer, twdesk.MethodUserList.String(), map[string]any{})
+	testutil.ExecuteToolRequest(t, mcpServer, twdesk.MethodUserList.String(), map[string]any{
+		"firstName":      nil,
+		"lastName":       nil,
+		"email":          nil,
+		"inboxIDs":       nil,
+		"isPartTime":     nil,
+		"page":           nil,
+		"pageSize":       nil,
+		"orderBy":        nil,
+		"orderDirection": nil,
+		"fields":         nil,
+	})
 }

@@ -14,9 +14,10 @@ func TestMessageCreate(t *testing.T) {
 	defer cleanup()
 
 	testutil.ExecuteToolRequest(t, mcpServer, twdesk.MethodMessageCreate.String(), map[string]any{
-		"ticketID": float64(456),
-		"body":     "This is a test message",
-		"cc":       []string{"cc@example.com"},
-		"bcc":      []string{"bcc@example.com"},
+		"ticketID":   float64(456),
+		"body":       "This is a test message",
+		"threadType": nil,
+		"cc":         []string{"cc@example.com"},
+		"bcc":        []string{"bcc@example.com"},
 	})
 }

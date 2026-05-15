@@ -33,7 +33,8 @@ func InboxGet(httpClient *http.Client) toolsets.ToolWrapper {
 			},
 			Description: "Get inbox.",
 			InputSchema: &jsonschema.Schema{
-				Type: "object",
+				Type:                 "object",
+				AdditionalProperties: falseSchema(),
 				Properties: map[string]*jsonschema.Schema{
 					"id": {
 						Type:        "integer",
@@ -41,7 +42,7 @@ func InboxGet(httpClient *http.Client) toolsets.ToolWrapper {
 					},
 					"fields": sparseFieldsSchema(),
 				},
-				Required: []string{"id"},
+				Required: []string{"id", "fields"},
 			},
 		},
 		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -89,9 +90,10 @@ func InboxList(httpClient *http.Client) toolsets.ToolWrapper {
 			},
 			Description: "List inboxes. Filter by name or email.",
 			InputSchema: &jsonschema.Schema{
-				Type:       "object",
-				Properties: properties,
-				Required:   []string{},
+				Type:                 "object",
+				AdditionalProperties: falseSchema(),
+				Properties:           properties,
+				Required:             append(paginationRequiredKeys(), "name", "email"),
 			},
 		},
 		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {

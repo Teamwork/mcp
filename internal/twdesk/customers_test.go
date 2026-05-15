@@ -14,7 +14,6 @@ func TestCustomerCreate(t *testing.T) {
 	defer cleanup()
 
 	testutil.ExecuteToolRequest(t, mcpServer, twdesk.MethodCustomerCreate.String(), map[string]any{
-		"id":            "123",
 		"firstName":     "John",
 		"lastName":      "Doe",
 		"email":         "john@example.com",
@@ -58,7 +57,8 @@ func TestCustomerGet(t *testing.T) {
 	defer cleanup()
 
 	testutil.ExecuteToolRequest(t, mcpServer, twdesk.MethodCustomerGet.String(), map[string]any{
-		"id": float64(123),
+		"id":     float64(123),
+		"fields": nil,
 	})
 }
 
@@ -67,11 +67,14 @@ func TestCustomerList(t *testing.T) {
 	defer cleanup()
 
 	testutil.ExecuteToolRequest(t, mcpServer, twdesk.MethodCustomerList.String(), map[string]any{
-		"companyIDs":   []float64{1, 2, 3},
-		"companyNames": []string{"Test Corp", "Example Inc"},
-		"emails":       []string{"john@example.com", "jane@example.com"},
-		"page":         float64(1),
-		"pageSize":     float64(10),
+		"companyIDs":     []float64{1, 2, 3},
+		"companyNames":   []string{"Test Corp", "Example Inc"},
+		"emails":         []string{"john@example.com", "jane@example.com"},
+		"page":           float64(1),
+		"pageSize":       float64(10),
+		"orderBy":        nil,
+		"orderDirection": nil,
+		"fields":         nil,
 	})
 }
 
@@ -79,5 +82,14 @@ func TestCustomerListMinimal(t *testing.T) {
 	mcpServer, cleanup := mcpServerMock(t, http.StatusOK, []byte(`{"customers":[]}`))
 	defer cleanup()
 
-	testutil.ExecuteToolRequest(t, mcpServer, twdesk.MethodCustomerList.String(), map[string]any{})
+	testutil.ExecuteToolRequest(t, mcpServer, twdesk.MethodCustomerList.String(), map[string]any{
+		"companyIDs":     nil,
+		"companyNames":   nil,
+		"emails":         nil,
+		"page":           nil,
+		"pageSize":       nil,
+		"orderBy":        nil,
+		"orderDirection": nil,
+		"fields":         nil,
+	})
 }

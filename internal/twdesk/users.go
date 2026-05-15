@@ -33,7 +33,8 @@ func UserGet(httpClient *http.Client) toolsets.ToolWrapper {
 			},
 			Description: "Get support agent.",
 			InputSchema: &jsonschema.Schema{
-				Type: "object",
+				Type:                 "object",
+				AdditionalProperties: falseSchema(),
 				Properties: map[string]*jsonschema.Schema{
 					"id": {
 						Type:        "integer",
@@ -41,7 +42,7 @@ func UserGet(httpClient *http.Client) toolsets.ToolWrapper {
 					},
 					"fields": sparseFieldsSchema(),
 				},
-				Required: []string{"id"},
+				Required: []string{"id", "fields"},
 			},
 		},
 		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -110,9 +111,10 @@ func UserList(httpClient *http.Client) toolsets.ToolWrapper {
 			},
 			Description: "List support agents. For customers, use twdesk-list_customers.",
 			InputSchema: &jsonschema.Schema{
-				Type:       "object",
-				Properties: properties,
-				Required:   []string{},
+				Type:                 "object",
+				AdditionalProperties: falseSchema(),
+				Properties:           properties,
+				Required:             append(paginationRequiredKeys(), "firstName", "lastName", "email", "inboxIDs", "isPartTime"),
 			},
 		},
 		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
