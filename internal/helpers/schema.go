@@ -108,13 +108,12 @@ func VerboseSchema() *jsonschema.Schema {
 	return &jsonschema.Schema{
 		Description: "If true (default), the response includes full entity details. " +
 			"If false, only a minimal subset of fields (typically an id and a name/title) is returned to " +
-			"reduce response size — useful when scanning many results to pick an id before fetching the full " +
-			"entity. Structured content is returned in both modes; the tool's output schema marks all fields " +
-			"as optional so sparse responses still validate.",
+			"reduce response size — useful when scanning many results to pick an id before fetching the full entity.",
 		AnyOf: []*jsonschema.Schema{
 			{Type: "boolean"},
 			{Type: "null"},
 		},
+		Default: []byte(`true`),
 	}
 }
 

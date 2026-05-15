@@ -2,12 +2,15 @@ package helpers
 
 import "github.com/google/jsonschema-go/jsonschema"
 
-// WithOptionalFields recursively clears the `required` array on a schema and
-// every nested schema it references (Properties, Items, AdditionalProperties,
-// AnyOf/OneOf/AllOf branches). It is intended for list-tool output schemas
-// where sparse fieldsets may omit otherwise-required fields; clearing
-// `required` lets the structured content payload satisfy the schema even when
-// only a subset of fields is returned by the API.
+// WithOptionalFields recursively relaxes a schema and every nested schema it
+// references (Properties, Items, AdditionalProperties, AnyOf/OneOf/AllOf
+// branches) so it can validate sparse or forward-compatible payloads:
+//
+//   - clears the `required` array, so sparse responses that omit fields still
+//     validate;
+//   - clears `additionalProperties` (reverting to the JSON Schema default of
+//     "allowed"), so fields the SDK response struct doesn't model — for
+//     example, new server-side fields — don't cause validation failures.
 //
 // The schema is mutated in place and returned for convenient chaining at the
 // call site:
@@ -20,6 +23,7 @@ import "github.com/google/jsonschema-go/jsonschema"
 func WithOptionalFields(schema *jsonschema.Schema) *jsonschema.Schema {
 	walkSchema(schema, func(s *jsonschema.Schema) {
 		s.Required = nil
+		s.AdditionalProperties = nil
 	})
 	return schema
 }
