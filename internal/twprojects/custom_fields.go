@@ -461,7 +461,8 @@ func CustomFieldDelete(engine *twapi.Engine) toolsets.ToolWrapper {
 			Name:        string(MethodCustomFieldDelete),
 			Description: "Delete custom field.",
 			Annotations: &mcp.ToolAnnotations{
-				Title: "Delete Custom Field",
+				Title:           "Delete Custom Field",
+				DestructiveHint: new(true),
 			},
 			InputSchema: &jsonschema.Schema{
 				Type: "object",

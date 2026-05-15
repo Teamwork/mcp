@@ -183,7 +183,8 @@ func ProjectCategoryDelete(engine *twapi.Engine) toolsets.ToolWrapper {
 			Name:        string(MethodProjectCategoryDelete),
 			Description: "Delete project category.",
 			Annotations: &mcp.ToolAnnotations{
-				Title: "Delete Project Category",
+				Title:           "Delete Project Category",
+				DestructiveHint: new(true),
 			},
 			InputSchema: &jsonschema.Schema{
 				Type: "object",

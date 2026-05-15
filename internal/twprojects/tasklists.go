@@ -186,7 +186,8 @@ func TasklistDelete(engine *twapi.Engine) toolsets.ToolWrapper {
 			Name:        string(MethodTasklistDelete),
 			Description: "Delete tasklist.",
 			Annotations: &mcp.ToolAnnotations{
-				Title: "Delete Tasklist",
+				Title:           "Delete Tasklist",
+				DestructiveHint: new(true),
 			},
 			InputSchema: &jsonschema.Schema{
 				Type: "object",

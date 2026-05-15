@@ -208,7 +208,8 @@ func CategoryDelete(httpClient *http.Client) toolsets.ToolWrapper {
 		Tool: &mcp.Tool{
 			Name: string(MethodCategoryDelete),
 			Annotations: &mcp.ToolAnnotations{
-				Title: "Delete Category",
+				Title:           "Delete Category",
+				DestructiveHint: new(true),
 			},
 			Description: "Delete space category.",
 			InputSchema: &jsonschema.Schema{

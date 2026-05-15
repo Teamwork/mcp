@@ -314,7 +314,8 @@ func MilestoneDelete(engine *twapi.Engine) toolsets.ToolWrapper {
 			Name:        string(MethodMilestoneDelete),
 			Description: "Delete milestone.",
 			Annotations: &mcp.ToolAnnotations{
-				Title: "Delete Milestone",
+				Title:           "Delete Milestone",
+				DestructiveHint: new(true),
 			},
 			InputSchema: &jsonschema.Schema{
 				Type: "object",

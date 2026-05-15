@@ -415,7 +415,8 @@ func CommentDelete(engine *twapi.Engine) toolsets.ToolWrapper {
 			Name:        string(MethodCommentDelete),
 			Description: "Delete comment.",
 			Annotations: &mcp.ToolAnnotations{
-				Title: "Delete Comment",
+				Title:           "Delete Comment",
+				DestructiveHint: new(true),
 			},
 			InputSchema: &jsonschema.Schema{
 				Type: "object",

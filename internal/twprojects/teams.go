@@ -261,7 +261,8 @@ func TeamDelete(engine *twapi.Engine) toolsets.ToolWrapper {
 			Name:        string(MethodTeamDelete),
 			Description: "Delete team.",
 			Annotations: &mcp.ToolAnnotations{
-				Title: "Delete Team",
+				Title:           "Delete Team",
+				DestructiveHint: new(true),
 			},
 			InputSchema: &jsonschema.Schema{
 				Type: "object",

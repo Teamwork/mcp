@@ -165,7 +165,8 @@ func SkillDelete(engine *twapi.Engine) toolsets.ToolWrapper {
 			Name:        string(MethodSkillDelete),
 			Description: "Delete skill.",
 			Annotations: &mcp.ToolAnnotations{
-				Title: "Delete Skill",
+				Title:           "Delete Skill",
+				DestructiveHint: new(true),
 			},
 			InputSchema: &jsonschema.Schema{
 				Type: "object",

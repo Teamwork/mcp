@@ -211,7 +211,8 @@ func NotebookDelete(engine *twapi.Engine) toolsets.ToolWrapper {
 			Name:        string(MethodNotebookDelete),
 			Description: "Delete notebook.",
 			Annotations: &mcp.ToolAnnotations{
-				Title: "Delete Notebook",
+				Title:           "Delete Notebook",
+				DestructiveHint: new(true),
 			},
 			InputSchema: &jsonschema.Schema{
 				Type: "object",

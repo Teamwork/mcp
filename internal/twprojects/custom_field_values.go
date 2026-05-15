@@ -300,7 +300,8 @@ func CustomFieldValueDelete(engine *twapi.Engine) toolsets.ToolWrapper {
 			Name:        string(MethodCustomFieldValueDelete),
 			Description: "Clear a custom field value from a task, project or company.",
 			Annotations: &mcp.ToolAnnotations{
-				Title: "Delete Custom Field Value",
+				Title:           "Delete Custom Field Value",
+				DestructiveHint: new(true),
 			},
 			InputSchema: &jsonschema.Schema{
 				Type: "object",

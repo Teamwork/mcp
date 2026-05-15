@@ -378,7 +378,8 @@ func LinkDelete(engine *twapi.Engine) toolsets.ToolWrapper {
 			Name:        string(MethodLinkDelete),
 			Description: "Delete link.",
 			Annotations: &mcp.ToolAnnotations{
-				Title: "Delete Link",
+				Title:           "Delete Link",
+				DestructiveHint: new(true),
 			},
 			InputSchema: &jsonschema.Schema{
 				Type: "object",

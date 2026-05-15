@@ -361,7 +361,8 @@ func TimerDelete(engine *twapi.Engine) toolsets.ToolWrapper {
 			Name:        string(MethodTimerDelete),
 			Description: "Delete timer.",
 			Annotations: &mcp.ToolAnnotations{
-				Title: "Delete Timer",
+				Title:           "Delete Timer",
+				DestructiveHint: new(true),
 			},
 			InputSchema: &jsonschema.Schema{
 				Type: "object",

@@ -150,7 +150,8 @@ func WorkflowDelete(engine *twapi.Engine) toolsets.ToolWrapper {
 			Name:        string(MethodWorkflowDelete),
 			Description: "Delete workflow.",
 			Annotations: &mcp.ToolAnnotations{
-				Title: "Delete Workflow",
+				Title:           "Delete Workflow",
+				DestructiveHint: new(true),
 			},
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
