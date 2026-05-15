@@ -34,7 +34,7 @@ func CompanyGet(httpClient *http.Client) toolsets.ToolWrapper {
 				Title:        "Get Company",
 				ReadOnlyHint: true,
 			},
-			Description: "Get Desk company (customer organization).",
+			Description: "Get Desk company (customer organization). Use the 'fields' parameter to request only the fields you need (e.g. [\"id\",\"name\",\"website\"]) and reduce response size.",
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
 				Properties: map[string]*jsonschema.Schema{
@@ -98,7 +98,7 @@ func CompanyList(httpClient *http.Client) toolsets.ToolWrapper {
 				Title:        "List Companies",
 				ReadOnlyHint: true,
 			},
-			Description: "List Desk companies. Filter by name, domains, or kind.",
+			Description: "List Desk companies. Filter by name, domains, or kind. Use the 'fields' parameter to request only the fields you need (e.g. [\"id\",\"name\",\"domains\"]) and reduce response size.",
 			InputSchema: &jsonschema.Schema{
 				Type:       "object",
 				Properties: properties,

@@ -31,7 +31,7 @@ func UserGet(httpClient *http.Client) toolsets.ToolWrapper {
 				Title:        "Get User",
 				ReadOnlyHint: true,
 			},
-			Description: "Get support agent.",
+			Description: "Get support agent. Use the 'fields' parameter to request only the fields you need (e.g. [\"id\",\"firstName\",\"lastName\",\"email\"]) and reduce response size.",
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
 				Properties: map[string]*jsonschema.Schema{
@@ -108,7 +108,7 @@ func UserList(httpClient *http.Client) toolsets.ToolWrapper {
 				Title:        "List Users",
 				ReadOnlyHint: true,
 			},
-			Description: "List support agents. For customers, use twdesk-list_customers.",
+			Description: "List support agents. For customers, use twdesk-list_customers. Use the 'fields' parameter to request only the fields you need (e.g. [\"id\",\"firstName\",\"lastName\",\"email\"]) and reduce response size.",
 			InputSchema: &jsonschema.Schema{
 				Type:       "object",
 				Properties: properties,

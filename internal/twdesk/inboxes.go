@@ -31,7 +31,7 @@ func InboxGet(httpClient *http.Client) toolsets.ToolWrapper {
 				Title:        "Get Inbox",
 				ReadOnlyHint: true,
 			},
-			Description: "Get inbox.",
+			Description: "Get inbox. Use the 'fields' parameter to request only the fields you need (e.g. [\"id\",\"name\",\"email\"]) and reduce response size.",
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
 				Properties: map[string]*jsonschema.Schema{
@@ -87,7 +87,7 @@ func InboxList(httpClient *http.Client) toolsets.ToolWrapper {
 				Title:        "List Inboxes",
 				ReadOnlyHint: true,
 			},
-			Description: "List inboxes. Filter by name or email.",
+			Description: "List inboxes. Filter by name or email. Use the 'fields' parameter to request only the fields you need (e.g. [\"id\",\"name\",\"email\"]) and reduce response size.",
 			InputSchema: &jsonschema.Schema{
 				Type:       "object",
 				Properties: properties,

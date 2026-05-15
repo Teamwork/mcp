@@ -34,7 +34,7 @@ func TagGet(httpClient *http.Client) toolsets.ToolWrapper {
 				Title:        "Get Tag",
 				ReadOnlyHint: true,
 			},
-			Description: "Get Desk tag.",
+			Description: "Get Desk tag. Use the 'fields' parameter to request only the fields you need (e.g. [\"id\",\"name\",\"color\"]) and reduce response size.",
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
 				Properties: map[string]*jsonschema.Schema{
@@ -97,7 +97,7 @@ func TagList(httpClient *http.Client) toolsets.ToolWrapper {
 				Title:        "List Tags",
 				ReadOnlyHint: true,
 			},
-			Description: "List Desk tags. Filter by name, color, or inbox.",
+			Description: "List Desk tags. Filter by name, color, or inbox. Use the 'fields' parameter to request only the fields you need (e.g. [\"id\",\"name\",\"color\"]) and reduce response size.",
 			InputSchema: &jsonschema.Schema{
 				Type:       "object",
 				Properties: properties,
