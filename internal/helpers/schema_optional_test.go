@@ -109,20 +109,52 @@ func TestWithOptionalFields(t *testing.T) {
 			},
 		},
 		{
-			name: "additionalProperties required is cleared",
+			name: "top-level additionalProperties is cleared",
+			schema: &jsonschema.Schema{
+				Type:                 "object",
+				AdditionalProperties: &jsonschema.Schema{Not: &jsonschema.Schema{}}, // falseSchema()
+				Properties: map[string]*jsonschema.Schema{
+					"id": {Type: "integer"},
+				},
+			},
+			check: func(t *testing.T, schema *jsonschema.Schema) {
+				if schema.AdditionalProperties != nil {
+					t.Errorf("expected additionalProperties to be nil, got %#v", schema.AdditionalProperties)
+				}
+			},
+		},
+		{
+			name: "nested additionalProperties is cleared",
 			schema: &jsonschema.Schema{
 				Type: "object",
-				AdditionalProperties: &jsonschema.Schema{
-					Type:     "object",
-					Required: []string{"id"},
-					Properties: map[string]*jsonschema.Schema{
-						"id": {Type: "integer"},
+				Properties: map[string]*jsonschema.Schema{
+					"task": {
+						Type:                 "object",
+						AdditionalProperties: &jsonschema.Schema{Not: &jsonschema.Schema{}},
+						Properties: map[string]*jsonschema.Schema{
+							"id": {Type: "integer"},
+						},
+					},
+					"tasks": {
+						Type: "array",
+						Items: &jsonschema.Schema{
+							Type:                 "object",
+							AdditionalProperties: &jsonschema.Schema{Not: &jsonschema.Schema{}},
+							Properties: map[string]*jsonschema.Schema{
+								"id": {Type: "integer"},
+							},
+						},
 					},
 				},
 			},
 			check: func(t *testing.T, schema *jsonschema.Schema) {
-				if schema.AdditionalProperties.Required != nil {
-					t.Errorf("expected additionalProperties required to be nil, got %v", schema.AdditionalProperties.Required)
+				if schema.Properties["task"].AdditionalProperties != nil {
+					t.Errorf("expected nested additionalProperties to be nil, got %#v",
+						schema.Properties["task"].AdditionalProperties)
+				}
+				if schema.Properties["tasks"].Items.AdditionalProperties != nil {
+					t.Errorf("expected items additionalProperties to be nil, got %#v",
+						schema.Properties["tasks"].Items.AdditionalProperties)
 				}
 			},
 		},
