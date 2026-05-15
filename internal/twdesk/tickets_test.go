@@ -14,20 +14,20 @@ func TestTicketCreate(t *testing.T) {
 	defer cleanup()
 
 	testutil.ExecuteToolRequest(t, mcpServer, twdesk.MethodTicketCreate.String(), map[string]any{
-		"subject":       "Test Ticket",
-		"body":          "This is a test ticket",
-		"inboxId":       float64(1),
+		"subject":        "Test Ticket",
+		"body":           "This is a test ticket",
+		"inboxId":        float64(1),
 		"notifyCustomer": nil,
-		"cc":            []string{"cc@example.com"},
-		"bcc":           []string{"bcc@example.com"},
-		"files":         nil,
-		"tags":          nil,
-		"priorityId":    float64(1),
-		"statusId":      float64(1),
-		"typeId":        float64(1),
-		"customerId":    float64(100),
-		"customerEmail": nil,
-		"agentId":       float64(1),
+		"cc":             []string{"cc@example.com"},
+		"bcc":            []string{"bcc@example.com"},
+		"files":          nil,
+		"tags":           nil,
+		"priorityId":     float64(1),
+		"statusId":       float64(1),
+		"typeId":         float64(1),
+		"customerId":     float64(100),
+		"customerEmail":  nil,
+		"agentId":        float64(1),
 	})
 }
 
