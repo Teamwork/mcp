@@ -72,3 +72,11 @@ Structured content (`structuredContent`) is returned in both modes. The
 optional, so sparse responses returned when `verbose=false` still validate
 against the schema. Single-entity `get_*` tools keep a strict schema with
 required fields intact.
+
+> [!NOTE]
+>
+> Because `list_*` output schemas mark all fields as optional (to support
+> `verbose=false`), they are **incompatible with OpenAI's strict structured-
+> output mode**, which requires every property to be `required` and forbids
+> `additionalProperties`. Clients targeting `list_*` tools must run with
+> strict mode disabled. `get_*` tools remain strict-compatible.

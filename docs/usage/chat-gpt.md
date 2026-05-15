@@ -49,3 +49,12 @@ If the Teamwork.com tools are available, ChatGPT will use them to answer.
 > If the connection fails during OAuth, try opening the **Apps** settings page
 > again and removing the existing Teamwork.com entry before re-creating it.
 > ChatGPT may have cached a stale token.
+
+> [!IMPORTANT]
+>
+> The `list_*` tools (e.g. `twprojects-list_tasks`, `twprojects-list_projects`)
+> expose a `verbose` flag and publish an output schema with all fields marked
+> optional. This is **incompatible with OpenAI's strict structured-output
+> mode**. Ensure the connector is configured with strict mode **disabled**,
+> otherwise `list_*` tool calls will fail schema validation. Single-entity
+> `get_*` tools are unaffected.

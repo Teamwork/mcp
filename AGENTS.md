@@ -73,6 +73,7 @@ Common variables (subset; see command READMEs for complete lists):
   - When `verbose=false`: set sparse fields on `req.Filters.Fields.<Entity>` to a minimal set (typically `id` + name/title) and skip any hardcoded `Filters.Include` sideloads.
   - When `verbose=true`: include sideloads and the full field set.
   - Wrap the published output schema with `helpers.WithOptionalFields(...)` at the `OutputSchema:` line (not in the `init()` block — keep `get_*` schemas strict). This clears every nested `required` array so sparse responses returned when `verbose=false` still validate. `StructuredContent` is always populated in both modes.
+  - OpenAI strict-mode caveat: because `verbose=false` returns a sparse subset of fields, `list_*` output schemas cannot satisfy OpenAI's strict structured-output mode (which requires every property to be `required` and forbids `additionalProperties`). Clients targeting `list_*` tools must run with strict mode disabled; `get_*` tools remain strict-compatible.
 - Run `go test ./internal/twprojects` until green.
 
 ## Security considerations for agents
