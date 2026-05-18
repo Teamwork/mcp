@@ -33,7 +33,7 @@ func Search(httpClient *http.Client) toolsets.ToolWrapper {
 						Description: "The search query string.",
 					},
 					"spaceIds": {
-						Description: "Limit search to specific space IDs. Use 'twspaces-list_spaces' to find valid IDs.",
+						Description: "Limit search to specific spaces. Use twspaces-list_spaces to discover.",
 						AnyOf: []*jsonschema.Schema{
 							{Type: "array", Items: &jsonschema.Schema{Type: "integer"}},
 							{Type: "null"},

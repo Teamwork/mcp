@@ -86,80 +86,56 @@ func TicketGet(httpClient *http.Client) toolsets.ToolWrapper {
 func TicketSearch(httpClient *http.Client) toolsets.ToolWrapper {
 	properties := map[string]*jsonschema.Schema{
 		"search": {
-			Description: `
-				The search term to use for finding tickets.
-				This can be part of the subject, body, or other ticket fields.
-			`,
+			Description: "Search term matched against subject, body, and other ticket fields.",
 			AnyOf: []*jsonschema.Schema{
 				{Type: "string"},
 				{Type: "null"},
 			},
 		},
 		"inboxIDs": {
-			Description: `
-				The IDs of the inboxes to filter by.
-				Inbox IDs can be found by using the 'twdesk-list_inboxes' tool.
-			`,
+			Description: "Filter by inbox. Use twdesk-list_inboxes to discover.",
 			AnyOf: []*jsonschema.Schema{
 				{Type: "array", Items: &jsonschema.Schema{Type: "integer"}},
 				{Type: "null"},
 			},
 		},
 		"customerIDs": {
-			Description: `
-			The IDs of the customers to filter by.
-			Customer IDs can be found by using the 'twdesk-list_customers' tool.
-		`,
+			Description: "Filter by customer. Use twdesk-list_customers to discover.",
 			AnyOf: []*jsonschema.Schema{
 				{Type: "array", Items: &jsonschema.Schema{Type: "integer"}},
 				{Type: "null"},
 			},
 		},
 		"companyIDs": {
-			Description: `
-			The IDs of the companies to filter by.
-			Company IDs can be found by using the 'twdesk-list_companies' tool.
-		`,
+			Description: "Filter by company. Use twdesk-list_companies to discover.",
 			AnyOf: []*jsonschema.Schema{
 				{Type: "array", Items: &jsonschema.Schema{Type: "integer"}},
 				{Type: "null"},
 			},
 		},
 		"tagIDs": {
-			Description: `
-			The IDs of the tags to filter by.
-			Tag IDs can be found by using the 'twdesk-list_tags' tool.
-		`,
+			Description: "Filter by tag. Use twdesk-list_tags to discover.",
 			AnyOf: []*jsonschema.Schema{
 				{Type: "array", Items: &jsonschema.Schema{Type: "integer"}},
 				{Type: "null"},
 			},
 		},
 		"statusIDs": {
-			Description: `
-				The IDs of the statuses to filter by.
-				Status IDs can be found by using the 'twdesk-list_statuses' tool.
-			`,
+			Description: "Filter by status. Use twdesk-list_statuses to discover.",
 			AnyOf: []*jsonschema.Schema{
 				{Type: "array", Items: &jsonschema.Schema{Type: "integer"}},
 				{Type: "null"},
 			},
 		},
 		"priorityIDs": {
-			Description: `
-				The IDs of the priorities to filter by.
-				Priority IDs can be found by using the 'twdesk-list_priorities' tool.
-			`,
+			Description: "Filter by priority. Use twdesk-list_priorities to discover.",
 			AnyOf: []*jsonschema.Schema{
 				{Type: "array", Items: &jsonschema.Schema{Type: "integer"}},
 				{Type: "null"},
 			},
 		},
 		"userIDs": {
-			Description: `
-				The IDs of the users to filter by.
-				User IDs can be found by using the 'twdesk-list_users' tool.
-			`,
+			Description: "Filter by user. Use twdesk-list_users to discover.",
 			AnyOf: []*jsonschema.Schema{
 				{Type: "array", Items: &jsonschema.Schema{Type: "integer"}},
 				{Type: "null"},
@@ -250,11 +226,8 @@ func TicketCreate(httpClient *http.Client) toolsets.ToolWrapper {
 						Description: "The body of the ticket.",
 					},
 					"inboxId": {
-						Type: "integer",
-						Description: `
-					The inbox ID of the ticket.
-					Use the 'twdesk-list_inboxes' tool to find valid IDs.
-				`,
+						Type:        "integer",
+						Description: "Inbox of the ticket. Use twdesk-list_inboxes to discover.",
 					},
 					"notifyCustomer": {
 						Description: "Set to true if the customer should be sent a copy of the ticket.",
@@ -264,96 +237,71 @@ func TicketCreate(httpClient *http.Client) toolsets.ToolWrapper {
 						},
 					},
 					"bcc": {
-						Description: "An array of email addresses to BCC on ticket creation.",
+						Description: "Email addresses to BCC.",
 						AnyOf: []*jsonschema.Schema{
 							{Type: "array", Items: &jsonschema.Schema{Type: "string"}},
 							{Type: "null"},
 						},
 					},
 					"cc": {
-						Description: "An array of email addresses to CC on ticket creation.",
+						Description: "Email addresses to CC.",
 						AnyOf: []*jsonschema.Schema{
 							{Type: "array", Items: &jsonschema.Schema{Type: "string"}},
 							{Type: "null"},
 						},
 					},
 					"files": {
-						Description: `
-							An array of file IDs to attach to the ticket.
-							Use the 'twdesk-create_file' tool to upload files.
-						`,
+						Description: "File IDs to attach. Use twdesk-create_file to upload.",
 						AnyOf: []*jsonschema.Schema{
 							{Type: "array", Items: &jsonschema.Schema{Type: "integer"}},
 							{Type: "null"},
 						},
 					},
 					"tags": {
-						Description: `
-							An array of tag IDs to associate with the ticket.
-							Tag IDs can be found by using the 'twdesk-list_tags' tool.
-						`,
+						Description: "Tags to associate with the ticket. Use twdesk-list_tags to discover.",
 						AnyOf: []*jsonschema.Schema{
 							{Type: "array", Items: &jsonschema.Schema{Type: "integer"}},
 							{Type: "null"},
 						},
 					},
 					"priorityId": {
-						Description: `
-					The priority of the ticket.
-					Use the 'twdesk-list_priorities' tool to find valid IDs.
-				`,
+						Description: "Priority of the ticket. Use twdesk-list_priorities to discover.",
 						AnyOf: []*jsonschema.Schema{
 							{Type: "integer"},
 							{Type: "null"},
 						},
 					},
 					"statusId": {
-						Description: `
-					The status of the ticket.
-					Use the 'twdesk-list_statuses' tool to find valid IDs.
-				`,
+						Description: "Status of the ticket. Use twdesk-list_statuses to discover.",
 						AnyOf: []*jsonschema.Schema{
 							{Type: "integer"},
 							{Type: "null"},
 						},
 					},
 					"customerId": {
-						Description: `
-					The customer ID of the ticket.
-					Use the 'twdesk-list_customers' tool to find valid IDs.
-				`,
+						Description: "Customer of the ticket. Use twdesk-list_customers to discover.",
 						AnyOf: []*jsonschema.Schema{
 							{Type: "integer"},
 							{Type: "null"},
 						},
 					},
 					"customerEmail": {
-						Description: `
-							The email address of the customer.
-							This is used to identify the customer in the system.
-							Either the customerId or customerEmail is required to create a ticket.
-							If email is provided we will either find or create the customer.
-						`,
+						Description: "Customer email; required when customerId is not given. Existing customers are matched, " +
+							"otherwise a new customer is created.",
 						AnyOf: []*jsonschema.Schema{
 							{Type: "string"},
 							{Type: "null"},
 						},
 					},
 					"typeId": {
-						Description: `
-					The type ID of the ticket.
-					Use the 'twdesk-list_ticket_types' tool to find valid IDs.
-				`,
+						Description: "Ticket type. Use twdesk-list_ticket_types to discover.",
 						AnyOf: []*jsonschema.Schema{
 							{Type: "integer"},
 							{Type: "null"},
 						},
 					},
 					"agentId": {
-						Description: `
-							The agent ID that the ticket should be assigned to.
-							Use the 'twdesk-list_users' tool to find valid IDs.
-						`,
+						Description: "Agent the ticket is assigned to. Use twdesk-list_users to discover.",
 						AnyOf: []*jsonschema.Schema{
 							{Type: "integer"},
 							{Type: "null"},
@@ -516,84 +464,63 @@ func TicketUpdate(httpClient *http.Client) toolsets.ToolWrapper {
 						},
 					},
 					"tags": {
-						Description: `
-							An array of tag IDs to associate with the ticket.
-							Tag IDs can be found by using the 'twdesk-list_tags' tool.
-						`,
+						Description: "Tags to associate with the ticket. Use twdesk-list_tags to discover.",
 						AnyOf: []*jsonschema.Schema{
 							{Type: "array", Items: &jsonschema.Schema{Type: "integer"}},
 							{Type: "null"},
 						},
 					},
 					"deleteTags": {
-						Description: `
-							An array of tag IDs that should be removed from the ticket.
-							Tag IDs can be found by using the 'twdesk-list_tags' tool.
-						`,
+						Description: "Tags to remove from the ticket. Use twdesk-list_tags to discover.",
 						AnyOf: []*jsonschema.Schema{
 							{Type: "array", Items: &jsonschema.Schema{Type: "integer"}},
 							{Type: "null"},
 						},
 					},
 					"bcc": {
-						Description: "An array of email addresses to BCC on ticket update.",
+						Description: "Email addresses to BCC.",
 						AnyOf: []*jsonschema.Schema{
 							{Type: "array", Items: &jsonschema.Schema{Type: "string"}},
 							{Type: "null"},
 						},
 					},
 					"cc": {
-						Description: "An array of email addresses to CC on ticket update.",
+						Description: "Email addresses to CC.",
 						AnyOf: []*jsonschema.Schema{
 							{Type: "array", Items: &jsonschema.Schema{Type: "string"}},
 							{Type: "null"},
 						},
 					},
 					"inboxId": {
-						Description: `
-							The inbox ID of the ticket.
-							Use the 'twdesk-list_inboxes' tool to find valid IDs.
-						`,
+						Description: "Inbox of the ticket. Use twdesk-list_inboxes to discover.",
 						AnyOf: []*jsonschema.Schema{
 							{Type: "integer"},
 							{Type: "null"},
 						},
 					},
 					"priorityId": {
-						Description: `
-							The priority of the ticket.
-							Use the 'twdesk-list_priorities' tool to find valid IDs.
-						`,
+						Description: "Priority of the ticket. Use twdesk-list_priorities to discover.",
 						AnyOf: []*jsonschema.Schema{
 							{Type: "integer"},
 							{Type: "null"},
 						},
 					},
 					"statusId": {
-						Description: `
-							The status of the ticket.
-							Use the 'twdesk-list_statuses' tool to find valid IDs.
-						`,
+						Description: "Status of the ticket. Use twdesk-list_statuses to discover.",
 						AnyOf: []*jsonschema.Schema{
 							{Type: "integer"},
 							{Type: "null"},
 						},
 					},
 					"typeId": {
-						Description: `
-							The type ID of the ticket.
-							Use the 'twdesk-list_ticket_types' tool to find valid IDs.
-						`,
+						Description: "Ticket type. Use twdesk-list_ticket_types to discover.",
 						AnyOf: []*jsonschema.Schema{
 							{Type: "integer"},
 							{Type: "null"},
 						},
 					},
 					"agentId": {
-						Description: `
-							The agent ID that the ticket should be assigned to.
-							Use the 'twdesk-list_users' tool to find valid IDs.
-						`,
+						Description: "Agent the ticket is assigned to. Use twdesk-list_users to discover.",
 						AnyOf: []*jsonschema.Schema{
 							{Type: "integer"},
 							{Type: "null"},

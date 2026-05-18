@@ -75,7 +75,7 @@ func TypeList(httpClient *http.Client) toolsets.ToolWrapper {
 			},
 		},
 		"inboxIDs": {
-			Description: "The IDs of the inboxes to filter by. Inbox IDs can be found by using the 'twdesk-list_inboxes' tool.",
+			Description: "Filter by inbox. Use twdesk-list_inboxes to discover.",
 			AnyOf: []*jsonschema.Schema{
 				{Type: "array", Items: &jsonschema.Schema{Type: "integer"}},
 				{Type: "null"},

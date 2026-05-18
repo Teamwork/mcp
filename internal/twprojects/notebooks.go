@@ -81,7 +81,7 @@ func NotebookCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 					},
 					"type": {
 						Type:        "string",
-						Description: "The type of the notebook. Valid values are 'MARKDOWN' and 'HTML'.",
+						Description: "The type of the notebook.",
 						Enum:        []any{"MARKDOWN", "HTML"},
 					},
 					"tag_ids": helpers.TagIDsAssociateSchema("notebook"),
@@ -160,7 +160,7 @@ func NotebookUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 						},
 					},
 					"type": {
-						Description: "The type of the notebook. Valid values are 'MARKDOWN' and 'HTML'.",
+						Description: "The type of the notebook.",
 						AnyOf: []*jsonschema.Schema{
 							{Type: "string", Enum: []any{"MARKDOWN", "HTML"}},
 							{Type: "null"},
@@ -323,7 +323,7 @@ func NotebookList(engine *twapi.Engine) toolsets.ToolWrapper {
 				Type: "object",
 				Properties: map[string]*jsonschema.Schema{
 					"project_ids": {
-						Description: "A list of project IDs to filter notebooks by projects",
+						Description: "Filter notebooks by project.",
 						AnyOf: []*jsonschema.Schema{
 							{Type: "array", Items: &jsonschema.Schema{Type: "integer"}},
 							{Type: "null"},
@@ -339,11 +339,10 @@ func NotebookList(engine *twapi.Engine) toolsets.ToolWrapper {
 						},
 					},
 					"tag_ids":        helpers.TagIDsFilterSchema("notebooks"),
-					"match_all_tags": helpers.MatchAllTagsSchema("notebooks"),
+					"match_all_tags": helpers.MatchAllTagsSchema(),
 					"include_contents": {
-						Description: "If true, the contents of the notebook will be included in the response. " +
-							"Defaults to true.",
-						Default: json.RawMessage(`true`),
+						Description: "If true, include notebook contents in the response.",
+						Default:     json.RawMessage(`true`),
 						AnyOf: []*jsonschema.Schema{
 							{Type: "boolean"},
 							{Type: "null"},

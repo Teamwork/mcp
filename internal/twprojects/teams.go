@@ -116,7 +116,7 @@ func TeamCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 						},
 					},
 					"user_ids": {
-						Description: "A list of user IDs to add to the team.",
+						Description: "Users to add to the team.",
 						AnyOf: []*jsonschema.Schema{
 							{Type: "array", Items: &jsonschema.Schema{Type: "integer"}},
 							{Type: "null"},
@@ -215,7 +215,7 @@ func TeamUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 						},
 					},
 					"user_ids": {
-						Description: "A list of user IDs to add to the team.",
+						Description: "Users to add to the team.",
 						AnyOf: []*jsonschema.Schema{
 							{Type: "array", Items: &jsonschema.Schema{Type: "integer"}},
 							{Type: "null"},

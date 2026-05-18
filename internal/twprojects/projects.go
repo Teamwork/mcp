@@ -73,14 +73,14 @@ func ProjectCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 						},
 					},
 					"start_at": {
-						Description: "The start date of the project in the format YYYYMMDD.",
+						Description: "Start date of the project (format: YYYYMMDD).",
 						AnyOf: []*jsonschema.Schema{
 							{Type: "string"},
 							{Type: "null"},
 						},
 					},
 					"end_at": {
-						Description: "The end date of the project in the format YYYYMMDD.",
+						Description: "End date of the project (format: YYYYMMDD).",
 						AnyOf: []*jsonschema.Schema{
 							{Type: "string"},
 							{Type: "null"},
@@ -173,14 +173,14 @@ func ProjectUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 						},
 					},
 					"start_at": {
-						Description: "The start date of the project in the format YYYYMMDD.",
+						Description: "Start date of the project (format: YYYYMMDD).",
 						AnyOf: []*jsonschema.Schema{
 							{Type: "string"},
 							{Type: "null"},
 						},
 					},
 					"end_at": {
-						Description: "The end date of the project in the format YYYYMMDD.",
+						Description: "End date of the project (format: YYYYMMDD).",
 						AnyOf: []*jsonschema.Schema{
 							{Type: "string"},
 							{Type: "null"},
@@ -209,7 +209,7 @@ func ProjectUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 					},
 					"tag_ids": helpers.TagIDsAssociateSchema("project"),
 					"status": {
-						Description: "The status of the project. Allowed values: active or archived.",
+						Description: "The status of the project.",
 						AnyOf: []*jsonschema.Schema{
 							{Type: "string", Enum: []any{"active", "archived"}},
 							{Type: "null"},
@@ -365,10 +365,9 @@ func ProjectClone(engine *twapi.Engine) toolsets.ToolWrapper {
 						},
 					},
 					"target_date": {
-						Description: "Target date is the desired start or end date for the cloned project " +
-							"(determined by template_date_target). Used only when creating a project from " +
-							"a template (new_from_template=true). Accepted format: YYYYMMDD string. " +
-							"Defaults to the current user date if omitted.",
+						Description: "Desired start or end date for the cloned project (chosen by template_date_target). " +
+							"Only applies when new_from_template=true. Format: YYYYMMDD. " +
+							"Defaults to today.",
 						AnyOf: []*jsonschema.Schema{
 							{Type: "string"},
 							{Type: "null"},
@@ -538,7 +537,7 @@ func ProjectList(engine *twapi.Engine) toolsets.ToolWrapper {
 				Type: "object",
 				Properties: map[string]*jsonschema.Schema{
 					"project_category_ids": {
-						Description: "A list of project category IDs to filter projects by categories.",
+						Description: "Filter projects by category.",
 						AnyOf: []*jsonschema.Schema{
 							{Type: "array", Items: &jsonschema.Schema{Type: "integer"}},
 							{Type: "null"},
@@ -546,7 +545,7 @@ func ProjectList(engine *twapi.Engine) toolsets.ToolWrapper {
 					},
 					"search_term":    helpers.SearchTermSchema("projects", "name or description"),
 					"tag_ids":        helpers.TagIDsFilterSchema("projects"),
-					"match_all_tags": helpers.MatchAllTagsSchema("projects"),
+					"match_all_tags": helpers.MatchAllTagsSchema(),
 					"page":           helpers.PageSchema(),
 					"page_size":      helpers.PageSizeSchema(),
 					"verbose":        helpers.VerboseSchema(),

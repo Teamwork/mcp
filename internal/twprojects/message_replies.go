@@ -77,51 +77,17 @@ func MessageReplyCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 						},
 					},
 					"notify": {
-						Description: "Who should be notified about the new message reply. Accepts either 'all' or an " +
-							"object specifying user, team, or company IDs. By default, all project members are notified.",
-						Default: json.RawMessage(`"all"`),
+						Description: "Who to notify of the new reply.",
+						Default:     json.RawMessage(`"all"`),
 						AnyOf: []*jsonschema.Schema{
 							{
 								AnyOf: []*jsonschema.Schema{
 									{
 										Type:        "string",
 										Description: "Notify all project members.",
-										Enum: []any{
-											"all",
-										},
+										Enum:        []any{"all"},
 									},
-									{
-										Type: "object",
-										Description: "An object containing the users, teams or companies to notify. At least one of the " +
-											"properties (user_ids, team_ids, company_ids) is required.",
-										Properties: map[string]*jsonschema.Schema{
-											"user_ids": {
-												Type:        "array",
-												Description: "List of user IDs to notify.",
-												Items:       &jsonschema.Schema{Type: "integer"},
-												MinItems:    new(1),
-											},
-											"company_ids": {
-												Type:        "array",
-												Description: "List of company IDs to notify.",
-												Items:       &jsonschema.Schema{Type: "integer"},
-												MinItems:    new(1),
-											},
-											"team_ids": {
-												Type:        "array",
-												Description: "List of team IDs to notify.",
-												Items:       &jsonschema.Schema{Type: "integer"},
-												MinItems:    new(1),
-											},
-										},
-										MinProperties: new(1),
-										MaxProperties: new(3),
-										AnyOf: []*jsonschema.Schema{
-											{Required: []string{"user_ids"}},
-											{Required: []string{"company_ids"}},
-											{Required: []string{"team_ids"}},
-										},
-									},
+									helpers.UserGroupsSchema("", true),
 								},
 							},
 							{Type: "null"},
@@ -214,51 +180,17 @@ func MessageReplyUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 						},
 					},
 					"notify": {
-						Description: "Who should be notified about the new messageReply. Accepts either 'all' or an " +
-							"object specifying user, team, or company IDs. By default, all project members are notified.",
-						Default: json.RawMessage(`"all"`),
+						Description: "Who to notify of the reply update.",
+						Default:     json.RawMessage(`"all"`),
 						AnyOf: []*jsonschema.Schema{
 							{
 								AnyOf: []*jsonschema.Schema{
 									{
 										Type:        "string",
 										Description: "Notify all project members.",
-										Enum: []any{
-											"all",
-										},
+										Enum:        []any{"all"},
 									},
-									{
-										Type: "object",
-										Description: "An object containing the users, teams or companies to notify. At least one of the " +
-											"properties (user_ids, team_ids, company_ids) is required.",
-										Properties: map[string]*jsonschema.Schema{
-											"user_ids": {
-												Type:        "array",
-												Description: "List of user IDs to notify.",
-												Items:       &jsonschema.Schema{Type: "integer"},
-												MinItems:    new(1),
-											},
-											"company_ids": {
-												Type:        "array",
-												Description: "List of company IDs to notify.",
-												Items:       &jsonschema.Schema{Type: "integer"},
-												MinItems:    new(1),
-											},
-											"team_ids": {
-												Type:        "array",
-												Description: "List of team IDs to notify.",
-												Items:       &jsonschema.Schema{Type: "integer"},
-												MinItems:    new(1),
-											},
-										},
-										MinProperties: new(1),
-										MaxProperties: new(3),
-										AnyOf: []*jsonschema.Schema{
-											{Required: []string{"user_ids"}},
-											{Required: []string{"company_ids"}},
-											{Required: []string{"team_ids"}},
-										},
-									},
+									helpers.UserGroupsSchema("", true),
 								},
 							},
 							{Type: "null"},
@@ -445,14 +377,14 @@ func MessageReplyList(engine *twapi.Engine) toolsets.ToolWrapper {
 						},
 					},
 					"message_ids": {
-						Description: "A list of message IDs to filter message replies by messages",
+						Description: "Filter by message.",
 						AnyOf: []*jsonschema.Schema{
 							{Type: "array", Items: &jsonschema.Schema{Type: "integer"}},
 							{Type: "null"},
 						},
 					},
 					"project_ids": {
-						Description: "A list of project IDs to filter message replies by projects",
+						Description: "Filter by project.",
 						AnyOf: []*jsonschema.Schema{
 							{Type: "array", Items: &jsonschema.Schema{Type: "integer"}},
 							{Type: "null"},

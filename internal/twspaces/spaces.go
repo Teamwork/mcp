@@ -146,8 +146,7 @@ func SpaceCreate(httpClient *http.Client) toolsets.ToolWrapper {
 						},
 					},
 					"categoryId": {
-						Description: "The ID of the category to assign to this space. " +
-							"Use the 'twspaces-list_categories' tool to find valid IDs.",
+						Description: "Category to assign. Use twspaces-list_categories to discover.",
 						AnyOf: []*jsonschema.Schema{
 							{Type: "integer"},
 							{Type: "null"},
@@ -260,8 +259,7 @@ func SpaceUpdate(httpClient *http.Client) toolsets.ToolWrapper {
 						},
 					},
 					"categoryId": {
-						Description: "The ID of the category to assign to this space. " +
-							"Use the 'twspaces-list_categories' tool to find valid IDs.",
+						Description: "Category to assign. Use twspaces-list_categories to discover.",
 						AnyOf: []*jsonschema.Schema{
 							{Type: "integer"},
 							{Type: "null"},

@@ -475,7 +475,7 @@ func CustomFieldValueList(engine *twapi.Engine) toolsets.ToolWrapper {
 						Description: "The ID of the task, project or company to list custom field values for.",
 					},
 					"custom_field_ids": {
-						Description: "A list of custom field IDs to filter values by.",
+						Description: "Filter by custom field.",
 						AnyOf: []*jsonschema.Schema{
 							{Type: "array", Items: &jsonschema.Schema{Type: "integer"}},
 							{Type: "null"},

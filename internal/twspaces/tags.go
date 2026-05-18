@@ -107,7 +107,7 @@ func TagCreateBatch(httpClient *http.Client) toolsets.ToolWrapper {
 				Properties: map[string]*jsonschema.Schema{
 					"tags": {
 						Type:        "array",
-						Description: "An array of tags to create.",
+						Description: "Tags to create.",
 						Items: &jsonschema.Schema{
 							Type: "object",
 							Properties: map[string]*jsonschema.Schema{

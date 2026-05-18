@@ -107,51 +107,17 @@ func LinkCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 						},
 					},
 					"notify": {
-						Description: "Who should be notified about the new link. Accepts either 'all' or an " +
-							"object specifying user, team, or company IDs. By default, all project members are notified.",
-						Default: json.RawMessage(`"all"`),
+						Description: "Who to notify of the new link.",
+						Default:     json.RawMessage(`"all"`),
 						AnyOf: []*jsonschema.Schema{
 							{
 								AnyOf: []*jsonschema.Schema{
 									{
 										Type:        "string",
 										Description: "Notify all project members.",
-										Enum: []any{
-											"all",
-										},
+										Enum:        []any{"all"},
 									},
-									{
-										Type: "object",
-										Description: "An object containing the users, teams or companies to notify. At least one of the " +
-											"properties (user_ids, team_ids, company_ids) is required.",
-										Properties: map[string]*jsonschema.Schema{
-											"user_ids": {
-												Type:        "array",
-												Description: "List of user IDs to notify.",
-												Items:       &jsonschema.Schema{Type: "integer"},
-												MinItems:    new(1),
-											},
-											"company_ids": {
-												Type:        "array",
-												Description: "List of company IDs to notify.",
-												Items:       &jsonschema.Schema{Type: "integer"},
-												MinItems:    new(1),
-											},
-											"team_ids": {
-												Type:        "array",
-												Description: "List of team IDs to notify.",
-												Items:       &jsonschema.Schema{Type: "integer"},
-												MinItems:    new(1),
-											},
-										},
-										MinProperties: new(1),
-										MaxProperties: new(3),
-										AnyOf: []*jsonschema.Schema{
-											{Required: []string{"user_ids"}},
-											{Required: []string{"company_ids"}},
-											{Required: []string{"team_ids"}},
-										},
-									},
+									helpers.UserGroupsSchema("", true),
 								},
 							},
 							{Type: "null"},
@@ -262,51 +228,17 @@ func LinkUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 						},
 					},
 					"notify": {
-						Description: "Who should be notified about the new link. Accepts either 'all' or an " +
-							"object specifying user, team, or company IDs. By default, all project members are notified.",
-						Default: json.RawMessage(`"all"`),
+						Description: "Who to notify of the link update.",
+						Default:     json.RawMessage(`"all"`),
 						AnyOf: []*jsonschema.Schema{
 							{
 								AnyOf: []*jsonschema.Schema{
 									{
 										Type:        "string",
 										Description: "Notify all project members.",
-										Enum: []any{
-											"all",
-										},
+										Enum:        []any{"all"},
 									},
-									{
-										Type: "object",
-										Description: "An object containing the users, teams or companies to notify. At least one of the " +
-											"properties (user_ids, team_ids, company_ids) is required.",
-										Properties: map[string]*jsonschema.Schema{
-											"user_ids": {
-												Type:        "array",
-												Description: "List of user IDs to notify.",
-												Items:       &jsonschema.Schema{Type: "integer"},
-												MinItems:    new(1),
-											},
-											"company_ids": {
-												Type:        "array",
-												Description: "List of company IDs to notify.",
-												Items:       &jsonschema.Schema{Type: "integer"},
-												MinItems:    new(1),
-											},
-											"team_ids": {
-												Type:        "array",
-												Description: "List of team IDs to notify.",
-												Items:       &jsonschema.Schema{Type: "integer"},
-												MinItems:    new(1),
-											},
-										},
-										MinProperties: new(1),
-										MaxProperties: new(3),
-										AnyOf: []*jsonschema.Schema{
-											{Required: []string{"user_ids"}},
-											{Required: []string{"company_ids"}},
-											{Required: []string{"team_ids"}},
-										},
-									},
+									helpers.UserGroupsSchema("", true),
 								},
 							},
 							{Type: "null"},
@@ -507,7 +439,7 @@ func LinkList(engine *twapi.Engine) toolsets.ToolWrapper {
 						},
 					},
 					"tag_ids":        helpers.TagIDsFilterSchema("links"),
-					"match_all_tags": helpers.MatchAllTagsSchema("links"),
+					"match_all_tags": helpers.MatchAllTagsSchema(),
 					"page":           helpers.PageSchema(),
 					"page_size":      helpers.PageSizeSchema(),
 					"verbose":        helpers.VerboseSchema(),

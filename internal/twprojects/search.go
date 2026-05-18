@@ -70,7 +70,7 @@ func Search(engine *twapi.Engine) toolsets.ToolWrapper {
 						},
 					},
 					"updated_after": {
-						Description: "Only include items updated after this date. Must be follow RFC3339 format.",
+						Description: "Only include items updated after this date.",
 						AnyOf: []*jsonschema.Schema{
 							{Type: "string"},
 							{Type: "null"},

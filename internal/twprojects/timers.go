@@ -71,11 +71,12 @@ func TimerCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 						},
 					},
 					"billable": {
-						Description: "If true, the timer is billable. Defaults to false.",
+						Description: "If true, the timer is billable.",
 						AnyOf: []*jsonschema.Schema{
 							{Type: "boolean"},
 							{Type: "null"},
 						},
+						Default: []byte("false"),
 					},
 					"running": {
 						Description: "If true, the timer will start running immediately.",
@@ -497,12 +498,12 @@ func TimerList(engine *twapi.Engine) toolsets.ToolWrapper {
 						},
 					},
 					"running_timers_only": {
-						Description: "If true, only running timers will be returned. " +
-							"Defaults to false, which returns all timers.",
+						Description: "If true, only running timers are returned.",
 						AnyOf: []*jsonschema.Schema{
 							{Type: "boolean"},
 							{Type: "null"},
 						},
+						Default: []byte("false"),
 					},
 					"page":      helpers.PageSchema(),
 					"page_size": helpers.PageSizeSchema(),
