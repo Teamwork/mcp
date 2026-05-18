@@ -12,7 +12,7 @@ require (
 	github.com/localit-io/tiktoken-go v0.2.1
 	github.com/modelcontextprotocol/go-sdk v1.6.0
 	github.com/teamwork/desksdkgo v1.0.0
-	github.com/teamwork/spacessdkgo v0.0.0-20260422163745-684bf200d31d
+	github.com/teamwork/spacessdkgo v0.0.0-20260518181558-a6af69d00abb
 	github.com/teamwork/twapi-go-sdk v1.17.0
 )
 
