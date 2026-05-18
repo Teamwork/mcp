@@ -359,6 +359,15 @@ func PageUpdate(httpClient *http.Client) toolsets.ToolWrapper {
 							{Type: "null"},
 						},
 					},
+					"draftVersion": {
+						Description: "Optimistic concurrency token for the page's draft content. Required when updating " +
+							"`content`; optional otherwise. Obtain the current value from the `draftVersion` field with " +
+							"twspaces-get_page or twspaces-list_pages tools.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "integer"},
+							{Type: "null"},
+						},
+					},
 					"parentId": {
 						Description: "The ID of the new parent page (to move the page).",
 						AnyOf: []*jsonschema.Schema{
@@ -433,6 +442,9 @@ func PageUpdate(httpClient *http.Client) toolsets.ToolWrapper {
 			}
 			if content := arguments.GetString("content", ""); content != "" {
 				req.Content = &content
+			}
+			if draftVersion := int64(arguments.GetInt("draftVersion", 0)); draftVersion > 0 {
+				req.DraftVersion = &draftVersion
 			}
 			if slug := arguments.GetString("slug", ""); slug != "" {
 				req.Slug = &slug
