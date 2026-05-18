@@ -172,24 +172,25 @@ func newRouter(resources config.Resources) *http.ServeMux {
 }
 
 func addRouterMiddlewares(resources config.Resources, mux *http.ServeMux) http.Handler {
-	return stripProfile(resources.Info.MCPProfiles,
-		limitBodyMiddleware(
-			requestInfoMiddleware(
-				logMiddleware(resources.Logger(),
-					sentryMiddleware(
-						resources,
-						tracerMiddleware(
-							resources,
-							authMiddleware(
-								resources,
-								mux,
-							),
-						),
-					),
-				),
-			),
-		),
+	return chainMiddlewares(mux,
+		func(h http.Handler) http.Handler { return stripProfile(resources.Info.MCPProfiles, h) },
+		htmlIndexMiddleware,
+		limitBodyMiddleware,
+		requestInfoMiddleware,
+		func(h http.Handler) http.Handler { return logMiddleware(resources.Logger(), h) },
+		func(h http.Handler) http.Handler { return sentryMiddleware(resources, h) },
+		func(h http.Handler) http.Handler { return tracerMiddleware(resources, h) },
+		func(h http.Handler) http.Handler { return authMiddleware(resources, h) },
 	)
+}
+
+// chainMiddlewares applies middlewares so the first argument is the outermost
+// wrapper (runs first on the request, last on the response).
+func chainMiddlewares(h http.Handler, mws ...func(http.Handler) http.Handler) http.Handler {
+	for i := len(mws) - 1; i >= 0; i-- {
+		h = mws[i](h)
+	}
+	return h
 }
 
 // stripProfile is a middleware that checks if the request path starts with a
@@ -207,6 +208,19 @@ func stripProfile(profiles []string, next http.Handler) http.Handler {
 				r.Header.Add("TW-MCP-Profile", profile)
 				break
 			}
+		}
+		next.ServeHTTP(w, r)
+	})
+}
+
+func htmlIndexMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// If the request is for the root path and accepts HTML, redirect to the MCP
+		// homepage. This is a simplified check that doesn't cover Accept priority
+		// (q values), but it should be sufficient to cover most cases (if not all).
+		if r.URL.Path == "/" && strings.Contains(r.Header.Get("Accept"), "text/html") {
+			http.Redirect(w, r, "https://www.teamwork.com/ai/mcp/", http.StatusPermanentRedirect)
+			return
 		}
 		next.ServeHTTP(w, r)
 	})
