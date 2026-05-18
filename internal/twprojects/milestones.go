@@ -77,49 +77,12 @@ func MilestoneCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 					},
 					"due_date": {
 						Type: "string",
-						Description: "The due date of the milestone in the format YYYYMMDD. This date will be used in all tasks " +
-							"without a due date related to this milestone.",
+						Description: "The due date of the milestone (format: YYYYMMDD). " +
+							"Used for related tasks without their own due date.",
 					},
-					"assignees": {
-						Type: "object",
-						Description: "An object containing assignees for the milestone. " +
-							"MUST contain at least one of: user_ids, company_ids or team_ids with non-empty arrays.",
-						Properties: map[string]*jsonschema.Schema{
-							"user_ids": {
-								Type:        "array",
-								Description: "List of user IDs assigned to the milestone.",
-								Items: &jsonschema.Schema{
-									Type: "integer",
-								},
-								MinItems: new(1),
-							},
-							"company_ids": {
-								Type:        "array",
-								Description: "List of company IDs assigned to the milestone.",
-								Items: &jsonschema.Schema{
-									Type: "integer",
-								},
-								MinItems: new(1),
-							},
-							"team_ids": {
-								Type:        "array",
-								Description: "List of team IDs assigned to the milestone.",
-								Items: &jsonschema.Schema{
-									Type: "integer",
-								},
-								MinItems: new(1),
-							},
-						},
-						MinProperties: new(1),
-						MaxProperties: new(3),
-						AnyOf: []*jsonschema.Schema{
-							{Required: []string{"user_ids"}},
-							{Required: []string{"company_ids"}},
-							{Required: []string{"team_ids"}},
-						},
-					},
+					"assignees": helpers.UserGroupsSchema("Assignees for the milestone.", true),
 					"tasklist_ids": {
-						Description: "A list of tasklist IDs to associate with the milestone.",
+						Description: "Tasklists to associate with the milestone.",
 						AnyOf: []*jsonschema.Schema{
 							{Type: "array", Items: &jsonschema.Schema{Type: "integer"}},
 							{Type: "null"},
@@ -208,57 +171,16 @@ func MilestoneUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 						},
 					},
 					"due_date": {
-						Description: "The due date of the milestone in the format YYYYMMDD. This date will be used in all tasks " +
-							"without a due date related to this milestone.",
+						Description: "The due date of the milestone (format: YYYYMMDD). " +
+							"Used for related tasks without their own due date.",
 						AnyOf: []*jsonschema.Schema{
 							{Type: "string"},
 							{Type: "null"},
 						},
 					},
-					"assignees": {
-						Description: "An object containing assignees for the milestone.",
-						AnyOf: []*jsonschema.Schema{
-							{
-								Type: "object",
-								Properties: map[string]*jsonschema.Schema{
-									"user_ids": {
-										Type:        "array",
-										Description: "List of user IDs assigned to the milestone.",
-										Items: &jsonschema.Schema{
-											Type: "integer",
-										},
-										MinItems: new(1),
-									},
-									"company_ids": {
-										Type:        "array",
-										Description: "List of company IDs assigned to the milestone.",
-										Items: &jsonschema.Schema{
-											Type: "integer",
-										},
-										MinItems: new(1),
-									},
-									"team_ids": {
-										Type:        "array",
-										Description: "List of team IDs assigned to the milestone.",
-										Items: &jsonschema.Schema{
-											Type: "integer",
-										},
-										MinItems: new(1),
-									},
-								},
-								MinProperties: new(1),
-								MaxProperties: new(3),
-								AnyOf: []*jsonschema.Schema{
-									{Required: []string{"user_ids"}},
-									{Required: []string{"company_ids"}},
-									{Required: []string{"team_ids"}},
-								},
-							},
-							{Type: "null"},
-						},
-					},
+					"assignees": helpers.UserGroupsSchema("Assignees for the milestone.", false),
 					"tasklist_ids": {
-						Description: "A list of tasklist IDs to associate with the milestone.",
+						Description: "Tasklists to associate with the milestone.",
 						AnyOf: []*jsonschema.Schema{
 							{Type: "array", Items: &jsonschema.Schema{Type: "integer"}},
 							{Type: "null"},
@@ -444,7 +366,7 @@ func MilestoneList(engine *twapi.Engine) toolsets.ToolWrapper {
 						},
 					},
 					"tag_ids":        helpers.TagIDsFilterSchema("milestones"),
-					"match_all_tags": helpers.MatchAllTagsSchema("milestones"),
+					"match_all_tags": helpers.MatchAllTagsSchema(),
 					"page":           helpers.PageSchema(),
 					"page_size":      helpers.PageSizeSchema(),
 					"verbose":        helpers.VerboseSchema(),

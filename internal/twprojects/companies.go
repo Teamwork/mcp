@@ -521,7 +521,7 @@ func CompanyList(engine *twapi.Engine) toolsets.ToolWrapper {
 						},
 					},
 					"tag_ids":        helpers.TagIDsFilterSchema("companies"),
-					"match_all_tags": helpers.MatchAllTagsSchema("companies"),
+					"match_all_tags": helpers.MatchAllTagsSchema(),
 					"page":           helpers.PageSchema(),
 					"page_size":      helpers.PageSizeSchema(),
 					"verbose":        helpers.VerboseSchema(),

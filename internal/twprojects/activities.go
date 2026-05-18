@@ -58,20 +58,8 @@ func ActivityList(engine *twapi.Engine) toolsets.ToolWrapper {
 							{Type: "null"},
 						},
 					},
-					"start_date": {
-						Description: "Start date to filter activities. The date format follows RFC3339 - YYYY-MM-DDTHH:MM:SSZ.",
-						AnyOf: []*jsonschema.Schema{
-							{Type: "string", Format: "date-time"},
-							{Type: "null"},
-						},
-					},
-					"end_date": {
-						Description: "End date to filter activities. The date format follows RFC3339 - YYYY-MM-DDTHH:MM:SSZ.",
-						AnyOf: []*jsonschema.Schema{
-							{Type: "string", Format: "date-time"},
-							{Type: "null"},
-						},
-					},
+					"start_date": helpers.DateTimeFilterSchema("Start of the activity window."),
+					"end_date":   helpers.DateTimeFilterSchema("End of the activity window."),
 					"log_item_types": {
 						Description: "Filter activities by item types.",
 						AnyOf: []*jsonschema.Schema{

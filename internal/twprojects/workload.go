@@ -54,36 +54,36 @@ func UsersWorkload(engine *twapi.Engine) toolsets.ToolWrapper {
 					"start_date": {
 						Type:        "string",
 						Format:      "date",
-						Description: "The start date of the workload period. The date must be in the format YYYY-MM-DD.",
+						Description: "Start of the workload period.",
 					},
 					"end_date": {
 						Type:        "string",
 						Format:      "date",
-						Description: "The end date of the workload period. The date must be in the format YYYY-MM-DD.",
+						Description: "End of the workload period.",
 					},
 					"user_ids": {
-						Description: "List of user IDs to filter the workload by.",
+						Description: "Filter workload by user.",
 						AnyOf: []*jsonschema.Schema{
 							{Type: "array", Items: &jsonschema.Schema{Type: "integer"}},
 							{Type: "null"},
 						},
 					},
 					"user_company_ids": {
-						Description: "List of users' client/company IDs to filter the workload by.",
+						Description: "Filter workload by users' client/company.",
 						AnyOf: []*jsonschema.Schema{
 							{Type: "array", Items: &jsonschema.Schema{Type: "integer"}},
 							{Type: "null"},
 						},
 					},
 					"user_team_ids": {
-						Description: "List of users' team IDs to filter the workload by.",
+						Description: "Filter workload by users' team.",
 						AnyOf: []*jsonschema.Schema{
 							{Type: "array", Items: &jsonschema.Schema{Type: "integer"}},
 							{Type: "null"},
 						},
 					},
 					"project_ids": {
-						Description: "List of project IDs to filter the workload by.",
+						Description: "Filter workload by project.",
 						AnyOf: []*jsonschema.Schema{
 							{Type: "array", Items: &jsonschema.Schema{Type: "integer"}},
 							{Type: "null"},

@@ -77,7 +77,7 @@ func TimelogCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 					"date": {
 						Type:        "string",
 						Format:      "date",
-						Description: "The date of the timelog in the format YYYY-MM-DD.",
+						Description: "The date of the timelog.",
 					},
 					"time": {
 						Type:        "string",
@@ -85,11 +85,12 @@ func TimelogCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 						Description: "The time of the timelog in the format HH:MM:SS.",
 					},
 					"is_utc": {
-						Description: "If true, the time is in UTC. Defaults to false.",
+						Description: "If true, the time is in UTC.",
 						AnyOf: []*jsonschema.Schema{
 							{Type: "boolean"},
 							{Type: "null"},
 						},
+						Default: []byte("false"),
 					},
 					"hours": {
 						Type:        "integer",
@@ -97,35 +98,33 @@ func TimelogCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 					},
 					"minutes": {
 						Type: "integer",
-						Description: "The number of minutes spent on the timelog. Must be a positive integer less than 60, " +
-							"otherwise the hours attribute should be incremented.",
+						Description: "Minutes spent on the timelog. Must be a positive integer less than 60; " +
+							"otherwise increment hours instead.",
 					},
 					"billable": {
-						Description: "If true, the timelog is billable. Defaults to false.",
+						Description: "If true, the timelog is billable.",
 						AnyOf: []*jsonschema.Schema{
 							{Type: "boolean"},
 							{Type: "null"},
 						},
+						Default: []byte("false"),
 					},
 					"project_id": {
-						Description: "The ID of the project to associate the timelog with. Either project_id or task_id must be " +
-							"provided, but not both.",
+						Description: "Project the timelog is logged against. Provide exactly one of project_id or task_id.",
 						AnyOf: []*jsonschema.Schema{
 							{Type: "integer"},
 							{Type: "null"},
 						},
 					},
 					"task_id": {
-						Description: "The ID of the task to associate the timelog with. Either project_id or task_id must be " +
-							"provided, but not both.",
+						Description: "Task the timelog is logged against. Provide exactly one of project_id or task_id.",
 						AnyOf: []*jsonschema.Schema{
 							{Type: "integer"},
 							{Type: "null"},
 						},
 					},
 					"user_id": {
-						Description: "The ID of the user to associate the timelog with. Defaults to the authenticated user if " +
-							"not provided.",
+						Description: "User the timelog is logged for. Defaults to the authenticated user.",
 						AnyOf: []*jsonschema.Schema{
 							{Type: "integer"},
 							{Type: "null"},
@@ -192,13 +191,7 @@ func TimelogUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 							{Type: "null"},
 						},
 					},
-					"date": {
-						Description: "The date of the timelog in the format YYYY-MM-DD.",
-						AnyOf: []*jsonschema.Schema{
-							{Type: "string", Format: "date"},
-							{Type: "null"},
-						},
-					},
+					"date": helpers.DateFilterSchema("The date of the timelog."),
 					"time": {
 						Description: "The time of the timelog in the format HH:MM:SS.",
 						AnyOf: []*jsonschema.Schema{
@@ -207,11 +200,12 @@ func TimelogUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 						},
 					},
 					"is_utc": {
-						Description: "If true, the time is in UTC. Defaults to false.",
+						Description: "If true, the time is in UTC.",
 						AnyOf: []*jsonschema.Schema{
 							{Type: "boolean"},
 							{Type: "null"},
 						},
+						Default: []byte("false"),
 					},
 					"hours": {
 						Description: "The number of hours spent on the timelog. Must be a positive integer.",
@@ -221,39 +215,37 @@ func TimelogUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 						},
 					},
 					"minutes": {
-						Description: "The number of minutes spent on the timelog. Must be a positive integer less than 60, " +
-							"otherwise the hours attribute should be incremented.",
+						Description: "Minutes spent on the timelog. Must be a positive integer less than 60; " +
+							"otherwise increment hours instead.",
 						AnyOf: []*jsonschema.Schema{
 							{Type: "integer"},
 							{Type: "null"},
 						},
 					},
 					"billable": {
-						Description: "If true, the timelog is billable. Defaults to false.",
+						Description: "If true, the timelog is billable.",
 						AnyOf: []*jsonschema.Schema{
 							{Type: "boolean"},
 							{Type: "null"},
 						},
+						Default: []byte("false"),
 					},
 					"project_id": {
-						Description: "The ID of the project to associate the timelog with. Either project_id or task_id must be " +
-							"provided, but not both.",
+						Description: "Project the timelog is logged against. Provide exactly one of project_id or task_id.",
 						AnyOf: []*jsonschema.Schema{
 							{Type: "integer"},
 							{Type: "null"},
 						},
 					},
 					"task_id": {
-						Description: "The ID of the task to associate the timelog with. Either project_id or task_id must be " +
-							"provided, but not both.",
+						Description: "Task the timelog is logged against. Provide exactly one of project_id or task_id.",
 						AnyOf: []*jsonschema.Schema{
 							{Type: "integer"},
 							{Type: "null"},
 						},
 					},
 					"user_id": {
-						Description: "The ID of the user to associate the timelog with. Defaults to the authenticated user if " +
-							"not provided.",
+						Description: "User the timelog is logged for. Defaults to the authenticated user.",
 						AnyOf: []*jsonschema.Schema{
 							{Type: "integer"},
 							{Type: "null"},
@@ -414,44 +406,32 @@ func TimelogList(engine *twapi.Engine) toolsets.ToolWrapper {
 						},
 					},
 					"tag_ids":        helpers.TagIDsFilterSchema("timelogs"),
-					"match_all_tags": helpers.MatchAllTagsSchema("timelogs"),
-					"start_date": {
-						Description: "Start date to filter timelogs. The date format follows RFC3339 - YYYY-MM-DDTHH:MM:SSZ.",
-						AnyOf: []*jsonschema.Schema{
-							{Type: "string", Format: "date-time"},
-							{Type: "null"},
-						},
-					},
-					"end_date": {
-						Description: "End date to filter timelogs. The date format follows RFC3339 - YYYY-MM-DDTHH:MM:SSZ.",
-						AnyOf: []*jsonschema.Schema{
-							{Type: "string", Format: "date-time"},
-							{Type: "null"},
-						},
-					},
+					"match_all_tags": helpers.MatchAllTagsSchema(),
+					"start_date":     helpers.DateTimeFilterSchema("Start of the timelog window."),
+					"end_date":       helpers.DateTimeFilterSchema("End of the timelog window."),
 					"assigned_user_ids": {
-						Description: "A list of user IDs to filter timelogs by assigned users",
+						Description: "Filter timelogs by assigned user.",
 						AnyOf: []*jsonschema.Schema{
 							{Type: "array", Items: &jsonschema.Schema{Type: "integer"}},
 							{Type: "null"},
 						},
 					},
 					"assigned_company_ids": {
-						Description: "A list of company IDs to filter timelogs by assigned companies",
+						Description: "Filter timelogs by assigned company.",
 						AnyOf: []*jsonschema.Schema{
 							{Type: "array", Items: &jsonschema.Schema{Type: "integer"}},
 							{Type: "null"},
 						},
 					},
 					"assigned_team_ids": {
-						Description: "A list of team IDs to filter timelogs by assigned teams",
+						Description: "Filter timelogs by assigned team.",
 						AnyOf: []*jsonschema.Schema{
 							{Type: "array", Items: &jsonschema.Schema{Type: "integer"}},
 							{Type: "null"},
 						},
 					},
 					"ticketIds": {
-						Description: "A list of desk ticket IDs to filter timelogs by associated desk tickets",
+						Description: "Filter timelogs by associated desk ticket.",
 						AnyOf: []*jsonschema.Schema{
 							{Type: "array", Items: &jsonschema.Schema{Type: "integer"}},
 							{Type: "null"},

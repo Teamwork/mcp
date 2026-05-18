@@ -105,56 +105,22 @@ func CommentCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 						},
 					},
 					"notify": {
-						Description: "Who should be notified about the new comment. Accepts either 'all', true (followers) or an " +
-							"object specifying user, team, or company IDs. By default, followers are notified.",
-						Default: json.RawMessage(`true`),
+						Description: "Who to notify of the new comment.",
+						Default:     json.RawMessage(`true`),
 						AnyOf: []*jsonschema.Schema{
 							{
 								AnyOf: []*jsonschema.Schema{
 									{
 										Type:        "string",
 										Description: "Notify all project members.",
-										Enum: []any{
-											"all",
-										},
+										Enum:        []any{"all"},
 									},
 									{
 										Type:        "boolean",
 										Description: "Notify all followers of the entity this comment is related to.",
 										Enum:        []any{true},
 									},
-									{
-										Type: "object",
-										Description: "An object containing the users, teams or companies to notify. At least one of the " +
-											"properties (user_ids, team_ids, company_ids) is required.",
-										Properties: map[string]*jsonschema.Schema{
-											"user_ids": {
-												Type:        "array",
-												Description: "List of user IDs to notify.",
-												Items:       &jsonschema.Schema{Type: "integer"},
-												MinItems:    new(1),
-											},
-											"company_ids": {
-												Type:        "array",
-												Description: "List of company IDs to notify.",
-												Items:       &jsonschema.Schema{Type: "integer"},
-												MinItems:    new(1),
-											},
-											"team_ids": {
-												Type:        "array",
-												Description: "List of team IDs to notify.",
-												Items:       &jsonschema.Schema{Type: "integer"},
-												MinItems:    new(1),
-											},
-										},
-										MinProperties: new(1),
-										MaxProperties: new(3),
-										AnyOf: []*jsonschema.Schema{
-											{Required: []string{"user_ids"}},
-											{Required: []string{"company_ids"}},
-											{Required: []string{"team_ids"}},
-										},
-									},
+									helpers.UserGroupsSchema("", true),
 								},
 							},
 							{Type: "null"},
@@ -291,56 +257,22 @@ func CommentUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 						},
 					},
 					"notify": {
-						Description: "Who should be notified about the comment change. Accepts either 'all', true (followers) or " +
-							"an object specifying user, team, or company IDs. By default, followers are notified.",
-						Default: json.RawMessage(`true`),
+						Description: "Who to notify of the comment change.",
+						Default:     json.RawMessage(`true`),
 						AnyOf: []*jsonschema.Schema{
 							{
 								AnyOf: []*jsonschema.Schema{
 									{
 										Type:        "string",
 										Description: "Notify all project members.",
-										Enum: []any{
-											"all",
-										},
+										Enum:        []any{"all"},
 									},
 									{
 										Type:        "boolean",
 										Description: "Notify all followers of the entity this comment is related to.",
 										Enum:        []any{true},
 									},
-									{
-										Type: "object",
-										Description: "An object containing the users, teams or companies to notify. At least one of the " +
-											"properties (user_ids, team_ids, company_ids) is required.",
-										Properties: map[string]*jsonschema.Schema{
-											"user_ids": {
-												Type:        "array",
-												Description: "List of user IDs to notify.",
-												Items:       &jsonschema.Schema{Type: "integer"},
-												MinItems:    new(1),
-											},
-											"company_ids": {
-												Type:        "array",
-												Description: "List of company IDs to notify.",
-												Items:       &jsonschema.Schema{Type: "integer"},
-												MinItems:    new(1),
-											},
-											"team_ids": {
-												Type:        "array",
-												Description: "List of team IDs to notify.",
-												Items:       &jsonschema.Schema{Type: "integer"},
-												MinItems:    new(1),
-											},
-										},
-										MinProperties: new(1),
-										MaxProperties: new(3),
-										AnyOf: []*jsonschema.Schema{
-											{Required: []string{"user_ids"}},
-											{Required: []string{"company_ids"}},
-											{Required: []string{"team_ids"}},
-										},
-									},
+									helpers.UserGroupsSchema("", true),
 								},
 							},
 							{Type: "null"},
@@ -560,15 +492,9 @@ func CommentList(engine *twapi.Engine) toolsets.ToolWrapper {
 						},
 					},
 					"search_term": helpers.SearchTermSchema("comments", "name"),
-					"updated_after": {
-						Description: "Filter comments updated after this date and time. " +
-							"The date format follows RFC3339 - YYYY-MM-DDTHH:MM:SSZ. By default it will only return comments " +
-							"updated on the last 3 months.",
-						AnyOf: []*jsonschema.Schema{
-							{Type: "string", Format: "date-time"},
-							{Type: "null"},
-						},
-					},
+					"updated_after": helpers.DateTimeFilterSchema(
+						"Filter comments updated after. Defaults to the last 3 months.",
+					),
 					"page":      helpers.PageSchema(),
 					"page_size": helpers.PageSizeSchema(),
 					"verbose":   helpers.VerboseSchema(),

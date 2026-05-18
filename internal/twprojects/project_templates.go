@@ -45,14 +45,14 @@ func ProjectTemplateCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 						},
 					},
 					"start_at": {
-						Description: "The start date of the project template in the format YYYYMMDD.",
+						Description: "Start date of the project template (format: YYYYMMDD).",
 						AnyOf: []*jsonschema.Schema{
 							{Type: "string"},
 							{Type: "null"},
 						},
 					},
 					"end_at": {
-						Description: "The end date of the project template in the format YYYYMMDD.",
+						Description: "End date of the project template (format: YYYYMMDD).",
 						AnyOf: []*jsonschema.Schema{
 							{Type: "string"},
 							{Type: "null"},
@@ -128,7 +128,7 @@ func ProjectTemplateList(engine *twapi.Engine) toolsets.ToolWrapper {
 				Type: "object",
 				Properties: map[string]*jsonschema.Schema{
 					"project_category_ids": {
-						Description: "A list of project category IDs to filter project templates by categories.",
+						Description: "Filter project templates by category.",
 						AnyOf: []*jsonschema.Schema{
 							{Type: "array", Items: &jsonschema.Schema{Type: "integer"}},
 							{Type: "null"},
@@ -136,7 +136,7 @@ func ProjectTemplateList(engine *twapi.Engine) toolsets.ToolWrapper {
 					},
 					"search_term":    helpers.SearchTermSchema("project templates", "name or description"),
 					"tag_ids":        helpers.TagIDsFilterSchema("project templates"),
-					"match_all_tags": helpers.MatchAllTagsSchema("project templates"),
+					"match_all_tags": helpers.MatchAllTagsSchema(),
 					"page":           helpers.PageSchema(),
 					"page_size":      helpers.PageSizeSchema(),
 				},

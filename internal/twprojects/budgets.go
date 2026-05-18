@@ -60,14 +60,14 @@ func ProjectBudgetList(engine *twapi.Engine) toolsets.ToolWrapper {
 				Type: "object",
 				Properties: map[string]*jsonschema.Schema{
 					"project_ids": {
-						Description: "A list of project IDs to filter budgets by project.",
+						Description: "Filter budgets by project.",
 						AnyOf: []*jsonschema.Schema{
 							{Type: "array", Items: &jsonschema.Schema{Type: "integer"}},
 							{Type: "null"},
 						},
 					},
 					"status": {
-						Description: "Filter budgets by status. Allowed values: upcoming, active, complete.",
+						Description: "Filter budgets by status.",
 						AnyOf: []*jsonschema.Schema{
 							{Type: "string", Enum: []any{"upcoming", "active", "complete"}},
 							{Type: "null"},

@@ -564,14 +564,14 @@ func CustomFieldList(engine *twapi.Engine) toolsets.ToolWrapper {
 						},
 					},
 					"ids": {
-						Description: "A list of custom field IDs to retrieve.",
+						Description: "Custom field IDs to retrieve.",
 						AnyOf: []*jsonschema.Schema{
 							{Type: "array", Items: &jsonschema.Schema{Type: "integer"}},
 							{Type: "null"},
 						},
 					},
 					"entities": {
-						Description: "A list of entity types to filter custom fields by.",
+						Description: "Filter custom fields by entity type.",
 						AnyOf: []*jsonschema.Schema{
 							{
 								Type: "array",
@@ -588,7 +588,7 @@ func CustomFieldList(engine *twapi.Engine) toolsets.ToolWrapper {
 						},
 					},
 					"project_ids": {
-						Description: "A list of project IDs to filter custom fields by.",
+						Description: "Filter custom fields by project.",
 						AnyOf: []*jsonschema.Schema{
 							{Type: "array", Items: &jsonschema.Schema{Type: "integer"}},
 							{Type: "null"},

@@ -106,9 +106,7 @@ func TagIDsAssociateSchema(entity string) *jsonschema.Schema {
 // fields optional) so sparse payloads still validate.
 func VerboseSchema() *jsonschema.Schema {
 	return &jsonschema.Schema{
-		Description: "If true (default), the response includes full entity details. " +
-			"If false, only a minimal subset of fields (typically an id and a name/title) is returned to " +
-			"reduce response size — useful when scanning many results to pick an id before fetching the full entity.",
+		Description: "If false, returns id + name only — useful when scanning many results.",
 		AnyOf: []*jsonschema.Schema{
 			{Type: "boolean"},
 			{Type: "null"},
@@ -119,15 +117,85 @@ func VerboseSchema() *jsonschema.Schema {
 
 // MatchAllTagsSchema returns the schema for the boolean flag that switches
 // tag filtering between AND (true) and OR (false) semantics.
-func MatchAllTagsSchema(entity string) *jsonschema.Schema {
+func MatchAllTagsSchema() *jsonschema.Schema {
 	return &jsonschema.Schema{
-		Description: fmt.Sprintf(
-			"If true, the search will match %s that have all the specified tags. "+
-				"If false, the search will match %s that have any of the specified tags. "+
-				"Defaults to false.",
-			entity, entity),
+		Description: "If true, match all tags; if false, match any.",
 		AnyOf: []*jsonschema.Schema{
 			{Type: "boolean"},
+			{Type: "null"},
+		},
+		Default: []byte(`false`),
+	}
+}
+
+// UserGroupsSchema returns the schema for a user/team/company groups
+// parameter. The object accepts user_ids, company_ids, and/or team_ids arrays;
+// at least one (and at most all three) must be supplied with non-empty values.
+// When required is true the returned schema is a bare object; when false it is
+// wrapped in AnyOf with null so the caller can omit the field. The caller
+// supplies the purpose-specific framing as description (pass "" when the helper
+// is used as a branch of an outer schema that already carries a description).
+func UserGroupsSchema(description string, required bool) *jsonschema.Schema {
+	obj := &jsonschema.Schema{
+		Type: "object",
+		Properties: map[string]*jsonschema.Schema{
+			"user_ids": {
+				Type:     "array",
+				Items:    &jsonschema.Schema{Type: "integer"},
+				MinItems: new(1),
+			},
+			"company_ids": {
+				Type:     "array",
+				Items:    &jsonschema.Schema{Type: "integer"},
+				MinItems: new(1),
+			},
+			"team_ids": {
+				Type:     "array",
+				Items:    &jsonschema.Schema{Type: "integer"},
+				MinItems: new(1),
+			},
+		},
+		MinProperties: new(1),
+		MaxProperties: new(3),
+		AnyOf: []*jsonschema.Schema{
+			{Required: []string{"user_ids"}},
+			{Required: []string{"company_ids"}},
+			{Required: []string{"team_ids"}},
+		},
+	}
+	if required {
+		obj.Description = description
+		return obj
+	}
+	return &jsonschema.Schema{
+		Description: description,
+		AnyOf: []*jsonschema.Schema{
+			obj,
+			{Type: "null"},
+		},
+	}
+}
+
+// DateTimeFilterSchema returns the schema for an optional RFC 3339 date-time
+// filter parameter. The caller supplies the purpose-specific description.
+func DateTimeFilterSchema(description string) *jsonschema.Schema {
+	return &jsonschema.Schema{
+		Description: description,
+		AnyOf: []*jsonschema.Schema{
+			{Type: "string", Format: "date-time"},
+			{Type: "null"},
+		},
+	}
+}
+
+// DateFilterSchema returns the schema for an optional ISO 8601 date
+// (YYYY-MM-DD) filter parameter. The caller supplies the purpose-specific
+// description.
+func DateFilterSchema(description string) *jsonschema.Schema {
+	return &jsonschema.Schema{
+		Description: description,
+		AnyOf: []*jsonschema.Schema{
+			{Type: "string", Format: "date"},
 			{Type: "null"},
 		},
 	}

@@ -269,8 +269,7 @@ func TagList(engine *twapi.Engine) toolsets.ToolWrapper {
 						},
 					},
 					"item_type": {
-						Description: "The type of item to filter tags by. Valid values are 'project', 'task', 'tasklist', " +
-							"'milestone', 'message', 'timelog', 'notebook', 'file', 'company' and 'link'.",
+						Description: "Filter tags by item type.",
 						AnyOf: []*jsonschema.Schema{
 							{
 								Type: "string",
@@ -291,7 +290,7 @@ func TagList(engine *twapi.Engine) toolsets.ToolWrapper {
 						},
 					},
 					"project_ids": {
-						Description: "A list of project IDs to filter tags by projects",
+						Description: "Filter by project.",
 						AnyOf: []*jsonschema.Schema{
 							{Type: "array", Items: &jsonschema.Schema{Type: "integer"}},
 							{Type: "null"},

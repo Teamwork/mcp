@@ -67,7 +67,7 @@ func TaskCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 					},
 					"tasklist_id": {
 						Type:        "integer",
-						Description: "Tasklist ID. Use list_tasklists to find one.",
+						Description: "Tasklist ID. Use twprojects-list_tasklists to find one.",
 					},
 					"description": {
 						Description: "The description of the task. Support for plain text and Markdown formatting.",
@@ -77,7 +77,7 @@ func TaskCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 						},
 					},
 					"priority": {
-						Description: "The priority of the task. Possible values are: low, medium, high.",
+						Description: "The priority of the task.",
 						AnyOf: []*jsonschema.Schema{
 							{Type: "string", Enum: []any{"low", "medium", "high"}},
 							{Type: "null"},
@@ -90,21 +90,10 @@ func TaskCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 							{Type: "null"},
 						},
 					},
-					"start_date": {
-						Description: "The start date of the task in ISO 8601 format (YYYY-MM-DD).",
-						AnyOf: []*jsonschema.Schema{
-							{Type: "string", Format: "date"},
-							{Type: "null"},
-						},
-					},
-					"due_date": {
-						Description: "The due date of the task in ISO 8601 format (YYYY-MM-DD). When this is not provided, it " +
-							"will fallback to the milestone due date if a milestone is set.",
-						AnyOf: []*jsonschema.Schema{
-							{Type: "string", Format: "date"},
-							{Type: "null"},
-						},
-					},
+					"start_date": helpers.DateFilterSchema("The start date of the task."),
+					"due_date": helpers.DateFilterSchema(
+						"The due date of the task. If omitted, falls back to the milestone due date when one is set.",
+					),
 					"estimated_minutes": {
 						Description: "The estimated time to complete the task in minutes.",
 						AnyOf: []*jsonschema.Schema{
@@ -119,46 +108,10 @@ func TaskCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 							{Type: "null"},
 						},
 					},
-					"assignees": {
-						Description: "An object containing assignees for the task.",
-						AnyOf: []*jsonschema.Schema{
-							{
-								Type: "object",
-								Properties: map[string]*jsonschema.Schema{
-									"user_ids": {
-										Type:        "array",
-										Description: "List of user IDs assigned to the task.",
-										Items:       &jsonschema.Schema{Type: "integer"},
-										MinItems:    new(1),
-									},
-									"company_ids": {
-										Type:        "array",
-										Description: "List of company IDs assigned to the task.",
-										Items:       &jsonschema.Schema{Type: "integer"},
-										MinItems:    new(1),
-									},
-									"team_ids": {
-										Type:        "array",
-										Description: "List of team IDs assigned to the task.",
-										Items:       &jsonschema.Schema{Type: "integer"},
-										MinItems:    new(1),
-									},
-								},
-								MinProperties: new(1),
-								MaxProperties: new(3),
-								AnyOf: []*jsonschema.Schema{
-									{Required: []string{"user_ids"}},
-									{Required: []string{"company_ids"}},
-									{Required: []string{"team_ids"}},
-								},
-							},
-							{Type: "null"},
-						},
-					},
-					"tag_ids": helpers.TagIDsAssociateSchema("task"),
+					"assignees": helpers.UserGroupsSchema("Assignees for the task.", false),
+					"tag_ids":   helpers.TagIDsAssociateSchema("task"),
 					"predecessors": {
-						Description: "List of task dependencies that must be completed before this task can start, defining its " +
-							"position in the project workflow and ensuring proper sequencing of work.",
+						Description: "Task dependencies that must be completed before this task can start.",
 						AnyOf: []*jsonschema.Schema{
 							{
 								Type: "array",
@@ -171,9 +124,8 @@ func TaskCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 										},
 										"type": {
 											Type: "string",
-											Description: "The type of dependency. Possible values are: start or complete. 'start' means this " +
-												"task can complete when the predecessor starts, 'complete' means this task can complete when " +
-												"the predecessor completes.",
+											Description: "'start' means this task can complete when the predecessor starts; " +
+												"'complete' means this task can complete when the predecessor completes.",
 											Enum: []any{"start", "complete"},
 										},
 									},
@@ -182,114 +134,9 @@ func TaskCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 							{Type: "null"},
 						},
 					},
-					"change_followers": {
-						Description: "An object containing the followers of any task changes.",
-						AnyOf: []*jsonschema.Schema{
-							{
-								Type: "object",
-								Properties: map[string]*jsonschema.Schema{
-									"user_ids": {
-										Type:        "array",
-										Description: "List of user IDs following the task changes.",
-										Items:       &jsonschema.Schema{Type: "integer"},
-										MinItems:    new(1),
-									},
-									"company_ids": {
-										Type:        "array",
-										Description: "List of company IDs following the task changes.",
-										Items:       &jsonschema.Schema{Type: "integer"},
-										MinItems:    new(1),
-									},
-									"team_ids": {
-										Type:        "array",
-										Description: "List of team IDs following the task changes.",
-										Items:       &jsonschema.Schema{Type: "integer"},
-										MinItems:    new(1),
-									},
-								},
-								MinProperties: new(1),
-								MaxProperties: new(3),
-								AnyOf: []*jsonschema.Schema{
-									{Required: []string{"user_ids"}},
-									{Required: []string{"company_ids"}},
-									{Required: []string{"team_ids"}},
-								},
-							},
-							{Type: "null"},
-						},
-					},
-					"comment_followers": {
-						Description: "An object containing the followers of any task comments.",
-						AnyOf: []*jsonschema.Schema{
-							{
-								Type: "object",
-								Properties: map[string]*jsonschema.Schema{
-									"user_ids": {
-										Type:        "array",
-										Description: "List of user IDs following the task comments.",
-										Items:       &jsonschema.Schema{Type: "integer"},
-										MinItems:    new(1),
-									},
-									"company_ids": {
-										Type:        "array",
-										Description: "List of company IDs following the task comments.",
-										Items:       &jsonschema.Schema{Type: "integer"},
-										MinItems:    new(1),
-									},
-									"team_ids": {
-										Type:        "array",
-										Description: "List of team IDs following the task comments.",
-										Items:       &jsonschema.Schema{Type: "integer"},
-										MinItems:    new(1),
-									},
-								},
-								MinProperties: new(1),
-								MaxProperties: new(3),
-								AnyOf: []*jsonschema.Schema{
-									{Required: []string{"user_ids"}},
-									{Required: []string{"company_ids"}},
-									{Required: []string{"team_ids"}},
-								},
-							},
-							{Type: "null"},
-						},
-					},
-					"complete_followers": {
-						Description: "An object containing the followers of any task completions.",
-						AnyOf: []*jsonschema.Schema{
-							{
-								Type: "object",
-								Properties: map[string]*jsonschema.Schema{
-									"user_ids": {
-										Type:        "array",
-										Description: "List of user IDs following the task completions.",
-										Items:       &jsonschema.Schema{Type: "integer"},
-										MinItems:    new(1),
-									},
-									"company_ids": {
-										Type:        "array",
-										Description: "List of company IDs following the task completions.",
-										Items:       &jsonschema.Schema{Type: "integer"},
-										MinItems:    new(1),
-									},
-									"team_ids": {
-										Type:        "array",
-										Description: "List of team IDs following the task completions.",
-										Items:       &jsonschema.Schema{Type: "integer"},
-										MinItems:    new(1),
-									},
-								},
-								MinProperties: new(1),
-								MaxProperties: new(3),
-								AnyOf: []*jsonschema.Schema{
-									{Required: []string{"user_ids"}},
-									{Required: []string{"company_ids"}},
-									{Required: []string{"team_ids"}},
-								},
-							},
-							{Type: "null"},
-						},
-					},
+					"change_followers":   helpers.UserGroupsSchema("Followers of any task changes.", false),
+					"comment_followers":  helpers.UserGroupsSchema("Followers of any task comments.", false),
+					"complete_followers": helpers.UserGroupsSchema("Followers of any task completions.", false),
 				},
 				Required: []string{"name", "tasklist_id"},
 			},
@@ -436,7 +283,7 @@ func TaskUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 						},
 					},
 					"priority": {
-						Description: "The priority of the task. Possible values are: low, medium, high.",
+						Description: "The priority of the task.",
 						AnyOf: []*jsonschema.Schema{
 							{Type: "string", Enum: []any{"low", "medium", "high"}},
 							{Type: "null"},
@@ -449,21 +296,10 @@ func TaskUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 							{Type: "null"},
 						},
 					},
-					"start_date": {
-						Description: "The start date of the task in ISO 8601 format (YYYY-MM-DD).",
-						AnyOf: []*jsonschema.Schema{
-							{Type: "string", Format: "date"},
-							{Type: "null"},
-						},
-					},
-					"due_date": {
-						Description: "The due date of the task in ISO 8601 format (YYYY-MM-DD). When this is not provided, it " +
-							"will fallback to the milestone due date if a milestone is set.",
-						AnyOf: []*jsonschema.Schema{
-							{Type: "string", Format: "date"},
-							{Type: "null"},
-						},
-					},
+					"start_date": helpers.DateFilterSchema("The start date of the task."),
+					"due_date": helpers.DateFilterSchema(
+						"The due date of the task. If omitted, falls back to the milestone due date when one is set.",
+					),
 					"estimated_minutes": {
 						Description: "The estimated time to complete the task in minutes.",
 						AnyOf: []*jsonschema.Schema{
@@ -478,46 +314,10 @@ func TaskUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 							{Type: "null"},
 						},
 					},
-					"assignees": {
-						Description: "An object containing assignees for the task.",
-						AnyOf: []*jsonschema.Schema{
-							{
-								Type: "object",
-								Properties: map[string]*jsonschema.Schema{
-									"user_ids": {
-										Type:        "array",
-										Description: "List of user IDs assigned to the task.",
-										Items:       &jsonschema.Schema{Type: "integer"},
-										MinItems:    new(1),
-									},
-									"company_ids": {
-										Type:        "array",
-										Description: "List of company IDs assigned to the task.",
-										Items:       &jsonschema.Schema{Type: "integer"},
-										MinItems:    new(1),
-									},
-									"team_ids": {
-										Type:        "array",
-										Description: "List of team IDs assigned to the task.",
-										Items:       &jsonschema.Schema{Type: "integer"},
-										MinItems:    new(1),
-									},
-								},
-								MinProperties: new(1),
-								MaxProperties: new(3),
-								AnyOf: []*jsonschema.Schema{
-									{Required: []string{"user_ids"}},
-									{Required: []string{"company_ids"}},
-									{Required: []string{"team_ids"}},
-								},
-							},
-							{Type: "null"},
-						},
-					},
-					"tag_ids": helpers.TagIDsAssociateSchema("task"),
+					"assignees": helpers.UserGroupsSchema("Assignees for the task.", false),
+					"tag_ids":   helpers.TagIDsAssociateSchema("task"),
 					"predecessors": {
-						Description: "List of task dependencies that must be completed before this task can start, defining its " +
-							"position in the project workflow and ensuring proper sequencing of work.",
+						Description: "Task dependencies that must be completed before this task can start.",
 						AnyOf: []*jsonschema.Schema{
 							{
 								Type: "array",
@@ -530,9 +330,8 @@ func TaskUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 										},
 										"type": {
 											Type: "string",
-											Description: "The type of dependency. Possible values are: start or complete. 'start' means this " +
-												"task can complete when the predecessor starts, 'complete' means this task can complete when the " +
-												"predecessor completes.",
+											Description: "'start' means this task can complete when the predecessor starts; " +
+												"'complete' means this task can complete when the predecessor completes.",
 											Enum: []any{"start", "complete"},
 										},
 									},
@@ -541,114 +340,9 @@ func TaskUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 							{Type: "null"},
 						},
 					},
-					"change_followers": {
-						Description: "An object containing the followers of any task changes.",
-						AnyOf: []*jsonschema.Schema{
-							{
-								Type: "object",
-								Properties: map[string]*jsonschema.Schema{
-									"user_ids": {
-										Type:        "array",
-										Description: "List of user IDs following the task changes.",
-										Items:       &jsonschema.Schema{Type: "integer"},
-										MinItems:    new(1),
-									},
-									"company_ids": {
-										Type:        "array",
-										Description: "List of company IDs following the task changes.",
-										Items:       &jsonschema.Schema{Type: "integer"},
-										MinItems:    new(1),
-									},
-									"team_ids": {
-										Type:        "array",
-										Description: "List of team IDs following the task changes.",
-										Items:       &jsonschema.Schema{Type: "integer"},
-										MinItems:    new(1),
-									},
-								},
-								MinProperties: new(1),
-								MaxProperties: new(3),
-								AnyOf: []*jsonschema.Schema{
-									{Required: []string{"user_ids"}},
-									{Required: []string{"company_ids"}},
-									{Required: []string{"team_ids"}},
-								},
-							},
-							{Type: "null"},
-						},
-					},
-					"comment_followers": {
-						Description: "An object containing the followers of any task comments.",
-						AnyOf: []*jsonschema.Schema{
-							{
-								Type: "object",
-								Properties: map[string]*jsonschema.Schema{
-									"user_ids": {
-										Type:        "array",
-										Description: "List of user IDs following the task comments.",
-										Items:       &jsonschema.Schema{Type: "integer"},
-										MinItems:    new(1),
-									},
-									"company_ids": {
-										Type:        "array",
-										Description: "List of company IDs following the task comments.",
-										Items:       &jsonschema.Schema{Type: "integer"},
-										MinItems:    new(1),
-									},
-									"team_ids": {
-										Type:        "array",
-										Description: "List of team IDs following the task comments.",
-										Items:       &jsonschema.Schema{Type: "integer"},
-										MinItems:    new(1),
-									},
-								},
-								MinProperties: new(1),
-								MaxProperties: new(3),
-								AnyOf: []*jsonschema.Schema{
-									{Required: []string{"user_ids"}},
-									{Required: []string{"company_ids"}},
-									{Required: []string{"team_ids"}},
-								},
-							},
-							{Type: "null"},
-						},
-					},
-					"complete_followers": {
-						Description: "An object containing the followers of any task completions.",
-						AnyOf: []*jsonschema.Schema{
-							{
-								Type: "object",
-								Properties: map[string]*jsonschema.Schema{
-									"user_ids": {
-										Type:        "array",
-										Description: "List of user IDs following the task completions.",
-										Items:       &jsonschema.Schema{Type: "integer"},
-										MinItems:    new(1),
-									},
-									"company_ids": {
-										Type:        "array",
-										Description: "List of company IDs following the task completions.",
-										Items:       &jsonschema.Schema{Type: "integer"},
-										MinItems:    new(1),
-									},
-									"team_ids": {
-										Type:        "array",
-										Description: "List of team IDs following the task completions.",
-										Items:       &jsonschema.Schema{Type: "integer"},
-										MinItems:    new(1),
-									},
-								},
-								MinProperties: new(1),
-								MaxProperties: new(3),
-								AnyOf: []*jsonschema.Schema{
-									{Required: []string{"user_ids"}},
-									{Required: []string{"company_ids"}},
-									{Required: []string{"team_ids"}},
-								},
-							},
-							{Type: "null"},
-						},
-					},
+					"change_followers":   helpers.UserGroupsSchema("Followers of any task changes.", false),
+					"comment_followers":  helpers.UserGroupsSchema("Followers of any task comments.", false),
+					"complete_followers": helpers.UserGroupsSchema("Followers of any task completions.", false),
 				},
 				Required: []string{"id"},
 			},
@@ -944,16 +638,16 @@ func TaskList(engine *twapi.Engine) toolsets.ToolWrapper {
 					},
 					"search_term": helpers.SearchTermSchema("tasks", "name"),
 					"assignee_user_ids": {
-						Description: "A list of user IDs to filter tasks by assigned users",
+						Description: "Filter tasks by assignee.",
 						AnyOf: []*jsonschema.Schema{
 							{Type: "array", Items: &jsonschema.Schema{Type: "integer"}},
 							{Type: "null"},
 						},
 					},
 					"tag_ids":        helpers.TagIDsFilterSchema("tasks"),
-					"match_all_tags": helpers.MatchAllTagsSchema("tasks"),
+					"match_all_tags": helpers.MatchAllTagsSchema(),
 					"created_after": {
-						Description: "Filter tasks created after this date and time in RFC 3339 format.",
+						Description: "Filter tasks created after.",
 						Examples:    []any{"2023-01-01T00:00:00Z"},
 						AnyOf: []*jsonschema.Schema{
 							{Type: "string", Format: "date-time"},
@@ -961,7 +655,7 @@ func TaskList(engine *twapi.Engine) toolsets.ToolWrapper {
 						},
 					},
 					"created_before": {
-						Description: "Filter tasks created before this date and time in RFC 3339 format.",
+						Description: "Filter tasks created before.",
 						Examples:    []any{"2023-12-31T23:59:59Z"},
 						AnyOf: []*jsonschema.Schema{
 							{Type: "string", Format: "date-time"},
@@ -969,14 +663,14 @@ func TaskList(engine *twapi.Engine) toolsets.ToolWrapper {
 						},
 					},
 					"created_by_user_ids": {
-						Description: "A list of user IDs to filter tasks by creator",
+						Description: "Filter tasks by creator.",
 						AnyOf: []*jsonschema.Schema{
 							{Type: "array", Items: &jsonschema.Schema{Type: "integer"}},
 							{Type: "null"},
 						},
 					},
 					"updated_after": {
-						Description: "Filter tasks updated after this date and time in RFC 3339 format.",
+						Description: "Filter tasks updated after.",
 						Examples:    []any{"2023-01-01T00:00:00Z"},
 						AnyOf: []*jsonschema.Schema{
 							{Type: "string", Format: "date-time"},
@@ -984,7 +678,7 @@ func TaskList(engine *twapi.Engine) toolsets.ToolWrapper {
 						},
 					},
 					"updated_before": {
-						Description: "Filter tasks updated before this date and time in RFC 3339 format.",
+						Description: "Filter tasks updated before.",
 						Examples:    []any{"2023-12-31T23:59:59Z"},
 						AnyOf: []*jsonschema.Schema{
 							{Type: "string", Format: "date-time"},
@@ -992,7 +686,7 @@ func TaskList(engine *twapi.Engine) toolsets.ToolWrapper {
 						},
 					},
 					"completed_after": {
-						Description: "Filter tasks completed after this date and time in RFC 3339 format.",
+						Description: "Filter tasks completed after.",
 						Examples:    []any{"2023-01-01T00:00:00Z"},
 						AnyOf: []*jsonschema.Schema{
 							{Type: "string", Format: "date-time"},
@@ -1000,7 +694,7 @@ func TaskList(engine *twapi.Engine) toolsets.ToolWrapper {
 						},
 					},
 					"completed_before": {
-						Description: "Filter tasks completed before this date and time in RFC 3339 format.",
+						Description: "Filter tasks completed before.",
 						Examples:    []any{"2023-12-31T23:59:59Z"},
 						AnyOf: []*jsonschema.Schema{
 							{Type: "string", Format: "date-time"},

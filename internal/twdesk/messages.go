@@ -38,10 +38,8 @@ func MessageCreate(httpClient *http.Client) toolsets.ToolWrapper {
 						Description: "The ID of the ticket that the message will be sent to.",
 					},
 					"threadType": {
-						Description: `
-							The thread type. Use 'message' for a customer-facing reply (default), 
-							or 'note' for an internal agent note not visible to the customer.
-						`,
+						Description: "'message' is a customer-facing reply; 'note' is an internal agent note.",
+						Default:     []byte(`"message"`),
 						AnyOf: []*jsonschema.Schema{
 							{Type: "string", Enum: []any{"message", "note"}},
 							{Type: "null"},
@@ -52,14 +50,14 @@ func MessageCreate(httpClient *http.Client) toolsets.ToolWrapper {
 						Description: "The body of the message.",
 					},
 					"bcc": {
-						Description: "An array of email addresses to BCC on message reply.",
+						Description: "Email addresses to BCC.",
 						AnyOf: []*jsonschema.Schema{
 							{Type: "array", Items: &jsonschema.Schema{Type: "string"}},
 							{Type: "null"},
 						},
 					},
 					"cc": {
-						Description: "An array of email addresses to CC on message reply.",
+						Description: "Email addresses to CC.",
 						AnyOf: []*jsonschema.Schema{
 							{Type: "array", Items: &jsonschema.Schema{Type: "string"}},
 							{Type: "null"},
