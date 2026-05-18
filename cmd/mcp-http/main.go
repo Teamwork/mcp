@@ -218,7 +218,12 @@ func htmlIndexMiddleware(next http.Handler) http.Handler {
 		// If the request is for the root path and accepts HTML, redirect to the MCP
 		// homepage. This is a simplified check that doesn't cover Accept priority
 		// (q values), but it should be sufficient to cover most cases (if not all).
-		if r.URL.Path == "/" && strings.Contains(r.Header.Get("Accept"), "text/html") {
+		acceptHeader := r.Header.Get("Accept")
+		isHTMLRquest := strings.Contains(acceptHeader, "text/html")
+		if strings.Contains(acceptHeader, "application/json") || strings.Contains(acceptHeader, "text/event-stream") {
+			isHTMLRquest = false
+		}
+		if r.URL.Path == "/" && isHTMLRquest {
 			http.Redirect(w, r, "https://www.teamwork.com/ai/mcp/", http.StatusPermanentRedirect)
 			return
 		}
