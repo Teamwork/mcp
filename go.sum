@@ -28,8 +28,8 @@ github.com/DataDog/datadog-agent/pkg/version v0.77.1 h1:pGImVW3aVgqznYLNfq3zbzJ/
 github.com/DataDog/datadog-agent/pkg/version v0.77.1/go.mod h1:h9eJjfeTHlYYv+kzq6n3rQ07qXGirdCCacn1Ryu4TFQ=
 github.com/DataDog/datadog-go/v5 v5.8.3 h1:s58CUJ9s8lezjhTNJO/SxkPBv2qZjS3ktpRSqGF5n0s=
 github.com/DataDog/datadog-go/v5 v5.8.3/go.mod h1:K9kcYBlxkcPP8tvvjZZKs/m1edNAUFzBbdpTUKfCsuw=
-github.com/DataDog/dd-trace-go/contrib/net/http/v2 v2.8.1 h1:8vaDZRb8jZ8PzKJ45jF4XozqEzGJ2IGFO7J9JzP6oOA=
-github.com/DataDog/dd-trace-go/contrib/net/http/v2 v2.8.1/go.mod h1:8XMvLYLyUIy/cLpBnxovP6J/U5CEGVWFTejO2MpTKzU=
+github.com/DataDog/dd-trace-go/contrib/net/http/v2 v2.8.2 h1:1SzbuUrneu7KLAISAQ9IoyYb52AjIhhoJ3eo5gABYBU=
+github.com/DataDog/dd-trace-go/contrib/net/http/v2 v2.8.2/go.mod h1:ramxhGQArfADueyZhZK4iOQfe6cjXBUjUV9Z9SXyP4w=
 github.com/DataDog/dd-trace-go/v2 v2.8.2 h1:ZqF2M7j5DPG7PxkJpLIjF4L62LU/QnI86oOSAZjQC/U=
 github.com/DataDog/dd-trace-go/v2 v2.8.2/go.mod h1:o+fhXzd1mPT4Ji5YYcqIjORnNKWcS6m2eW4xqdJplRA=
 github.com/DataDog/go-libddwaf/v4 v4.9.0 h1:a788e37iuH7sR9uIYHkulvTnp2FkXTiZ3yY/kuaHgZE=
