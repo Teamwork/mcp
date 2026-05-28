@@ -96,5 +96,3 @@ require (
 	gopkg.in/ini.v1 v1.67.1 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
-
-replace github.com/teamwork/twapi-go-sdk => ../twapi-go-sdk
