@@ -4,8 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"sync"
-	"time"
 
 	"github.com/google/jsonschema-go/jsonschema"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
@@ -41,91 +39,6 @@ func init() {
 	}
 	helpers.WithMetaWebLinkSchema(customItemFieldListOutputSchema)
 }
-
-// ---------------------------------------------------------------------------
-// Field schema cache
-// ---------------------------------------------------------------------------
-//
-// resolveFieldSchema fetches the field definitions for a custom item type
-// once and reuses them across record reads, record writes, and field
-// inspections within a short TTL window. This keeps the common "create
-// record" flow at one extra GET per custom item type per minute, not per
-// record. Plan §6 sets the budget; this helper is the implementation.
-//
-// Invalidation: any field create/update/delete invalidates the entry for the
-// affected custom item type. Type delete also invalidates. Other writes do
-// not touch the cache.
-
-const fieldSchemaCacheTTL = 60 * time.Second
-
-type fieldSchemaEntry struct {
-	fields  []projects.CustomItemField
-	expires time.Time
-}
-
-var (
-	fieldSchemaMu    sync.Mutex
-	fieldSchemaCache = map[int64]fieldSchemaEntry{}
-)
-
-// resolveFieldSchema returns the fields defined on the given custom item
-// type, hitting an in-process cache first. The result must be treated as
-// read-only — it is shared across goroutines.
-func resolveFieldSchema(
-	ctx context.Context,
-	engine *twapi.Engine,
-	customItemID int64,
-) ([]projects.CustomItemField, error) {
-	now := time.Now()
-
-	fieldSchemaMu.Lock()
-	entry, ok := fieldSchemaCache[customItemID]
-	fieldSchemaMu.Unlock()
-	if ok && now.Before(entry.expires) {
-		return entry.fields, nil
-	}
-
-	// Page through the full set so callers get every field regardless of
-	// pagination defaults.
-	req := projects.NewCustomItemFieldListRequest(customItemID)
-	req.Filters.PageSize = 100
-
-	var all []projects.CustomItemField
-	for {
-		resp, err := projects.CustomItemFieldList(ctx, engine, req)
-		if err != nil {
-			return nil, fmt.Errorf("failed to load fields for custom item %d: %w", customItemID, err)
-		}
-		all = append(all, resp.CustomItemFields...)
-		next := resp.Iterate()
-		if next == nil {
-			break
-		}
-		req = *next
-	}
-
-	fieldSchemaMu.Lock()
-	fieldSchemaCache[customItemID] = fieldSchemaEntry{
-		fields:  all,
-		expires: now.Add(fieldSchemaCacheTTL),
-	}
-	fieldSchemaMu.Unlock()
-
-	return all, nil
-}
-
-// invalidateFieldSchemaCache drops the cached field list for a custom item
-// type so the next resolveFieldSchema call refetches. Called on every field
-// write and on type delete.
-func invalidateFieldSchemaCache(customItemID int64) {
-	fieldSchemaMu.Lock()
-	delete(fieldSchemaCache, customItemID)
-	fieldSchemaMu.Unlock()
-}
-
-// ---------------------------------------------------------------------------
-// Tools
-// ---------------------------------------------------------------------------
 
 // CustomItemFieldCreate adds a field (column) to a custom item type.
 func CustomItemFieldCreate(engine *twapi.Engine) toolsets.ToolWrapper {
@@ -263,7 +176,7 @@ func CustomItemFieldCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 			if err != nil {
 				return helpers.HandleAPIError(err, "failed to create custom item field")
 			}
-			invalidateFieldSchemaCache(req.Path.CustomItemID)
+			invalidateCustomItemFieldCache(ctx, req.Path.CustomItemID)
 			return helpers.NewToolResultText(
 				"Custom item field created successfully with ID %d", resp.CustomItemField.ID,
 			), nil
@@ -347,7 +260,7 @@ func CustomItemFieldUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 			if err != nil {
 				return helpers.HandleAPIError(err, "failed to update custom item field")
 			}
-			invalidateFieldSchemaCache(req.Path.CustomItemID)
+			invalidateCustomItemFieldCache(ctx, req.Path.CustomItemID)
 			return helpers.NewToolResultText("Custom item field updated successfully"), nil
 		},
 	}
@@ -398,7 +311,7 @@ func CustomItemFieldDelete(engine *twapi.Engine) toolsets.ToolWrapper {
 			if err != nil {
 				return helpers.HandleAPIError(err, "failed to delete custom item field")
 			}
-			invalidateFieldSchemaCache(req.Path.CustomItemID)
+			invalidateCustomItemFieldCache(ctx, req.Path.CustomItemID)
 			return helpers.NewToolResultText("Custom item field deleted successfully"), nil
 		},
 	}
@@ -487,13 +400,6 @@ func CustomItemFieldList(engine *twapi.Engine) toolsets.ToolWrapper {
 							{Type: "null"},
 						},
 					},
-					"order_by": {
-						Description: "Field to sort by.",
-						AnyOf: []*jsonschema.Schema{
-							{Type: "string", Enum: []any{"name"}},
-							{Type: "null"},
-						},
-					},
 					"order_mode": helpers.OrderDirectionSchema(),
 					"page":       helpers.PageSchema(),
 					"page_size":  helpers.PageSizeSchema(),
@@ -514,9 +420,6 @@ func CustomItemFieldList(engine *twapi.Engine) toolsets.ToolWrapper {
 				helpers.OptionalParam(&req.Filters.SearchTerm, "search_term"),
 				helpers.OptionalNumericListParam(&req.Filters.IDs, "ids"),
 				helpers.OptionalPointerParam(&req.Filters.ShowDeleted, "show_deleted"),
-				helpers.OptionalParam(&req.Filters.OrderBy, "order_by",
-					helpers.RestrictValues("name"),
-				),
 				helpers.OptionalParam(&req.Filters.OrderMode, "order_mode",
 					helpers.RestrictValues(twapi.OrderModeAscending, twapi.OrderModeDescending),
 				),

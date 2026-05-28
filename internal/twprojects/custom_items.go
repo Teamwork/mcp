@@ -248,7 +248,7 @@ func CustomItemDelete(engine *twapi.Engine) toolsets.ToolWrapper {
 			// Invalidate any cached field schema for this type before the
 			// delete so a subsequent operation on a different type with the
 			// same id (extremely unlikely, but cheap) starts clean.
-			invalidateFieldSchemaCache(customItemDeleteRequest.Path.ID)
+			invalidateCustomItemFieldCache(ctx, customItemDeleteRequest.Path.ID)
 
 			_, err = projects.CustomItemDelete(ctx, engine, customItemDeleteRequest)
 			if err != nil {
@@ -301,7 +301,10 @@ func CustomItemGet(engine *twapi.Engine) toolsets.ToolWrapper {
 			// Auto-include fields + sections — see plan §3 "Schema discovery
 			// on the type itself". This gives the LLM everything it needs to
 			// write a record in one round-trip.
-			customItemGetRequest.Include = []string{"customItemFields", "customItemSections"}
+			customItemGetRequest.Include = []projects.CustomItemSideload{
+				projects.CustomItemSideloadCustomItemFields,
+				projects.CustomItemSideloadCustomItemSections,
+			}
 
 			customItem, err := projects.CustomItemGet(ctx, engine, customItemGetRequest)
 			if err != nil {
@@ -374,7 +377,7 @@ func CustomItemList(engine *twapi.Engine) toolsets.ToolWrapper {
 				helpers.OptionalNumericListParam(&customItemListRequest.Filters.IDs, "ids"),
 				helpers.OptionalPointerParam(&customItemListRequest.Filters.ShowDeleted, "show_deleted"),
 				helpers.OptionalParam(&customItemListRequest.Filters.OrderBy, "order_by",
-					helpers.RestrictValues("name"),
+					helpers.RestrictValues(projects.CustomItemOrderByName),
 				),
 				helpers.OptionalParam(&customItemListRequest.Filters.OrderMode, "order_mode",
 					helpers.RestrictValues(twapi.OrderModeAscending, twapi.OrderModeDescending),

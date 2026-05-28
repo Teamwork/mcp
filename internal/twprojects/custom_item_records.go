@@ -171,7 +171,7 @@ func CustomItemRecordCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 			req := projects.NewCustomItemRecordCreateRequest(customItemID, name)
 			req.PositionAfterID = positionAfterID
 			if sectionID != nil {
-				req.SectionID = projects.NewNullableInt64(*sectionID)
+				req.SectionID = twapi.NewNullableInt64(*sectionID)
 			}
 			req.FieldValues = fieldValues
 
@@ -274,9 +274,9 @@ func CustomItemRecordUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 			req.PositionAfterID = positionAfterID
 			switch {
 			case clearSection != nil && *clearSection:
-				req.SectionID = projects.NullInt64()
+				req.SectionID = twapi.NullInt64()
 			case sectionID != nil:
-				req.SectionID = projects.NewNullableInt64(*sectionID)
+				req.SectionID = twapi.NewNullableInt64(*sectionID)
 			}
 			req.FieldValues = fieldValues
 
@@ -445,7 +445,7 @@ func CustomItemRecordGet(engine *twapi.Engine) toolsets.ToolWrapper {
 				return helpers.HandleAPIError(err, "failed to get custom item record")
 			}
 
-			fields, _ := resolveFieldSchema(ctx, engine, req.Path.CustomItemID)
+			fields, _ := resolveCustomItemFields(ctx, engine, req.Path.CustomItemID)
 			if len(fields) > 0 {
 				resp.CustomItemRecord.FieldValues = translateRecordFieldValuesOut(
 					resp.CustomItemRecord.FieldValues, fields)
@@ -501,7 +501,7 @@ func CustomItemRecordList(engine *twapi.Engine) toolsets.ToolWrapper {
 					"order_by": {
 						Description: "Field to sort by.",
 						AnyOf: []*jsonschema.Schema{
-							{Type: "string", Enum: []any{"name", "displayOrder", "dateCreated", "dateUpdated"}},
+							{Type: "string", Enum: []any{"name", "displayorder", "customitemfield"}},
 							{Type: "null"},
 						},
 					},
@@ -527,7 +527,11 @@ func CustomItemRecordList(engine *twapi.Engine) toolsets.ToolWrapper {
 				helpers.OptionalNumericListParam(&req.Filters.SectionIDs, "section_ids"),
 				helpers.OptionalPointerParam(&req.Filters.ShowDeleted, "show_deleted"),
 				helpers.OptionalParam(&req.Filters.OrderBy, "order_by",
-					helpers.RestrictValues("name", "displayOrder", "dateCreated", "dateUpdated"),
+					helpers.RestrictValues(
+						projects.CustomItemRecordOrderByName,
+						projects.CustomItemRecordOrderByDisplayOrder,
+						projects.CustomItemRecordOrderByCustomItemField,
+					),
 				),
 				helpers.OptionalParam(&req.Filters.OrderMode, "order_mode",
 					helpers.RestrictValues(twapi.OrderModeAscending, twapi.OrderModeDescending),
@@ -552,7 +556,7 @@ func CustomItemRecordList(engine *twapi.Engine) toolsets.ToolWrapper {
 				return helpers.HandleAPIError(err, "failed to list custom item records")
 			}
 
-			fields, _ := resolveFieldSchema(ctx, engine, req.Path.CustomItemID)
+			fields, _ := resolveCustomItemFields(ctx, engine, req.Path.CustomItemID)
 			if len(fields) > 0 {
 				for i := range resp.CustomItemRecords {
 					resp.CustomItemRecords[i].FieldValues = translateRecordFieldValuesOut(
@@ -582,7 +586,7 @@ func buildRecordFieldValues(
 	raw, hasKey := arguments["field_values"]
 	supplied := map[string]bool{}
 
-	fields, err := resolveFieldSchema(ctx, engine, customItemID)
+	fields, err := resolveCustomItemFields(ctx, engine, customItemID)
 	if err != nil {
 		return nil, helpers.NewToolResultTextError("failed to load custom item schema: %s", err.Error())
 	}
