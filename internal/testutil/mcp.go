@@ -80,6 +80,66 @@ func ProjectsMCPServerMock(t *testing.T, status int, response []byte) *mcp.Serve
 	return mcpServer
 }
 
+// ProjectsMockRoute pairs a substring match against the request URL path with
+// the status and body to return when it matches.
+type ProjectsMockRoute struct {
+	Match  string
+	Status int
+	Body   []byte
+}
+
+// ProjectsMCPServerRoutedMock creates a mock MCP server for twprojects testing
+// whose engine returns different responses based on a substring match against
+// the request URL. Use this when a single tool dispatches calls to multiple
+// endpoints that need distinct status codes (e.g. record create, which lists
+// fields with 200 before posting the record with 201). Requests that don't
+// match any route fall back to fallbackStatus/fallbackBody.
+func ProjectsMCPServerRoutedMock(
+	t *testing.T,
+	routes []ProjectsMockRoute,
+	fallbackStatus int,
+	fallbackBody []byte,
+) *mcp.Server {
+	t.Helper()
+
+	engine := twapi.NewEngine(ProjectsSessionMock{}, twapi.WithMiddleware(func(twapi.HTTPClient) twapi.HTTPClient {
+		return twapi.HTTPClientFunc(func(req *http.Request) (*http.Response, error) {
+			path := req.URL.Path
+			for _, route := range routes {
+				if strings.Contains(path, route.Match) {
+					return newProjectsMockHTTPResponse(route.Status, route.Body), nil
+				}
+			}
+			return newProjectsMockHTTPResponse(fallbackStatus, fallbackBody), nil
+		})
+	}))
+
+	mcpServer := mcp.NewServer(&mcp.Implementation{
+		Name:    "test-server",
+		Version: "1.0.0",
+	}, &mcp.ServerOptions{})
+
+	toolsetGroup := twprojects.DefaultToolsetGroup(false, true, engine)
+	if err := toolsetGroup.EnableToolsets(toolsets.MethodAll); err != nil {
+		t.Fatalf("failed to enable toolsets: %v", err)
+	}
+	toolsetGroup.RegisterAll(mcpServer)
+
+	return mcpServer
+}
+
+func newProjectsMockHTTPResponse(status int, body []byte) *http.Response {
+	return &http.Response{
+		StatusCode: status,
+		Status:     http.StatusText(status),
+		Proto:      "HTTP/1.1",
+		ProtoMajor: 1,
+		ProtoMinor: 1,
+		Header:     make(http.Header),
+		Body:       io.NopCloser(strings.NewReader(string(body))),
+	}
+}
+
 // DeskMCPServerMock creates a mock MCP server for twdesk testing
 // It injects the test server URL into the request context so handlers use the correct endpoint
 func DeskMCPServerMock(t *testing.T, status int, response []byte) (*mcp.Server, func()) {
