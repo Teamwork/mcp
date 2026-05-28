@@ -6,7 +6,9 @@ import (
 )
 
 const (
-	projectsDescription = "Project, category, template, member, custom field, and custom item (user-defined entity types like Contracts, Leads, Deals) management in Teamwork.com."
+	projectsDescription = "Project, category, template, member, custom field, " +
+		"and custom item (user-defined entity types like Contracts, Leads, Deals) " +
+		"management in Teamwork.com."
 	tasksDescription    = "Task, tasklist, and workflow management in Teamwork.com."
 	peopleDescription   = "Users, companies, teams, skills, job roles, and workload management in Teamwork.com."
 	timeDescription     = "Time tracking via timelogs, timers, and budget reporting in Teamwork.com."
