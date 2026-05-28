@@ -627,7 +627,7 @@ func CustomFieldList(engine *twapi.Engine) toolsets.ToolWrapper {
 						AnyOf: []*jsonschema.Schema{
 							{
 								Type: "string",
-								Enum: []any{"name", "project", "dateCreated", "dateUpdated"},
+								Enum: []any{"name", "project", "datecreated", "dateupdated"},
 							},
 							{Type: "null"},
 						},
@@ -673,10 +673,10 @@ func CustomFieldList(engine *twapi.Engine) toolsets.ToolWrapper {
 				helpers.OptionalPointerParam(&customFieldListRequest.Filters.ShowDeleted, "show_deleted"),
 				helpers.OptionalParam(&customFieldListRequest.Filters.OrderBy, "order_by",
 					helpers.RestrictValues(
-						"name",
-						"project",
-						"dateCreated",
-						"dateUpdated",
+						projects.CustomFieldOrderByName,
+						projects.CustomFieldOrderByProject,
+						projects.CustomFieldOrderByDateCreated,
+						projects.CustomFieldOrderByDateUpdated,
 					),
 				),
 				helpers.OptionalParam(&customFieldListRequest.Filters.OrderMode, "order_mode",

@@ -447,7 +447,11 @@ func UserList(engine *twapi.Engine) toolsets.ToolWrapper {
 				helpers.OptionalNumericParam(&userListRequest.Path.ProjectID, "project_id"),
 				helpers.OptionalParam(&userListRequest.Filters.SearchTerm, "search_term"),
 				helpers.OptionalParam(&userListRequest.Filters.Type, "type",
-					helpers.RestrictValues("account", "collaborator", "contact"),
+					helpers.RestrictValues(
+						projects.UserTypeAccount,
+						projects.UserTypeCollaborator,
+						projects.UserTypeContact,
+					),
 				),
 				helpers.OptionalNumericParam(&userListRequest.Filters.Page, "page"),
 				helpers.OptionalNumericParam(&userListRequest.Filters.PageSize, "page_size"),

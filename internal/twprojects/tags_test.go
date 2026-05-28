@@ -43,7 +43,7 @@ func TestTagList(t *testing.T) {
 	mcpServer := mcpServerMock(t, http.StatusOK, []byte(`{}`))
 	testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodTagList.String(), map[string]any{
 		"search_term": "test",
-		"item_type":   "task",
+		"item_type":   "TASK",
 		"project_ids": []int64{1, 2, 3},
 		"page":        float64(1),
 		"page_size":   float64(10),
