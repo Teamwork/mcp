@@ -6,7 +6,7 @@ import (
 )
 
 const (
-	projectsDescription = "Project, category, template, member, and custom field management in Teamwork.com."
+	projectsDescription = "Project, category, template, member, custom field, and custom item (user-defined entity types like Contracts, Leads, Deals) management in Teamwork.com."
 	tasksDescription    = "Task, tasklist, and workflow management in Teamwork.com."
 	peopleDescription   = "Users, companies, teams, skills, job roles, and workload management in Teamwork.com."
 	timeDescription     = "Time tracking via timelogs, timers, and budget reporting in Teamwork.com."
@@ -53,6 +53,12 @@ func DefaultToolsetGroup(readOnly, allowDelete bool, engine *twapi.Engine) *tool
 		CustomFieldUpdate(engine),
 		CustomFieldValueCreate(engine),
 		CustomFieldValueUpdate(engine),
+		CustomItemCreate(engine),
+		CustomItemUpdate(engine),
+		CustomItemFieldCreate(engine),
+		CustomItemFieldUpdate(engine),
+		CustomItemRecordCreate(engine),
+		CustomItemRecordUpdate(engine),
 	}
 	if allowDelete {
 		projectsWriteTools = append(projectsWriteTools,
@@ -60,6 +66,10 @@ func DefaultToolsetGroup(readOnly, allowDelete bool, engine *twapi.Engine) *tool
 			ProjectDelete(engine),
 			CustomFieldDelete(engine),
 			CustomFieldValueDelete(engine),
+			CustomItemDelete(engine),
+			CustomItemFieldDelete(engine),
+			CustomItemRecordDelete(engine),
+			CustomItemRecordBulkDelete(engine),
 		)
 	}
 	projectsToolset := toolsets.NewToolset(ToolsetProjects, projectsDescription).
@@ -74,6 +84,12 @@ func DefaultToolsetGroup(readOnly, allowDelete bool, engine *twapi.Engine) *tool
 			CustomFieldList(engine),
 			CustomFieldValueGet(engine),
 			CustomFieldValueList(engine),
+			CustomItemGet(engine),
+			CustomItemList(engine),
+			CustomItemFieldGet(engine),
+			CustomItemFieldList(engine),
+			CustomItemRecordGet(engine),
+			CustomItemRecordList(engine),
 		)
 	group.AddToolset(projectsToolset)
 
