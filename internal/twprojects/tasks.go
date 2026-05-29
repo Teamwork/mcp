@@ -563,6 +563,7 @@ func TaskGet(engine *twapi.Engine) toolsets.ToolWrapper {
 		},
 		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 			var taskGetRequest projects.TaskGetRequest
+			taskGetRequest.Filters.IncludeRelatedTasks = true
 
 			// Always include custom fields and values in task get response for richer
 			// context, as they are commonly used in Teamwork projects and provide
@@ -746,6 +747,8 @@ func TaskList(engine *twapi.Engine) toolsets.ToolWrapper {
 					projects.TaskRequestSideloadCustomFields,
 					projects.TaskRequestSideloadCustomFieldValues,
 				}
+				// Ensure predecessors are included in the response
+				taskListRequest.Filters.IncludeRelatedTasks = true
 			} else {
 				taskListRequest.Filters.Fields.Tasks = []projects.TaskField{
 					projects.TaskFieldID,
