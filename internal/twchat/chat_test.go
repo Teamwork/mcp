@@ -62,3 +62,28 @@ func TestMessageSend(t *testing.T) {
 		"body":            "Hello from MCP!",
 	})
 }
+
+func TestConversationListByType(t *testing.T) {
+	mcpServer := mcpServerMock(t, http.StatusOK, []byte(`{"conversations":[]}`))
+	testutil.ExecuteToolRequest(t, mcpServer, twchat.MethodConversationList.String(), map[string]any{
+		"type": "pair",
+	})
+}
+
+func TestDMGetOrCreate(t *testing.T) {
+	mcpServer := mcpServerMock(t, http.StatusOK, []byte(`{"conversation":{"id":456,"type":"pair"},"STATUS":"ok"}`))
+	testutil.ExecuteToolRequest(t, mcpServer, twchat.MethodDMGetOrCreate.String(), map[string]any{
+		"user_id": float64(42),
+	})
+}
+
+func TestSendDM(t *testing.T) {
+	// The single-response mock returns this body for both the get-or-create
+	// pair-conversation call and the subsequent send-message call.
+	mcpServer := mcpServerMock(t, http.StatusOK,
+		[]byte(`{"conversation":{"id":456,"type":"pair"},"message":{"id":789},"STATUS":"ok"}`))
+	testutil.ExecuteToolRequest(t, mcpServer, twchat.MethodSendDM.String(), map[string]any{
+		"user_id": float64(42),
+		"body":    "Hello directly from MCP!",
+	})
+}

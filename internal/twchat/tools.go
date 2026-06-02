@@ -32,6 +32,10 @@ const (
 	MethodPeopleList toolsets.Method = "twchat-list_people"
 	// MethodMessageSend posts a message to a conversation.
 	MethodMessageSend toolsets.Method = "twchat-send_message"
+	// MethodDMGetOrCreate resolves (or creates) the 1:1 conversation with a person.
+	MethodDMGetOrCreate toolsets.Method = "twchat-get_or_create_dm"
+	// MethodSendDM sends a direct message to a person.
+	MethodSendDM toolsets.Method = "twchat-send_dm"
 )
 
 func init() {
@@ -46,6 +50,7 @@ func DefaultToolsetGroup(readOnly bool, engine *twapi.Engine) *toolsets.ToolsetG
 	group.AddToolset(toolsets.NewToolset(ToolsetChat, chatDescription).
 		AddWriteTools(
 			MessageSend(engine),
+			SendDM(engine),
 		).
 		AddReadTools(
 			CurrentUserGet(engine),
@@ -53,6 +58,7 @@ func DefaultToolsetGroup(readOnly bool, engine *twapi.Engine) *toolsets.ToolsetG
 			ConversationGet(engine),
 			MessageList(engine),
 			PeopleList(engine),
+			DMGetOrCreate(engine),
 		))
 
 	return group

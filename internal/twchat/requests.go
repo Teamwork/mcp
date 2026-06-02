@@ -31,6 +31,7 @@ type conversationListRequest struct {
 	PageLimit          int
 	SearchTerm         string
 	Status             string
+	Type               string
 	Sort               string
 	IncludeMessageData bool
 }
@@ -54,6 +55,9 @@ func (c conversationListRequest) HTTPRequest(ctx context.Context, server string)
 	if c.Status != "" {
 		q.Set("filter[status]", c.Status)
 	}
+	if c.Type != "" {
+		q.Set("filter[type]", c.Type)
+	}
 	if c.Sort != "" {
 		q.Set("sort", c.Sort)
 	}
@@ -72,6 +76,18 @@ type conversationGetRequest struct {
 // HTTPRequest builds the GET /chat/v7/conversations/{id} request.
 func (c conversationGetRequest) HTTPRequest(ctx context.Context, server string) (*http.Request, error) {
 	uri := server + chatBasePath + "/conversations/" + strconv.FormatInt(c.ID, 10)
+	return http.NewRequestWithContext(ctx, http.MethodGet, uri, nil)
+}
+
+// pairConversationGetRequest gets (or creates) the 1:1 "pair" conversation
+// between the current user and the given person.
+type pairConversationGetRequest struct {
+	UserID int64
+}
+
+// HTTPRequest builds the GET /chat/v7/people/{id}/conversation request.
+func (p pairConversationGetRequest) HTTPRequest(ctx context.Context, server string) (*http.Request, error) {
+	uri := server + chatBasePath + "/people/" + strconv.FormatInt(p.UserID, 10) + "/conversation"
 	return http.NewRequestWithContext(ctx, http.MethodGet, uri, nil)
 }
 

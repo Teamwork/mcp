@@ -2,6 +2,7 @@ package twchat
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -87,6 +88,11 @@ func ConversationList(engine *twapi.Engine) toolsets.ToolWrapper {
 						Description: "Filter by conversation status.",
 						AnyOf:       []*jsonschema.Schema{{Type: "string", Enum: []any{"all", "active"}}, {Type: "null"}},
 					},
+					"type": {
+						Description: "Filter by conversation type: \"rooms\" for group/channel conversations, " +
+							"\"pair\" for 1:1 direct messages.",
+						AnyOf: []*jsonschema.Schema{{Type: "string", Enum: []any{"rooms", "pair"}}, {Type: "null"}},
+					},
 					"sort": {
 						Description: "Sort order for the returned conversations.",
 						AnyOf: []*jsonschema.Schema{
@@ -120,6 +126,7 @@ func ConversationList(engine *twapi.Engine) toolsets.ToolWrapper {
 				PageLimit:          arguments.GetInt("page_limit", 0),
 				SearchTerm:         arguments.GetString("search_term", ""),
 				Status:             arguments.GetString("status", ""),
+				Type:               arguments.GetString("type", ""),
 				Sort:               arguments.GetString("sort", ""),
 				IncludeMessageData: arguments.GetBool("include_message_data", false),
 			}
@@ -315,4 +322,133 @@ func MessageSend(engine *twapi.Engine) toolsets.ToolWrapper {
 			return execute(ctx, engine, req, "failed to send chat message")
 		},
 	}
+}
+
+// DMGetOrCreate resolves the 1:1 conversation with a person, creating it if it
+// does not exist yet, and returns the conversation.
+func DMGetOrCreate(engine *twapi.Engine) toolsets.ToolWrapper {
+	return toolsets.ToolWrapper{
+		Tool: &mcp.Tool{
+			Name: string(MethodDMGetOrCreate),
+			Annotations: &mcp.ToolAnnotations{
+				Title:        "Get or Create Direct Message",
+				ReadOnlyHint: true,
+			},
+			Description: "Get the 1:1 direct-message conversation with a person, creating it if it does not " +
+				"exist yet. Returns the conversation (use its id with send_message). Use list_people to find user_id.",
+			InputSchema: &jsonschema.Schema{
+				Type: "object",
+				Properties: map[string]*jsonschema.Schema{
+					"user_id": {
+						Type:        "integer",
+						Description: "The ID of the person to get the direct-message conversation with.",
+					},
+				},
+				Required: []string{"user_id"},
+			},
+		},
+		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+			arguments, err := helpers.NewToolArguments(request)
+			if err != nil {
+				return helpers.NewToolResultTextError("%v", err), nil
+			}
+			req := pairConversationGetRequest{UserID: int64(arguments.GetInt("user_id", 0))}
+			return execute(ctx, engine, req, "failed to resolve direct message conversation")
+		},
+	}
+}
+
+// SendDM sends a message directly to a person, resolving (or creating) the 1:1
+// conversation first. It is a convenience alias over DMGetOrCreate + MessageSend.
+func SendDM(engine *twapi.Engine) toolsets.ToolWrapper {
+	return toolsets.ToolWrapper{
+		Tool: &mcp.Tool{
+			Name: string(MethodSendDM),
+			Annotations: &mcp.ToolAnnotations{
+				Title: "Send Direct Message",
+			},
+			Description: "Send a direct message to a person, resolving (or creating) the 1:1 conversation " +
+				"automatically. Requires user_id and body. Use list_people to find user_id.",
+			InputSchema: &jsonschema.Schema{
+				Type: "object",
+				Properties: map[string]*jsonschema.Schema{
+					"user_id": {
+						Type:        "integer",
+						Description: "The ID of the person to send the direct message to.",
+					},
+					"body": {
+						Type:        "string",
+						Description: "The message text. Supports Markdown.",
+					},
+				},
+				Required: []string{"user_id", "body"},
+			},
+		},
+		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+			arguments, err := helpers.NewToolArguments(request)
+			if err != nil {
+				return helpers.NewToolResultTextError("%v", err), nil
+			}
+			userID := int64(arguments.GetInt("user_id", 0))
+			body := arguments.GetString("body", "")
+			if body == "" {
+				return helpers.NewToolResultTextError("body is required"), nil
+			}
+
+			// Resolve (or create) the 1:1 conversation, then post the message to it.
+			conversationID, errResult, err := pairConversationID(ctx, engine, userID)
+			if err != nil {
+				return nil, err
+			}
+			if errResult != nil {
+				return errResult, nil
+			}
+
+			req := messageSendRequest{ConversationID: conversationID, Body: body}
+			return execute(ctx, engine, req, "failed to send direct message")
+		},
+	}
+}
+
+// pairConversationID resolves the 1:1 conversation id with a person. On a
+// tool-level failure (API error, unresolvable conversation) it returns a
+// non-nil *mcp.CallToolResult for the caller to return directly; a non-nil
+// error indicates an internal failure.
+func pairConversationID(
+	ctx context.Context,
+	engine *twapi.Engine,
+	userID int64,
+) (int64, *mcp.CallToolResult, error) {
+	const label = "failed to resolve direct message conversation"
+
+	resp, err := twapi.ExecuteRaw(ctx, engine, pairConversationGetRequest{UserID: userID})
+	if err != nil {
+		result, handleErr := helpers.HandleAPIError(err, label)
+		return 0, result, handleErr
+	}
+	defer func() {
+		_ = resp.Body.Close()
+	}()
+	if resp.StatusCode < http.StatusOK || resp.StatusCode >= http.StatusMultipleChoices {
+		result, handleErr := helpers.HandleAPIError(twapi.NewHTTPError(resp, label), label)
+		return 0, result, handleErr
+	}
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return 0, nil, fmt.Errorf("failed to read response body: %w", err)
+	}
+	var parsed struct {
+		Conversation struct {
+			ID int64 `json:"id"`
+		} `json:"conversation"`
+	}
+	if err := json.Unmarshal(body, &parsed); err != nil {
+		return 0, nil, fmt.Errorf("failed to decode direct message conversation response: %w", err)
+	}
+	if parsed.Conversation.ID == 0 {
+		return 0, helpers.NewToolResultTextError(
+			"could not resolve a direct message conversation for user %d", userID), nil
+	}
+	return parsed.Conversation.ID, nil, nil
 }
