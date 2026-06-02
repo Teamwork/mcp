@@ -80,10 +80,7 @@ func ConversationList(engine *twapi.Engine) toolsets.ToolWrapper {
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
 				Properties: map[string]*jsonschema.Schema{
-					"search_term": {
-						Description: "Filter conversations by title (substring match).",
-						AnyOf:       []*jsonschema.Schema{{Type: "string"}, {Type: "null"}},
-					},
+					"search_term": helpers.SearchTermSchema("conversations", "title"),
 					"status": {
 						Description: "Filter by conversation status.",
 						AnyOf:       []*jsonschema.Schema{{Type: "string", Enum: []any{"all", "active"}}, {Type: "null"}},
@@ -104,10 +101,7 @@ func ConversationList(engine *twapi.Engine) toolsets.ToolWrapper {
 						Description: "Include the latest message in each conversation.",
 						AnyOf:       []*jsonschema.Schema{{Type: "boolean"}, {Type: "null"}},
 					},
-					"page_offset": {
-						Description: "Zero-based pagination offset.",
-						AnyOf:       []*jsonschema.Schema{{Type: "integer"}, {Type: "null"}},
-					},
+					"page_offset": helpers.PageOffsetSchema(),
 					"page_limit": {
 						Description: "Number of conversations to return (max 10).",
 						AnyOf:       []*jsonschema.Schema{{Type: "integer"}, {Type: "null"}},
@@ -184,14 +178,8 @@ func MessageList(engine *twapi.Engine) toolsets.ToolWrapper {
 						Type:        "integer",
 						Description: "The ID of the conversation to read messages from.",
 					},
-					"search_term": {
-						Description: "Filter messages by text content.",
-						AnyOf:       []*jsonschema.Schema{{Type: "string"}, {Type: "null"}},
-					},
-					"page": {
-						Description: "One-based page number.",
-						AnyOf:       []*jsonschema.Schema{{Type: "integer"}, {Type: "null"}},
-					},
+					"search_term": helpers.SearchTermSchema("messages", "text content"),
+					"page":        helpers.PageSchema(),
 					"page_size": {
 						Description: "Number of messages per page (1-200).",
 						AnyOf:       []*jsonschema.Schema{{Type: "integer"}, {Type: "null"}},
@@ -204,16 +192,8 @@ func MessageList(engine *twapi.Engine) toolsets.ToolWrapper {
 						Description: "Return messages newer than this message ID (cursor).",
 						AnyOf:       []*jsonschema.Schema{{Type: "integer"}, {Type: "null"}},
 					},
-					"created_before": {
-						Description: "Return messages created before this time.",
-						Examples:    []any{"2023-12-31T23:59:59Z"},
-						AnyOf:       []*jsonschema.Schema{{Type: "string", Format: "date-time"}, {Type: "null"}},
-					},
-					"created_after": {
-						Description: "Return messages created after this time.",
-						Examples:    []any{"2023-01-01T00:00:00Z"},
-						AnyOf:       []*jsonschema.Schema{{Type: "string", Format: "date-time"}, {Type: "null"}},
-					},
+					"created_before": helpers.DateTimeFilterSchema("Return messages created before this time."),
+					"created_after":  helpers.DateTimeFilterSchema("Return messages created after this time."),
 				},
 				Required: []string{"conversation_id"},
 			},
@@ -251,14 +231,8 @@ func PeopleList(engine *twapi.Engine) toolsets.ToolWrapper {
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
 				Properties: map[string]*jsonschema.Schema{
-					"search_term": {
-						Description: "Filter people by name or email.",
-						AnyOf:       []*jsonschema.Schema{{Type: "string"}, {Type: "null"}},
-					},
-					"page_offset": {
-						Description: "Zero-based pagination offset.",
-						AnyOf:       []*jsonschema.Schema{{Type: "integer"}, {Type: "null"}},
-					},
+					"search_term": helpers.SearchTermSchema("people", "name or email"),
+					"page_offset": helpers.PageOffsetSchema(),
 					"page_limit": {
 						Description: "Number of people to return.",
 						AnyOf:       []*jsonschema.Schema{{Type: "integer"}, {Type: "null"}},
