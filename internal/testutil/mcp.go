@@ -14,6 +14,7 @@ import (
 	deskclient "github.com/teamwork/desksdkgo/client"
 	"github.com/teamwork/mcp/internal/config"
 	"github.com/teamwork/mcp/internal/toolsets"
+	"github.com/teamwork/mcp/internal/twchat"
 	"github.com/teamwork/mcp/internal/twdesk"
 	"github.com/teamwork/mcp/internal/twprojects"
 	"github.com/teamwork/mcp/internal/twspaces"
@@ -72,6 +73,24 @@ func ProjectsMCPServerMock(t *testing.T, status int, response []byte) *mcp.Serve
 	}, &mcp.ServerOptions{})
 
 	toolsetGroup := twprojects.DefaultToolsetGroup(false, true, ProjectsEngineMock(status, response))
+	if err := toolsetGroup.EnableToolsets(toolsets.MethodAll); err != nil {
+		t.Fatalf("failed to enable toolsets: %v", err)
+	}
+	toolsetGroup.RegisterAll(mcpServer)
+
+	return mcpServer
+}
+
+// ChatMCPServerMock creates a mock MCP server for twchat testing. The twchat
+// tools ride the shared twapi.Engine, so it reuses ProjectsEngineMock to return
+// the canned HTTP response.
+func ChatMCPServerMock(t *testing.T, status int, response []byte) *mcp.Server {
+	mcpServer := mcp.NewServer(&mcp.Implementation{
+		Name:    "test-server",
+		Version: "1.0.0",
+	}, &mcp.ServerOptions{})
+
+	toolsetGroup := twchat.DefaultToolsetGroup(false, ProjectsEngineMock(status, response))
 	if err := toolsetGroup.EnableToolsets(toolsets.MethodAll); err != nil {
 		t.Fatalf("failed to enable toolsets: %v", err)
 	}
