@@ -3,6 +3,7 @@ package twprojects
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -236,11 +237,15 @@ func TaskCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 				taskCreateRequest.CompleteFollowers = *followers
 			}
 
-			taskResponse, err := projects.TaskCreate(ctx, engine, taskCreateRequest)
-			if err != nil {
+			taskResponse, err := twapi.Execute[projects.TaskCreateRequest, responseAccepter[*projects.TaskCreateResponse]](
+				ctx, engine, taskCreateRequest,
+			)
+			if errors.Is(err, acceptedError) {
+				return helpers.NewToolResultText("Task creation accepted but not yet processed"), nil
+			} else if err != nil {
 				return helpers.HandleAPIError(err, "failed to create task")
 			}
-			return helpers.NewToolResultText("Task created successfully with ID %d", taskResponse.Task.ID), nil
+			return helpers.NewToolResultText("Task created successfully with ID %d", taskResponse.Responser.Task.ID), nil
 		},
 	}
 }
