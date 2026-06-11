@@ -15,6 +15,7 @@ import (
 	"github.com/teamwork/mcp/internal/cli"
 	"github.com/teamwork/mcp/internal/config"
 	"github.com/teamwork/mcp/internal/toolsets"
+	"github.com/teamwork/mcp/internal/twchat"
 	"github.com/teamwork/mcp/internal/twdesk"
 	"github.com/teamwork/mcp/internal/twprojects"
 	"github.com/teamwork/mcp/internal/twspaces"
@@ -128,7 +129,12 @@ func newMCPServer(resources config.Resources) (*mcp.Server, error) {
 		return nil, fmt.Errorf("failed to enable spaces toolsets: %w", err)
 	}
 
-	return config.NewMCPServer(resources, projectsGroup, deskGroup, spacesGroup), nil
+	chatGroup := twchat.DefaultToolsetGroup(readOnly, resources.TeamworkEngine())
+	if err := chatGroup.EnableToolsets(methods.Toolsets()...); err != nil {
+		return nil, fmt.Errorf("failed to enable chat toolsets: %w", err)
+	}
+
+	return config.NewMCPServer(resources, projectsGroup, deskGroup, spacesGroup, chatGroup), nil
 }
 
 func mcpError(logger *slog.Logger, err error, code jsonRPCErrorCode) {
