@@ -187,7 +187,6 @@ func DefaultToolsetGroup(readOnly, allowDelete bool, engine *twapi.Engine) *tool
 	}
 	if allowDelete {
 		timeWriteTools = append(timeWriteTools,
-			CalendarDelete(engine),
 			TimelogDelete(engine),
 			TimerDelete(engine),
 		)
