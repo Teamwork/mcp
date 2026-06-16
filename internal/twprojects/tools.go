@@ -9,9 +9,10 @@ const (
 	projectsDescription = "Project, category, template, member, custom field, " +
 		"and custom item (user-defined entity types like Contracts, Leads, Deals) " +
 		"management in Teamwork.com."
-	tasksDescription   = "Task, tasklist, and workflow management in Teamwork.com."
-	peopleDescription  = "Users, companies, teams, skills, job roles, and workload management in Teamwork.com."
-	timeDescription    = "Time tracking via timelogs, timers, and budget reporting in Teamwork.com."
+	tasksDescription  = "Task, tasklist, and workflow management in Teamwork.com."
+	peopleDescription = "Users, companies, teams, skills, job roles, and workload management in Teamwork.com."
+	timeDescription   = "Time tracking via timelogs, timers, calendars with time blocking, " +
+		"and budget reporting in Teamwork.com."
 	contentDescription = "Comments, notebooks, milestones, tags, and activity feeds in Teamwork.com."
 )
 
@@ -24,7 +25,7 @@ const (
 	ToolsetTasks toolsets.Method = "twprojects-tasks"
 	// ToolsetPeople covers users, companies, teams, skills, job roles, and workload.
 	ToolsetPeople toolsets.Method = "twprojects-people"
-	// ToolsetTime covers timelogs and timers.
+	// ToolsetTime covers timelogs, timers, and calendars.
 	ToolsetTime toolsets.Method = "twprojects-time"
 	// ToolsetContent covers comments, notebooks, milestones, tags, activities, and budgets.
 	ToolsetContent toolsets.Method = "twprojects-content"
@@ -175,6 +176,7 @@ func DefaultToolsetGroup(readOnly, allowDelete bool, engine *twapi.Engine) *tool
 
 	// --- time sub-toolset ---
 	timeWriteTools := []toolsets.ToolWrapper{
+		CalendarCreate(engine),
 		TimelogCreate(engine),
 		TimelogUpdate(engine),
 		TimerComplete(engine),
@@ -185,6 +187,7 @@ func DefaultToolsetGroup(readOnly, allowDelete bool, engine *twapi.Engine) *tool
 	}
 	if allowDelete {
 		timeWriteTools = append(timeWriteTools,
+			CalendarDelete(engine),
 			TimelogDelete(engine),
 			TimerDelete(engine),
 		)
@@ -192,6 +195,8 @@ func DefaultToolsetGroup(readOnly, allowDelete bool, engine *twapi.Engine) *tool
 	timeToolset := toolsets.NewToolset(ToolsetTime, timeDescription).
 		AddWriteTools(timeWriteTools...).
 		AddReadTools(
+			CalendarEventList(engine),
+			CalendarList(engine),
 			ProjectBudgetList(engine),
 			TasklistBudgetList(engine),
 			TimelogGet(engine),
