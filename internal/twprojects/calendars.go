@@ -21,6 +21,7 @@ import (
 // https://github.com/github/github-mcp-server/issues/333
 const (
 	MethodCalendarCreate    toolsets.Method = "twprojects-create_calendar"
+	MethodCalendarDelete    toolsets.Method = "twprojects-delete_calendar"
 	MethodCalendarList      toolsets.Method = "twprojects-list_calendars"
 	MethodCalendarEventList toolsets.Method = "twprojects-list_calendar_events"
 )
@@ -100,6 +101,50 @@ func CalendarCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 				return helpers.HandleAPIError(err, "failed to create calendar")
 			}
 			return helpers.NewToolResultText("Calendar created successfully with ID %d", calendar.Calendar.ID), nil
+		},
+	}
+}
+
+// CalendarDelete deletes a calendar in Teamwork.com.
+func CalendarDelete(engine *twapi.Engine) toolsets.ToolWrapper {
+	return toolsets.ToolWrapper{
+		Tool: &mcp.Tool{
+			Name:        string(MethodCalendarDelete),
+			Description: "Delete calendar.",
+			Annotations: &mcp.ToolAnnotations{
+				Title:           "Delete Calendar",
+				DestructiveHint: new(true),
+			},
+			InputSchema: &jsonschema.Schema{
+				Type: "object",
+				Properties: map[string]*jsonschema.Schema{
+					"id": {
+						Type:        "integer",
+						Description: "The ID of the calendar to delete.",
+					},
+				},
+				Required: []string{"id"},
+			},
+		},
+		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+			var calendarDeleteRequest projects.CalendarDeleteRequest
+
+			var arguments map[string]any
+			if err := json.Unmarshal(request.Params.Arguments, &arguments); err != nil {
+				return helpers.NewToolResultTextError("failed to decode request: %s", err.Error()), nil
+			}
+			err := helpers.ParamGroup(arguments,
+				helpers.RequiredNumericParam(&calendarDeleteRequest.Path.ID, "id"),
+			)
+			if err != nil {
+				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
+			}
+
+			_, err = projects.CalendarDelete(ctx, engine, calendarDeleteRequest)
+			if err != nil {
+				return helpers.HandleAPIError(err, "failed to delete calendar")
+			}
+			return helpers.NewToolResultText("Calendar deleted successfully"), nil
 		},
 	}
 }
