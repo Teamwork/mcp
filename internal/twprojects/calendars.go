@@ -20,7 +20,6 @@ import (
 // The naming convention for methods follows a pattern described here:
 // https://github.com/github/github-mcp-server/issues/333
 const (
-	MethodCalendarCreate toolsets.Method = "twprojects-create_calendar"
 	MethodCalendarDelete toolsets.Method = "twprojects-delete_calendar"
 	MethodCalendarList   toolsets.Method = "twprojects-list_calendars"
 )
@@ -34,66 +33,6 @@ func init() {
 	calendarListOutputSchema, err = jsonschema.For[projects.CalendarListResponse](&jsonschema.ForOptions{})
 	if err != nil {
 		panic(fmt.Sprintf("failed to generate JSON schema for CalendarListResponse: %v", err))
-	}
-}
-
-// CalendarCreate creates a calendar in Teamwork.com.
-func CalendarCreate(engine *twapi.Engine) toolsets.ToolWrapper {
-	return toolsets.ToolWrapper{
-		Tool: &mcp.Tool{
-			Name: string(MethodCalendarCreate),
-			Description: "Create calendar. Calendars hold events such as meetings, out-of-office periods and " +
-				"time-blocking entries. To enable time blocking, create a calendar of type 'blocked_time' named " +
-				"'blocked_time'; there can only be one blocked time calendar per account.",
-			Annotations: &mcp.ToolAnnotations{
-				Title: "Create Calendar",
-			},
-			InputSchema: &jsonschema.Schema{
-				Type: "object",
-				Properties: map[string]*jsonschema.Schema{
-					"name": {
-						Type: "string",
-						Description: "The name of the calendar. When the type is 'blocked_time' the name must be " +
-							"'blocked_time'.",
-					},
-					"type": {
-						Description: "The type of calendar. Defaults to a standard event calendar.",
-						AnyOf: []*jsonschema.Schema{
-							{Type: "string", Enum: []any{"event", "blocked_time", "holiday"}},
-							{Type: "null"},
-						},
-					},
-				},
-				Required: []string{"name"},
-			},
-		},
-		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-			var calendarCreateRequest projects.CalendarCreateRequest
-
-			var arguments map[string]any
-			if err := json.Unmarshal(request.Params.Arguments, &arguments); err != nil {
-				return helpers.NewToolResultTextError("failed to decode request: %s", err.Error()), nil
-			}
-			err := helpers.ParamGroup(arguments,
-				helpers.RequiredParam(&calendarCreateRequest.Name, "name"),
-				helpers.OptionalPointerParam(&calendarCreateRequest.Type, "type",
-					helpers.RestrictValues(
-						projects.CalendarTypeEvent,
-						projects.CalendarTypeBlockedTime,
-						projects.CalendarTypeHoliday,
-					),
-				),
-			)
-			if err != nil {
-				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
-			}
-
-			calendar, err := projects.CalendarCreate(ctx, engine, calendarCreateRequest)
-			if err != nil {
-				return helpers.HandleAPIError(err, "failed to create calendar")
-			}
-			return helpers.NewToolResultText("Calendar created successfully with ID %d", calendar.Calendar.ID), nil
-		},
 	}
 }
 
