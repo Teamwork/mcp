@@ -130,12 +130,12 @@ func HelpDocArticleSearch(httpClient *http.Client) toolsets.ToolWrapper {
 			}
 
 			filter := &deskmodels.SearchHelpdocsFilter{
-				Search:   arguments.GetString("search", ""),
-				Status:   arguments.GetString("status", ""),
-				SiteID:   int64(arguments.GetInt("siteID", 0)),
+				Search:     arguments.GetString("search", ""),
+				Status:     arguments.GetString("status", ""),
+				SiteID:     int64(arguments.GetInt("siteID", 0)),
 				CategoryID: int64(arguments.GetInt("categoryID", 0)),
-				Page:     arguments.GetInt("page", 1),
-				PageSize: arguments.GetInt("pageSize", 10),
+				Page:       arguments.GetInt("page", 1),
+				PageSize:   arguments.GetInt("pageSize", 10),
 			}
 
 			articles, err := client.HelpDocArticles.Search(ctx, filter)
