@@ -2,7 +2,10 @@ package twchat_test
 
 import (
 	"net/http"
+	"strings"
 	"testing"
+
+	"github.com/modelcontextprotocol/go-sdk/mcp"
 
 	"github.com/teamwork/mcp/internal/testutil"
 	"github.com/teamwork/mcp/internal/twchat"
@@ -11,6 +14,39 @@ import (
 func TestCurrentUserGet(t *testing.T) {
 	mcpServer := mcpServerMock(t, http.StatusOK, []byte(`{"account":{"id":1}}`))
 	testutil.ExecuteToolRequest(t, mcpServer, twchat.MethodCurrentUserGet.String(), map[string]any{})
+}
+
+func TestCurrentUserGetRedactsCredentials(t *testing.T) {
+	body := []byte(`{"account":{"apiKey":"twp_secret","authkey":"tkn_secret",` +
+		`"user":{"id":1,"apiKey":"twp_secret","authKey":"tkn_secret"}},"status":"ok"}`)
+	mcpServer := mcpServerMock(t, http.StatusOK, body)
+	testutil.ExecuteToolRequest(t, mcpServer, twchat.MethodCurrentUserGet.String(), map[string]any{},
+		testutil.ExecuteToolRequestWithCheckMessage(func(t *testing.T, result mcp.Result) {
+			t.Helper()
+			toolResult, ok := result.(*mcp.CallToolResult)
+			if !ok {
+				t.Fatalf("unexpected result type: %T", result)
+			}
+			if toolResult.IsError {
+				t.Fatalf("tool returned an error: %v", toolResult.Content)
+			}
+			if len(toolResult.Content) != 1 {
+				t.Fatalf("expected 1 content item, got %d", len(toolResult.Content))
+			}
+			text, ok := toolResult.Content[0].(*mcp.TextContent)
+			if !ok {
+				t.Fatalf("unexpected content type: %T", toolResult.Content[0])
+			}
+			for _, secret := range []string{"apiKey", "authKey", "authkey", "twp_secret", "tkn_secret"} {
+				if strings.Contains(text.Text, secret) {
+					t.Errorf("expected %q to be redacted, but it is present in: %s", secret, text.Text)
+				}
+			}
+			// Non-sensitive fields must survive redaction.
+			if !strings.Contains(text.Text, `"status":"ok"`) {
+				t.Errorf("expected non-sensitive fields to be preserved, got: %s", text.Text)
+			}
+		}))
 }
 
 func TestConversationList(t *testing.T) {

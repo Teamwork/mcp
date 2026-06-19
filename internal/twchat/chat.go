@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 
 	"github.com/google/jsonschema-go/jsonschema"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
@@ -15,6 +16,14 @@ import (
 	twapi "github.com/teamwork/twapi-go-sdk"
 )
 
+// sensitiveFieldNames are JSON keys (compared case-insensitively) stripped from
+// chat responses before they are returned to the caller, so credentials never
+// leak into model context or client logs.
+var sensitiveFieldNames = map[string]struct{}{
+	"apikey":  {},
+	"authkey": {},
+}
+
 // execute runs the request through the shared engine and streams the raw JSON
 // response body back to the caller. label is used in error messages.
 func execute(
@@ -22,6 +31,19 @@ func execute(
 	engine *twapi.Engine,
 	req twapi.HTTPRequester,
 	label string,
+) (*mcp.CallToolResult, error) {
+	return executeWithTransform(ctx, engine, req, label, nil)
+}
+
+// executeWithTransform behaves like execute but applies transform to the raw
+// response body before returning it. A nil transform streams the body
+// unchanged.
+func executeWithTransform(
+	ctx context.Context,
+	engine *twapi.Engine,
+	req twapi.HTTPRequester,
+	label string,
+	transform func([]byte) ([]byte, error),
 ) (*mcp.CallToolResult, error) {
 	resp, err := twapi.ExecuteRaw(ctx, engine, req)
 	if err != nil {
@@ -37,11 +59,52 @@ func execute(
 	if err != nil {
 		return nil, fmt.Errorf("failed to read response body: %w", err)
 	}
+	if transform != nil {
+		if body, err = transform(body); err != nil {
+			return nil, err
+		}
+	}
 	return &mcp.CallToolResult{
 		Content: []mcp.Content{
 			&mcp.TextContent{Text: string(body)},
 		},
 	}, nil
+}
+
+// redactSensitiveBody decodes a JSON response body, removes any
+// credential-bearing fields (see sensitiveFieldNames) at any depth, and
+// re-encodes it. It returns an error rather than the raw body on failure, so a
+// parsing problem can never cause secrets to be leaked unredacted.
+func redactSensitiveBody(body []byte) ([]byte, error) {
+	var decoded any
+	if err := json.Unmarshal(body, &decoded); err != nil {
+		return nil, fmt.Errorf("failed to decode response for redaction: %w", err)
+	}
+	redactSensitive(decoded)
+	redacted, err := json.Marshal(decoded)
+	if err != nil {
+		return nil, fmt.Errorf("failed to re-encode redacted response: %w", err)
+	}
+	return redacted, nil
+}
+
+// redactSensitive recursively deletes sensitive keys from a decoded JSON value
+// in place.
+func redactSensitive(v any) {
+	switch val := v.(type) {
+	case map[string]any:
+		for k := range val {
+			if _, ok := sensitiveFieldNames[strings.ToLower(k)]; ok {
+				delete(val, k)
+				continue
+			}
+			redactSensitive(val[k])
+		}
+	case []any:
+		for _, item := range val {
+			redactSensitive(item)
+		}
+	}
 }
 
 // CurrentUserGet returns the current authenticated Teamwork Chat user.
@@ -62,7 +125,10 @@ func CurrentUserGet(engine *twapi.Engine) toolsets.ToolWrapper {
 			},
 		},
 		Handler: func(ctx context.Context, _ *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-			return execute(ctx, engine, currentUserGetRequest{}, "failed to get current chat user")
+			// The current-user payload embeds the caller's API key and auth
+			// token; strip them before handing the response to the client.
+			return executeWithTransform(ctx, engine, currentUserGetRequest{},
+				"failed to get current chat user", redactSensitiveBody)
 		},
 	}
 }
