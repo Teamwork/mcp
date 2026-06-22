@@ -107,7 +107,6 @@ func TimelogCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 							{Type: "boolean"},
 							{Type: "null"},
 						},
-						Default: []byte("false"),
 					},
 					"project_id": {
 						Description: "Project the timelog is logged against. Provide exactly one of project_id or task_id.",
@@ -151,7 +150,7 @@ func TimelogCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 				helpers.OptionalParam(&timelogCreateRequest.IsUTC, "is_utc"),
 				helpers.RequiredNumericParam(&timelogCreateRequest.Hours, "hours"),
 				helpers.RequiredNumericParam(&timelogCreateRequest.Minutes, "minutes"),
-				helpers.OptionalParam(&timelogCreateRequest.Billable, "billable"),
+				helpers.OptionalPointerParam(&timelogCreateRequest.Billable, "billable"),
 				helpers.OptionalNumericPointerParam(&timelogCreateRequest.UserID, "user_id"),
 				helpers.OptionalNumericListParam(&timelogCreateRequest.TagIDs, "tag_ids"),
 			)
@@ -228,7 +227,6 @@ func TimelogUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 							{Type: "boolean"},
 							{Type: "null"},
 						},
-						Default: []byte("false"),
 					},
 					"project_id": {
 						Description: "Project the timelog is logged against. Provide exactly one of project_id or task_id.",
