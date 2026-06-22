@@ -6,7 +6,7 @@ require (
 	github.com/DataDog/dd-trace-go/contrib/net/http/v2 v2.8.2
 	github.com/DataDog/dd-trace-go/v2 v2.8.2
 	github.com/getsentry/sentry-go v0.47.0
-	github.com/getsentry/sentry-go/slog v0.46.2
+	github.com/getsentry/sentry-go/slog v0.47.0
 	github.com/google/jsonschema-go v0.4.3
 	github.com/google/uuid v1.6.0
 	github.com/localit-io/tiktoken-go v0.2.1
