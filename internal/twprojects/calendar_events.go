@@ -29,7 +29,9 @@ func init() {
 	var err error
 
 	// generate the output schema only once
-	calendarEventListOutputSchema, err = jsonschema.For[projects.CalendarEventListResponse](&jsonschema.ForOptions{})
+	calendarEventListOutputSchema, err = jsonschema.For[projects.CalendarEventListResponse](
+		helpers.WithDateTypeSchema(&jsonschema.ForOptions{}),
+	)
 	if err != nil {
 		panic(fmt.Sprintf("failed to generate JSON schema for CalendarEventListResponse: %v", err))
 	}

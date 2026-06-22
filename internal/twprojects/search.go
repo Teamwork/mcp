@@ -28,7 +28,7 @@ var (
 func init() {
 	var err error
 
-	searchOutputSchema, err = jsonschema.For[projects.SearchResponse](&jsonschema.ForOptions{})
+	searchOutputSchema, err = jsonschema.For[projects.SearchResponse](helpers.WithDateTypeSchema(&jsonschema.ForOptions{}))
 	if err != nil {
 		panic(fmt.Sprintf("failed to generate JSON schema for SearchResponse: %v", err))
 	}
