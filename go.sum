@@ -68,8 +68,8 @@ github.com/ebitengine/purego v0.10.0 h1:QIw4xfpWT6GWTzaW5XEKy3HXoqrJGx1ijYHzTF0/
 github.com/ebitengine/purego v0.10.0/go.mod h1:iIjxzd6CiRiOG0UyXP+V1+jWqUXVjPKLAI0mRfJZTmQ=
 github.com/getsentry/sentry-go v0.47.0 h1:AnSMSyrYA5qZCIN/2xpgAAwv63sVULV+vBq37ajouc8=
 github.com/getsentry/sentry-go v0.47.0/go.mod h1:h+b4VHpKnK7aUXB5wc+KDnPgp9ZtfliRD4eV85FbiSA=
-github.com/getsentry/sentry-go/slog v0.46.2 h1:LvlIgQtGPWrzXSwnuyid4lCcRPJA+32CdHz6E2Zy4iE=
-github.com/getsentry/sentry-go/slog v0.46.2/go.mod h1:ij4MuNplQBVR6+uXExJqEH440WiKljKd2Ey3UmFjyeY=
+github.com/getsentry/sentry-go/slog v0.47.0 h1:vyD+Adio8bKpmFksQ1JmZNpZ28xD7xHcw6mvAC7zpKY=
+github.com/getsentry/sentry-go/slog v0.47.0/go.mod h1:tuoFPQJzgOmwXofB/QodOL6rEPCz7x5opylXimfAioY=
 github.com/go-errors/errors v1.4.2 h1:J6MZopCL4uSllY1OfXM374weqZFFItUbrImctkmUxIA=
 github.com/go-errors/errors v1.4.2/go.mod h1:sIVyrIiJhuEF+Pj9Ebtd6P/rEYROXFi3BopGUQ5a5Og=
 github.com/go-logr/logr v1.4.3 h1:CjnDlHq8ikf6E492q6eKboGOC0T8CDaOvkHCIg8idEI=
