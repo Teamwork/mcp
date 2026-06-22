@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"reflect"
 
 	"github.com/google/jsonschema-go/jsonschema"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
@@ -37,12 +38,26 @@ func init() {
 	var err error
 
 	// generate the output schemas only once
-	taskGetOutputSchema, err = jsonschema.For[projects.TaskGetResponse](&jsonschema.ForOptions{})
+	taskGetOutputSchema, err = jsonschema.For[projects.TaskGetResponse](&jsonschema.ForOptions{
+		TypeSchemas: map[reflect.Type]*jsonschema.Schema{
+			reflect.TypeFor[twapi.Date](): {
+				Types:       []string{"null", "string"},
+				Description: "Null or date-only date string",
+			},
+		},
+	})
 	if err != nil {
 		panic(fmt.Sprintf("failed to generate JSON schema for TaskGetResponse: %v", err))
 	}
 	helpers.WithMetaWebLinkSchema(taskGetOutputSchema)
-	taskListOutputSchema, err = jsonschema.For[projects.TaskListResponse](&jsonschema.ForOptions{})
+	taskListOutputSchema, err = jsonschema.For[projects.TaskListResponse](&jsonschema.ForOptions{
+		TypeSchemas: map[reflect.Type]*jsonschema.Schema{
+			reflect.TypeFor[twapi.Date](): {
+				Types:       []string{"null", "string"},
+				Description: "Null or date-only date string",
+			},
+		},
+	})
 	if err != nil {
 		panic(fmt.Sprintf("failed to generate JSON schema for TaskListResponse: %v", err))
 	}
