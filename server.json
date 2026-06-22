@@ -10,7 +10,7 @@
   "remotes": [
     {
       "type": "sse",
-      "url": "https://mcp.ai.teamwork.com",
+      "url": "https://mcp.ai.teamwork.com/sse",
       "headers": [
         {
           "name": "Authorization",
