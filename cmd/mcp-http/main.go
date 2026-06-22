@@ -25,6 +25,7 @@ import (
 	"github.com/teamwork/mcp/internal/config"
 	"github.com/teamwork/mcp/internal/request"
 	"github.com/teamwork/mcp/internal/toolsets"
+	"github.com/teamwork/mcp/internal/twchat"
 	"github.com/teamwork/mcp/internal/twdesk"
 	"github.com/teamwork/mcp/internal/twprojects"
 	"github.com/teamwork/mcp/internal/twspaces"
@@ -125,10 +126,16 @@ func newMCPServer(resources config.Resources) (*mcp.Server, error) {
 		return nil, fmt.Errorf("failed to enable spaces toolsets: %w", err)
 	}
 
+	chatGroup := twchat.DefaultToolsetGroup(false, resources.TeamworkEngine())
+	if err := chatGroup.EnableToolsets(methods.Toolsets()...); err != nil {
+		return nil, fmt.Errorf("failed to enable chat toolsets: %w", err)
+	}
+
 	return config.NewMCPServer(resources,
 		projectsGroup,
 		deskGroup,
 		spacesGroup,
+		chatGroup,
 	), nil
 }
 
@@ -165,7 +172,7 @@ func newRouter(resources config.Resources) *http.ServeMux {
   "authorization_servers": ["` + resources.Info.APIURL + `"],
   "bearer_methods_supported": ["header"],
   "resource_documentation": "https://apidocs.teamwork.com/guides/teamwork/app-login-flow",
-  "scopes_supported": [ "projects", "desk", "spaces" ]
+  "scopes_supported": [ "projects", "desk", "spaces", "chat" ]
 }`))
 	})
 	return mux
