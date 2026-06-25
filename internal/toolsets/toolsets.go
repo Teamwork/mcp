@@ -20,6 +20,9 @@ var (
 
 	registeredProfiles      = make(map[string][]Method)
 	registeredProfilesMutex sync.RWMutex
+
+	registeredToolOrder      []Method
+	registeredToolOrderMutex sync.RWMutex
 )
 
 // Method identifies the name of a logical unit of operation or action that can
@@ -72,6 +75,24 @@ func RegisterProfiles(names []string, methods []Method) {
 	for _, name := range names {
 		registeredProfiles[name] = methods
 	}
+}
+
+// RegisterToolOrder sets the preferred display order for tools. Methods that
+// appear earlier in the list are presented first to MCP clients; this helps
+// clients that truncate the tool list at a fixed size keep the most useful
+// tools. Methods not listed here fall back to alphabetical order.
+func RegisterToolOrder(methods []Method) {
+	registeredToolOrderMutex.Lock()
+	defer registeredToolOrderMutex.Unlock()
+	registeredToolOrder = methods
+}
+
+// ToolOrder returns the registered preferred tool order. The returned slice
+// must not be modified.
+func ToolOrder() []Method {
+	registeredToolOrderMutex.RLock()
+	defer registeredToolOrderMutex.RUnlock()
+	return registeredToolOrder
 }
 
 // LookupProfile returns the methods associated with a named profile, and

@@ -1,6 +1,7 @@
 package config
 
 import (
+	"cmp"
 	"context"
 	"crypto/tls"
 	"encoding/json"
@@ -244,22 +245,24 @@ func NewMCPServer(resources Resources, groups ...*toolsets.ToolsetGroup) *mcp.Se
 			}
 
 			// filter tools based on scopes
-			scopes := scopes(ctx)
-			if len(scopes) == 0 {
-				return result, err
+			if scopes := scopes(ctx); len(scopes) > 0 {
+				projectsScope := slices.Contains(scopes, "projects")
+				deskScope := slices.Contains(scopes, "desk")
+				spacesScope := slices.Contains(scopes, "spaces")
+				chatScope := slices.Contains(scopes, "chat")
+
+				listToolsResult.Tools = slices.DeleteFunc(listToolsResult.Tools, func(tool *mcp.Tool) bool {
+					return (strings.HasPrefix(tool.Name, "twprojects") && !projectsScope) ||
+						(strings.HasPrefix(tool.Name, "twdesk") && !deskScope) ||
+						(strings.HasPrefix(tool.Name, "twspaces") && !spacesScope) ||
+						(strings.HasPrefix(tool.Name, "twchat") && !chatScope)
+				})
 			}
 
-			projectsScope := slices.Contains(scopes, "projects")
-			deskScope := slices.Contains(scopes, "desk")
-			spacesScope := slices.Contains(scopes, "spaces")
-			chatScope := slices.Contains(scopes, "chat")
-
-			listToolsResult.Tools = slices.DeleteFunc(listToolsResult.Tools, func(tool *mcp.Tool) bool {
-				return (strings.HasPrefix(tool.Name, "twprojects") && !projectsScope) ||
-					(strings.HasPrefix(tool.Name, "twdesk") && !deskScope) ||
-					(strings.HasPrefix(tool.Name, "twspaces") && !spacesScope) ||
-					(strings.HasPrefix(tool.Name, "twchat") && !chatScope)
-			})
+			// order tools so the most commonly used appear first. This helps MCP
+			// clients that truncate the tool list at a fixed size to keep the most
+			// useful tools. Tools not in the preferred list follow alphabetically.
+			orderTools(listToolsResult.Tools)
 			return listToolsResult, nil
 		}
 	})
@@ -270,6 +273,33 @@ func NewMCPServer(resources Resources, groups ...*toolsets.ToolsetGroup) *mcp.Se
 	}
 
 	return mcpServer
+}
+
+// orderTools sorts tools in place so that those registered via
+// toolsets.RegisterToolOrder appear first (in that order), followed by the
+// remaining tools alphabetically by name. This helps MCP clients that truncate
+// the tool list at a fixed size keep the most useful tools.
+func orderTools(tools []*mcp.Tool) {
+	order := toolsets.ToolOrder()
+	ranks := make(map[string]int, len(order))
+	for i, method := range order {
+		ranks[method.String()] = i
+	}
+
+	slices.SortStableFunc(tools, func(a, b *mcp.Tool) int {
+		rankA, okA := ranks[a.Name]
+		rankB, okB := ranks[b.Name]
+		switch {
+		case okA && okB:
+			return cmp.Compare(rankA, rankB)
+		case okA:
+			return -1
+		case okB:
+			return 1
+		default:
+			return strings.Compare(a.Name, b.Name)
+		}
+	})
 }
 
 // NewMCPClient creates a new MCP client.
