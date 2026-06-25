@@ -40,6 +40,33 @@ func init() {
 	toolsets.RegisterProfile("ops", []toolsets.Method{
 		toolsets.MethodAll,
 	})
+
+	// RegisterToolOrder defines the order in which tools are presented to MCP
+	// clients, with the most commonly used tools first. Clients that truncate
+	// the tool list at a fixed size keep the most useful tools; any tool not
+	// listed here follows alphabetically.
+	toolsets.RegisterToolOrder([]toolsets.Method{
+		twprojects.MethodTaskGet,
+		twprojects.MethodTaskList,
+		twprojects.MethodTaskCreate,
+		twprojects.MethodCommentList,
+		twprojects.MethodTaskUpdate,
+		twprojects.MethodProjectList,
+		twprojects.MethodTimelogCreate,
+		twprojects.MethodTimelogList,
+		twprojects.MethodSearch,
+		twprojects.MethodTasklistList,
+		twprojects.MethodCommentCreate,
+		twprojects.MethodTasklistGet,
+		twprojects.MethodProjectGet,
+		twdesk.MethodTicketGet,
+		twprojects.MethodTimelogUpdate,
+		twprojects.MethodActivityList,
+		twprojects.MethodWorkflowStageTaskMove,
+		twprojects.MethodTaskComplete,
+		twdesk.MethodTicketSearch,
+		twprojects.MethodUserList,
+	})
 }
 
 // Methods is a slice of toolsets.Method that implements the flag.Value
