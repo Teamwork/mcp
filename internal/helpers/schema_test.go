@@ -121,10 +121,10 @@ func TestUserGroupsSchema(t *testing.T) {
 		if got.MinProperties == nil || *got.MinProperties != 1 {
 			t.Errorf("required UserGroupsSchema MinProperties = %v, want 1", got.MinProperties)
 		}
-		if got.MaxProperties == nil || *got.MaxProperties != 3 {
-			t.Errorf("required UserGroupsSchema MaxProperties = %v, want 3", got.MaxProperties)
+		if got.MaxProperties == nil || *got.MaxProperties != 4 {
+			t.Errorf("required UserGroupsSchema MaxProperties = %v, want 4", got.MaxProperties)
 		}
-		for _, key := range []string{"user_ids", "company_ids", "team_ids"} {
+		for _, key := range []string{"user_ids", "company_ids", "team_ids", "job_role_ids"} {
 			prop, ok := got.Properties[key]
 			if !ok {
 				t.Errorf("required UserGroupsSchema missing %q", key)
@@ -140,8 +140,8 @@ func TestUserGroupsSchema(t *testing.T) {
 				t.Errorf("required UserGroupsSchema %q MinItems = %v, want 1", key, prop.MinItems)
 			}
 		}
-		if len(got.AnyOf) != 3 {
-			t.Fatalf("required UserGroupsSchema AnyOf len = %d, want 3", len(got.AnyOf))
+		if len(got.AnyOf) != 4 {
+			t.Fatalf("required UserGroupsSchema AnyOf len = %d, want 4", len(got.AnyOf))
 		}
 	})
 

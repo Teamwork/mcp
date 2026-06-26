@@ -314,8 +314,17 @@ func TaskUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 							{Type: "null"},
 						},
 					},
-					"assignees": helpers.UserGroupsSchema("Assignees for the task.", false),
-					"tag_ids":   helpers.TagIDsAssociateSchema("task"),
+					"assignees": helpers.UserGroupsSchema("Assignees for the task. To remove all "+
+						"assignees, use clear_assignees instead.", false),
+					"clear_assignees": {
+						Description: "If true, removes all assignees from the task, leaving it unassigned. " +
+							"Cannot be combined with a non-empty assignees value.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "boolean"},
+							{Type: "null"},
+						},
+					},
+					"tag_ids": helpers.TagIDsAssociateSchema("task"),
 					"predecessors": {
 						Description: "Task dependencies that must be completed before this task can start.",
 						AnyOf: []*jsonschema.Schema{
@@ -375,6 +384,13 @@ func TaskUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
 			}
 
+			var clearAssignees bool
+			if err := helpers.ParamGroup(arguments,
+				helpers.OptionalParam(&clearAssignees, "clear_assignees"),
+			); err != nil {
+				return helpers.NewToolResultTextError("invalid clear_assignees: %s", err.Error()), nil
+			}
+
 			if assignees, toolResult := parseUserGroups(
 				arguments,
 				"assignees",
@@ -382,7 +398,28 @@ func TaskUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 			); toolResult != nil {
 				return toolResult, nil
 			} else if assignees != nil {
+				assigneesEmpty := len(assignees.UserIDs) == 0 &&
+					len(assignees.CompanyIDs) == 0 &&
+					len(assignees.TeamIDs) == 0 &&
+					len(assignees.JobRoleIDs) == 0
+				if clearAssignees && !assigneesEmpty {
+					return helpers.NewToolResultTextError(
+						"clear_assignees cannot be combined with a non-empty assignees value",
+					), nil
+				}
 				taskUpdateRequest.Assignees = assignees
+			}
+
+			if clearAssignees {
+				// Empty arrays unassign every assignee dimension. Job roles are
+				// included because the SDK now sends the "Jobroles-Enabled: true"
+				// header on every request, so the API honours jobRoleIds here.
+				taskUpdateRequest.Assignees = &projects.UserGroups{
+					UserIDs:    []int64{},
+					CompanyIDs: []int64{},
+					TeamIDs:    []int64{},
+					JobRoleIDs: []int64{},
+				}
 			}
 
 			if predecessors, ok := arguments["predecessors"]; ok {
