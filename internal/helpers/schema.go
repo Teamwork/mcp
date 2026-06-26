@@ -128,13 +128,14 @@ func MatchAllTagsSchema() *jsonschema.Schema {
 	}
 }
 
-// UserGroupsSchema returns the schema for a user/team/company groups
-// parameter. The object accepts user_ids, company_ids, and/or team_ids arrays;
-// at least one (and at most all three) must be supplied with non-empty values.
-// When required is true the returned schema is a bare object; when false it is
-// wrapped in AnyOf with null so the caller can omit the field. The caller
-// supplies the purpose-specific framing as description (pass "" when the helper
-// is used as a branch of an outer schema that already carries a description).
+// UserGroupsSchema returns the schema for a user/team/company/job-role groups
+// parameter. The object accepts user_ids, company_ids, team_ids, and/or
+// job_role_ids arrays; at least one (and at most all four) must be supplied with
+// non-empty values. When required is true the returned schema is a bare object;
+// when false it is wrapped in AnyOf with null so the caller can omit the field.
+// The caller supplies the purpose-specific framing as description (pass "" when
+// the helper is used as a branch of an outer schema that already carries a
+// description).
 func UserGroupsSchema(description string, required bool) *jsonschema.Schema {
 	obj := &jsonschema.Schema{
 		Type: "object",
@@ -154,13 +155,19 @@ func UserGroupsSchema(description string, required bool) *jsonschema.Schema {
 				Items:    &jsonschema.Schema{Type: "integer"},
 				MinItems: new(1),
 			},
+			"job_role_ids": {
+				Type:     "array",
+				Items:    &jsonschema.Schema{Type: "integer"},
+				MinItems: new(1),
+			},
 		},
 		MinProperties: new(1),
-		MaxProperties: new(3),
+		MaxProperties: new(4),
 		AnyOf: []*jsonschema.Schema{
 			{Required: []string{"user_ids"}},
 			{Required: []string{"company_ids"}},
 			{Required: []string{"team_ids"}},
+			{Required: []string{"job_role_ids"}},
 		},
 	}
 	if required {

@@ -27,6 +27,7 @@ func parseUserGroups(
 		helpers.OptionalNumericListParam(&userGroups.UserIDs, "user_ids"),
 		helpers.OptionalNumericListParam(&userGroups.CompanyIDs, "company_ids"),
 		helpers.OptionalNumericListParam(&userGroups.TeamIDs, "team_ids"),
+		helpers.OptionalNumericListParam(&userGroups.JobRoleIDs, "job_role_ids"),
 	)
 	if err != nil {
 		return nil, helpers.NewToolResultTextError("invalid %s: %s", label, err)
@@ -55,6 +56,7 @@ func parseLegacyUserGroups(
 		helpers.OptionalNumericListParam(&userGroups.UserIDs, "user_ids"),
 		helpers.OptionalNumericListParam(&userGroups.CompanyIDs, "company_ids"),
 		helpers.OptionalNumericListParam(&userGroups.TeamIDs, "team_ids"),
+		helpers.OptionalNumericListParam(&userGroups.JobRoleIDs, "job_role_ids"),
 	)
 	if err != nil {
 		return nil, helpers.NewToolResultTextError("invalid %s: %s", label, err)

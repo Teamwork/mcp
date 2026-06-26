@@ -67,12 +67,47 @@ func DeskClientMock(status int, response []byte) (*deskclient.Client, *httptest.
 
 // ProjectsMCPServerMock creates a mock MCP server for twprojects testing
 func ProjectsMCPServerMock(t *testing.T, status int, response []byte) *mcp.Server {
+	return projectsMCPServer(t, ProjectsEngineMock(status, response))
+}
+
+// ProjectsMCPServerMockWithRequestBody is like ProjectsMCPServerMock but also
+// captures the body of the most recent HTTP request the engine sent, so tests
+// can assert on the serialized request payload. The returned pointer is
+// populated after a tool invokes the engine.
+func ProjectsMCPServerMockWithRequestBody(t *testing.T, status int, response []byte) (*mcp.Server, *[]byte) {
+	var lastBody []byte
+	engine := twapi.NewEngine(ProjectsSessionMock{}, twapi.WithMiddleware(func(twapi.HTTPClient) twapi.HTTPClient {
+		return twapi.HTTPClientFunc(func(req *http.Request) (*http.Response, error) {
+			if req.Body != nil {
+				body, err := io.ReadAll(req.Body)
+				if err != nil {
+					return nil, err
+				}
+				lastBody = body
+			}
+			return &http.Response{
+				StatusCode: status,
+				Status:     http.StatusText(status),
+				Proto:      "HTTP/1.1",
+				ProtoMajor: 1,
+				ProtoMinor: 1,
+				Header:     make(http.Header),
+				Body:       io.NopCloser(strings.NewReader(string(response))),
+			}, nil
+		})
+	}))
+	return projectsMCPServer(t, engine), &lastBody
+}
+
+// projectsMCPServer wires a twprojects toolset group backed by the given engine
+// into a fresh in-memory MCP server.
+func projectsMCPServer(t *testing.T, engine *twapi.Engine) *mcp.Server {
 	mcpServer := mcp.NewServer(&mcp.Implementation{
 		Name:    "test-server",
 		Version: "1.0.0",
 	}, &mcp.ServerOptions{})
 
-	toolsetGroup := twprojects.DefaultToolsetGroup(false, true, ProjectsEngineMock(status, response))
+	toolsetGroup := twprojects.DefaultToolsetGroup(false, true, engine)
 	if err := toolsetGroup.EnableToolsets(toolsets.MethodAll); err != nil {
 		t.Fatalf("failed to enable toolsets: %v", err)
 	}

@@ -6,5 +6,6 @@ import (
 
 // Re-export the shared utilities for convenience
 var (
-	mcpServerMock = testutil.ProjectsMCPServerMock
+	mcpServerMock                = testutil.ProjectsMCPServerMock
+	mcpServerMockWithRequestBody = testutil.ProjectsMCPServerMockWithRequestBody
 )
