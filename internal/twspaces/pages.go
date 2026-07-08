@@ -325,6 +325,29 @@ func PageDuplicate(httpClient *http.Client) toolsets.ToolWrapper {
 	}
 }
 
+// insufficientDraftVersion mirrors the Spaces web app's
+// INSUFFICIENT_DRAFT_VERSION_NUMBER. A page whose draftVersion is <= 1 has no
+// real collaborative editor draft yet: the editor seeds one from the published
+// content the first time someone opens it. A draftVersion greater than this
+// means an active editor draft exists.
+const insufficientDraftVersion = 1
+
+// draftOverwriteWarning is surfaced when an API content/publish write targets a
+// page that already has an active editor draft. Content written through the REST
+// API updates only the published page, not the collaborative editor draft, so
+// the next person who edits the page in the Spaces web app sees the older draft
+// and can silently overwrite what was just published. This is a known Spaces
+// limitation (the API has no way to update the editor draft), not a problem with
+// the arguments supplied to this tool.
+const draftOverwriteWarning = "⚠️ Draft-sync warning: this page already has an active editor draft " +
+	"(draftVersion=%d). This update changes the PUBLISHED content only — it does NOT update the " +
+	"collaborative editor draft (\"Edit version\"). The next time someone opens this page in the Spaces " +
+	"web editor they will see the older draft, and saving from there can overwrite the content you just " +
+	"published. To resync the draft, open the page in the Spaces web editor and choose \"Revert to last " +
+	"published version\" from the ⋯ (more options) menu BEFORE making any edits — this replaces the stale " +
+	"draft with the content you just published. Alternatively, make this change in the Spaces web app " +
+	"instead. This is a known Spaces limitation and is unrelated to the values you passed."
+
 // PageUpdate updates an existing page.
 func PageUpdate(httpClient *http.Client) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{
@@ -333,7 +356,9 @@ func PageUpdate(httpClient *http.Client) toolsets.ToolWrapper {
 			Annotations: &mcp.ToolAnnotations{
 				Title: "Update Page",
 			},
-			Description: "Update page.",
+			Description: "Update page. Note: content and publish changes update the published page only, not the " +
+				"live collaborative editor draft; if the page has an active editor draft, re-publishing from the " +
+				"Spaces web editor can overwrite these changes (known Spaces limitation).",
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
 				Properties: map[string]*jsonschema.Schema{
@@ -478,15 +503,42 @@ func PageUpdate(httpClient *http.Client) toolsets.ToolWrapper {
 				req.ReaderInlineCommentsEnabled = &v
 			}
 
-			page, err := client.Pages.Update(ctx,
-				int64(arguments.GetInt("spaceId", 0)),
-				int64(arguments.GetInt("pageId", 0)),
-				req,
-			)
+			spaceID := int64(arguments.GetInt("spaceId", 0))
+			pageID := int64(arguments.GetInt("pageId", 0))
+
+			// Detect the known draft-sync limitation before writing: if this write
+			// changes the published content and the page already has an active editor
+			// draft, the write will not be reflected in that draft. Content updates
+			// already require draftVersion, so the risk is usually readable straight
+			// from the argument; fall back to a best-effort lookup otherwise.
+			_, hasPublish := arguments["isPublish"]
+			var draftWarning string
+			if req.Content != nil || hasPublish {
+				draftVersion := int64(arguments.GetInt("draftVersion", 0))
+				if draftVersion <= insufficientDraftVersion {
+					if existing, gErr := client.Pages.Get(ctx, spaceID, pageID); gErr == nil &&
+						existing != nil && existing.Page.DraftVersion != nil {
+						draftVersion = *existing.Page.DraftVersion
+					}
+				}
+				if draftVersion > insufficientDraftVersion {
+					draftWarning = fmt.Sprintf(draftOverwriteWarning, draftVersion)
+				}
+			}
+
+			page, err := client.Pages.Update(ctx, spaceID, pageID, req)
 			if err != nil {
 				return nil, fmt.Errorf("failed to update page: %w", err)
 			}
-			return helpers.NewToolResultJSON(page)
+
+			result, err := helpers.NewToolResultJSON(page)
+			if err != nil {
+				return nil, err
+			}
+			if draftWarning != "" {
+				result.Content = append([]mcp.Content{&mcp.TextContent{Text: draftWarning}}, result.Content...)
+			}
+			return result, nil
 		},
 	}
 }
