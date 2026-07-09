@@ -187,6 +187,8 @@ func TestTaskList(t *testing.T) {
 		"updated_before":      "2023-10-31T23:59:59Z",
 		"completed_after":     "2023-10-01T00:00:00Z",
 		"completed_before":    "2023-10-31T23:59:59Z",
+		"due_after":           "2023-10-01",
+		"due_before":          "2023-10-31",
 		"page":                float64(1),
 		"page_size":           float64(10),
 	})
@@ -207,6 +209,8 @@ func TestTaskListByTasklist(t *testing.T) {
 		"updated_before":      "2023-10-31T23:59:59Z",
 		"completed_after":     "2023-10-01T00:00:00Z",
 		"completed_before":    "2023-10-31T23:59:59Z",
+		"due_after":           "2023-10-01",
+		"due_before":          "2023-10-31",
 		"page":                float64(1),
 		"page_size":           float64(10),
 	})
@@ -227,6 +231,8 @@ func TestTaskListByProject(t *testing.T) {
 		"updated_before":      "2023-10-31T23:59:59Z",
 		"completed_after":     "2023-10-01T00:00:00Z",
 		"completed_before":    "2023-10-31T23:59:59Z",
+		"due_after":           "2023-10-01",
+		"due_before":          "2023-10-31",
 		"page":                float64(1),
 		"page_size":           float64(10),
 	})
