@@ -739,6 +739,22 @@ func TaskList(engine *twapi.Engine) toolsets.ToolWrapper {
 							{Type: "null"},
 						},
 					},
+					"due_after": {
+						Description: "Filter tasks due after.",
+						Examples:    []any{"2023-01-01"},
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string", Format: "date"},
+							{Type: "null"},
+						},
+					},
+					"due_before": {
+						Description: "Filter tasks due before.",
+						Examples:    []any{"2023-12-31"},
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string", Format: "date"},
+							{Type: "null"},
+						},
+					},
 					"page":      helpers.PageSchema(),
 					"page_size": helpers.PageSizeSchema(),
 					"verbose":   helpers.VerboseSchema(),
@@ -771,6 +787,8 @@ func TaskList(engine *twapi.Engine) toolsets.ToolWrapper {
 				helpers.OptionalTimePointerParam(&taskListRequest.Filters.UpdatedBefore, "updated_before"),
 				helpers.OptionalTimePointerParam(&taskListRequest.Filters.CompletedAfter, "completed_after"),
 				helpers.OptionalTimePointerParam(&taskListRequest.Filters.CompletedBefore, "completed_before"),
+				helpers.OptionalDatePointerParam(&taskListRequest.Filters.DueAfter, "due_after"),
+				helpers.OptionalDatePointerParam(&taskListRequest.Filters.DueBefore, "due_before"),
 				helpers.OptionalParam(&verbose, "verbose"),
 			)
 			if err != nil {
