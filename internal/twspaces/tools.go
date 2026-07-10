@@ -30,16 +30,21 @@ func init() {
 }
 
 // DefaultToolsetGroup creates a default ToolsetGroup for Teamwork Spaces.
-func DefaultToolsetGroup(readOnly bool, httpClient *http.Client) *toolsets.ToolsetGroup {
+func DefaultToolsetGroup(readOnly, allowDelete bool, httpClient *http.Client) *toolsets.ToolsetGroup {
 	group := toolsets.NewToolsetGroup(readOnly)
 
 	// --- spaces sub-toolset ---
-	group.AddToolset(toolsets.NewToolset(ToolsetSpaces, spacesDescription).
-		AddWriteTools(
-			SpaceCreate(httpClient),
-			SpaceUpdate(httpClient),
+	spacesWriteTools := []toolsets.ToolWrapper{
+		SpaceCreate(httpClient),
+		SpaceUpdate(httpClient),
+	}
+	if allowDelete {
+		spacesWriteTools = append(spacesWriteTools,
 			SpaceDelete(httpClient),
-		).
+		)
+	}
+	group.AddToolset(toolsets.NewToolset(ToolsetSpaces, spacesDescription).
+		AddWriteTools(spacesWriteTools...).
 		AddReadTools(
 			SpaceGet(httpClient),
 			SpaceList(httpClient),
@@ -47,13 +52,18 @@ func DefaultToolsetGroup(readOnly bool, httpClient *http.Client) *toolsets.Tools
 		))
 
 	// --- pages sub-toolset ---
-	group.AddToolset(toolsets.NewToolset(ToolsetPages, pagesDescription).
-		AddWriteTools(
-			PageCreate(httpClient),
-			PageDuplicate(httpClient),
-			PageUpdate(httpClient),
+	pagesWriteTools := []toolsets.ToolWrapper{
+		PageCreate(httpClient),
+		PageDuplicate(httpClient),
+		PageUpdate(httpClient),
+	}
+	if allowDelete {
+		pagesWriteTools = append(pagesWriteTools,
 			PageDelete(httpClient),
-		).
+		)
+	}
+	group.AddToolset(toolsets.NewToolset(ToolsetPages, pagesDescription).
+		AddWriteTools(pagesWriteTools...).
 		AddReadTools(
 			PageGet(httpClient),
 			PageList(httpClient),
@@ -61,18 +71,23 @@ func DefaultToolsetGroup(readOnly bool, httpClient *http.Client) *toolsets.Tools
 		))
 
 	// --- content sub-toolset ---
-	group.AddToolset(toolsets.NewToolset(ToolsetContent, spacesContentDescription).
-		AddWriteTools(
-			CommentCreate(httpClient),
-			CommentUpdate(httpClient),
+	contentWriteTools := []toolsets.ToolWrapper{
+		CommentCreate(httpClient),
+		CommentUpdate(httpClient),
+		TagCreateBatch(httpClient),
+		TagUpdate(httpClient),
+		CategoryCreate(httpClient),
+		CategoryUpdate(httpClient),
+	}
+	if allowDelete {
+		contentWriteTools = append(contentWriteTools,
 			CommentDelete(httpClient),
-			TagCreateBatch(httpClient),
-			TagUpdate(httpClient),
 			TagDelete(httpClient),
-			CategoryCreate(httpClient),
-			CategoryUpdate(httpClient),
 			CategoryDelete(httpClient),
-		).
+		)
+	}
+	group.AddToolset(toolsets.NewToolset(ToolsetContent, spacesContentDescription).
+		AddWriteTools(contentWriteTools...).
 		AddReadTools(
 			CommentGet(httpClient),
 			CommentList(httpClient),
