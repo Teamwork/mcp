@@ -121,7 +121,7 @@ func newMCPServer(resources config.Resources) (*mcp.Server, error) {
 		return nil, fmt.Errorf("failed to enable desk toolsets: %w", err)
 	}
 
-	spacesGroup := twspaces.DefaultToolsetGroup(false, resources.TeamworkHTTPClient())
+	spacesGroup := twspaces.DefaultToolsetGroup(false, false, resources.TeamworkHTTPClient())
 	if err := spacesGroup.EnableToolsets(methods.Toolsets()...); err != nil {
 		return nil, fmt.Errorf("failed to enable spaces toolsets: %w", err)
 	}

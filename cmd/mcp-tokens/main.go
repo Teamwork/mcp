@@ -108,7 +108,7 @@ func allGroups() []*toolsets.ToolsetGroup {
 	return []*toolsets.ToolsetGroup{
 		twprojects.DefaultToolsetGroup(false, true, nil),
 		twdesk.DefaultToolsetGroup(false, httpClient),
-		twspaces.DefaultToolsetGroup(false, httpClient),
+		twspaces.DefaultToolsetGroup(false, true, httpClient),
 	}
 }
 
