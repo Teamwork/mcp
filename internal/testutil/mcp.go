@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"strings"
+	"sync"
 	"testing"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
@@ -180,6 +181,37 @@ func ProjectsMCPServerRoutedMock(
 	toolsetGroup.RegisterAll(mcpServer)
 
 	return mcpServer
+}
+
+// ProjectsMCPServerSequencedMock creates a mock MCP server for twprojects
+// testing whose engine returns the given response bodies in order, one per HTTP
+// request the engine makes. Once the sequence is exhausted the final body is
+// repeated. This lets tests drive a tool's internal pagination loop with a
+// distinct body per page, or exercise a never-ending "hasMore" by supplying a
+// single always-more body. All responses share the same status code.
+func ProjectsMCPServerSequencedMock(t *testing.T, status int, responses ...[]byte) *mcp.Server {
+	t.Helper()
+
+	if len(responses) == 0 {
+		t.Fatal("ProjectsMCPServerSequencedMock requires at least one response body")
+	}
+
+	var mu sync.Mutex
+	var idx int
+	engine := twapi.NewEngine(ProjectsSessionMock{}, twapi.WithMiddleware(func(twapi.HTTPClient) twapi.HTTPClient {
+		return twapi.HTTPClientFunc(func(*http.Request) (*http.Response, error) {
+			mu.Lock()
+			body := responses[len(responses)-1]
+			if idx < len(responses) {
+				body = responses[idx]
+			}
+			idx++
+			mu.Unlock()
+			return newProjectsMockHTTPResponse(status, body), nil
+		})
+	}))
+
+	return projectsMCPServer(t, engine)
 }
 
 func newProjectsMockHTTPResponse(status int, body []byte) *http.Response {
