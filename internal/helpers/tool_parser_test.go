@@ -157,3 +157,74 @@ func TestParamsAcceptDefinedTypes(t *testing.T) {
 	})
 
 }
+
+// TestParamCoercesStringBool verifies that a boolean parameter supplied as a
+// string (as some MCP clients serialize scalars) is parsed rather than causing a
+// panic. reflect.Convert(string -> bool) is illegal, so the parser must handle
+// bool targets explicitly. Invalid strings must return an error, not panic.
+func TestParamCoercesStringBool(t *testing.T) {
+	cases := map[string]bool{"true": true, "false": false, "1": true, "0": false}
+	for in, want := range cases {
+		t.Run("valid "+in, func(t *testing.T) {
+			var b bool
+			if err := helpers.ParamGroup(map[string]any{"k": in}, helpers.OptionalParam(&b, "k")); err != nil {
+				t.Fatalf("expected nil error for %q, got: %v", in, err)
+			}
+			if b != want {
+				t.Errorf("for %q expected %v, got %v", in, want, b)
+			}
+		})
+	}
+
+	t.Run("native bool still works", func(t *testing.T) {
+		var b bool
+		if err := helpers.ParamGroup(map[string]any{"k": true}, helpers.OptionalParam(&b, "k")); err != nil {
+			t.Fatalf("expected nil error, got: %v", err)
+		}
+		if !b {
+			t.Errorf("expected true, got false")
+		}
+	})
+
+	t.Run("non-boolean string returns error without panic", func(t *testing.T) {
+		var b bool
+		err := helpers.ParamGroup(map[string]any{"k": "maybe"}, helpers.OptionalParam(&b, "k"))
+		if err == nil {
+			t.Fatalf("expected error for non-boolean string, got nil")
+		}
+	})
+}
+
+// TestParamCoercesStringToPointer verifies that a string value is coerced when
+// the target is a pointer to a supported type. No current caller uses param with
+// a pointer target (pointer optionals go through OptionalPointerParam), but the
+// generic parser must handle it safely rather than erroring or panicking.
+func TestParamCoercesStringToPointer(t *testing.T) {
+	t.Run("string to *string", func(t *testing.T) {
+		var sp *string
+		if err := helpers.ParamGroup(map[string]any{"k": "hi"}, helpers.OptionalParam(&sp, "k")); err != nil {
+			t.Fatalf("expected nil error, got: %v", err)
+		}
+		if sp == nil || *sp != "hi" {
+			t.Errorf("expected pointer to %q, got %v", "hi", sp)
+		}
+	})
+
+	t.Run("string to *bool", func(t *testing.T) {
+		var bp *bool
+		if err := helpers.ParamGroup(map[string]any{"k": "true"}, helpers.OptionalParam(&bp, "k")); err != nil {
+			t.Fatalf("expected nil error, got: %v", err)
+		}
+		if bp == nil || !*bp {
+			t.Errorf("expected pointer to true, got %v", bp)
+		}
+	})
+
+	t.Run("invalid bool string to *bool returns error", func(t *testing.T) {
+		var bp *bool
+		err := helpers.ParamGroup(map[string]any{"k": "maybe"}, helpers.OptionalParam(&bp, "k"))
+		if err == nil {
+			t.Fatalf("expected error for non-boolean string to *bool, got nil")
+		}
+	})
+}

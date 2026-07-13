@@ -8,6 +8,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strconv"
 	"sync"
 
 	"github.com/google/jsonschema-go/jsonschema"
@@ -298,11 +299,171 @@ func withInputValidation(tool *mcp.Tool, handler mcp.ToolHandler) mcp.ToolHandle
 				return newInputValidationError("invalid arguments JSON: %s", err.Error()), nil
 			}
 		}
+		// Repair arguments from clients that serialize scalars as strings before
+		// validating (see coerceStringScalars). When anything changes, re-marshal
+		// so the handler receives the coerced values too.
+		if coerceStringScalars(schema, args) {
+			raw, err := json.Marshal(args)
+			if err != nil {
+				return newInputValidationError("invalid arguments: %s", err.Error()), nil
+			}
+			req.Params.Arguments = raw
+		}
 		if err := resolved.Validate(args); err != nil {
 			return newInputValidationError("invalid arguments: %s", err.Error()), nil
 		}
 		return handler(ctx, req)
 	}
+}
+
+// coerceStringScalars repairs arguments from MCP clients that serialize scalar
+// values as strings (e.g. "911218" instead of 911218, "false" instead of false)
+// before they are validated against the tool's InputSchema. Some clients coerce
+// arguments to the declared JSON type but do not look inside anyOf/oneOf
+// branches, so nullable/optional parameters — which we express as
+// anyOf: [{type: <scalar>}, {type: "null"}] to satisfy OpenAI strict mode —
+// arrive as strings and fail validation before the handler ever runs (issue
+// #383). Coercion is schema-directed and conservative: a string is converted
+// only when the schema accepts the target scalar type but not string, so
+// genuine string parameters (e.g. search_term) are left untouched. It returns
+// true if any value was changed. The value map is mutated in place.
+func coerceStringScalars(schema *jsonschema.Schema, value any) bool {
+	if schema == nil {
+		return false
+	}
+	switch v := value.(type) {
+	case map[string]any:
+		obj := objectBranch(schema)
+		if obj == nil {
+			return false
+		}
+		var changed bool
+		for key, sub := range v {
+			propSchema, ok := obj.Properties[key]
+			if !ok {
+				continue
+			}
+			if s, isStr := sub.(string); isStr {
+				if coerced, did := coerceScalarString(propSchema, s); did {
+					v[key] = coerced
+					changed = true
+					continue
+				}
+			}
+			if coerceStringScalars(propSchema, sub) {
+				changed = true
+			}
+		}
+		return changed
+	case []any:
+		items := arrayItems(schema)
+		if items == nil {
+			return false
+		}
+		var changed bool
+		for i, sub := range v {
+			if s, isStr := sub.(string); isStr {
+				if coerced, did := coerceScalarString(items, s); did {
+					v[i] = coerced
+					changed = true
+					continue
+				}
+			}
+			if coerceStringScalars(items, sub) {
+				changed = true
+			}
+		}
+		return changed
+	default:
+		return false
+	}
+}
+
+// coerceScalarString converts a string to the scalar type declared by schema,
+// returning the converted value and true when a conversion was applied. It
+// leaves the string unchanged (returning false) when the schema accepts string,
+// declares no compatible scalar type, or the string does not parse as the
+// target type — in which case validation surfaces the appropriate error.
+func coerceScalarString(schema *jsonschema.Schema, s string) (any, bool) {
+	types := make(map[string]bool)
+	collectTypes(schema, types)
+	if types["string"] {
+		return s, false
+	}
+	switch {
+	case types["integer"] || types["number"]:
+		if f, err := strconv.ParseFloat(s, 64); err == nil {
+			return f, true
+		}
+	case types["boolean"]:
+		if b, err := strconv.ParseBool(s); err == nil {
+			return b, true
+		}
+	}
+	return s, false
+}
+
+// collectTypes gathers the set of JSON types accepted by schema, descending
+// into anyOf/oneOf/allOf branches (the shape used for nullable parameters).
+func collectTypes(schema *jsonschema.Schema, out map[string]bool) {
+	if schema == nil {
+		return
+	}
+	if schema.Type != "" {
+		out[schema.Type] = true
+	}
+	for _, t := range schema.Types {
+		out[t] = true
+	}
+	for _, branch := range schema.AnyOf {
+		collectTypes(branch, out)
+	}
+	for _, branch := range schema.OneOf {
+		collectTypes(branch, out)
+	}
+	for _, branch := range schema.AllOf {
+		collectTypes(branch, out)
+	}
+}
+
+// objectBranch returns the object sub-schema of schema (schema itself when it is
+// an object, otherwise the first object branch of an anyOf/oneOf/allOf), or nil
+// when schema describes no object.
+func objectBranch(schema *jsonschema.Schema) *jsonschema.Schema {
+	if schema == nil {
+		return nil
+	}
+	if len(schema.Properties) > 0 {
+		return schema
+	}
+	for _, branches := range [][]*jsonschema.Schema{schema.AnyOf, schema.OneOf, schema.AllOf} {
+		for _, branch := range branches {
+			if obj := objectBranch(branch); obj != nil {
+				return obj
+			}
+		}
+	}
+	return nil
+}
+
+// arrayItems returns the item schema for the array described by schema (schema
+// itself when it is an array, otherwise the first array branch of an
+// anyOf/oneOf/allOf), or nil when schema describes no array.
+func arrayItems(schema *jsonschema.Schema) *jsonschema.Schema {
+	if schema == nil {
+		return nil
+	}
+	if schema.Items != nil {
+		return schema.Items
+	}
+	for _, branches := range [][]*jsonschema.Schema{schema.AnyOf, schema.OneOf, schema.AllOf} {
+		for _, branch := range branches {
+			if items := arrayItems(branch); items != nil {
+				return items
+			}
+		}
+	}
+	return nil
 }
 
 func newInputValidationError(format string, args ...any) *mcp.CallToolResult {

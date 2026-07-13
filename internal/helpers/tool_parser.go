@@ -102,17 +102,17 @@ func param[T any](
 	}
 	v, ok := value.(T)
 	if !ok {
-		// attempt to convert from string if the type is only an alias of string and
-		// the value is a string
+		// Some MCP clients serialize scalar arguments as strings (e.g. "false"
+		// instead of false). Recover the intended value when the target type can
+		// accept it, keying off the target type (never the source, which is
+		// always string here).
 		var fallback bool
 		if vStr, okStr := value.(string); okStr {
-			vv := reflect.ValueOf(value)
-			if vv.Kind() == reflect.Pointer {
-				vv = vv.Elem()
-			}
-			if vv.Kind() == reflect.String {
-				v = reflect.ValueOf(vStr).Convert(reflect.TypeOf(v)).Interface().(T)
-				fallback = true
+			if targetType := reflect.TypeOf(v); targetType != nil {
+				if converted, did := coerceStringValue(vStr, targetType); did {
+					v = converted.Interface().(T)
+					fallback = true
+				}
 			}
 		}
 		if !fallback {
@@ -127,6 +127,36 @@ func param[T any](
 	}
 	*target = v
 	return nil
+}
+
+// coerceStringValue converts a string into a value of type t when t is a string
+// (or a named string alias), a bool, or a pointer to a supported type. It
+// reports ok=false when t is an unsupported kind or the string does not parse
+// (e.g. a non-boolean string for a bool target), leaving the caller to surface a
+// type error. reflect.Convert panics on an illegal pair (string is not
+// convertible to bool), so each kind is handled explicitly rather than via a
+// blanket Convert.
+func coerceStringValue(s string, t reflect.Type) (reflect.Value, bool) {
+	switch t.Kind() {
+	case reflect.String:
+		return reflect.ValueOf(s).Convert(t), true
+	case reflect.Bool:
+		b, err := strconv.ParseBool(s)
+		if err != nil {
+			return reflect.Value{}, false
+		}
+		return reflect.ValueOf(b).Convert(t), true
+	case reflect.Pointer:
+		elem, ok := coerceStringValue(s, t.Elem())
+		if !ok {
+			return reflect.Value{}, false
+		}
+		ptr := reflect.New(t.Elem())
+		ptr.Elem().Set(elem)
+		return ptr, true
+	default:
+		return reflect.Value{}, false
+	}
 }
 
 // RequiredNumericParam retrieves a required numeric parameter from a map,
