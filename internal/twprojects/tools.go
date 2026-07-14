@@ -201,6 +201,7 @@ func DefaultToolsetGroup(readOnly, allowDelete bool, engine *twapi.Engine) *tool
 			TimelogList(engine),
 			TimerGet(engine),
 			TimerList(engine),
+			SummarizeTimelogs(engine),
 		)
 	if !readOnly {
 		timeToolset.AddResources(TimelogCreateAppResource())
