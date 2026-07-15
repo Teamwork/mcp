@@ -189,6 +189,8 @@ func TestTaskList(t *testing.T) {
 		"completed_before":    "2023-10-31T23:59:59Z",
 		"due_after":           "2023-10-01",
 		"due_before":          "2023-10-31",
+		"only_unassigned":     true,
+		"only_unplanned":      true,
 		"page":                float64(1),
 		"page_size":           float64(10),
 	})
@@ -211,6 +213,8 @@ func TestTaskListByTasklist(t *testing.T) {
 		"completed_before":    "2023-10-31T23:59:59Z",
 		"due_after":           "2023-10-01",
 		"due_before":          "2023-10-31",
+		"only_unassigned":     true,
+		"only_unplanned":      true,
 		"page":                float64(1),
 		"page_size":           float64(10),
 	})
@@ -233,6 +237,8 @@ func TestTaskListByProject(t *testing.T) {
 		"completed_before":    "2023-10-31T23:59:59Z",
 		"due_after":           "2023-10-01",
 		"due_before":          "2023-10-31",
+		"only_unassigned":     true,
+		"only_unplanned":      true,
 		"page":                float64(1),
 		"page_size":           float64(10),
 	})

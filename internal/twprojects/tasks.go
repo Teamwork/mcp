@@ -755,6 +755,21 @@ func TaskList(engine *twapi.Engine) toolsets.ToolWrapper {
 							{Type: "null"},
 						},
 					},
+					"only_unassigned": {
+						Description: "If true, only return tasks that have no assignee.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "boolean"},
+							{Type: "null"},
+						},
+					},
+					"only_unplanned": {
+						Description: "If true, only return tasks that are unplanned, meaning they are missing an " +
+							"assignee, a due date, or estimated time.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "boolean"},
+							{Type: "null"},
+						},
+					},
 					"page":      helpers.PageSchema(),
 					"page_size": helpers.PageSizeSchema(),
 					"verbose":   helpers.VerboseSchema(),
@@ -789,6 +804,8 @@ func TaskList(engine *twapi.Engine) toolsets.ToolWrapper {
 				helpers.OptionalTimePointerParam(&taskListRequest.Filters.CompletedBefore, "completed_before"),
 				helpers.OptionalDatePointerParam(&taskListRequest.Filters.DueAfter, "due_after"),
 				helpers.OptionalDatePointerParam(&taskListRequest.Filters.DueBefore, "due_before"),
+				helpers.OptionalPointerParam(&taskListRequest.Filters.OnlyUnassigned, "only_unassigned"),
+				helpers.OptionalPointerParam(&taskListRequest.Filters.OnlyUnplanned, "only_unplanned"),
 				helpers.OptionalParam(&verbose, "verbose"),
 			)
 			if err != nil {
