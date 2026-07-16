@@ -12,6 +12,19 @@ import (
 
 type key struct{}
 
+// mcpAccessHeaders are access-signature headers forwarded verbatim to the
+// backend APIs. They are set by the calling client and verified downstream;
+// this server neither mints nor interprets them, so a fixed allowlist keeps it
+// a simple relay.
+var mcpAccessHeaders = []string{
+	"Tw-Mcp-Access-Service",
+	"Tw-Mcp-Access-Installation-Id",
+	"Tw-Mcp-Access-User-Id",
+	"Tw-Mcp-Access-Date",
+	"Tw-Mcp-Access-TTL",
+	"Tw-Mcp-Access-Signature",
+}
+
 // Info stores request information in the context.
 type Info struct {
 	remoteIP        string // X-Forwarded-For
@@ -65,6 +78,16 @@ func (i *Info) UserID() int64 {
 		return 0
 	}
 	return i.userID
+}
+
+// RemoteHeader returns a header value from the original inbound request
+// (cloned in NewInfo), or "" if absent. Useful for debugging header
+// forwarding — e.g. comparing what a client sent against what is forwarded.
+func (i *Info) RemoteHeader(name string) string {
+	if i == nil || i.remoteHeaders == nil {
+		return ""
+	}
+	return i.remoteHeaders.Get(name)
 }
 
 // NewInfo creates a new Info instance with the provided values.
@@ -159,4 +182,12 @@ func SetProxyHeaders(r *http.Request) {
 	// Similar from the "X-Forwarded-For" header, we will not set the "host" and
 	// "proto" parameters.
 	r.Header.Set("Forwarded", fmt.Sprintf("for=%s", r.Header.Get("X-Forwarded-For")))
+
+	// Forward the access-signature headers verbatim. The outbound request is
+	// built fresh, so they are sourced from the cloned inbound headers.
+	for _, name := range mcpAccessHeaders {
+		if value := info.remoteHeaders.Get(name); value != "" {
+			r.Header.Set(name, value)
+		}
+	}
 }
