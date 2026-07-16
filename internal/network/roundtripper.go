@@ -83,6 +83,16 @@ func (lrt *LoggingRoundTripper) RoundTrip(r *http.Request) (*http.Response, erro
 		slog.Int64("installation.id", info.InstallationID()),
 		slog.String("installation.url", info.InstallationURL()),
 		slog.Int64("user.id", info.UserID()),
+		// Access-signature headers, logged inbound (as received) vs forwarded
+		// (as sent to the backend) to debug header propagation. These values
+		// are message authentication codes, not secrets, so they are safe to
+		// log; no shared secret is ever logged.
+		slog.String("mcp_access.inbound_signature", info.RemoteHeader("Tw-Mcp-Access-Signature")),
+		slog.String("mcp_access.forwarded_signature", r.Header.Get("Tw-Mcp-Access-Signature")),
+		slog.String("mcp_access.service", r.Header.Get("Tw-Mcp-Access-Service")),
+		slog.String("mcp_access.installation_id", r.Header.Get("Tw-Mcp-Access-Installation-Id")),
+		slog.String("mcp_access.date", r.Header.Get("Tw-Mcp-Access-Date")),
+		slog.String("mcp_access.ttl", r.Header.Get("Tw-Mcp-Access-TTL")),
 	)
 
 	return resp, nil
