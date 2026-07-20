@@ -88,7 +88,7 @@ func newCustomLogHandler(resources Resources, output io.Writer) slog.Handler {
 			)
 		} else {
 			sentryHandler = sentryslog.Option{
-				EventLevel: []slog.Level{
+				LogLevel: []slog.Level{
 					slog.LevelError,
 					sentryslog.LevelFatal,
 				},
