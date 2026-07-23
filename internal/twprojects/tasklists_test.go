@@ -46,9 +46,10 @@ func TestTasklistGet(t *testing.T) {
 func TestTasklistList(t *testing.T) {
 	mcpServer := mcpServerMock(t, http.StatusOK, []byte(`{}`))
 	testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodTasklistList.String(), map[string]any{
-		"search_term": "test",
-		"page":        float64(1),
-		"page_size":   float64(10),
+		"search_term":    "test",
+		"show_completed": true,
+		"page":           float64(1),
+		"page_size":      float64(10),
 	})
 }
 
