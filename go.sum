@@ -184,8 +184,8 @@ github.com/teamwork/desksdkgo v1.0.1 h1:Mi5D1pnGfL5JwD7s7g7OyHml7Y9jsak5MNJaotJt
 github.com/teamwork/desksdkgo v1.0.1/go.mod h1:Mgvw83q8iqHr7Sm9xV1iI/T89o3ObaPU3ChMJheRzwA=
 github.com/teamwork/spacessdkgo v0.0.0-20260518181558-a6af69d00abb h1:bQluDjySZeC5etnWgjk4WFRy0PvzGDw8XEBd4JJYWCQ=
 github.com/teamwork/spacessdkgo v0.0.0-20260518181558-a6af69d00abb/go.mod h1:jfE0RLsZuk/3Glzs5bJ95pNb92emV7uXZYgoGSLQ76I=
-github.com/teamwork/twapi-go-sdk v1.20.1 h1:rnRoumR3F1FfckHyeMv4/zDzqYm1w9QbfR/6GrIov+A=
-github.com/teamwork/twapi-go-sdk v1.20.1/go.mod h1:Z0R6uOeso0BH1tKdHVbT5TOqVGPMwPLuTPsHSyl4G/8=
+github.com/teamwork/twapi-go-sdk v1.20.2 h1:wO9c28OXtwDXjeAZB8u44OkotKsAaaBVgO8B+9hYfew=
+github.com/teamwork/twapi-go-sdk v1.20.2/go.mod h1:uj6BNtyyKtggfeY3whzn8bLWuhP1twhghjWD6z3h3F4=
 github.com/tinylib/msgp v1.6.3 h1:bCSxiTz386UTgyT1i0MSCvdbWjVW+8sG3PjkGsZQt4s=
 github.com/tinylib/msgp v1.6.3/go.mod h1:RSp0LW9oSxFut3KzESt5Voq4GVWyS+PSulT77roAqEA=
 github.com/tklauser/go-sysconf v0.3.16 h1:frioLaCQSsF5Cy1jgRBrzr6t502KIIwQ0MArYICU0nA=
@@ -297,8 +297,8 @@ golang.org/x/sys v0.0.0-20210330210617-4fbd30eecc44/go.mod h1:h1NjWce9XRLGQEsW7w
 golang.org/x/sys v0.0.0-20210510120138-977fb7262007/go.mod h1:oPkhp1MJrh7nUepCBck5+mAzfO9JrbApNNgaTdGDITg=
 golang.org/x/sys v0.0.0-20220627191245-f75cf1eec38b/go.mod h1:oPkhp1MJrh7nUepCBck5+mAzfO9JrbApNNgaTdGDITg=
 golang.org/x/sys v0.1.0/go.mod h1:oPkhp1MJrh7nUepCBck5+mAzfO9JrbApNNgaTdGDITg=
-golang.org/x/sys v0.46.0 h1:noSf2Fq6F8DBgS+LysIkx7rIExoNHJsxOAtPp4rthXw=
-golang.org/x/sys v0.46.0/go.mod h1:4GL1E5IUh+htKOUEOaiffhrAeqysfVGipDYzABqnCmw=
+golang.org/x/sys v0.47.0 h1:o7XGOvZQCADBQQ4Y7VNq2dRWQR7JmOUW8Kxx4ZsNgWs=
+golang.org/x/sys v0.47.0/go.mod h1:4GL1E5IUh+htKOUEOaiffhrAeqysfVGipDYzABqnCmw=
 golang.org/x/term v0.0.0-20201126162022-7de9c90e9dd1/go.mod h1:bj7SfCRtBDWHUb9snDiAeCFNEtKQo2Wmx5Cou7ajbmo=
 golang.org/x/text v0.3.0/go.mod h1:NqM8EUOU14njkJ3fqMW+pc6Ldnwhi/IjpwHt7yyuwOQ=
 golang.org/x/text v0.3.3/go.mod h1:5Zoc/QRtKVWzQhOtBMvqHzDpF6irO9z98xDceosuGiQ=
