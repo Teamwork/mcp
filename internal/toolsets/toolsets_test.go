@@ -23,7 +23,7 @@ func nullableString() *jsonschema.Schema {
 	return &jsonschema.Schema{AnyOf: []*jsonschema.Schema{{Type: "string"}, {Type: "null"}}}
 }
 
-func TestCoerceStringScalars(t *testing.T) {
+func TestCoerceStringValues(t *testing.T) {
 	schema := &jsonschema.Schema{
 		Type: "object",
 		Properties: map[string]*jsonschema.Schema{
@@ -60,8 +60,8 @@ func TestCoerceStringScalars(t *testing.T) {
 		"groups":      map[string]any{"user_ids": []any{"7"}},
 	}
 
-	if !coerceStringScalars(schema, args) {
-		t.Fatalf("expected coerceStringScalars to report a change")
+	if !coerceStringValues(schema, args) {
+		t.Fatalf("expected coerceStringValues to report a change")
 	}
 
 	if got := args["project_id"]; got != float64(911218) {
@@ -90,7 +90,7 @@ func TestCoerceStringScalars(t *testing.T) {
 	}
 }
 
-func TestCoerceStringScalarsNoChange(t *testing.T) {
+func TestCoerceStringValuesNoChange(t *testing.T) {
 	schema := &jsonschema.Schema{
 		Type: "object",
 		Properties: map[string]*jsonschema.Schema{
@@ -100,8 +100,58 @@ func TestCoerceStringScalarsNoChange(t *testing.T) {
 	}
 	// Well-behaved client: native types already correct.
 	args := map[string]any{"project_id": float64(911218), "search_term": "Inbox"}
-	if coerceStringScalars(schema, args) {
+	if coerceStringValues(schema, args) {
 		t.Errorf("expected no change for already-typed arguments")
+	}
+}
+
+// TestCoerceStringValuesComplex is the regression test for issue #402: a client
+// that JSON-encodes a whole array or object parameter as a string (against an
+// anyOf: [{array|object}, {null}] schema) must have it decoded to the native
+// type so validation passes and the handler receives the real value.
+func TestCoerceStringValuesComplex(t *testing.T) {
+	schema := &jsonschema.Schema{
+		Type: "object",
+		Properties: map[string]*jsonschema.Schema{
+			"tag_ids": {
+				AnyOf: []*jsonschema.Schema{
+					{Type: "array", Items: &jsonschema.Schema{Type: "integer"}},
+					{Type: "null"},
+				},
+			},
+			"assignees": {
+				AnyOf: []*jsonschema.Schema{
+					{
+						Type: "object",
+						Properties: map[string]*jsonschema.Schema{
+							"user_ids": {Type: "array", Items: &jsonschema.Schema{Type: "integer"}},
+						},
+					},
+					{Type: "null"},
+				},
+			},
+		},
+	}
+
+	args := map[string]any{
+		"tag_ids":   `[1,2,3]`,              // whole array stringified
+		"assignees": `{"user_ids":[1,2,3]}`, // whole object stringified
+	}
+
+	if !coerceStringValues(schema, args) {
+		t.Fatalf("expected coerceStringValues to report a change")
+	}
+
+	tagIDs, ok := args["tag_ids"].([]any)
+	if !ok || len(tagIDs) != 3 || tagIDs[0] != float64(1) {
+		t.Errorf("tag_ids = %#v, want [1 2 3] as numbers", args["tag_ids"])
+	}
+	assignees, ok := args["assignees"].(map[string]any)
+	if !ok {
+		t.Fatalf("assignees = %#v, want map", args["assignees"])
+	}
+	if userIDs, ok := assignees["user_ids"].([]any); !ok || len(userIDs) != 3 {
+		t.Errorf("assignees.user_ids = %#v, want [1 2 3]", assignees["user_ids"])
 	}
 }
 
