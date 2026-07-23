@@ -299,10 +299,10 @@ func withInputValidation(tool *mcp.Tool, handler mcp.ToolHandler) mcp.ToolHandle
 				return newInputValidationError("invalid arguments JSON: %s", err.Error()), nil
 			}
 		}
-		// Repair arguments from clients that serialize scalars as strings before
-		// validating (see coerceStringScalars). When anything changes, re-marshal
+		// Repair arguments from clients that serialize values as strings before
+		// validating (see coerceStringValues). When anything changes, re-marshal
 		// so the handler receives the coerced values too.
-		if coerceStringScalars(schema, args) {
+		if coerceStringValues(schema, args) {
 			raw, err := json.Marshal(args)
 			if err != nil {
 				return newInputValidationError("invalid arguments: %s", err.Error()), nil
@@ -316,18 +316,20 @@ func withInputValidation(tool *mcp.Tool, handler mcp.ToolHandler) mcp.ToolHandle
 	}
 }
 
-// coerceStringScalars repairs arguments from MCP clients that serialize scalar
-// values as strings (e.g. "911218" instead of 911218, "false" instead of false)
-// before they are validated against the tool's InputSchema. Some clients coerce
+// coerceStringValues repairs arguments from MCP clients that serialize values
+// as strings (e.g. "911218" instead of 911218, "false" instead of false, or
+// "[1,2,3]" / "{\"user_ids\":[1]}" instead of a native array/object) before
+// they are validated against the tool's InputSchema. Some clients coerce
 // arguments to the declared JSON type but do not look inside anyOf/oneOf
 // branches, so nullable/optional parameters — which we express as
-// anyOf: [{type: <scalar>}, {type: "null"}] to satisfy OpenAI strict mode —
-// arrive as strings and fail validation before the handler ever runs (issue
-// #383). Coercion is schema-directed and conservative: a string is converted
-// only when the schema accepts the target scalar type but not string, so
-// genuine string parameters (e.g. search_term) are left untouched. It returns
-// true if any value was changed. The value map is mutated in place.
-func coerceStringScalars(schema *jsonschema.Schema, value any) bool {
+// anyOf: [{type: <type>}, {type: "null"}] to satisfy OpenAI strict mode —
+// arrive as strings and fail validation before the handler ever runs (issues
+// #383 for scalars, #402 for arrays/objects). Coercion is schema-directed and
+// conservative: a string is converted only when the schema accepts the target
+// type but not string, so genuine string parameters (e.g. search_term) are left
+// untouched. It returns true if any value was changed. The value map is mutated
+// in place.
+func coerceStringValues(schema *jsonschema.Schema, value any) bool {
 	if schema == nil {
 		return false
 	}
@@ -344,13 +346,15 @@ func coerceStringScalars(schema *jsonschema.Schema, value any) bool {
 				continue
 			}
 			if s, isStr := sub.(string); isStr {
-				if coerced, did := coerceScalarString(propSchema, s); did {
+				if coerced, did := coerceStringValue(propSchema, s); did {
 					v[key] = coerced
 					changed = true
+					// Recurse into a decoded array/object to repair nested values.
+					coerceStringValues(propSchema, coerced)
 					continue
 				}
 			}
-			if coerceStringScalars(propSchema, sub) {
+			if coerceStringValues(propSchema, sub) {
 				changed = true
 			}
 		}
@@ -363,13 +367,14 @@ func coerceStringScalars(schema *jsonschema.Schema, value any) bool {
 		var changed bool
 		for i, sub := range v {
 			if s, isStr := sub.(string); isStr {
-				if coerced, did := coerceScalarString(items, s); did {
+				if coerced, did := coerceStringValue(items, s); did {
 					v[i] = coerced
 					changed = true
+					coerceStringValues(items, coerced)
 					continue
 				}
 			}
-			if coerceStringScalars(items, sub) {
+			if coerceStringValues(items, sub) {
 				changed = true
 			}
 		}
@@ -379,12 +384,13 @@ func coerceStringScalars(schema *jsonschema.Schema, value any) bool {
 	}
 }
 
-// coerceScalarString converts a string to the scalar type declared by schema,
-// returning the converted value and true when a conversion was applied. It
+// coerceStringValue converts a string to the type declared by schema, returning
+// the converted value and true when a conversion was applied. Scalars are
+// parsed (integer/number/boolean); arrays and objects are JSON-decoded. It
 // leaves the string unchanged (returning false) when the schema accepts string,
-// declares no compatible scalar type, or the string does not parse as the
-// target type — in which case validation surfaces the appropriate error.
-func coerceScalarString(schema *jsonschema.Schema, s string) (any, bool) {
+// declares no compatible type, or the string does not parse as the target type
+// — in which case validation surfaces the appropriate error.
+func coerceStringValue(schema *jsonschema.Schema, s string) (any, bool) {
 	types := make(map[string]bool)
 	collectTypes(schema, types)
 	if types["string"] {
@@ -398,6 +404,20 @@ func coerceScalarString(schema *jsonschema.Schema, s string) (any, bool) {
 	case types["boolean"]:
 		if b, err := strconv.ParseBool(s); err == nil {
 			return b, true
+		}
+	case types["array"] || types["object"]:
+		var decoded any
+		if err := json.Unmarshal([]byte(s), &decoded); err == nil {
+			switch decoded.(type) {
+			case []any:
+				if types["array"] {
+					return decoded, true
+				}
+			case map[string]any:
+				if types["object"] {
+					return decoded, true
+				}
+			}
 		}
 	}
 	return s, false
