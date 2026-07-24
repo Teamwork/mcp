@@ -183,6 +183,42 @@ func ProjectsMCPServerRoutedMock(
 	return mcpServer
 }
 
+// ProjectsMCPServerRoutedMockWithRequestBody is like ProjectsMCPServerRoutedMock
+// but also captures the body of the most recent HTTP request that carried one,
+// so tests can assert on the serialized payload of the final write while still
+// serving distinct responses per endpoint (e.g. a field-type GET at 200
+// followed by a value POST at 201).
+func ProjectsMCPServerRoutedMockWithRequestBody(
+	t *testing.T,
+	routes []ProjectsMockRoute,
+	fallbackStatus int,
+	fallbackBody []byte,
+) (*mcp.Server, *[]byte) {
+	t.Helper()
+
+	var lastBody []byte
+	engine := twapi.NewEngine(ProjectsSessionMock{}, twapi.WithMiddleware(func(twapi.HTTPClient) twapi.HTTPClient {
+		return twapi.HTTPClientFunc(func(req *http.Request) (*http.Response, error) {
+			if req.Body != nil {
+				body, err := io.ReadAll(req.Body)
+				if err != nil {
+					return nil, err
+				}
+				lastBody = body
+			}
+			path := req.URL.Path
+			for _, route := range routes {
+				if strings.Contains(path, route.Match) {
+					return newProjectsMockHTTPResponse(route.Status, route.Body), nil
+				}
+			}
+			return newProjectsMockHTTPResponse(fallbackStatus, fallbackBody), nil
+		})
+	}))
+
+	return projectsMCPServer(t, engine), &lastBody
+}
+
 // ProjectsMCPServerSequencedMock creates a mock MCP server for twprojects
 // testing whose engine returns the given response bodies in order, one per HTTP
 // request the engine makes. Once the sequence is exhausted the final body is
