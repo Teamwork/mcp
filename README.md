@@ -33,6 +33,9 @@ through AI agents.
 - **Production Ready**: Comprehensive logging, monitoring, and observability
 - **Read-Only Mode**: Optional restriction to read-only operations for safety
 
+See the auto-generated **[Tool Reference](docs/tool-reference.md)** for every
+create/read/update operation exposed across Projects, Desk, Spaces, and Chat.
+
 ## 🚀 Available Servers
 
 This project provides three different ways to interact with the Teamwork.com MCP
