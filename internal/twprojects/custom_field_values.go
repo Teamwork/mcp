@@ -5,7 +5,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"math"
 	"net/http"
+	"strconv"
 
 	"github.com/google/jsonschema-go/jsonschema"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
@@ -79,11 +81,9 @@ func CustomFieldValueCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 						Description: "The ID of the custom field the value belongs to.",
 					},
 					"value": {
-						Description: "The value to assign to the custom field. " +
-							"The concrete type depends on the custom field definition: " +
-							"strings for text fields, numbers for number fields, booleans for checkboxes, " +
-							"option IDs for dropdown fields (array of integers for multiselect), " +
-							"ISO-8601 date strings for date fields.",
+						Description: "The value to assign, typed per the field: string (text), " +
+							"number (number), boolean (checkbox), choice value string " +
+							"(dropdown/status; array for multiselect), ISO-8601 string (date).",
 						AnyOf: []*jsonschema.Schema{
 							{Type: "string"},
 							{Type: "number"},
@@ -91,7 +91,10 @@ func CustomFieldValueCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 							{
 								Type: "array",
 								Items: &jsonschema.Schema{
-									Type: "string",
+									AnyOf: []*jsonschema.Schema{
+										{Type: "string"},
+										{Type: "number"},
+									},
 								},
 							},
 							{Type: "null"},
@@ -145,6 +148,7 @@ func CustomFieldValueCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 			if !ok {
 				return helpers.NewToolResultTextError("invalid parameters: 'value' is required"), nil
 			}
+			value = coerceCustomFieldValue(ctx, engine, customFieldID, value)
 
 			var customFieldValueCreateRequest projects.CustomFieldValueCreateRequest
 			switch entity {
@@ -203,11 +207,9 @@ func CustomFieldValueUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 						Description: "The ID of the custom field the value belongs to.",
 					},
 					"value": {
-						Description: "The value to assign to the custom field. " +
-							"The concrete type depends on the custom field definition: " +
-							"strings for text fields, numbers for number fields, booleans for checkboxes, " +
-							"option IDs for dropdown fields (array of integers for multiselect), " +
-							"ISO-8601 date strings for date fields.",
+						Description: "The value to assign, typed per the field: string (text), " +
+							"number (number), boolean (checkbox), choice value string " +
+							"(dropdown/status; array for multiselect), ISO-8601 string (date).",
 						AnyOf: []*jsonschema.Schema{
 							{Type: "string"},
 							{Type: "number"},
@@ -215,7 +217,10 @@ func CustomFieldValueUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 							{
 								Type: "array",
 								Items: &jsonschema.Schema{
-									Type: "string",
+									AnyOf: []*jsonschema.Schema{
+										{Type: "string"},
+										{Type: "number"},
+									},
 								},
 							},
 							{Type: "null"},
@@ -267,6 +272,7 @@ func CustomFieldValueUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 			}
 
 			value := arguments["value"]
+			value = coerceCustomFieldValue(ctx, engine, customFieldID, value)
 
 			var customFieldValueUpdateRequest projects.CustomFieldValueUpdateRequest
 			switch entity {
@@ -573,4 +579,94 @@ func CustomFieldValueList(engine *twapi.Engine) toolsets.ToolWrapper {
 			return result, nil
 		},
 	}
+}
+
+// coerceCustomFieldValue normalizes the raw value into the wire shape the
+// Teamwork API expects. Dropdown and multiselect custom fields store their
+// choices as strings, but MCP clients frequently send a choice as a JSON
+// number (the tool schema also permits numbers, for number-type fields). A
+// numeric value posted to a dropdown field is rejected by the API with
+// "cannot unmarshal number ... into string", so when the raw value carries a
+// number we resolve the field type and stringify it for dropdown/multiselect
+// fields. Every other case is passed through untouched; if the field type
+// cannot be resolved we forward the value unchanged and let the API validate.
+func coerceCustomFieldValue(ctx context.Context, engine *twapi.Engine, customFieldID int64, raw any) any {
+	if customFieldID == 0 || !containsNumber(raw) {
+		return raw
+	}
+	resp, err := projects.CustomFieldGet(ctx, engine, projects.NewCustomFieldGetRequest(customFieldID))
+	if err != nil {
+		return raw
+	}
+	// Dropdown, status and multiselect fields store their choices as strings,
+	// so a numeric choice must be stringified. Dropdown and status are
+	// single-valued; multiselect is an array.
+	switch resp.CustomField.Type {
+	case projects.CustomFieldTypeDropdown, projects.CustomFieldTypeStatus:
+		if s, ok := stringifyScalar(raw); ok {
+			return s
+		}
+	case projects.CustomFieldTypeMultiselect:
+		if arr, ok := raw.([]any); ok {
+			out := make([]any, len(arr))
+			for i, v := range arr {
+				if s, ok := stringifyScalar(v); ok {
+					out[i] = s
+				} else {
+					out[i] = v
+				}
+			}
+			return out
+		}
+		if s, ok := stringifyScalar(raw); ok {
+			return s
+		}
+	}
+	return raw
+}
+
+// containsNumber reports whether raw is a JSON number, or an array holding at
+// least one number. It is the cheap pre-check that lets coerceCustomFieldValue
+// skip the field lookup for the common case of already-string values.
+func containsNumber(raw any) bool {
+	switch v := raw.(type) {
+	case float64, float32, int, int32, int64, json.Number:
+		return true
+	case []any:
+		for _, e := range v {
+			if containsNumber(e) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// stringifyScalar renders a scalar JSON value as the string the API expects for
+// dropdown choices. Integer-valued numbers are rendered without a trailing
+// decimal (1 -> "1", not "1.000000"). It reports false for values that have no
+// meaningful scalar string form (e.g. arrays or objects).
+func stringifyScalar(raw any) (string, bool) {
+	switch v := raw.(type) {
+	case string:
+		return v, true
+	case float64:
+		if !math.IsInf(v, 0) && !math.IsNaN(v) && v == math.Trunc(v) {
+			return strconv.FormatInt(int64(v), 10), true
+		}
+		return strconv.FormatFloat(v, 'f', -1, 64), true
+	case float32:
+		return stringifyScalar(float64(v))
+	case int:
+		return strconv.FormatInt(int64(v), 10), true
+	case int32:
+		return strconv.FormatInt(int64(v), 10), true
+	case int64:
+		return strconv.FormatInt(v, 10), true
+	case bool:
+		return strconv.FormatBool(v), true
+	case json.Number:
+		return v.String(), true
+	}
+	return "", false
 }
