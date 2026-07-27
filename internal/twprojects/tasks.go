@@ -755,6 +755,15 @@ func TaskList(engine *twapi.Engine) toolsets.ToolWrapper {
 							{Type: "null"},
 						},
 					},
+					"show_completed": {
+						Description: "If true, include completed tasks and tasks belonging to completed tasklists; " +
+							"both excluded by default.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "boolean"},
+							{Type: "null"},
+						},
+						Default: []byte(`false`),
+					},
 					"only_unassigned": {
 						Description: "If true, only return tasks that have no assignee.",
 						AnyOf: []*jsonschema.Schema{
@@ -786,6 +795,7 @@ func TaskList(engine *twapi.Engine) toolsets.ToolWrapper {
 				return helpers.NewToolResultTextError("failed to decode request: %s", err.Error()), nil
 			}
 			verbose := true
+			var showCompleted *bool
 			err := helpers.ParamGroup(arguments,
 				helpers.OptionalNumericParam(&taskListRequest.Path.TasklistID, "tasklist_id"),
 				helpers.OptionalNumericParam(&taskListRequest.Path.ProjectID, "project_id"),
@@ -804,12 +814,20 @@ func TaskList(engine *twapi.Engine) toolsets.ToolWrapper {
 				helpers.OptionalTimePointerParam(&taskListRequest.Filters.CompletedBefore, "completed_before"),
 				helpers.OptionalDatePointerParam(&taskListRequest.Filters.DueAfter, "due_after"),
 				helpers.OptionalDatePointerParam(&taskListRequest.Filters.DueBefore, "due_before"),
+				helpers.OptionalPointerParam(&showCompleted, "show_completed"),
 				helpers.OptionalPointerParam(&taskListRequest.Filters.OnlyUnassigned, "only_unassigned"),
 				helpers.OptionalPointerParam(&taskListRequest.Filters.OnlyUnplanned, "only_unplanned"),
 				helpers.OptionalParam(&verbose, "verbose"),
 			)
 			if err != nil {
 				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
+			}
+			if showCompleted != nil {
+				// A single flag drives both SDK filters: completed tasks are hidden by
+				// default, and so are tasks living inside a completed tasklist. Callers
+				// asking to see completed work expect both.
+				taskListRequest.Filters.IncludeCompletedTasks = showCompleted
+				taskListRequest.Filters.IncludeTasksFromCompletedTasklists = showCompleted
 			}
 			if verbose {
 				// Include custom fields and values in task list response for richer
