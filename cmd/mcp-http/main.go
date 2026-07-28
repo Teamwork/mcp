@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"context"
+	"errors"
 	"flag"
 	"fmt"
 	"io"
@@ -476,13 +477,37 @@ func authMiddleware(resources config.Resources, next http.Handler) http.Handler 
 		bearerToken := matches[1]
 
 		info, err := auth.GetBearerInfo(r.Context(), resources, bearerToken)
-		if err == auth.ErrBearerInfoUnauthorized {
+		switch {
+		case errors.Is(err, auth.ErrBearerInfoUnauthorized):
+			// The token was positively rejected, so challenge the client to
+			// re-authorise.
 			// https://datatracker.ietf.org/doc/html/rfc9728#name-www-authenticate-response
 			w.Header().Set("WWW-Authenticate",
 				`Bearer resource_metadata="`+resources.Info.MCPURL+`/.well-known/oauth-protected-resource"`)
 			http.Error(w, "Unauthorized", http.StatusUnauthorized)
 			return
-		} else if err != nil {
+
+		case errors.Is(err, auth.ErrBearerInfoCanceled):
+			// The client hung up while we were validating. Nobody is left to
+			// read a response and nothing failed on our side, so this is debug
+			// noise rather than an error.
+			requestLogger.DebugContext(r.Context(), "bearer info validation canceled by client",
+				slog.String("error", err.Error()),
+			)
+			return
+
+		case errors.Is(err, auth.ErrBearerInfoUnavailable):
+			// We could not determine whether the token is valid. Never send a
+			// re-authorisation challenge here: the token is probably fine, and
+			// telling the client to discard it puts the user through the whole
+			// OAuth flow (and MFA) over what may be a momentary blip.
+			requestLogger.ErrorContext(r.Context(), "failed to validate bearer info",
+				slog.String("error", err.Error()),
+			)
+			http.Error(w, "Failed to validate bearer token", http.StatusServiceUnavailable)
+			return
+
+		case err != nil:
 			requestLogger.ErrorContext(r.Context(), "failed to get bearer info",
 				slog.String("error", err.Error()),
 			)
