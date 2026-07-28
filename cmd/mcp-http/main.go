@@ -64,6 +64,10 @@ func main() {
 	}, &mcp.StreamableHTTPOptions{
 		Stateless:                  true,
 		DisableLocalhostProtection: resources.Info.Environment == "dev",
+		// Pin the body limit to the one limitBodyMiddleware already enforces.
+		// Left at zero the SDK applies its own DefaultMaxRequestBodyBytes (4 MiB),
+		// which would silently tighten the limit clients have been coded against.
+		MaxRequestBodyBytes: maxBodySize,
 	})
 	mcpSSEServer := mcp.NewSSEHandler(func(*http.Request) *mcp.Server {
 		return mcpServer

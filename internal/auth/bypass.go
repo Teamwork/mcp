@@ -22,6 +22,16 @@ var methodsWhitelist = []string{
 	"resources/list",
 	"resources/templates/list",
 	"prompts/list",
+
+	// "server/discover" (SEP-2575) is the stateless replacement for the
+	// "initialize" handshake: clients probe capabilities and supported protocol
+	// versions with it before they hold a token. It has to bypass authentication
+	// for the same reason "initialize" does, otherwise the pre-auth connector
+	// setup flow answers 401. The legacy entries above are kept so clients on
+	// older spec revisions keep working unchanged.
+	//
+	// https://modelcontextprotocol.io/seps/2575-stateless-mcp
+	"server/discover",
 }
 
 // Bypass checks if the protocol method can bypass authentication.

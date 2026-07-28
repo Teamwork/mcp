@@ -123,6 +123,46 @@ The server can be configured using the following environment variables:
 | `DD_ENV` | Environment for Datadog APM | _(uses TW_MCP_ENV)_ | `staging`, `production` |
 | `DD_VERSION` | Version for Datadog APM | _(uses TW_MCP_VERSION)_ | `v1.0.0` |
 
+## 🔄 Protocol Compatibility
+
+The server negotiates the highest protocol revision the client also supports, so
+clients on older spec revisions keep working unchanged. Both handshakes are
+served: `server/discover` (SEP-2575) for stateless clients and `initialize` for
+everything older. Both bypass authentication, so pre-auth connector setup works
+either way.
+
+Two wire-level behaviours changed with the `2026-07-28` revision, and the server
+runs stateless, so they apply here:
+
+| Behaviour | Before | Now | Spec basis |
+|-----------|--------|-----|------------|
+| `Mcp-Session-Id` on responses | A session ID was generated and echoed back | Not sent; an incoming one is ignored | Session IDs are optional; a client that never receives one never sends one |
+| `DELETE /` (session termination) | `204 No Content` | `405 Method Not Allowed` | Servers MAY refuse session termination |
+
+If a client turns out to depend on the old behaviour, the SDK ships an escape
+hatch that restores it without a code change:
+
+```bash
+MCPGODEBUG=allowsessionsinstateless=1
+```
+
+Set it on the deployment and the server reads `Mcp-Session-Id`, echoes it back,
+and answers `DELETE` with `204` again, exactly as before. It is a temporary
+compatibility parameter: the SDK removes it in **v1.9.0**, so treat it as a
+stopgap while the client is fixed, not a permanent setting. `MCPGODEBUG` takes a
+comma-separated list, and the full set of parameters for the pinned SDK version
+is documented at
+<https://go.sdk.modelcontextprotocol.io/mcpgodebug/> (also in-tree at
+`docs/mcpgodebug.md` of the `modelcontextprotocol/go-sdk` module).
+
+Two further notes for clients:
+
+- The `logging` capability is no longer advertised. It was deprecated by
+  SEP-2577 and this server never sent a `notifications/message`, so nothing that
+  worked before stops working — `logging/setLevel` is still answered.
+- `tools/list` responses carry `cacheScope: "private"`. The tool list is filtered
+  per OAuth token scope, so shared intermediaries must not cache it.
+
 ## 🧪 Testing
 
 ### MCP HTTP CLI
