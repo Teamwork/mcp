@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
-	"time"
 
 	"github.com/modelcontextprotocol/go-sdk/jsonrpc"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
@@ -90,22 +89,10 @@ func main() {
 		exit(exitCodeSetupFailure)
 	}
 
-	go func() {
-		ticker := time.NewTicker(30 * time.Second)
-		defer ticker.Stop()
-		for {
-			select {
-			case <-ticker.C:
-				pingCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
-				if err := ss.Ping(pingCtx, nil); err != nil {
-					mcpError(resources.Logger(), fmt.Errorf("failed to ping: %s", err), jsonRPCErrorCodeInternalError)
-				}
-				cancel()
-			case <-ctx.Done():
-				return
-			}
-		}
-	}()
+	// Keepalive pings are driven by the SDK itself, via
+	// mcp.ServerOptions.KeepAlive in config.NewMCPServer. Do not add a manual
+	// ping loop here: on failure it has no request to reply to, so mcpError
+	// writes an id-less JSON-RPC error onto stdout, which is the protocol stream.
 
 	if err := ss.Wait(); err != nil {
 		mcpError(resources.Logger(), fmt.Errorf("failed to serve: %s", err), jsonRPCErrorCodeInternalError)

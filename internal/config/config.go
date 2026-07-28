@@ -31,6 +31,11 @@ import (
 const (
 	mcpName            = "Teamwork.com"
 	sentryFlushTimeout = 2 * time.Second
+
+	// cacheScopePrivate marks a cacheable result as only cacheable by the
+	// requesting user's client, never by a shared intermediary. See SEP-2549 and
+	// the mcp.Cacheable type, whose CacheScope field this fills in.
+	cacheScopePrivate = "private"
 )
 
 // Load loads the configuration for the MCP service.
@@ -186,8 +191,12 @@ func NewMCPServer(resources Resources, groups ...*toolsets.ToolsetGroup) *mcp.Se
 		Logger:     resources.logger,
 		HasTools:   hasTools,
 		HasPrompts: hasPrompts,
+		// The "logging" capability is deliberately not advertised. It was
+		// deprecated by SEP-2577, and this server never sent a
+		// "notifications/message" anyway, so claiming it only told clients to call
+		// "logging/setLevel" for no effect. Old clients are unaffected: the SDK
+		// still answers "logging/setLevel", and auth.Bypass still whitelists it.
 		Capabilities: &mcp.ServerCapabilities{
-			Logging: &mcp.LoggingCapabilities{},
 			Extensions: map[string]any{
 				// https://github.com/modelcontextprotocol/ext-apps/blob/main/specification/2026-01-26/apps.mdx#extension-identifier
 				"io.modelcontextprotocol/ui": map[string]any{},
@@ -240,8 +249,18 @@ func NewMCPServer(resources Resources, groups ...*toolsets.ToolsetGroup) *mcp.Se
 			}
 
 			listToolsResult, ok := result.(*mcp.ListToolsResult)
-			if !ok || listToolsResult == nil || len(listToolsResult.Tools) == 0 {
+			if !ok || listToolsResult == nil {
 				return result, nil
+			}
+
+			// The tool list is filtered per OAuth token scopes below, so it is
+			// specific to the requesting user. The SDK defaults cacheable results
+			// to "public" (SEP-2549), which would allow a shared intermediary to
+			// serve one tenant's tool list to another. Downgrade it to "private".
+			listToolsResult.CacheScope = cacheScopePrivate
+
+			if len(listToolsResult.Tools) == 0 {
+				return listToolsResult, nil
 			}
 
 			// filter tools based on scopes
