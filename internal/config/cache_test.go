@@ -67,8 +67,9 @@ func TestListToolsCacheScopeIsPrivate(t *testing.T) {
 
 // TestCapabilitiesOmitLogging pins the decision to stop advertising the
 // deprecated "logging" capability (SEP-2577), which this server never honoured.
-// The "logging/setLevel" method itself keeps working, so old clients are
-// unaffected.
+// Old clients are unaffected: on pre-2026-07-28 revisions the SDK still answers
+// "logging/setLevel". On 2026-07-28 it rejects the method, but only because the
+// revision removed it, not because of this change.
 func TestCapabilitiesOmitLogging(t *testing.T) {
 	ctx := context.Background()
 
