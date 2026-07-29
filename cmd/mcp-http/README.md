@@ -158,8 +158,10 @@ is documented at
 Two further notes for clients:
 
 - The `logging` capability is no longer advertised. It was deprecated by
-  SEP-2577 and this server never sent a `notifications/message`, so nothing that
-  worked before stops working — `logging/setLevel` is still answered.
+  SEP-2577 and this server never sent a `notifications/message`, so no client
+  loses functionality. Clients on pre-`2026-07-28` revisions can still call
+  `logging/setLevel`; on `2026-07-28` the SDK rejects it with `-32601`, as the
+  revision removed the method.
 - `tools/list` responses carry `cacheScope: "private"`. The tool list is filtered
   per OAuth token scope, so shared intermediaries must not cache it.
 
