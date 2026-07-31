@@ -62,7 +62,9 @@ func UserCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 			Name:        string(MethodUserCreate),
 			Description: "Create user.",
 			Annotations: &mcp.ToolAnnotations{
-				Title: "Create User",
+				Title:           "Create User",
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
 			},
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
@@ -149,7 +151,9 @@ func UserUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 			Name:        string(MethodUserUpdate),
 			Description: "Update user.",
 			Annotations: &mcp.ToolAnnotations{
-				Title: "Update User",
+				Title:           "Update User",
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
 			},
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
@@ -252,6 +256,7 @@ func UserDelete(engine *twapi.Engine) toolsets.ToolWrapper {
 			Annotations: &mcp.ToolAnnotations{
 				Title:           "Delete User",
 				DestructiveHint: new(true),
+				OpenWorldHint:   new(false),
 			},
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
@@ -294,8 +299,10 @@ func UserGet(engine *twapi.Engine) toolsets.ToolWrapper {
 			Name:        string(MethodUserGet),
 			Description: "Get user.",
 			Annotations: &mcp.ToolAnnotations{
-				Title:        "Get User",
-				ReadOnlyHint: true,
+				Title:           "Get User",
+				ReadOnlyHint:    true,
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
 			},
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
@@ -355,8 +362,10 @@ func UserGetMe(engine *twapi.Engine) toolsets.ToolWrapper {
 			Name:        string(MethodUserGetMe),
 			Description: "Get the currently authenticated user.",
 			Annotations: &mcp.ToolAnnotations{
-				Title:        "Get Logged User",
-				ReadOnlyHint: true,
+				Title:           "Get Logged User",
+				ReadOnlyHint:    true,
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
 			},
 			InputSchema: &jsonschema.Schema{
 				Type:       "object",
@@ -398,8 +407,10 @@ func UserList(engine *twapi.Engine) toolsets.ToolWrapper {
 			Name:        string(MethodUserList),
 			Description: "List users. Scope by project_id or filter by type (account/collaborator/contact).",
 			Annotations: &mcp.ToolAnnotations{
-				Title:        "List Users",
-				ReadOnlyHint: true,
+				Title:           "List Users",
+				ReadOnlyHint:    true,
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
 			},
 			InputSchema: &jsonschema.Schema{
 				Type: "object",

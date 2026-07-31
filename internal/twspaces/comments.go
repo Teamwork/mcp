@@ -28,8 +28,10 @@ func CommentGet(httpClient *http.Client) toolsets.ToolWrapper {
 		Tool: &mcp.Tool{
 			Name: string(MethodCommentGet),
 			Annotations: &mcp.ToolAnnotations{
-				Title:        "Get Comment",
-				ReadOnlyHint: true,
+				Title:           "Get Comment",
+				ReadOnlyHint:    true,
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
 			},
 			Description: "Get page comment.",
 			InputSchema: &jsonschema.Schema{
@@ -77,8 +79,10 @@ func CommentList(httpClient *http.Client) toolsets.ToolWrapper {
 		Tool: &mcp.Tool{
 			Name: string(MethodCommentList),
 			Annotations: &mcp.ToolAnnotations{
-				Title:        "List Comments",
-				ReadOnlyHint: true,
+				Title:           "List Comments",
+				ReadOnlyHint:    true,
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
 			},
 			Description: "List comments on a page. Returns top-level comments with replies.",
 			InputSchema: &jsonschema.Schema{
@@ -124,7 +128,9 @@ func CommentCreate(httpClient *http.Client) toolsets.ToolWrapper {
 		Tool: &mcp.Tool{
 			Name: string(MethodCommentCreate),
 			Annotations: &mcp.ToolAnnotations{
-				Title: "Create Comment",
+				Title:           "Create Comment",
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
 			},
 			Description: "Create comment on a page. Use parentId for replies.",
 			InputSchema: &jsonschema.Schema{
@@ -194,7 +200,9 @@ func CommentUpdate(httpClient *http.Client) toolsets.ToolWrapper {
 		Tool: &mcp.Tool{
 			Name: string(MethodCommentUpdate),
 			Annotations: &mcp.ToolAnnotations{
-				Title: "Update Comment",
+				Title:           "Update Comment",
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
 			},
 			Description: "Update page comment.",
 			InputSchema: &jsonschema.Schema{
@@ -279,6 +287,7 @@ func CommentDelete(httpClient *http.Client) toolsets.ToolWrapper {
 			Annotations: &mcp.ToolAnnotations{
 				Title:           "Delete Comment",
 				DestructiveHint: new(true),
+				OpenWorldHint:   new(false),
 			},
 			Description: "Delete page comment. Irreversible.",
 			InputSchema: &jsonschema.Schema{

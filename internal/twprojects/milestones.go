@@ -55,7 +55,9 @@ func MilestoneCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 			Name:        string(MethodMilestoneCreate),
 			Description: "Create milestone in a project.",
 			Annotations: &mcp.ToolAnnotations{
-				Title: "Create Milestone",
+				Title:           "Create Milestone",
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
 			},
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
@@ -147,7 +149,9 @@ func MilestoneUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 			Name:        string(MethodMilestoneUpdate),
 			Description: "Update milestone.",
 			Annotations: &mcp.ToolAnnotations{
-				Title: "Update Milestone",
+				Title:           "Update Milestone",
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
 			},
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
@@ -238,6 +242,7 @@ func MilestoneDelete(engine *twapi.Engine) toolsets.ToolWrapper {
 			Annotations: &mcp.ToolAnnotations{
 				Title:           "Delete Milestone",
 				DestructiveHint: new(true),
+				OpenWorldHint:   new(false),
 			},
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
@@ -280,8 +285,10 @@ func MilestoneGet(engine *twapi.Engine) toolsets.ToolWrapper {
 			Name:        string(MethodMilestoneGet),
 			Description: "Get milestone.",
 			Annotations: &mcp.ToolAnnotations{
-				Title:        "Get Milestone",
-				ReadOnlyHint: true,
+				Title:           "Get Milestone",
+				ReadOnlyHint:    true,
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
 			},
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
@@ -341,8 +348,10 @@ func MilestoneList(engine *twapi.Engine) toolsets.ToolWrapper {
 			Name:        string(MethodMilestoneList),
 			Description: "List milestones. Scope by project_id or omit for site-wide.",
 			Annotations: &mcp.ToolAnnotations{
-				Title:        "List Milestones",
-				ReadOnlyHint: true,
+				Title:           "List Milestones",
+				ReadOnlyHint:    true,
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
 			},
 			InputSchema: &jsonschema.Schema{
 				Type: "object",

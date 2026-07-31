@@ -31,8 +31,10 @@ func CompanyGet(httpClient *http.Client) toolsets.ToolWrapper {
 		Tool: &mcp.Tool{
 			Name: string(MethodCompanyGet),
 			Annotations: &mcp.ToolAnnotations{
-				Title:        "Get Company",
-				ReadOnlyHint: true,
+				Title:           "Get Company",
+				ReadOnlyHint:    true,
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
 			},
 			Description: "Get Desk company (customer organization).",
 			InputSchema: &jsonschema.Schema{
@@ -96,8 +98,10 @@ func CompanyList(httpClient *http.Client) toolsets.ToolWrapper {
 		Tool: &mcp.Tool{
 			Name: string(MethodCompanyList),
 			Annotations: &mcp.ToolAnnotations{
-				Title:        "List Companies",
-				ReadOnlyHint: true,
+				Title:           "List Companies",
+				ReadOnlyHint:    true,
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
 			},
 			Description: "List Desk companies. Filter by name, domains, or kind.",
 			InputSchema: &jsonschema.Schema{
@@ -151,7 +155,9 @@ func CompanyCreate(httpClient *http.Client) toolsets.ToolWrapper {
 		Tool: &mcp.Tool{
 			Name: string(MethodCompanyCreate),
 			Annotations: &mcp.ToolAnnotations{
-				Title: "Create Company",
+				Title:           "Create Company",
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
 			},
 			Description: "Create Desk company.",
 			InputSchema: &jsonschema.Schema{
@@ -271,7 +277,9 @@ func CompanyUpdate(httpClient *http.Client) toolsets.ToolWrapper {
 		Tool: &mcp.Tool{
 			Name: string(MethodCompanyUpdate),
 			Annotations: &mcp.ToolAnnotations{
-				Title: "Update Company",
+				Title:           "Update Company",
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
 			},
 			Description: "Update Desk company.",
 			InputSchema: &jsonschema.Schema{

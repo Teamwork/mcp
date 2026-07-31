@@ -53,8 +53,10 @@ func ProjectBudgetList(engine *twapi.Engine) toolsets.ToolWrapper {
 			Name:        string(MethodProjectBudgetList),
 			Description: "List project budgets (top-level project financial budgets). Filter by project_ids or status.",
 			Annotations: &mcp.ToolAnnotations{
-				Title:        "List Project Budgets",
-				ReadOnlyHint: true,
+				Title:           "List Project Budgets",
+				ReadOnlyHint:    true,
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
 			},
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
@@ -168,8 +170,10 @@ func TasklistBudgetList(engine *twapi.Engine) toolsets.ToolWrapper {
 			Name:        string(MethodTasklistBudgetList),
 			Description: "List tasklist budgets nested under a project budget. Requires project_budget_id.",
 			Annotations: &mcp.ToolAnnotations{
-				Title:        "List Tasklist Budgets",
-				ReadOnlyHint: true,
+				Title:           "List Tasklist Budgets",
+				ReadOnlyHint:    true,
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
 			},
 			InputSchema: &jsonschema.Schema{
 				Type: "object",

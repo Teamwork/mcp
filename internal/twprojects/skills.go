@@ -55,7 +55,9 @@ func SkillCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 			Name:        string(MethodSkillCreate),
 			Description: "Create skill.",
 			Annotations: &mcp.ToolAnnotations{
-				Title: "Create Skill",
+				Title:           "Create Skill",
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
 			},
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
@@ -106,7 +108,9 @@ func SkillUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 			Name:        string(MethodSkillUpdate),
 			Description: "Update skill.",
 			Annotations: &mcp.ToolAnnotations{
-				Title: "Update Skill",
+				Title:           "Update Skill",
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
 			},
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
@@ -167,6 +171,7 @@ func SkillDelete(engine *twapi.Engine) toolsets.ToolWrapper {
 			Annotations: &mcp.ToolAnnotations{
 				Title:           "Delete Skill",
 				DestructiveHint: new(true),
+				OpenWorldHint:   new(false),
 			},
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
@@ -209,8 +214,10 @@ func SkillGet(engine *twapi.Engine) toolsets.ToolWrapper {
 			Name:        string(MethodSkillGet),
 			Description: "Get skill.",
 			Annotations: &mcp.ToolAnnotations{
-				Title:        "Get Skill",
-				ReadOnlyHint: true,
+				Title:           "Get Skill",
+				ReadOnlyHint:    true,
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
 			},
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
@@ -266,8 +273,10 @@ func SkillList(engine *twapi.Engine) toolsets.ToolWrapper {
 			Name:        string(MethodSkillList),
 			Description: "List skills.",
 			Annotations: &mcp.ToolAnnotations{
-				Title:        "List Skills",
-				ReadOnlyHint: true,
+				Title:           "List Skills",
+				ReadOnlyHint:    true,
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
 			},
 			InputSchema: &jsonschema.Schema{
 				Type: "object",

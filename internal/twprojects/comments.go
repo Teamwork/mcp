@@ -59,7 +59,9 @@ func CommentCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 			Name:        string(MethodCommentCreate),
 			Description: "Create comment on a task, milestone, notebook, file, or link.",
 			Annotations: &mcp.ToolAnnotations{
-				Title: "Create Comment",
+				Title:           "Create Comment",
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
 			},
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
@@ -229,7 +231,9 @@ func CommentUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 			Name:        string(MethodCommentUpdate),
 			Description: "Update comment.",
 			Annotations: &mcp.ToolAnnotations{
-				Title: "Update Comment",
+				Title:           "Update Comment",
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
 			},
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
@@ -349,6 +353,7 @@ func CommentDelete(engine *twapi.Engine) toolsets.ToolWrapper {
 			Annotations: &mcp.ToolAnnotations{
 				Title:           "Delete Comment",
 				DestructiveHint: new(true),
+				OpenWorldHint:   new(false),
 			},
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
@@ -391,8 +396,10 @@ func CommentGet(engine *twapi.Engine) toolsets.ToolWrapper {
 			Name:        string(MethodCommentGet),
 			Description: "Get comment.",
 			Annotations: &mcp.ToolAnnotations{
-				Title:        "Get Comment",
-				ReadOnlyHint: true,
+				Title:           "Get Comment",
+				ReadOnlyHint:    true,
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
 			},
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
@@ -449,8 +456,10 @@ func CommentList(engine *twapi.Engine) toolsets.ToolWrapper {
 			Description: "List comments. Scope by one of task_id, milestone_id, notebook_id, link_id, or file_version_id; " +
 				"omit all for site-wide.",
 			Annotations: &mcp.ToolAnnotations{
-				Title:        "List Comments",
-				ReadOnlyHint: true,
+				Title:           "List Comments",
+				ReadOnlyHint:    true,
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
 			},
 			InputSchema: &jsonschema.Schema{
 				Type: "object",

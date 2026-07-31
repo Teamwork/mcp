@@ -31,8 +31,10 @@ func TagGet(httpClient *http.Client) toolsets.ToolWrapper {
 		Tool: &mcp.Tool{
 			Name: string(MethodTagGet),
 			Annotations: &mcp.ToolAnnotations{
-				Title:        "Get Tag",
-				ReadOnlyHint: true,
+				Title:           "Get Tag",
+				ReadOnlyHint:    true,
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
 			},
 			Description: "Get Desk tag.",
 			InputSchema: &jsonschema.Schema{
@@ -95,8 +97,10 @@ func TagList(httpClient *http.Client) toolsets.ToolWrapper {
 		Tool: &mcp.Tool{
 			Name: string(MethodTagList),
 			Annotations: &mcp.ToolAnnotations{
-				Title:        "List Tags",
-				ReadOnlyHint: true,
+				Title:           "List Tags",
+				ReadOnlyHint:    true,
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
 			},
 			Description: "List Desk tags. Filter by name, color, or inbox.",
 			InputSchema: &jsonschema.Schema{
@@ -148,7 +152,9 @@ func TagCreate(httpClient *http.Client) toolsets.ToolWrapper {
 		Tool: &mcp.Tool{
 			Name: string(MethodTagCreate),
 			Annotations: &mcp.ToolAnnotations{
-				Title: "Create Tag",
+				Title:           "Create Tag",
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
 			},
 			Description: "Create Desk tag.",
 			InputSchema: &jsonschema.Schema{
@@ -198,7 +204,9 @@ func TagUpdate(httpClient *http.Client) toolsets.ToolWrapper {
 		Tool: &mcp.Tool{
 			Name: string(MethodTagUpdate),
 			Annotations: &mcp.ToolAnnotations{
-				Title: "Update Tag",
+				Title:           "Update Tag",
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
 			},
 			Description: "Update Desk tag.",
 			InputSchema: &jsonschema.Schema{

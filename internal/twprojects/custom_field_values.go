@@ -59,7 +59,9 @@ func CustomFieldValueCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 			Description: "Set a custom field value on a task, project or company. " +
 				"The custom field must already exist and be applicable to the target entity.",
 			Annotations: &mcp.ToolAnnotations{
-				Title: "Create Custom Field Value",
+				Title:           "Create Custom Field Value",
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
 			},
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
@@ -181,7 +183,9 @@ func CustomFieldValueUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 			Name:        string(MethodCustomFieldValueUpdate),
 			Description: "Update a custom field value on a task, project or company.",
 			Annotations: &mcp.ToolAnnotations{
-				Title: "Update Custom Field Value",
+				Title:           "Update Custom Field Value",
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
 			},
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
@@ -309,6 +313,7 @@ func CustomFieldValueDelete(engine *twapi.Engine) toolsets.ToolWrapper {
 			Annotations: &mcp.ToolAnnotations{
 				Title:           "Delete Custom Field Value",
 				DestructiveHint: new(true),
+				OpenWorldHint:   new(false),
 			},
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
@@ -384,8 +389,10 @@ func CustomFieldValueGet(engine *twapi.Engine) toolsets.ToolWrapper {
 			Name:        string(MethodCustomFieldValueGet),
 			Description: "Get a single custom field value from a task, project or company.",
 			Annotations: &mcp.ToolAnnotations{
-				Title:        "Get Custom Field Value",
-				ReadOnlyHint: true,
+				Title:           "Get Custom Field Value",
+				ReadOnlyHint:    true,
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
 			},
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
@@ -462,8 +469,10 @@ func CustomFieldValueList(engine *twapi.Engine) toolsets.ToolWrapper {
 			Name:        string(MethodCustomFieldValueList),
 			Description: "List the custom field values of a task, project or company.",
 			Annotations: &mcp.ToolAnnotations{
-				Title:        "List Custom Field Values",
-				ReadOnlyHint: true,
+				Title:           "List Custom Field Values",
+				ReadOnlyHint:    true,
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
 			},
 			InputSchema: &jsonschema.Schema{
 				Type: "object",

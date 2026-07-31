@@ -31,8 +31,10 @@ func PriorityGet(httpClient *http.Client) toolsets.ToolWrapper {
 		Tool: &mcp.Tool{
 			Name: string(MethodPriorityGet),
 			Annotations: &mcp.ToolAnnotations{
-				Title:        "Get Priority",
-				ReadOnlyHint: true,
+				Title:           "Get Priority",
+				ReadOnlyHint:    true,
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
 			},
 			Description: "Get ticket priority.",
 			InputSchema: &jsonschema.Schema{
@@ -88,8 +90,10 @@ func PriorityList(httpClient *http.Client) toolsets.ToolWrapper {
 		Tool: &mcp.Tool{
 			Name: string(MethodPriorityList),
 			Annotations: &mcp.ToolAnnotations{
-				Title:        "List Priorities",
-				ReadOnlyHint: true,
+				Title:           "List Priorities",
+				ReadOnlyHint:    true,
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
 			},
 			Description: "List ticket priorities. Filter by name or color.",
 			InputSchema: &jsonschema.Schema{
@@ -137,7 +141,9 @@ func PriorityCreate(httpClient *http.Client) toolsets.ToolWrapper {
 		Tool: &mcp.Tool{
 			Name: string(MethodPriorityCreate),
 			Annotations: &mcp.ToolAnnotations{
-				Title: "Create Priority",
+				Title:           "Create Priority",
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
 			},
 			Description: "Create ticket priority.",
 			InputSchema: &jsonschema.Schema{
@@ -187,7 +193,9 @@ func PriorityUpdate(httpClient *http.Client) toolsets.ToolWrapper {
 		Tool: &mcp.Tool{
 			Name: string(MethodPriorityUpdate),
 			Annotations: &mcp.ToolAnnotations{
-				Title: "Update Priority",
+				Title:           "Update Priority",
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
 			},
 			Description: "Update ticket priority.",
 			InputSchema: &jsonschema.Schema{

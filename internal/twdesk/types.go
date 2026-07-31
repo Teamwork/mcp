@@ -31,8 +31,10 @@ func TypeGet(httpClient *http.Client) toolsets.ToolWrapper {
 		Tool: &mcp.Tool{
 			Name: string(MethodTypeGet),
 			Annotations: &mcp.ToolAnnotations{
-				Title:        "Get Ticket Type",
-				ReadOnlyHint: true,
+				Title:           "Get Ticket Type",
+				ReadOnlyHint:    true,
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
 			},
 			Description: "Get ticket type.",
 			InputSchema: &jsonschema.Schema{
@@ -88,8 +90,10 @@ func TypeList(httpClient *http.Client) toolsets.ToolWrapper {
 		Tool: &mcp.Tool{
 			Name: string(MethodTypeList),
 			Annotations: &mcp.ToolAnnotations{
-				Title:        "List Ticket Types",
-				ReadOnlyHint: true,
+				Title:           "List Ticket Types",
+				ReadOnlyHint:    true,
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
 			},
 			Description: "List ticket types. Filter by name or inbox.",
 			InputSchema: &jsonschema.Schema{
@@ -137,7 +141,9 @@ func TypeCreate(httpClient *http.Client) toolsets.ToolWrapper {
 		Tool: &mcp.Tool{
 			Name: string(MethodTypeCreate),
 			Annotations: &mcp.ToolAnnotations{
-				Title: "Create Ticket Type",
+				Title:           "Create Ticket Type",
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
 			},
 			Description: "Create ticket type.",
 			InputSchema: &jsonschema.Schema{
@@ -196,7 +202,9 @@ func TypeUpdate(httpClient *http.Client) toolsets.ToolWrapper {
 		Tool: &mcp.Tool{
 			Name: string(MethodTypeUpdate),
 			Annotations: &mcp.ToolAnnotations{
-				Title: "Update Ticket Type",
+				Title:           "Update Ticket Type",
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
 			},
 			Description: "Update ticket type.",
 			InputSchema: &jsonschema.Schema{

@@ -21,8 +21,10 @@ func Search(httpClient *http.Client) toolsets.ToolWrapper {
 		Tool: &mcp.Tool{
 			Name: string(MethodSearch),
 			Annotations: &mcp.ToolAnnotations{
-				Title:        "Search Spaces",
-				ReadOnlyHint: true,
+				Title:           "Search Spaces",
+				ReadOnlyHint:    true,
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
 			},
 			Description: "Full-text search across pages. Filter by space.",
 			InputSchema: &jsonschema.Schema{

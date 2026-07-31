@@ -30,8 +30,10 @@ func PageGet(httpClient *http.Client) toolsets.ToolWrapper {
 		Tool: &mcp.Tool{
 			Name: string(MethodPageGet),
 			Annotations: &mcp.ToolAnnotations{
-				Title:        "Get Page",
-				ReadOnlyHint: true,
+				Title:           "Get Page",
+				ReadOnlyHint:    true,
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
 			},
 			Description: "Get page. Returns content, metadata, tags, and revision info.",
 			InputSchema: &jsonschema.Schema{
@@ -74,8 +76,10 @@ func PageList(httpClient *http.Client) toolsets.ToolWrapper {
 		Tool: &mcp.Tool{
 			Name: string(MethodPageList),
 			Annotations: &mcp.ToolAnnotations{
-				Title:        "List Pages",
-				ReadOnlyHint: true,
+				Title:           "List Pages",
+				ReadOnlyHint:    true,
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
 			},
 			Description: "List pages in a space as a hierarchical tree.",
 			InputSchema: &jsonschema.Schema{
@@ -113,8 +117,10 @@ func PageHome(httpClient *http.Client) toolsets.ToolWrapper {
 		Tool: &mcp.Tool{
 			Name: string(MethodPageHome),
 			Annotations: &mcp.ToolAnnotations{
-				Title:        "Get Space Homepage",
-				ReadOnlyHint: true,
+				Title:           "Get Space Homepage",
+				ReadOnlyHint:    true,
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
 			},
 			Description: "Get a space's homepage.",
 			InputSchema: &jsonschema.Schema{
@@ -150,7 +156,9 @@ func PageCreate(httpClient *http.Client) toolsets.ToolWrapper {
 		Tool: &mcp.Tool{
 			Name: string(MethodPageCreate),
 			Annotations: &mcp.ToolAnnotations{
-				Title: "Create Page",
+				Title:           "Create Page",
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
 			},
 			Description: "Create page in a space.",
 			InputSchema: &jsonschema.Schema{
@@ -261,7 +269,9 @@ func PageDuplicate(httpClient *http.Client) toolsets.ToolWrapper {
 		Tool: &mcp.Tool{
 			Name: string(MethodPageDuplicate),
 			Annotations: &mcp.ToolAnnotations{
-				Title: "Duplicate Page",
+				Title:           "Duplicate Page",
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
 			},
 			Description: "Duplicate page with a new title.",
 			InputSchema: &jsonschema.Schema{
@@ -354,7 +364,9 @@ func PageUpdate(httpClient *http.Client) toolsets.ToolWrapper {
 		Tool: &mcp.Tool{
 			Name: string(MethodPageUpdate),
 			Annotations: &mcp.ToolAnnotations{
-				Title: "Update Page",
+				Title:           "Update Page",
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
 			},
 			Description: "Update page. Note: content and publish changes update the published page only, not the " +
 				"live collaborative editor draft; if the page has an active editor draft, re-publishing from the " +
@@ -551,6 +563,7 @@ func PageDelete(httpClient *http.Client) toolsets.ToolWrapper {
 			Annotations: &mcp.ToolAnnotations{
 				Title:           "Delete Page",
 				DestructiveHint: new(true),
+				OpenWorldHint:   new(false),
 			},
 			Description: "Delete page. Irreversible.",
 			InputSchema: &jsonschema.Schema{

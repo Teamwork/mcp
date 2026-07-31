@@ -112,7 +112,9 @@ func CustomItemRecordCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 				"Pass field values by name; the tool resolves names to the API's internal IDs." +
 				customItemRoutingHint,
 			Annotations: &mcp.ToolAnnotations{
-				Title: "Create Custom Item Record",
+				Title:           "Create Custom Item Record",
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
 			},
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
@@ -195,7 +197,9 @@ func CustomItemRecordUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 				"Only the fields you supply are changed; others are left as-is. " +
 				"Set section_id to null to remove the record from any section." + customItemRoutingHint,
 			Annotations: &mcp.ToolAnnotations{
-				Title: "Update Custom Item Record",
+				Title:           "Update Custom Item Record",
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
 			},
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
@@ -298,6 +302,7 @@ func CustomItemRecordDelete(engine *twapi.Engine) toolsets.ToolWrapper {
 			Annotations: &mcp.ToolAnnotations{
 				Title:           "Delete Custom Item Record",
 				DestructiveHint: new(true),
+				OpenWorldHint:   new(false),
 			},
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
@@ -349,6 +354,7 @@ func CustomItemRecordBulkDelete(engine *twapi.Engine) toolsets.ToolWrapper {
 			Annotations: &mcp.ToolAnnotations{
 				Title:           "Bulk Delete Custom Item Records",
 				DestructiveHint: new(true),
+				OpenWorldHint:   new(false),
 			},
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
@@ -406,8 +412,10 @@ func CustomItemRecordGet(engine *twapi.Engine) toolsets.ToolWrapper {
 			Description: "Get a single record. Field values come back keyed by display name " +
 				"with dropdown values translated to their human-readable labels." + customItemRoutingHint,
 			Annotations: &mcp.ToolAnnotations{
-				Title:        "Get Custom Item Record",
-				ReadOnlyHint: true,
+				Title:           "Get Custom Item Record",
+				ReadOnlyHint:    true,
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
 			},
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
@@ -466,8 +474,10 @@ func CustomItemRecordList(engine *twapi.Engine) toolsets.ToolWrapper {
 				"Returns each record with field values keyed by display name. " +
 				"Use the section_ids filter to scope to a specific section." + customItemRoutingHint,
 			Annotations: &mcp.ToolAnnotations{
-				Title:        "List Custom Item Records",
-				ReadOnlyHint: true,
+				Title:           "List Custom Item Records",
+				ReadOnlyHint:    true,
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
 			},
 			InputSchema: &jsonschema.Schema{
 				Type: "object",

@@ -55,7 +55,9 @@ func CompanyCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 			Name:        string(MethodCompanyCreate),
 			Description: "Create company (aka client).",
 			Annotations: &mcp.ToolAnnotations{
-				Title: "Create Company",
+				Title:           "Create Company",
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
 			},
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
@@ -220,7 +222,9 @@ func CompanyUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 			Name:        string(MethodCompanyUpdate),
 			Description: "Update company (aka client).",
 			Annotations: &mcp.ToolAnnotations{
-				Title: "Update Company",
+				Title:           "Update Company",
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
 			},
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
@@ -395,6 +399,7 @@ func CompanyDelete(engine *twapi.Engine) toolsets.ToolWrapper {
 			Annotations: &mcp.ToolAnnotations{
 				Title:           "Delete Company",
 				DestructiveHint: new(true),
+				OpenWorldHint:   new(false),
 			},
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
@@ -437,8 +442,10 @@ func CompanyGet(engine *twapi.Engine) toolsets.ToolWrapper {
 			Name:        string(MethodCompanyGet),
 			Description: "Get company (aka client).",
 			Annotations: &mcp.ToolAnnotations{
-				Title:        "Get Company",
-				ReadOnlyHint: true,
+				Title:           "Get Company",
+				ReadOnlyHint:    true,
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
 			},
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
@@ -506,8 +513,10 @@ func CompanyList(engine *twapi.Engine) toolsets.ToolWrapper {
 			Name:        string(MethodCompanyList),
 			Description: "List companies (aka clients).",
 			Annotations: &mcp.ToolAnnotations{
-				Title:        "List Companies",
-				ReadOnlyHint: true,
+				Title:           "List Companies",
+				ReadOnlyHint:    true,
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
 			},
 			InputSchema: &jsonschema.Schema{
 				Type: "object",

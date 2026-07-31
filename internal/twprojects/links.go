@@ -71,7 +71,9 @@ func LinkCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 			Name:        string(MethodLinkCreate),
 			Description: "Create link.",
 			Annotations: &mcp.ToolAnnotations{
-				Title: "Create Link",
+				Title:           "Create Link",
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
 			},
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
@@ -189,7 +191,9 @@ func LinkUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 			Name:        string(MethodLinkUpdate),
 			Description: "Update link.",
 			Annotations: &mcp.ToolAnnotations{
-				Title: "Update Link",
+				Title:           "Update Link",
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
 			},
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
@@ -312,6 +316,7 @@ func LinkDelete(engine *twapi.Engine) toolsets.ToolWrapper {
 			Annotations: &mcp.ToolAnnotations{
 				Title:           "Delete Link",
 				DestructiveHint: new(true),
+				OpenWorldHint:   new(false),
 			},
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
@@ -354,8 +359,10 @@ func LinkGet(engine *twapi.Engine) toolsets.ToolWrapper {
 			Name:        string(MethodLinkGet),
 			Description: "Get link.",
 			Annotations: &mcp.ToolAnnotations{
-				Title:        "Get Link",
-				ReadOnlyHint: true,
+				Title:           "Get Link",
+				ReadOnlyHint:    true,
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
 			},
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
@@ -415,8 +422,10 @@ func LinkList(engine *twapi.Engine) toolsets.ToolWrapper {
 			Name:        string(MethodLinkList),
 			Description: "List links.",
 			Annotations: &mcp.ToolAnnotations{
-				Title:        "List Links",
-				ReadOnlyHint: true,
+				Title:           "List Links",
+				ReadOnlyHint:    true,
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
 			},
 			InputSchema: &jsonschema.Schema{
 				Type: "object",

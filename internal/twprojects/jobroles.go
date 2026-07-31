@@ -55,7 +55,9 @@ func JobRoleCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 			Name:        string(MethodJobRoleCreate),
 			Description: "Create job role.",
 			Annotations: &mcp.ToolAnnotations{
-				Title: "Create Job Role",
+				Title:           "Create Job Role",
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
 			},
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
@@ -98,7 +100,9 @@ func JobRoleUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 			Name:        string(MethodJobRoleUpdate),
 			Description: "Update job role.",
 			Annotations: &mcp.ToolAnnotations{
-				Title: "Update Job Role",
+				Title:           "Update Job Role",
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
 			},
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
@@ -151,6 +155,7 @@ func JobRoleDelete(engine *twapi.Engine) toolsets.ToolWrapper {
 			Annotations: &mcp.ToolAnnotations{
 				Title:           "Delete Job Role",
 				DestructiveHint: new(true),
+				OpenWorldHint:   new(false),
 			},
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
@@ -193,8 +198,10 @@ func JobRoleGet(engine *twapi.Engine) toolsets.ToolWrapper {
 			Name:        string(MethodJobRoleGet),
 			Description: "Get job role.",
 			Annotations: &mcp.ToolAnnotations{
-				Title:        "Get Job Role",
-				ReadOnlyHint: true,
+				Title:           "Get Job Role",
+				ReadOnlyHint:    true,
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
 			},
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
@@ -250,8 +257,10 @@ func JobRoleList(engine *twapi.Engine) toolsets.ToolWrapper {
 			Name:        string(MethodJobRoleList),
 			Description: "List job roles.",
 			Annotations: &mcp.ToolAnnotations{
-				Title:        "List Job Roles",
-				ReadOnlyHint: true,
+				Title:           "List Job Roles",
+				ReadOnlyHint:    true,
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
 			},
 			InputSchema: &jsonschema.Schema{
 				Type: "object",

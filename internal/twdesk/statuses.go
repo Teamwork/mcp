@@ -31,8 +31,10 @@ func StatusGet(httpClient *http.Client) toolsets.ToolWrapper {
 		Tool: &mcp.Tool{
 			Name: string(MethodStatusGet),
 			Annotations: &mcp.ToolAnnotations{
-				Title:        "Get Status",
-				ReadOnlyHint: true,
+				Title:           "Get Status",
+				ReadOnlyHint:    true,
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
 			},
 			Description: "Get ticket status.",
 			InputSchema: &jsonschema.Schema{
@@ -96,8 +98,10 @@ func StatusList(httpClient *http.Client) toolsets.ToolWrapper {
 		Tool: &mcp.Tool{
 			Name: string(MethodStatusList),
 			Annotations: &mcp.ToolAnnotations{
-				Title:        "List Statuses",
-				ReadOnlyHint: true,
+				Title:           "List Statuses",
+				ReadOnlyHint:    true,
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
 			},
 			Description: "List ticket statuses. Filter by name, color, or code.",
 			InputSchema: &jsonschema.Schema{
@@ -149,7 +153,9 @@ func StatusCreate(httpClient *http.Client) toolsets.ToolWrapper {
 		Tool: &mcp.Tool{
 			Name: string(MethodStatusCreate),
 			Annotations: &mcp.ToolAnnotations{
-				Title: "Create Status",
+				Title:           "Create Status",
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
 			},
 			Description: "Create ticket status.",
 			InputSchema: &jsonschema.Schema{
@@ -207,7 +213,9 @@ func StatusUpdate(httpClient *http.Client) toolsets.ToolWrapper {
 		Tool: &mcp.Tool{
 			Name: string(MethodStatusUpdate),
 			Annotations: &mcp.ToolAnnotations{
-				Title: "Update Status",
+				Title:           "Update Status",
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
 			},
 			Description: "Update ticket status.",
 			InputSchema: &jsonschema.Schema{

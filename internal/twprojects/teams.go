@@ -70,7 +70,9 @@ func TeamCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 			Name:        string(MethodTeamCreate),
 			Description: "Create team.",
 			Annotations: &mcp.ToolAnnotations{
-				Title: "Create Team",
+				Title:           "Create Team",
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
 			},
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
@@ -162,7 +164,9 @@ func TeamUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 			Name:        string(MethodTeamUpdate),
 			Description: "Update team.",
 			Annotations: &mcp.ToolAnnotations{
-				Title: "Update Team",
+				Title:           "Update Team",
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
 			},
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
@@ -263,6 +267,7 @@ func TeamDelete(engine *twapi.Engine) toolsets.ToolWrapper {
 			Annotations: &mcp.ToolAnnotations{
 				Title:           "Delete Team",
 				DestructiveHint: new(true),
+				OpenWorldHint:   new(false),
 			},
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
@@ -305,8 +310,10 @@ func TeamGet(engine *twapi.Engine) toolsets.ToolWrapper {
 			Name:        string(MethodTeamGet),
 			Description: "Get team.",
 			Annotations: &mcp.ToolAnnotations{
-				Title:        "Get Team",
-				ReadOnlyHint: true,
+				Title:           "Get Team",
+				ReadOnlyHint:    true,
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
 			},
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
@@ -366,8 +373,10 @@ func TeamList(engine *twapi.Engine) toolsets.ToolWrapper {
 			Name:        string(MethodTeamList),
 			Description: "List teams. Scope by company_id or project_id, or omit for site-wide.",
 			Annotations: &mcp.ToolAnnotations{
-				Title:        "List Teams",
-				ReadOnlyHint: true,
+				Title:           "List Teams",
+				ReadOnlyHint:    true,
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
 			},
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
