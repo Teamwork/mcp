@@ -31,8 +31,10 @@ func CustomerGet(httpClient *http.Client) toolsets.ToolWrapper {
 		Tool: &mcp.Tool{
 			Name: string(MethodCustomerGet),
 			Annotations: &mcp.ToolAnnotations{
-				Title:        "Get Customer",
-				ReadOnlyHint: true,
+				Title:           "Get Customer",
+				ReadOnlyHint:    true,
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
 			},
 			Description: "Get customer.",
 			InputSchema: &jsonschema.Schema{
@@ -96,8 +98,10 @@ func CustomerList(httpClient *http.Client) toolsets.ToolWrapper {
 		Tool: &mcp.Tool{
 			Name: string(MethodCustomerList),
 			Annotations: &mcp.ToolAnnotations{
-				Title:        "List Customers",
-				ReadOnlyHint: true,
+				Title:           "List Customers",
+				ReadOnlyHint:    true,
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
 			},
 			Description: "List customers. Filter by company or email.",
 			InputSchema: &jsonschema.Schema{
@@ -152,7 +156,9 @@ func CustomerCreate(httpClient *http.Client) toolsets.ToolWrapper {
 		Tool: &mcp.Tool{
 			Name: string(MethodCustomerCreate),
 			Annotations: &mcp.ToolAnnotations{
-				Title: "Create Customer",
+				Title:           "Create Customer",
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
 			},
 			Description: "Create customer.",
 			InputSchema: &jsonschema.Schema{
@@ -297,7 +303,9 @@ func CustomerUpdate(httpClient *http.Client) toolsets.ToolWrapper {
 		Tool: &mcp.Tool{
 			Name: string(MethodCustomerUpdate),
 			Annotations: &mcp.ToolAnnotations{
-				Title: "Update Customer",
+				Title:           "Update Customer",
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
 			},
 			Description: "Update customer.",
 			InputSchema: &jsonschema.Schema{

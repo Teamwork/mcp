@@ -56,7 +56,9 @@ func TaskCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 			Name:        string(MethodTaskCreate),
 			Description: "Create task in a tasklist.",
 			Annotations: &mcp.ToolAnnotations{
-				Title: "Create Task",
+				Title:           "Create Task",
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
 			},
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
@@ -252,7 +254,9 @@ func TaskUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 			Name:        string(MethodTaskUpdate),
 			Description: "Update task.",
 			Annotations: &mcp.ToolAnnotations{
-				Title: "Update Task",
+				Title:           "Update Task",
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
 			},
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
@@ -498,6 +502,7 @@ func TaskDelete(engine *twapi.Engine) toolsets.ToolWrapper {
 			Annotations: &mcp.ToolAnnotations{
 				Title:           "Delete Task",
 				DestructiveHint: new(true),
+				OpenWorldHint:   new(false),
 			},
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
@@ -540,7 +545,9 @@ func TaskComplete(engine *twapi.Engine) toolsets.ToolWrapper {
 			Name:        string(MethodTaskComplete),
 			Description: "Mark task complete.",
 			Annotations: &mcp.ToolAnnotations{
-				Title: "Complete Task",
+				Title:           "Complete Task",
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
 			},
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
@@ -583,8 +590,10 @@ func TaskGet(engine *twapi.Engine) toolsets.ToolWrapper {
 			Name:        string(MethodTaskGet),
 			Description: "Get task.",
 			Annotations: &mcp.ToolAnnotations{
-				Title:        "Get Task",
-				ReadOnlyHint: true,
+				Title:           "Get Task",
+				ReadOnlyHint:    true,
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
 			},
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
@@ -654,8 +663,10 @@ func TaskList(engine *twapi.Engine) toolsets.ToolWrapper {
 			Description: "List tasks with structured filters (tasklist_id, project_id, or site-wide). " +
 				"For keyword search use search.",
 			Annotations: &mcp.ToolAnnotations{
-				Title:        "List Tasks",
-				ReadOnlyHint: true,
+				Title:           "List Tasks",
+				ReadOnlyHint:    true,
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
 			},
 			InputSchema: &jsonschema.Schema{
 				Type: "object",

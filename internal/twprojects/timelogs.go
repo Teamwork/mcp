@@ -62,7 +62,9 @@ func TimelogCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 			Name:        string(MethodTimelogCreate),
 			Description: "Create timelog entry against a project or task.",
 			Annotations: &mcp.ToolAnnotations{
-				Title: "Create Timelog",
+				Title:           "Create Timelog",
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
 			},
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
@@ -174,7 +176,9 @@ func TimelogUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 			Name:        string(MethodTimelogUpdate),
 			Description: "Update timelog.",
 			Annotations: &mcp.ToolAnnotations{
-				Title: "Update Timelog",
+				Title:           "Update Timelog",
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
 			},
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
@@ -295,6 +299,7 @@ func TimelogDelete(engine *twapi.Engine) toolsets.ToolWrapper {
 			Annotations: &mcp.ToolAnnotations{
 				Title:           "Delete Timelog",
 				DestructiveHint: new(true),
+				OpenWorldHint:   new(false),
 			},
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
@@ -337,8 +342,10 @@ func TimelogGet(engine *twapi.Engine) toolsets.ToolWrapper {
 			Name:        string(MethodTimelogGet),
 			Description: "Get timelog.",
 			Annotations: &mcp.ToolAnnotations{
-				Title:        "Get Timelog",
-				ReadOnlyHint: true,
+				Title:           "Get Timelog",
+				ReadOnlyHint:    true,
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
 			},
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
@@ -382,8 +389,10 @@ func TimelogList(engine *twapi.Engine) toolsets.ToolWrapper {
 			Name:        string(MethodTimelogList),
 			Description: "List timelogs. Scope by project_id or task_id, or omit for site-wide.",
 			Annotations: &mcp.ToolAnnotations{
-				Title:        "List Timelogs",
-				ReadOnlyHint: true,
+				Title:           "List Timelogs",
+				ReadOnlyHint:    true,
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
 			},
 			InputSchema: &jsonschema.Schema{
 				Type: "object",

@@ -113,8 +113,10 @@ func CurrentUserGet(engine *twapi.Engine) toolsets.ToolWrapper {
 		Tool: &mcp.Tool{
 			Name: string(MethodCurrentUserGet),
 			Annotations: &mcp.ToolAnnotations{
-				Title:        "Get Current Chat User",
-				ReadOnlyHint: true,
+				Title:           "Get Current Chat User",
+				ReadOnlyHint:    true,
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
 			},
 			Description: "Get the current authenticated Teamwork Chat user, including identity, " +
 				"counts (unread conversations/messages, mentions), and settings.",
@@ -139,8 +141,10 @@ func ConversationList(engine *twapi.Engine) toolsets.ToolWrapper {
 		Tool: &mcp.Tool{
 			Name: string(MethodConversationList),
 			Annotations: &mcp.ToolAnnotations{
-				Title:        "List Chat Conversations",
-				ReadOnlyHint: true,
+				Title:           "List Chat Conversations",
+				ReadOnlyHint:    true,
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
 			},
 			Description: "List Teamwork Chat conversations the current user is a member of.",
 			InputSchema: &jsonschema.Schema{
@@ -201,8 +205,10 @@ func ConversationGet(engine *twapi.Engine) toolsets.ToolWrapper {
 		Tool: &mcp.Tool{
 			Name: string(MethodConversationGet),
 			Annotations: &mcp.ToolAnnotations{
-				Title:        "Get Chat Conversation",
-				ReadOnlyHint: true,
+				Title:           "Get Chat Conversation",
+				ReadOnlyHint:    true,
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
 			},
 			Description: "Get a single Teamwork Chat conversation by ID.",
 			InputSchema: &jsonschema.Schema{
@@ -233,8 +239,10 @@ func MessageList(engine *twapi.Engine) toolsets.ToolWrapper {
 		Tool: &mcp.Tool{
 			Name: string(MethodMessageList),
 			Annotations: &mcp.ToolAnnotations{
-				Title:        "List Chat Messages",
-				ReadOnlyHint: true,
+				Title:           "List Chat Messages",
+				ReadOnlyHint:    true,
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
 			},
 			Description: "List messages within a Teamwork Chat conversation. Requires conversation_id.",
 			InputSchema: &jsonschema.Schema{
@@ -290,8 +298,10 @@ func PeopleList(engine *twapi.Engine) toolsets.ToolWrapper {
 		Tool: &mcp.Tool{
 			Name: string(MethodPeopleList),
 			Annotations: &mcp.ToolAnnotations{
-				Title:        "List Chat People",
-				ReadOnlyHint: true,
+				Title:           "List Chat People",
+				ReadOnlyHint:    true,
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
 			},
 			Description: "List people in the Teamwork Chat installation. Useful for resolving names to user IDs.",
 			InputSchema: &jsonschema.Schema{
@@ -328,7 +338,9 @@ func MessageSend(engine *twapi.Engine) toolsets.ToolWrapper {
 		Tool: &mcp.Tool{
 			Name: string(MethodMessageSend),
 			Annotations: &mcp.ToolAnnotations{
-				Title: "Send Chat Message",
+				Title:           "Send Chat Message",
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
 			},
 			Description: "Send a message to a Teamwork Chat conversation. Requires conversation_id and body.",
 			InputSchema: &jsonschema.Schema{
@@ -371,7 +383,9 @@ func DMGetOrCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 		Tool: &mcp.Tool{
 			Name: string(MethodDMGetOrCreate),
 			Annotations: &mcp.ToolAnnotations{
-				Title: "Get or Create Direct Message",
+				Title:           "Get or Create Direct Message",
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
 			},
 			Description: "Get the 1:1 direct-message conversation with a person, creating it if it does not " +
 				"exist yet. Returns the conversation (use its id with send_message). Use list_people to find user_id.",
@@ -404,7 +418,9 @@ func SendDM(engine *twapi.Engine) toolsets.ToolWrapper {
 		Tool: &mcp.Tool{
 			Name: string(MethodSendDM),
 			Annotations: &mcp.ToolAnnotations{
-				Title: "Send Direct Message",
+				Title:           "Send Direct Message",
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
 			},
 			Description: "Send a direct message to a person, resolving (or creating) the 1:1 conversation " +
 				"automatically. Requires user_id and body. Use list_people to find user_id.",

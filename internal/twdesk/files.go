@@ -27,7 +27,9 @@ func FileCreate(httpClient *http.Client) toolsets.ToolWrapper {
 		Tool: &mcp.Tool{
 			Name: string(MethodFileCreate),
 			Annotations: &mcp.ToolAnnotations{
-				Title: "Create File",
+				Title:           "Create File",
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
 			},
 			Description: "Upload file. Attach the returned ID to tickets or messages.",
 			InputSchema: &jsonschema.Schema{

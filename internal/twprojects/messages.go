@@ -56,7 +56,9 @@ func MessageCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 			Name:        string(MethodMessageCreate),
 			Description: "Create message in a project.",
 			Annotations: &mcp.ToolAnnotations{
-				Title: "Create Message",
+				Title:           "Create Message",
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
 			},
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
@@ -161,7 +163,9 @@ func MessageUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 			Name:        string(MethodMessageUpdate),
 			Description: "Update message.",
 			Annotations: &mcp.ToolAnnotations{
-				Title: "Update Message",
+				Title:           "Update Message",
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
 			},
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
@@ -281,6 +285,7 @@ func MessageDelete(engine *twapi.Engine) toolsets.ToolWrapper {
 			Annotations: &mcp.ToolAnnotations{
 				Title:           "Delete Message",
 				DestructiveHint: new(true),
+				OpenWorldHint:   new(false),
 			},
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
@@ -323,8 +328,10 @@ func MessageGet(engine *twapi.Engine) toolsets.ToolWrapper {
 			Name:        string(MethodMessageGet),
 			Description: "Get message.",
 			Annotations: &mcp.ToolAnnotations{
-				Title:        "Get Message",
-				ReadOnlyHint: true,
+				Title:           "Get Message",
+				ReadOnlyHint:    true,
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
 			},
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
@@ -384,8 +391,10 @@ func MessageList(engine *twapi.Engine) toolsets.ToolWrapper {
 			Name:        string(MethodMessageList),
 			Description: "List project messages (top-level posts). Use twprojects-list_message_replies for thread replies.",
 			Annotations: &mcp.ToolAnnotations{
-				Title:        "List Messages",
-				ReadOnlyHint: true,
+				Title:           "List Messages",
+				ReadOnlyHint:    true,
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
 			},
 			InputSchema: &jsonschema.Schema{
 				Type: "object",

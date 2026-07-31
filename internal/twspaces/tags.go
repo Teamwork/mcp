@@ -28,8 +28,10 @@ func TagGet(httpClient *http.Client) toolsets.ToolWrapper {
 		Tool: &mcp.Tool{
 			Name: string(MethodTagGet),
 			Annotations: &mcp.ToolAnnotations{
-				Title:        "Get Tag",
-				ReadOnlyHint: true,
+				Title:           "Get Tag",
+				ReadOnlyHint:    true,
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
 			},
 			Description: "Get Spaces tag.",
 			InputSchema: &jsonschema.Schema{
@@ -65,8 +67,10 @@ func TagList(httpClient *http.Client) toolsets.ToolWrapper {
 		Tool: &mcp.Tool{
 			Name: string(MethodTagList),
 			Annotations: &mcp.ToolAnnotations{
-				Title:        "List Tags",
-				ReadOnlyHint: true,
+				Title:           "List Tags",
+				ReadOnlyHint:    true,
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
 			},
 			Description: "List Spaces tags.",
 			InputSchema: &jsonschema.Schema{
@@ -99,7 +103,9 @@ func TagCreateBatch(httpClient *http.Client) toolsets.ToolWrapper {
 		Tool: &mcp.Tool{
 			Name: string(MethodTagCreateBatch),
 			Annotations: &mcp.ToolAnnotations{
-				Title: "Create Tags",
+				Title:           "Create Tags",
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
 			},
 			Description: "Create one or more Spaces tags in a single request.",
 			InputSchema: &jsonschema.Schema{
@@ -175,7 +181,9 @@ func TagUpdate(httpClient *http.Client) toolsets.ToolWrapper {
 		Tool: &mcp.Tool{
 			Name: string(MethodTagUpdate),
 			Annotations: &mcp.ToolAnnotations{
-				Title: "Update Tag",
+				Title:           "Update Tag",
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
 			},
 			Description: "Update Spaces tag.",
 			InputSchema: &jsonschema.Schema{
@@ -236,6 +244,7 @@ func TagDelete(httpClient *http.Client) toolsets.ToolWrapper {
 			Annotations: &mcp.ToolAnnotations{
 				Title:           "Delete Tag",
 				DestructiveHint: new(true),
+				OpenWorldHint:   new(false),
 			},
 			Description: "Delete Spaces tag.",
 			InputSchema: &jsonschema.Schema{

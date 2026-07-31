@@ -56,7 +56,9 @@ func ProjectCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 			Name:        string(MethodProjectCreate),
 			Description: "Create project.",
 			Annotations: &mcp.ToolAnnotations{
-				Title: "Create Project",
+				Title:           "Create Project",
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
 			},
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
@@ -149,7 +151,9 @@ func ProjectUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 			Name:        string(MethodProjectUpdate),
 			Description: "Update project.",
 			Annotations: &mcp.ToolAnnotations{
-				Title: "Update Project",
+				Title:           "Update Project",
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
 			},
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
@@ -265,6 +269,7 @@ func ProjectDelete(engine *twapi.Engine) toolsets.ToolWrapper {
 			Annotations: &mcp.ToolAnnotations{
 				Title:           "Delete Project",
 				DestructiveHint: new(true),
+				OpenWorldHint:   new(false),
 			},
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
@@ -307,7 +312,9 @@ func ProjectClone(engine *twapi.Engine) toolsets.ToolWrapper {
 			Name:        string(MethodProjectClone),
 			Description: "Clone/copy an existing project or instantiate one from a template.",
 			Annotations: &mcp.ToolAnnotations{
-				Title: "Clone Project",
+				Title:           "Clone Project",
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
 			},
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
@@ -459,8 +466,10 @@ func ProjectGet(engine *twapi.Engine) toolsets.ToolWrapper {
 			Name:        string(MethodProjectGet),
 			Description: "Get project.",
 			Annotations: &mcp.ToolAnnotations{
-				Title:        "Get Project",
-				ReadOnlyHint: true,
+				Title:           "Get Project",
+				ReadOnlyHint:    true,
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
 			},
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
@@ -530,8 +539,10 @@ func ProjectList(engine *twapi.Engine) toolsets.ToolWrapper {
 			Name:        string(MethodProjectList),
 			Description: "List projects.",
 			Annotations: &mcp.ToolAnnotations{
-				Title:        "List Projects",
-				ReadOnlyHint: true,
+				Title:           "List Projects",
+				ReadOnlyHint:    true,
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
 			},
 			InputSchema: &jsonschema.Schema{
 				Type: "object",

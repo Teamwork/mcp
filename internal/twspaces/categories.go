@@ -28,8 +28,10 @@ func CategoryGet(httpClient *http.Client) toolsets.ToolWrapper {
 		Tool: &mcp.Tool{
 			Name: string(MethodCategoryGet),
 			Annotations: &mcp.ToolAnnotations{
-				Title:        "Get Category",
-				ReadOnlyHint: true,
+				Title:           "Get Category",
+				ReadOnlyHint:    true,
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
 			},
 			Description: "Get space category.",
 			InputSchema: &jsonschema.Schema{
@@ -65,8 +67,10 @@ func CategoryList(httpClient *http.Client) toolsets.ToolWrapper {
 		Tool: &mcp.Tool{
 			Name: string(MethodCategoryList),
 			Annotations: &mcp.ToolAnnotations{
-				Title:        "List Categories",
-				ReadOnlyHint: true,
+				Title:           "List Categories",
+				ReadOnlyHint:    true,
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
 			},
 			Description: "List space categories.",
 			InputSchema: &jsonschema.Schema{
@@ -99,7 +103,9 @@ func CategoryCreate(httpClient *http.Client) toolsets.ToolWrapper {
 		Tool: &mcp.Tool{
 			Name: string(MethodCategoryCreate),
 			Annotations: &mcp.ToolAnnotations{
-				Title: "Create Category",
+				Title:           "Create Category",
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
 			},
 			Description: "Create space category.",
 			InputSchema: &jsonschema.Schema{
@@ -149,7 +155,9 @@ func CategoryUpdate(httpClient *http.Client) toolsets.ToolWrapper {
 		Tool: &mcp.Tool{
 			Name: string(MethodCategoryUpdate),
 			Annotations: &mcp.ToolAnnotations{
-				Title: "Update Category",
+				Title:           "Update Category",
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
 			},
 			Description: "Update space category.",
 			InputSchema: &jsonschema.Schema{
@@ -210,6 +218,7 @@ func CategoryDelete(httpClient *http.Client) toolsets.ToolWrapper {
 			Annotations: &mcp.ToolAnnotations{
 				Title:           "Delete Category",
 				DestructiveHint: new(true),
+				OpenWorldHint:   new(false),
 			},
 			Description: "Delete space category.",
 			InputSchema: &jsonschema.Schema{

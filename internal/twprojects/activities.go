@@ -45,8 +45,10 @@ func ActivityList(engine *twapi.Engine) toolsets.ToolWrapper {
 			Name:        string(MethodActivityList),
 			Description: "List recent activity events. Scope by project_id or omit for site-wide.",
 			Annotations: &mcp.ToolAnnotations{
-				Title:        "List Activities",
-				ReadOnlyHint: true,
+				Title:           "List Activities",
+				ReadOnlyHint:    true,
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
 			},
 			InputSchema: &jsonschema.Schema{
 				Type: "object",

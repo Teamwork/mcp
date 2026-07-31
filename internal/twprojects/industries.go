@@ -42,8 +42,10 @@ func IndustryList(engine *twapi.Engine) toolsets.ToolWrapper {
 			Name:        string(MethodIndustryList),
 			Description: "List supported company (aka client) industries.",
 			Annotations: &mcp.ToolAnnotations{
-				Title:        "List Industries",
-				ReadOnlyHint: true,
+				Title:           "List Industries",
+				ReadOnlyHint:    true,
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
 			},
 			InputSchema: &jsonschema.Schema{
 				Type:       "object",

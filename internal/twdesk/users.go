@@ -28,8 +28,10 @@ func UserGet(httpClient *http.Client) toolsets.ToolWrapper {
 		Tool: &mcp.Tool{
 			Name: string(MethodUserGet),
 			Annotations: &mcp.ToolAnnotations{
-				Title:        "Get User",
-				ReadOnlyHint: true,
+				Title:           "Get User",
+				ReadOnlyHint:    true,
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
 			},
 			Description: "Get support agent.",
 			InputSchema: &jsonschema.Schema{
@@ -106,8 +108,10 @@ func UserList(httpClient *http.Client) toolsets.ToolWrapper {
 		Tool: &mcp.Tool{
 			Name: string(MethodUserList),
 			Annotations: &mcp.ToolAnnotations{
-				Title:        "List Users",
-				ReadOnlyHint: true,
+				Title:           "List Users",
+				ReadOnlyHint:    true,
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
 			},
 			Description: "List support agents. For customers, use twdesk-list_customers.",
 			InputSchema: &jsonschema.Schema{

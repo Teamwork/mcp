@@ -29,8 +29,10 @@ func HelpDocArticleGet(httpClient *http.Client) toolsets.ToolWrapper {
 		Tool: &mcp.Tool{
 			Name: string(MethodHelpDocArticleGet),
 			Annotations: &mcp.ToolAnnotations{
-				Title:        "Get Help Doc Article",
-				ReadOnlyHint: true,
+				Title:           "Get Help Doc Article",
+				ReadOnlyHint:    true,
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
 			},
 			Description: "Get a help doc article by ID.",
 			InputSchema: &jsonschema.Schema{
@@ -68,8 +70,10 @@ func HelpDocArticleSearch(httpClient *http.Client) toolsets.ToolWrapper {
 		Tool: &mcp.Tool{
 			Name: string(MethodHelpDocArticleSearch),
 			Annotations: &mcp.ToolAnnotations{
-				Title:        "Search Help Doc Articles",
-				ReadOnlyHint: true,
+				Title:           "Search Help Doc Articles",
+				ReadOnlyHint:    true,
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
 			},
 			Description: "Search help doc articles. Filter by search term, status, site, or category.",
 			InputSchema: &jsonschema.Schema{
@@ -156,7 +160,8 @@ func HelpDocArticleCreate(httpClient *http.Client) toolsets.ToolWrapper {
 				Title: "Create Help Doc Article",
 				// A published, non-private article is visible on the public knowledge
 				// base, so this can change publicly-visible internet state.
-				OpenWorldHint: new(true),
+				OpenWorldHint:   new(true),
+				DestructiveHint: new(false),
 			},
 			Description: "Create a new help doc article.",
 			InputSchema: &jsonschema.Schema{
@@ -253,7 +258,8 @@ func HelpDocArticleUpdate(httpClient *http.Client) toolsets.ToolWrapper {
 				Title: "Update Help Doc Article",
 				// Changing status to published or toggling isPrivate alters
 				// publicly-visible knowledge-base content.
-				OpenWorldHint: new(true),
+				OpenWorldHint:   new(true),
+				DestructiveHint: new(false),
 			},
 			Description: "Update an existing help doc article.",
 			InputSchema: &jsonschema.Schema{

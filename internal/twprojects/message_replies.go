@@ -56,7 +56,9 @@ func MessageReplyCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 			Name:        string(MethodMessageReplyCreate),
 			Description: "Create message reply.",
 			Annotations: &mcp.ToolAnnotations{
-				Title: "Create Message Reply",
+				Title:           "Create Message Reply",
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
 			},
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
@@ -156,7 +158,9 @@ func MessageReplyUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 			Name:        string(MethodMessageReplyUpdate),
 			Description: "Update message reply.",
 			Annotations: &mcp.ToolAnnotations{
-				Title: "Update MessageReply",
+				Title:           "Update MessageReply",
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
 			},
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
@@ -261,6 +265,7 @@ func MessageReplyDelete(engine *twapi.Engine) toolsets.ToolWrapper {
 			Annotations: &mcp.ToolAnnotations{
 				Title:           "Delete Message Reply",
 				DestructiveHint: new(true),
+				OpenWorldHint:   new(false),
 			},
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
@@ -303,8 +308,10 @@ func MessageReplyGet(engine *twapi.Engine) toolsets.ToolWrapper {
 			Name:        string(MethodMessageReplyGet),
 			Description: "Get message reply.",
 			Annotations: &mcp.ToolAnnotations{
-				Title:        "Get Message Reply",
-				ReadOnlyHint: true,
+				Title:           "Get Message Reply",
+				ReadOnlyHint:    true,
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
 			},
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
@@ -360,8 +367,10 @@ func MessageReplyList(engine *twapi.Engine) toolsets.ToolWrapper {
 			Name:        string(MethodMessageReplyList),
 			Description: "List replies under a message thread. Filter by message_ids or project_ids.",
 			Annotations: &mcp.ToolAnnotations{
-				Title:        "List Message Replies",
-				ReadOnlyHint: true,
+				Title:           "List Message Replies",
+				ReadOnlyHint:    true,
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
 			},
 			InputSchema: &jsonschema.Schema{
 				Type: "object",

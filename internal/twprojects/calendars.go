@@ -43,8 +43,10 @@ func CalendarList(engine *twapi.Engine) toolsets.ToolWrapper {
 			Description: "List calendars. Calendars hold events such as meetings, out-of-office periods and " +
 				"time-blocking entries; the calendar of type 'blocked_time' holds the account's time-blocking events.",
 			Annotations: &mcp.ToolAnnotations{
-				Title:        "List Calendars",
-				ReadOnlyHint: true,
+				Title:           "List Calendars",
+				ReadOnlyHint:    true,
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
 			},
 			InputSchema: &jsonschema.Schema{
 				Type: "object",

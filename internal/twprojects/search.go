@@ -42,8 +42,10 @@ func Search(engine *twapi.Engine) toolsets.ToolWrapper {
 			Name:        string(MethodSearch),
 			Description: "Cross-entity keyword search across projects, tasks, files, messages, and more.",
 			Annotations: &mcp.ToolAnnotations{
-				Title:        "Search",
-				ReadOnlyHint: true,
+				Title:           "Search",
+				ReadOnlyHint:    true,
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
 			},
 			InputSchema: &jsonschema.Schema{
 				Type: "object",

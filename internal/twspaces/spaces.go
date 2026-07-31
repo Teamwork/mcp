@@ -32,8 +32,10 @@ func SpaceGet(httpClient *http.Client) toolsets.ToolWrapper {
 		Tool: &mcp.Tool{
 			Name: string(MethodSpaceGet),
 			Annotations: &mcp.ToolAnnotations{
-				Title:        "Get Space",
-				ReadOnlyHint: true,
+				Title:           "Get Space",
+				ReadOnlyHint:    true,
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
 			},
 			Description: "Get space.",
 			InputSchema: &jsonschema.Schema{
@@ -69,8 +71,10 @@ func SpaceList(httpClient *http.Client) toolsets.ToolWrapper {
 		Tool: &mcp.Tool{
 			Name: string(MethodSpaceList),
 			Annotations: &mcp.ToolAnnotations{
-				Title:        "List Spaces",
-				ReadOnlyHint: true,
+				Title:           "List Spaces",
+				ReadOnlyHint:    true,
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
 			},
 			Description: "List spaces.",
 			InputSchema: &jsonschema.Schema{
@@ -103,7 +107,9 @@ func SpaceCreate(httpClient *http.Client) toolsets.ToolWrapper {
 		Tool: &mcp.Tool{
 			Name: string(MethodSpaceCreate),
 			Annotations: &mcp.ToolAnnotations{
-				Title: "Create Space",
+				Title:           "Create Space",
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
 			},
 			Description: "Create space.",
 			InputSchema: &jsonschema.Schema{
@@ -199,7 +205,9 @@ func SpaceUpdate(httpClient *http.Client) toolsets.ToolWrapper {
 		Tool: &mcp.Tool{
 			Name: string(MethodSpaceUpdate),
 			Annotations: &mcp.ToolAnnotations{
-				Title: "Update Space",
+				Title:           "Update Space",
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
 			},
 			Description: "Update space.",
 			InputSchema: &jsonschema.Schema{
@@ -320,6 +328,7 @@ func SpaceDelete(httpClient *http.Client) toolsets.ToolWrapper {
 			Annotations: &mcp.ToolAnnotations{
 				Title:           "Delete Space",
 				DestructiveHint: new(true),
+				OpenWorldHint:   new(false),
 			},
 			Description: "Delete space. Irreversible; removes all content.",
 			InputSchema: &jsonschema.Schema{
@@ -354,8 +363,10 @@ func SpaceCollaborators(httpClient *http.Client) toolsets.ToolWrapper {
 		Tool: &mcp.Tool{
 			Name: string(MethodSpaceCollaborators),
 			Annotations: &mcp.ToolAnnotations{
-				Title:        "List Space Collaborators",
-				ReadOnlyHint: true,
+				Title:           "List Space Collaborators",
+				ReadOnlyHint:    true,
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
 			},
 			Description: "List space collaborators (users and teams).",
 			InputSchema: &jsonschema.Schema{

@@ -46,8 +46,10 @@ func CalendarEventList(engine *twapi.Engine) toolsets.ToolWrapper {
 				"a Teamwork project, task or timelog. Use twprojects-list_calendars to find the calendar ID; the " +
 				"calendar of type 'blocked_time' holds the account's time-blocking events.",
 			Annotations: &mcp.ToolAnnotations{
-				Title:        "List Calendar Events",
-				ReadOnlyHint: true,
+				Title:           "List Calendar Events",
+				ReadOnlyHint:    true,
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
 			},
 			InputSchema: &jsonschema.Schema{
 				Type: "object",

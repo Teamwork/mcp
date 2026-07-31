@@ -57,7 +57,9 @@ func ProjectCategoryCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 			Name:        string(MethodProjectCategoryCreate),
 			Description: "Create project category.",
 			Annotations: &mcp.ToolAnnotations{
-				Title: "Create Project Category",
+				Title:           "Create Project Category",
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
 			},
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
@@ -116,7 +118,9 @@ func ProjectCategoryUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 			Name:        string(MethodProjectCategoryUpdate),
 			Description: "Update project category.",
 			Annotations: &mcp.ToolAnnotations{
-				Title: "Update Project Category",
+				Title:           "Update Project Category",
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
 			},
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
@@ -185,6 +189,7 @@ func ProjectCategoryDelete(engine *twapi.Engine) toolsets.ToolWrapper {
 			Annotations: &mcp.ToolAnnotations{
 				Title:           "Delete Project Category",
 				DestructiveHint: new(true),
+				OpenWorldHint:   new(false),
 			},
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
@@ -227,8 +232,10 @@ func ProjectCategoryGet(engine *twapi.Engine) toolsets.ToolWrapper {
 			Name:        string(MethodProjectCategoryGet),
 			Description: "Get project category.",
 			Annotations: &mcp.ToolAnnotations{
-				Title:        "Get Project Category",
-				ReadOnlyHint: true,
+				Title:           "Get Project Category",
+				ReadOnlyHint:    true,
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
 			},
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
@@ -284,8 +291,10 @@ func ProjectCategoryList(engine *twapi.Engine) toolsets.ToolWrapper {
 			Name:        string(MethodProjectCategoryList),
 			Description: "List project categories.",
 			Annotations: &mcp.ToolAnnotations{
-				Title:        "List Project Categories",
-				ReadOnlyHint: true,
+				Title:           "List Project Categories",
+				ReadOnlyHint:    true,
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
 			},
 			InputSchema: &jsonschema.Schema{
 				Type: "object",

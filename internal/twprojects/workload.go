@@ -45,8 +45,10 @@ func UsersWorkload(engine *twapi.Engine) toolsets.ToolWrapper {
 			Name:        string(MethodUsersWorkload),
 			Description: "Get task allocation across users for a date range. (workload of users)",
 			Annotations: &mcp.ToolAnnotations{
-				Title:        "Get Users Workload",
-				ReadOnlyHint: true,
+				Title:           "Get Users Workload",
+				ReadOnlyHint:    true,
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
 			},
 			InputSchema: &jsonschema.Schema{
 				Type: "object",

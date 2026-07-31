@@ -65,7 +65,9 @@ func CustomItemCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 			Description: "Create a new custom item type (e.g. Contracts, Leads, Deals) on a project." +
 				customItemRoutingHint,
 			Annotations: &mcp.ToolAnnotations{
-				Title: "Create Custom Item",
+				Title:           "Create Custom Item",
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
 			},
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
@@ -141,7 +143,9 @@ func CustomItemUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 			Name:        string(MethodCustomItemUpdate),
 			Description: "Update a custom item type's display name, description, or labels." + customItemRoutingHint,
 			Annotations: &mcp.ToolAnnotations{
-				Title: "Update Custom Item",
+				Title:           "Update Custom Item",
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
 			},
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
@@ -219,6 +223,7 @@ func CustomItemDelete(engine *twapi.Engine) toolsets.ToolWrapper {
 			Annotations: &mcp.ToolAnnotations{
 				Title:           "Delete Custom Item",
 				DestructiveHint: new(true),
+				OpenWorldHint:   new(false),
 			},
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
@@ -269,8 +274,10 @@ func CustomItemGet(engine *twapi.Engine) toolsets.ToolWrapper {
 			Description: "Get a custom item type with its fields and sections inline, so you can see " +
 				"its schema before creating or updating records." + customItemRoutingHint,
 			Annotations: &mcp.ToolAnnotations{
-				Title:        "Get Custom Item",
-				ReadOnlyHint: true,
+				Title:           "Get Custom Item",
+				ReadOnlyHint:    true,
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
 			},
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
@@ -324,8 +331,10 @@ func CustomItemList(engine *twapi.Engine) toolsets.ToolWrapper {
 				"display name and labels — call get_custom_item to see a type's fields and sections." +
 				customItemRoutingHint,
 			Annotations: &mcp.ToolAnnotations{
-				Title:        "List Custom Items",
-				ReadOnlyHint: true,
+				Title:           "List Custom Items",
+				ReadOnlyHint:    true,
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
 			},
 			InputSchema: &jsonschema.Schema{
 				Type: "object",

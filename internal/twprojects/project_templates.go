@@ -28,7 +28,9 @@ func ProjectTemplateCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 			Name:        string(MethodProjectTemplateCreate),
 			Description: "Create project template.",
 			Annotations: &mcp.ToolAnnotations{
-				Title: "Create Project Template",
+				Title:           "Create Project Template",
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
 			},
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
@@ -121,8 +123,10 @@ func ProjectTemplateList(engine *twapi.Engine) toolsets.ToolWrapper {
 			Name:        string(MethodProjectTemplateList),
 			Description: "List project templates.",
 			Annotations: &mcp.ToolAnnotations{
-				Title:        "List Project Templates",
-				ReadOnlyHint: true,
+				Title:           "List Project Templates",
+				ReadOnlyHint:    true,
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
 			},
 			InputSchema: &jsonschema.Schema{
 				Type: "object",

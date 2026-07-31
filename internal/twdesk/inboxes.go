@@ -28,8 +28,10 @@ func InboxGet(httpClient *http.Client) toolsets.ToolWrapper {
 		Tool: &mcp.Tool{
 			Name: string(MethodInboxGet),
 			Annotations: &mcp.ToolAnnotations{
-				Title:        "Get Inbox",
-				ReadOnlyHint: true,
+				Title:           "Get Inbox",
+				ReadOnlyHint:    true,
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
 			},
 			Description: "Get inbox.",
 			InputSchema: &jsonschema.Schema{
@@ -85,8 +87,10 @@ func InboxList(httpClient *http.Client) toolsets.ToolWrapper {
 		Tool: &mcp.Tool{
 			Name: string(MethodInboxList),
 			Annotations: &mcp.ToolAnnotations{
-				Title:        "List Inboxes",
-				ReadOnlyHint: true,
+				Title:           "List Inboxes",
+				ReadOnlyHint:    true,
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
 			},
 			Description: "List inboxes. Filter by name or email.",
 			InputSchema: &jsonschema.Schema{

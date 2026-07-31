@@ -49,7 +49,9 @@ func CustomItemFieldCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 				"Field types include text, number, dropdown, multiselect, checkbox, url, user, date, time and datetime." +
 				customItemRoutingHint,
 			Annotations: &mcp.ToolAnnotations{
-				Title: "Create Custom Item Field",
+				Title:           "Create Custom Item Field",
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
 			},
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
@@ -192,7 +194,9 @@ func CustomItemFieldUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 			Name:        string(MethodCustomItemFieldUpdate),
 			Description: "Update a field on a custom item type." + customItemRoutingHint,
 			Annotations: &mcp.ToolAnnotations{
-				Title: "Update Custom Item Field",
+				Title:           "Update Custom Item Field",
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
 			},
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
@@ -276,6 +280,7 @@ func CustomItemFieldDelete(engine *twapi.Engine) toolsets.ToolWrapper {
 			Annotations: &mcp.ToolAnnotations{
 				Title:           "Delete Custom Item Field",
 				DestructiveHint: new(true),
+				OpenWorldHint:   new(false),
 			},
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
@@ -324,8 +329,10 @@ func CustomItemFieldGet(engine *twapi.Engine) toolsets.ToolWrapper {
 			Name:        string(MethodCustomItemFieldGet),
 			Description: "Get a single field on a custom item type." + customItemRoutingHint,
 			Annotations: &mcp.ToolAnnotations{
-				Title:        "Get Custom Item Field",
-				ReadOnlyHint: true,
+				Title:           "Get Custom Item Field",
+				ReadOnlyHint:    true,
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
 			},
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
@@ -375,8 +382,10 @@ func CustomItemFieldList(engine *twapi.Engine) toolsets.ToolWrapper {
 			Description: "List fields on a custom item type. " +
 				"Each entry includes the twId you need when writing record values." + customItemRoutingHint,
 			Annotations: &mcp.ToolAnnotations{
-				Title:        "List Custom Item Fields",
-				ReadOnlyHint: true,
+				Title:           "List Custom Item Fields",
+				ReadOnlyHint:    true,
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
 			},
 			InputSchema: &jsonschema.Schema{
 				Type: "object",

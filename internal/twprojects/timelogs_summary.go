@@ -164,8 +164,10 @@ func SummarizeTimelogs(engine *twapi.Engine) toolsets.ToolWrapper {
 				"to 2 decimals. unbilledBillable = billable − billed. The sum of the group columns equals the " +
 				"totals block exactly (reconcile in minutes, not hours).",
 			Annotations: &mcp.ToolAnnotations{
-				Title:        "Summarize Timelogs",
-				ReadOnlyHint: true,
+				Title:           "Summarize Timelogs",
+				ReadOnlyHint:    true,
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
 			},
 			InputSchema: &jsonschema.Schema{
 				Type: "object",

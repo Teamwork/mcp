@@ -56,7 +56,9 @@ func CustomFieldCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 			Name:        string(MethodCustomFieldCreate),
 			Description: "Create custom field.",
 			Annotations: &mcp.ToolAnnotations{
-				Title: "Create Custom Field",
+				Title:           "Create Custom Field",
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
 			},
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
@@ -292,7 +294,9 @@ func CustomFieldUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 			Name:        string(MethodCustomFieldUpdate),
 			Description: "Update custom field.",
 			Annotations: &mcp.ToolAnnotations{
-				Title: "Update Custom Field",
+				Title:           "Update Custom Field",
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
 			},
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
@@ -463,6 +467,7 @@ func CustomFieldDelete(engine *twapi.Engine) toolsets.ToolWrapper {
 			Annotations: &mcp.ToolAnnotations{
 				Title:           "Delete Custom Field",
 				DestructiveHint: new(true),
+				OpenWorldHint:   new(false),
 			},
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
@@ -505,8 +510,10 @@ func CustomFieldGet(engine *twapi.Engine) toolsets.ToolWrapper {
 			Name:        string(MethodCustomFieldGet),
 			Description: "Get custom field.",
 			Annotations: &mcp.ToolAnnotations{
-				Title:        "Get Custom Field",
-				ReadOnlyHint: true,
+				Title:           "Get Custom Field",
+				ReadOnlyHint:    true,
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
 			},
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
@@ -550,8 +557,10 @@ func CustomFieldList(engine *twapi.Engine) toolsets.ToolWrapper {
 			Name:        string(MethodCustomFieldList),
 			Description: "List custom fields.",
 			Annotations: &mcp.ToolAnnotations{
-				Title:        "List Custom Fields",
-				ReadOnlyHint: true,
+				Title:           "List Custom Fields",
+				ReadOnlyHint:    true,
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
 			},
 			InputSchema: &jsonschema.Schema{
 				Type: "object",

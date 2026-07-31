@@ -27,7 +27,9 @@ func ProjectMemberAdd(engine *twapi.Engine) toolsets.ToolWrapper {
 			Name:        string(MethodProjectMemberAdd),
 			Description: "Add a user to a project.",
 			Annotations: &mcp.ToolAnnotations{
-				Title: "Add Project Member",
+				Title:           "Add Project Member",
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
 			},
 			InputSchema: &jsonschema.Schema{
 				Type: "object",

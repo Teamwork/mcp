@@ -55,7 +55,9 @@ func TagCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 			Name:        string(MethodTagCreate),
 			Description: "Create tag.",
 			Annotations: &mcp.ToolAnnotations{
-				Title: "Create Tag",
+				Title:           "Create Tag",
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
 			},
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
@@ -106,7 +108,9 @@ func TagUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 			Name:        string(MethodTagUpdate),
 			Description: "Update tag.",
 			Annotations: &mcp.ToolAnnotations{
-				Title: "Update Tag",
+				Title:           "Update Tag",
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
 			},
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
@@ -167,6 +171,7 @@ func TagDelete(engine *twapi.Engine) toolsets.ToolWrapper {
 			Annotations: &mcp.ToolAnnotations{
 				Title:           "Delete Tag",
 				DestructiveHint: new(true),
+				OpenWorldHint:   new(false),
 			},
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
@@ -209,8 +214,10 @@ func TagGet(engine *twapi.Engine) toolsets.ToolWrapper {
 			Name:        string(MethodTagGet),
 			Description: "Get tag.",
 			Annotations: &mcp.ToolAnnotations{
-				Title:        "Get Tag",
-				ReadOnlyHint: true,
+				Title:           "Get Tag",
+				ReadOnlyHint:    true,
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
 			},
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
@@ -254,8 +261,10 @@ func TagList(engine *twapi.Engine) toolsets.ToolWrapper {
 			Name:        string(MethodTagList),
 			Description: "List tags.",
 			Annotations: &mcp.ToolAnnotations{
-				Title:        "List Tags",
-				ReadOnlyHint: true,
+				Title:           "List Tags",
+				ReadOnlyHint:    true,
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
 			},
 			InputSchema: &jsonschema.Schema{
 				Type: "object",

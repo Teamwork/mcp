@@ -58,7 +58,9 @@ func TimerCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 			Name:        string(MethodTimerCreate),
 			Description: "Create and start a timer.",
 			Annotations: &mcp.ToolAnnotations{
-				Title: "Create Timer",
+				Title:           "Create Timer",
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
 			},
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
@@ -150,7 +152,9 @@ func TimerUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 			Name:        string(MethodTimerUpdate),
 			Description: "Update timer.",
 			Annotations: &mcp.ToolAnnotations{
-				Title: "Update Timer",
+				Title:           "Update Timer",
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
 			},
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
@@ -233,7 +237,9 @@ func TimerPause(engine *twapi.Engine) toolsets.ToolWrapper {
 			Name:        string(MethodTimerPause),
 			Description: "Pause a running timer; can be resumed later. Use complete_timer to stop permanently.",
 			Annotations: &mcp.ToolAnnotations{
-				Title: "Pause Timer",
+				Title:           "Pause Timer",
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
 			},
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
@@ -276,7 +282,9 @@ func TimerResume(engine *twapi.Engine) toolsets.ToolWrapper {
 			Name:        string(MethodTimerResume),
 			Description: "Resume a paused timer back to running.",
 			Annotations: &mcp.ToolAnnotations{
-				Title: "Resume Timer",
+				Title:           "Resume Timer",
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
 			},
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
@@ -319,7 +327,9 @@ func TimerComplete(engine *twapi.Engine) toolsets.ToolWrapper {
 			Name:        string(MethodTimerComplete),
 			Description: "Stop a timer permanently and convert it to a timelog. Use pause_timer to pause without converting.",
 			Annotations: &mcp.ToolAnnotations{
-				Title: "Complete Timer",
+				Title:           "Complete Timer",
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
 			},
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
@@ -364,6 +374,7 @@ func TimerDelete(engine *twapi.Engine) toolsets.ToolWrapper {
 			Annotations: &mcp.ToolAnnotations{
 				Title:           "Delete Timer",
 				DestructiveHint: new(true),
+				OpenWorldHint:   new(false),
 			},
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
@@ -406,8 +417,10 @@ func TimerGet(engine *twapi.Engine) toolsets.ToolWrapper {
 			Name:        string(MethodTimerGet),
 			Description: "Get timer.",
 			Annotations: &mcp.ToolAnnotations{
-				Title:        "Get Timer",
-				ReadOnlyHint: true,
+				Title:           "Get Timer",
+				ReadOnlyHint:    true,
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
 			},
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
@@ -467,8 +480,10 @@ func TimerList(engine *twapi.Engine) toolsets.ToolWrapper {
 			Name:        string(MethodTimerList),
 			Description: "List timers.",
 			Annotations: &mcp.ToolAnnotations{
-				Title:        "List Timers",
-				ReadOnlyHint: true,
+				Title:           "List Timers",
+				ReadOnlyHint:    true,
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
 			},
 			InputSchema: &jsonschema.Schema{
 				Type: "object",

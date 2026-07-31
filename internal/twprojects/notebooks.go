@@ -55,7 +55,9 @@ func NotebookCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 			Name:        string(MethodNotebookCreate),
 			Description: "Create notebook in a project.",
 			Annotations: &mcp.ToolAnnotations{
-				Title: "Create Notebook",
+				Title:           "Create Notebook",
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
 			},
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
@@ -129,7 +131,9 @@ func NotebookUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 			Name:        string(MethodNotebookUpdate),
 			Description: "Update notebook.",
 			Annotations: &mcp.ToolAnnotations{
-				Title: "Update Notebook",
+				Title:           "Update Notebook",
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
 			},
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
@@ -213,6 +217,7 @@ func NotebookDelete(engine *twapi.Engine) toolsets.ToolWrapper {
 			Annotations: &mcp.ToolAnnotations{
 				Title:           "Delete Notebook",
 				DestructiveHint: new(true),
+				OpenWorldHint:   new(false),
 			},
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
@@ -255,8 +260,10 @@ func NotebookGet(engine *twapi.Engine) toolsets.ToolWrapper {
 			Name:        string(MethodNotebookGet),
 			Description: "Get notebook.",
 			Annotations: &mcp.ToolAnnotations{
-				Title:        "Get Notebook",
-				ReadOnlyHint: true,
+				Title:           "Get Notebook",
+				ReadOnlyHint:    true,
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
 			},
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
@@ -316,8 +323,10 @@ func NotebookList(engine *twapi.Engine) toolsets.ToolWrapper {
 			Name:        string(MethodNotebookList),
 			Description: "List notebooks.",
 			Annotations: &mcp.ToolAnnotations{
-				Title:        "List Notebooks",
-				ReadOnlyHint: true,
+				Title:           "List Notebooks",
+				ReadOnlyHint:    true,
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
 			},
 			InputSchema: &jsonschema.Schema{
 				Type: "object",

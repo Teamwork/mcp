@@ -7,7 +7,10 @@ import (
 	"testing"
 
 	"github.com/teamwork/mcp/internal/toolsets"
+	"github.com/teamwork/mcp/internal/twchat"
+	"github.com/teamwork/mcp/internal/twdesk"
 	"github.com/teamwork/mcp/internal/twprojects"
+	"github.com/teamwork/mcp/internal/twspaces"
 )
 
 // docPath is the committed reference doc, relative to this package's directory
@@ -196,5 +199,51 @@ func TestDeleteToolsExistButGated(t *testing.T) {
 	if found == 0 {
 		t.Fatal("expected delete tools to appear with allowDelete=true; either they " +
 			"were removed or the gating changed — the NO-DELETE guard would be vacuous")
+	}
+}
+
+// TestAnnotationHintsAreExplicit is the EXPLICIT-HINTS guard: every tool must
+// set readOnlyHint, destructiveHint and openWorldHint to a concrete true/false
+// value. DestructiveHint and OpenWorldHint are pointers in the SDK, so leaving
+// them nil omits them from the tools/list payload entirely — the MCP spec then
+// says they default to true, and reviewers (OpenAI's app review among them)
+// reject tools with missing hints. ReadOnlyHint is a plain bool and is always
+// serialised by go-sdk v1.7+, so only the two pointers need asserting here.
+//
+// Groups are built with allowDelete=true so delete tools are covered too.
+func TestAnnotationHintsAreExplicit(t *testing.T) {
+	all := []product{
+		{"Projects", twprojects.DefaultToolsetGroup(false, true, nil)},
+		{"Desk", twdesk.DefaultToolsetGroup(false, nil)},
+		{"Spaces", twspaces.DefaultToolsetGroup(false, true, nil)},
+		{"Chat", twchat.DefaultToolsetGroup(false, nil)},
+	}
+	for _, p := range all {
+		for method, ts := range p.group.Toolsets {
+			for _, tw := range ts.GetAvailableTools() {
+				name := tw.Tool.Name
+				if tw.Tool.Annotations == nil {
+					t.Errorf("%s/%s: tool %q has no annotations; readOnlyHint, "+
+						"destructiveHint and openWorldHint must all be set", p.label, method, name)
+					continue
+				}
+				if tw.Tool.Annotations.DestructiveHint == nil {
+					t.Errorf("%s/%s: tool %q is missing destructiveHint; set it "+
+						"explicitly (new(false) unless the tool destroys data)", p.label, method, name)
+				}
+				if tw.Tool.Annotations.OpenWorldHint == nil {
+					t.Errorf("%s/%s: tool %q is missing openWorldHint; set it "+
+						"explicitly (new(false) unless the tool reaches outside "+
+						"the customer's Teamwork account)", p.label, method, name)
+				}
+				// A read-only tool cannot destroy anything.
+				if tw.Tool.Annotations.ReadOnlyHint &&
+					tw.Tool.Annotations.DestructiveHint != nil &&
+					*tw.Tool.Annotations.DestructiveHint {
+					t.Errorf("%s/%s: tool %q is annotated read-only but also "+
+						"destructive", p.label, method, name)
+				}
+			}
+		}
 	}
 }

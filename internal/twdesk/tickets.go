@@ -32,8 +32,10 @@ func TicketGet(httpClient *http.Client) toolsets.ToolWrapper {
 		Tool: &mcp.Tool{
 			Name: string(MethodTicketGet),
 			Annotations: &mcp.ToolAnnotations{
-				Title:        "Get Ticket",
-				ReadOnlyHint: true,
+				Title:           "Get Ticket",
+				ReadOnlyHint:    true,
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
 			},
 			Description: "Get ticket.",
 			InputSchema: &jsonschema.Schema{
@@ -148,8 +150,10 @@ func TicketSearch(httpClient *http.Client) toolsets.ToolWrapper {
 		Tool: &mcp.Tool{
 			Name: string(MethodTicketSearch),
 			Annotations: &mcp.ToolAnnotations{
-				Title:        "Search Tickets",
-				ReadOnlyHint: true,
+				Title:           "Search Tickets",
+				ReadOnlyHint:    true,
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
 			},
 			Description: "Search tickets. Filter by inbox, customer, company, tag, status, priority, or user.",
 			InputSchema: &jsonschema.Schema{
@@ -443,7 +447,9 @@ func TicketUpdate(httpClient *http.Client) toolsets.ToolWrapper {
 		Tool: &mcp.Tool{
 			Name: string(MethodTicketUpdate),
 			Annotations: &mcp.ToolAnnotations{
-				Title: "Update Ticket",
+				Title:           "Update Ticket",
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
 			},
 			Description: "Update ticket.",
 			InputSchema: &jsonschema.Schema{

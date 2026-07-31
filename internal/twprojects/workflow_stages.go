@@ -56,7 +56,9 @@ func WorkflowStageCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 			Name:        string(MethodWorkflowStageCreate),
 			Description: "Create workflow stage.",
 			Annotations: &mcp.ToolAnnotations{
-				Title: "Create Workflow Stage",
+				Title:           "Create Workflow Stage",
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
 			},
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
@@ -104,7 +106,9 @@ func WorkflowStageUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 			Name:        string(MethodWorkflowStageUpdate),
 			Description: "Update workflow stage.",
 			Annotations: &mcp.ToolAnnotations{
-				Title: "Update Workflow Stage",
+				Title:           "Update Workflow Stage",
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
 			},
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
@@ -162,6 +166,7 @@ func WorkflowStageDelete(engine *twapi.Engine) toolsets.ToolWrapper {
 			Annotations: &mcp.ToolAnnotations{
 				Title:           "Delete Workflow Stage",
 				DestructiveHint: new(true),
+				OpenWorldHint:   new(false),
 			},
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
@@ -219,7 +224,9 @@ func WorkflowStageTaskMove(engine *twapi.Engine) toolsets.ToolWrapper {
 			Name:        string(MethodWorkflowStageTaskMove),
 			Description: "Move a task to a workflow stage.",
 			Annotations: &mcp.ToolAnnotations{
-				Title: "Move Task to Workflow Stage",
+				Title:           "Move Task to Workflow Stage",
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
 			},
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
@@ -272,8 +279,10 @@ func WorkflowStageGet(engine *twapi.Engine) toolsets.ToolWrapper {
 			Name:        string(MethodWorkflowStageGet),
 			Description: "Get workflow stage.",
 			Annotations: &mcp.ToolAnnotations{
-				Title:        "Get Workflow Stage",
-				ReadOnlyHint: true,
+				Title:           "Get Workflow Stage",
+				ReadOnlyHint:    true,
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
 			},
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
@@ -334,8 +343,10 @@ func WorkflowStageList(engine *twapi.Engine) toolsets.ToolWrapper {
 			Name:        string(MethodWorkflowStageList),
 			Description: "List workflow stages.",
 			Annotations: &mcp.ToolAnnotations{
-				Title:        "List Workflow Stages",
-				ReadOnlyHint: true,
+				Title:           "List Workflow Stages",
+				ReadOnlyHint:    true,
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
 			},
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
