@@ -816,9 +816,18 @@
         }
       });
 
+      // Spec requires appCapabilities, listing every display mode we support;
+      // this form is only laid out for inline.
+      var appInfo = { name: "twprojects-create_timelog", version: "1.0.0" };
+      var appCapabilities = { availableDisplayModes: ["inline"] };
+
       async function initialize() {
         var initResult = await request("ui/initialize", {
           protocolVersion: "2026-01-26",
+          appInfo: appInfo,
+          appCapabilities: appCapabilities,
+          // the spec's own example uses these older names instead.
+          clientInfo: appInfo,
           capabilities: {}
         }, 5000);
 

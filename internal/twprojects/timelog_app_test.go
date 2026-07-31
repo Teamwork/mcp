@@ -100,6 +100,12 @@ func TestTimelogCreateResourceRead(t *testing.T) {
 	if !strings.Contains(content.Text, "Create Timelog") {
 		t.Fatalf("expected embedded HTML to contain heading, got: %q", content.Text)
 	}
+	// no JS harness, so guard the required ui/initialize fields at source level.
+	for _, fragment := range []string{"appInfo:", "appCapabilities:", `availableDisplayModes: ["inline"]`} {
+		if !strings.Contains(content.Text, fragment) {
+			t.Errorf("expected embedded HTML ui/initialize handshake to declare %s", fragment)
+		}
+	}
 
 	uiMetaRaw, ok := content.Meta["ui"]
 	if !ok {
@@ -109,13 +115,27 @@ func TestTimelogCreateResourceRead(t *testing.T) {
 	if !ok {
 		t.Fatalf("expected _meta.ui to be map[string]any, got %T", uiMetaRaw)
 	}
-	if _, ok := uiMeta["csp"].(map[string]any); !ok {
+	csp, ok := uiMeta["csp"].(map[string]any)
+	if !ok {
 		t.Fatalf("expected _meta.ui.csp to be map[string]any, got %T", uiMeta["csp"])
+	}
+	// the standard MCP Apps surface uses camelCase field names.
+	for _, field := range []string{"connectDomains", "resourceDomains", "frameDomains", "baseUriDomains"} {
+		if _, ok := csp[field]; !ok {
+			t.Errorf("expected _meta.ui.csp to declare %q, got %#v", field, csp)
+		}
 	}
 	if _, ok := content.Meta["openai/widgetDescription"].(string); !ok {
 		t.Fatalf("expected _meta.openai/widgetDescription to be present, got %#v", content.Meta["openai/widgetDescription"])
 	}
-	if _, ok := content.Meta["openai/widgetCSP"].(map[string]any); !ok {
+	openAICSP, ok := content.Meta["openai/widgetCSP"].(map[string]any)
+	if !ok {
 		t.Fatalf("expected _meta.openai/widgetCSP to be map[string]any, got %T", content.Meta["openai/widgetCSP"])
+	}
+	// the legacy ChatGPT key only recognises snake_case names.
+	for _, field := range []string{"connect_domains", "resource_domains", "frame_domains", "redirect_domains"} {
+		if _, ok := openAICSP[field]; !ok {
+			t.Errorf("expected _meta.openai/widgetCSP to declare %q, got %#v", field, openAICSP)
+		}
 	}
 }

@@ -15,6 +15,7 @@ const (
 	timelogCreateAppDescription   = "Interactive form for creating Teamwork timelogs."
 )
 
+// Standard _meta.ui.csp surface. Empty: the app is self-contained.
 var timelogCreateWidgetCSP = map[string]any{
 	"connectDomains":  []string{},
 	"resourceDomains": []string{},
@@ -22,22 +23,23 @@ var timelogCreateWidgetCSP = map[string]any{
 	"baseUriDomains":  []string{},
 }
 
-var timelogCreateWidgetPermissions = map[string]any{
-	"camera":         map[string]any{},
-	"microphone":     map[string]any{},
-	"geolocation":    map[string]any{},
-	"clipboardWrite": map[string]any{},
+// Same lists for ChatGPT's legacy openai/widgetCSP key, which only recognises
+// snake_case names. camelCase here fails OpenAI's tool scan.
+var timelogCreateOpenAIWidgetCSP = map[string]any{
+	"connect_domains":  []string{},
+	"resource_domains": []string{},
+	"frame_domains":    []string{},
+	"redirect_domains": []string{},
 }
 
 var timelogCreateResourceMeta = mcp.Meta{
 	"ui": map[string]any{
 		"csp":           timelogCreateWidgetCSP,
-		"permissions":   timelogCreateWidgetPermissions,
 		"prefersBorder": true,
 	},
 	"openai/widgetDescription":   timelogCreateAppDescription,
 	"openai/widgetPrefersBorder": true,
-	"openai/widgetCSP":           timelogCreateWidgetCSP,
+	"openai/widgetCSP":           timelogCreateOpenAIWidgetCSP,
 }
 
 //go:embed apps/timelog_create.html
