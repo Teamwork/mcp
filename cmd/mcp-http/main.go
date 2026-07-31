@@ -41,6 +41,12 @@ var (
 // Limit request body size (e.g., 10MB)
 const maxBodySize = 10 * 1024 * 1024 // 10 MB
 
+// openAIAppsChallengeToken proves to OpenAI that we control this origin, so the
+// MCP server can be listed as a ChatGPT app. It is a public verification value,
+// not a credential, and OpenAI expects it served verbatim as plain text from
+// the origin root. Replace it if OpenAI issues a new token.
+const openAIAppsChallengeToken = "qi_6vPrb4b2ob0EAizJTh0ziBCIjObAdxGkDegPy50Y"
+
 func main() {
 	defer handleExit()
 
@@ -179,6 +185,24 @@ func newRouter(resources config.Resources) *http.ServeMux {
   "resource_documentation": "https://apidocs.teamwork.com/guides/teamwork/app-login-flow",
   "scopes_supported": [ "projects", "desk", "spaces", "chat" ]
 }`))
+	})
+	mux.HandleFunc("/.well-known/openai-apps-challenge", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet && r.Method != http.MethodOptions {
+			http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
+			return
+		}
+
+		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Access-Control-Allow-Methods", "GET, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Headers", "*")
+		w.WriteHeader(http.StatusOK)
+
+		if r.Method == http.MethodOptions {
+			return
+		}
+
+		_, _ = w.Write([]byte(openAIAppsChallengeToken))
 	})
 	return mux
 }

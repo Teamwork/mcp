@@ -82,6 +82,8 @@ Besides the MCP endpoints, the HTTP server provides the following extended API e
 | `/` | POST | MCP HTTP transport (JSON-RPC over HTTP) |
 | `/sse` | GET | MCP SSE transport (Server-Sent Events for streaming) |
 | `/api/health` | GET | Health check endpoint |
+| `/.well-known/oauth-protected-resource` | GET | OAuth 2.0 protected resource metadata ([RFC 9728](https://datatracker.ietf.org/doc/html/rfc9728)) |
+| `/.well-known/openai-apps-challenge` | GET | Origin verification token for the ChatGPT app listing (plain text) |
 
 ## ⚙️ Configuration
 
