@@ -43,7 +43,9 @@ func init() {
 }
 
 // DefaultToolsetGroup creates a default ToolsetGroup for Teamwork Chat. Write
-// tools (send_message) are skipped automatically when readOnly is true.
+// tools (send_message, send_dm, get_or_create_dm) are skipped automatically when
+// readOnly is true. get_or_create_dm is a write tool because it creates the 1:1
+// conversation when one does not already exist.
 func DefaultToolsetGroup(readOnly bool, engine *twapi.Engine) *toolsets.ToolsetGroup {
 	group := toolsets.NewToolsetGroup(readOnly)
 
@@ -51,6 +53,7 @@ func DefaultToolsetGroup(readOnly bool, engine *twapi.Engine) *toolsets.ToolsetG
 		AddWriteTools(
 			MessageSend(engine),
 			SendDM(engine),
+			DMGetOrCreate(engine),
 		).
 		AddReadTools(
 			CurrentUserGet(engine),
@@ -58,7 +61,6 @@ func DefaultToolsetGroup(readOnly bool, engine *twapi.Engine) *toolsets.ToolsetG
 			ConversationGet(engine),
 			MessageList(engine),
 			PeopleList(engine),
-			DMGetOrCreate(engine),
 		))
 
 	return group

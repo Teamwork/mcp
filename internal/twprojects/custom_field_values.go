@@ -7,6 +7,7 @@ import (
 	"io"
 	"math"
 	"net/http"
+	"slices"
 	"strconv"
 
 	"github.com/google/jsonschema-go/jsonschema"
@@ -633,10 +634,8 @@ func containsNumber(raw any) bool {
 	case float64, float32, int, int32, int64, json.Number:
 		return true
 	case []any:
-		for _, e := range v {
-			if containsNumber(e) {
-				return true
-			}
+		if slices.ContainsFunc(v, containsNumber) {
+			return true
 		}
 	}
 	return false
