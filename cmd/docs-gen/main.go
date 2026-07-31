@@ -19,6 +19,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"slices"
 	"sort"
 	"strings"
 
@@ -170,7 +171,7 @@ func sortedMethods(g *toolsets.ToolsetGroup) []toolsets.Method {
 	for m := range g.Toolsets {
 		methods = append(methods, m)
 	}
-	sort.Slice(methods, func(i, j int) bool { return methods[i] < methods[j] })
+	slices.Sort(methods)
 	return methods
 }
 
@@ -235,8 +236,8 @@ func writeToolset(b *strings.Builder, ts *toolsets.Toolset) {
 // stripPrefix removes the "tw<product>-" namespace prefix from a tool or method
 // name, returning the action/toolset slug.
 func stripPrefix(name string) string {
-	if i := strings.IndexByte(name, '-'); i >= 0 {
-		return name[i+1:]
+	if _, after, ok := strings.Cut(name, "-"); ok {
+		return after
 	}
 	return name
 }

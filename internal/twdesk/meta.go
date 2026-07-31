@@ -25,11 +25,6 @@ func intPtr(i int) *int {
 	return &i
 }
 
-// boolPtr returns a pointer to b.
-func boolPtr(b bool) *bool {
-	return &b
-}
-
 // falseSchema returns a schema that serialises to JSON boolean false.
 // Used as AdditionalProperties: falseSchema() to satisfy OpenAI strict mode.
 func falseSchema() *jsonschema.Schema {

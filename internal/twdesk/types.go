@@ -179,7 +179,7 @@ func TypeCreate(httpClient *http.Client) toolsets.ToolWrapper {
 				TicketType: deskmodels.TicketType{
 					Name:                    &name,
 					DisplayOrder:            intPtr(arguments.GetInt("displayOrder", 0)),
-					EnabledForFutureInboxes: boolPtr(enabledForFutureInboxes),
+					EnabledForFutureInboxes: new(enabledForFutureInboxes),
 				},
 			})
 			if err != nil {
@@ -244,7 +244,7 @@ func TypeUpdate(httpClient *http.Client) toolsets.ToolWrapper {
 				TicketType: deskmodels.TicketType{
 					Name:                    strPtr(arguments.GetString("name", "")),
 					DisplayOrder:            intPtr(arguments.GetInt("displayOrder", 0)),
-					EnabledForFutureInboxes: boolPtr(enabledForFutureInboxes),
+					EnabledForFutureInboxes: new(enabledForFutureInboxes),
 				},
 			})
 			if err != nil {

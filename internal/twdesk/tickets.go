@@ -211,6 +211,11 @@ func TicketCreate(httpClient *http.Client) toolsets.ToolWrapper {
 			Name: string(MethodTicketCreate),
 			Annotations: &mcp.ToolAnnotations{
 				Title: "Create Ticket",
+				// A ticket created with notifyCustomer (or cc/bcc) emails the external
+				// customer a copy that cannot be unsent, so it can reach an open world
+				// of external recipients and is irreversible.
+				DestructiveHint: new(true),
+				OpenWorldHint:   new(true),
 			},
 			Description: "Create ticket.",
 			InputSchema: &jsonschema.Schema{
@@ -396,7 +401,7 @@ func TicketCreate(httpClient *http.Client) toolsets.ToolWrapper {
 			}
 
 			if arguments.GetBool("notifyCustomer", false) {
-				data.NotifyCustomer = boolPtr(true)
+				data.NotifyCustomer = new(true)
 			}
 
 			if len(arguments.GetIntSlice("files", []int{})) > 0 {

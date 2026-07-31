@@ -3,6 +3,7 @@ package twdesk_test
 import (
 	"fmt"
 	"net/http"
+	"slices"
 	"testing"
 
 	"github.com/google/jsonschema-go/jsonschema"
@@ -84,12 +85,7 @@ func isArrayType(s *jsonschema.Schema) bool {
 	if s.Type == "array" {
 		return true
 	}
-	for _, t := range s.Types {
-		if t == "array" {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(s.Types, "array")
 }
 
 // TestToolInputSchemasOpenAIStrictMode verifies that all twdesk tools satisfy

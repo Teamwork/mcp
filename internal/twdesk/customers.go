@@ -280,7 +280,7 @@ func CustomerCreate(httpClient *http.Client) toolsets.ToolWrapper {
 					Phone:         strPtr(arguments.GetString("phone", "")),
 					Mobile:        strPtr(arguments.GetString("mobile", "")),
 					Address:       strPtr(arguments.GetString("address", "")),
-					Trusted:       boolPtr(trusted),
+					Trusted:       new(trusted),
 				},
 			})
 			if err != nil {
@@ -429,7 +429,7 @@ func CustomerUpdate(httpClient *http.Client) toolsets.ToolWrapper {
 					Phone:         strPtr(arguments.GetString("phone", "")),
 					Mobile:        strPtr(arguments.GetString("mobile", "")),
 					Address:       strPtr(arguments.GetString("address", "")),
-					Trusted:       boolPtr(trusted),
+					Trusted:       new(trusted),
 				},
 			})
 			if err != nil {

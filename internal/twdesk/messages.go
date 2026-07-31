@@ -27,6 +27,11 @@ func MessageCreate(httpClient *http.Client) toolsets.ToolWrapper {
 			Name: string(MethodMessageCreate),
 			Annotations: &mcp.ToolAnnotations{
 				Title: "Reply to Ticket",
+				// A customer-facing reply (threadType=message, the default) emails the
+				// external customer and cannot be unsent, so it both reaches an open
+				// world of external recipients and is irreversible.
+				DestructiveHint: new(true),
+				OpenWorldHint:   new(true),
 			},
 			Description: "Reply to a ticket. Use threadType=note for internal agent notes.",
 			InputSchema: &jsonschema.Schema{

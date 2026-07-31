@@ -371,8 +371,7 @@ func DMGetOrCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 		Tool: &mcp.Tool{
 			Name: string(MethodDMGetOrCreate),
 			Annotations: &mcp.ToolAnnotations{
-				Title:        "Get or Create Direct Message",
-				ReadOnlyHint: true,
+				Title: "Get or Create Direct Message",
 			},
 			Description: "Get the 1:1 direct-message conversation with a person, creating it if it does not " +
 				"exist yet. Returns the conversation (use its id with send_message). Use list_people to find user_id.",
