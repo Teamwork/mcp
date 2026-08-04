@@ -29,6 +29,37 @@ var (
 	projectBudgetListOutputSchema  *jsonschema.Schema
 )
 
+// projectBudgetSparseFields is the attribute set returned by
+// twprojects-list_project_budgets when verbose=false.
+//
+// A budget is only meaningful in relation to its project, so unlike most
+// list_* tools the minimal set cannot be id plus a label: without projectId
+// and status the response cannot be joined to anything and the caller is
+// forced back to verbose. It stops there — the audit trail, repeat
+// configuration and rate settings are what make the verbose row roughly 1 KB.
+var projectBudgetSparseFields = []projects.ProjectBudgetField{
+	projects.ProjectBudgetFieldID,
+	projects.ProjectBudgetFieldProjectID,
+	projects.ProjectBudgetFieldType,
+	projects.ProjectBudgetFieldStatus,
+	projects.ProjectBudgetFieldCapacity,
+	projects.ProjectBudgetFieldCapacityUsed,
+	projects.ProjectBudgetFieldStartDateTime,
+	projects.ProjectBudgetFieldEndDateTime,
+}
+
+// projectBudgetSparseKeys mirrors projectBudgetSparseFields as raw JSON keys,
+// for projecting the response body ourselves. The budgets endpoint does not
+// implement sparse fieldsets, so fields[budgets] alone leaves verbose=false a
+// no-op; see helpers.ProjectCollectionFields.
+var projectBudgetSparseKeys = func() []string {
+	keys := make([]string, 0, len(projectBudgetSparseFields))
+	for _, field := range projectBudgetSparseFields {
+		keys = append(keys, string(field))
+	}
+	return keys
+}()
+
 func init() {
 	var err error
 
@@ -50,8 +81,12 @@ func init() {
 func ProjectBudgetList(engine *twapi.Engine) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
-			Name:        string(MethodProjectBudgetList),
-			Description: "List project budgets (top-level project financial budgets). Filter by project_ids or status.",
+			Name: string(MethodProjectBudgetList),
+			Description: "List project budgets (top-level project financial budgets). Filter by project_ids or status. " +
+				"Returns only projects that HAVE a budget — there is no filter for projects without one, so finding " +
+				"those means listing budgets and diffing against twprojects-list_projects. When checking a known set " +
+				"of projects, pass project_ids to filter server-side instead of scanning every budget. " +
+				"Page with page (1-based); the response reports meta.page.pageOffset, which is page-1.",
 			Annotations: &mcp.ToolAnnotations{
 				Title:           "List Project Budgets",
 				ReadOnlyHint:    true,
@@ -76,15 +111,19 @@ func ProjectBudgetList(engine *twapi.Engine) toolsets.ToolWrapper {
 						},
 					},
 					"limit": {
-						Description: "Maximum number of budgets to return.",
+						Description: "Maximum number of budgets to return. Only applies alongside cursor; ignored " +
+							"when paging with page/page_size.",
 						AnyOf: []*jsonschema.Schema{
 							{Type: "integer"},
 							{Type: "null"},
 						},
 					},
+					"page":      helpers.PageSchema(),
 					"page_size": helpers.PageSizeSchema(),
 					"cursor": {
-						Description: "Cursor for fetching the next page of results.",
+						Description: "Opaque cursor from a previous response, for cursor pagination. This is not an " +
+							"offset or a page number — never construct one. Setting it makes the endpoint ignore " +
+							"page and page_size. To walk pages, use page instead.",
 						AnyOf: []*jsonschema.Schema{
 							{Type: "string"},
 							{Type: "null"},
@@ -116,6 +155,7 @@ func ProjectBudgetList(engine *twapi.Engine) toolsets.ToolWrapper {
 					),
 				),
 				helpers.OptionalNumericParam(&projectBudgetListRequest.Filters.Limit, "limit"),
+				helpers.OptionalNumericParam(&projectBudgetListRequest.Filters.Page, "page"),
 				helpers.OptionalNumericParam(&projectBudgetListRequest.Filters.PageSize, "page_size"),
 				helpers.OptionalParam(&projectBudgetListRequest.Filters.Cursor, "cursor"),
 				helpers.OptionalParam(&verbose, "verbose"),
@@ -124,10 +164,7 @@ func ProjectBudgetList(engine *twapi.Engine) toolsets.ToolWrapper {
 				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
 			}
 			if !verbose {
-				projectBudgetListRequest.Filters.Fields.Budgets = []projects.ProjectBudgetField{
-					projects.ProjectBudgetFieldID,
-					projects.ProjectBudgetFieldType,
-				}
+				projectBudgetListRequest.Filters.Fields.Budgets = projectBudgetSparseFields
 			}
 
 			resp, err := twapi.ExecuteRaw(ctx, engine, projectBudgetListRequest)
@@ -146,6 +183,11 @@ func ProjectBudgetList(engine *twapi.Engine) toolsets.ToolWrapper {
 			body, err := io.ReadAll(resp.Body)
 			if err != nil {
 				return nil, fmt.Errorf("failed to read response body: %w", err)
+			}
+			if !verbose {
+				if body, err = helpers.ProjectCollectionFields(body, "budgets", projectBudgetSparseKeys); err != nil {
+					return nil, fmt.Errorf("failed to trim project budgets: %w", err)
+				}
 			}
 
 			result := &mcp.CallToolResult{

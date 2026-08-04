@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"strings"
 	"sync"
 	"testing"
@@ -98,6 +99,27 @@ func ProjectsMCPServerMockWithRequestBody(t *testing.T, status int, response []b
 		})
 	}))
 	return projectsMCPServer(t, engine), &lastBody
+}
+
+// ProjectsMCPServerMockWithRequestURL is like ProjectsMCPServerMock but also
+// captures the URL of the most recent HTTP request the engine sent, so tests
+// can assert on the query string a tool actually builds. The returned pointer
+// is populated after a tool invokes the engine.
+//
+// Asserting the response alone cannot catch a filter or pagination parameter
+// that is never sent: the mock replies with the same canned body regardless,
+// so a dropped parameter looks identical to a working one.
+func ProjectsMCPServerMockWithRequestURL(t *testing.T, status int, response []byte) (*mcp.Server, *url.URL) {
+	var lastURL url.URL
+	engine := twapi.NewEngine(ProjectsSessionMock{}, twapi.WithMiddleware(func(twapi.HTTPClient) twapi.HTTPClient {
+		return twapi.HTTPClientFunc(func(req *http.Request) (*http.Response, error) {
+			if req.URL != nil {
+				lastURL = *req.URL
+			}
+			return newProjectsMockHTTPResponse(status, response), nil
+		})
+	}))
+	return projectsMCPServer(t, engine), &lastURL
 }
 
 // projectsMCPServer wires a twprojects toolset group backed by the given engine
