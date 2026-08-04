@@ -13,7 +13,7 @@ require (
 	github.com/modelcontextprotocol/go-sdk v1.7.0
 	github.com/teamwork/desksdkgo v1.0.1
 	github.com/teamwork/spacessdkgo v0.0.0-20260518181558-a6af69d00abb
-	github.com/teamwork/twapi-go-sdk v1.20.4
+	github.com/teamwork/twapi-go-sdk v1.20.5
 )
 
 require (
@@ -97,8 +97,3 @@ require (
 	gopkg.in/ini.v1 v1.67.1 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
-
-// TEMPORARY — do not merge. list_project_budgets needs
-// ProjectBudgetListRequestFilters.Page, which is unreleased. Cut a
-// twapi-go-sdk release, then drop this and bump the require above.
-replace github.com/teamwork/twapi-go-sdk => /Users/brandon.hansen/go/src/github.com/teamwork/twapi-go-sdk
