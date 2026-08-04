@@ -6,20 +6,15 @@ import (
 	"github.com/google/jsonschema-go/jsonschema"
 )
 
-// maxPageSize is the largest page the v3 API accepts; larger values are
-// rejected with a 400.
+// maxPageSize is the largest page the v3 API accepts
 const maxPageSize = 500.0
-
-func ptr[T any](v T) *T {
-	return &v
-}
 
 // PageSchema returns the schema for a page-number pagination parameter.
 func PageSchema() *jsonschema.Schema {
 	return &jsonschema.Schema{
 		Description: "Page number for pagination of results (1-based).",
 		AnyOf: []*jsonschema.Schema{
-			{Type: "integer", Minimum: ptr(1.0)},
+			{Type: "integer", Minimum: new(1.0)},
 			{Type: "null"},
 		},
 	}
@@ -35,7 +30,7 @@ func PageSizeSchema() *jsonschema.Schema {
 	return &jsonschema.Schema{
 		Description: "Number of results per page for pagination (1-500, default 50).",
 		AnyOf: []*jsonschema.Schema{
-			{Type: "integer", Minimum: ptr(1.0), Maximum: ptr(maxPageSize)},
+			{Type: "integer", Minimum: new(1.0), Maximum: new(maxPageSize)},
 			{Type: "null"},
 		},
 	}
