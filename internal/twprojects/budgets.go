@@ -29,8 +29,8 @@ var (
 	projectBudgetListOutputSchema  *jsonschema.Schema
 )
 
-// projectBudgetSparseFields is the attribute set returned by
-// twprojects-list_project_budgets when verbose=false.
+// projectBudgetSparseFields is the attribute set requested via fields[budgets]
+// by twprojects-list_project_budgets when verbose=false.
 //
 // A budget is only meaningful in relation to its project, so unlike most
 // list_* tools the minimal set cannot be id plus a label: without projectId
@@ -47,18 +47,6 @@ var projectBudgetSparseFields = []projects.ProjectBudgetField{
 	projects.ProjectBudgetFieldStartDateTime,
 	projects.ProjectBudgetFieldEndDateTime,
 }
-
-// projectBudgetSparseKeys mirrors projectBudgetSparseFields as raw JSON keys,
-// for projecting the response body ourselves. The budgets endpoint does not
-// implement sparse fieldsets, so fields[budgets] alone leaves verbose=false a
-// no-op; see helpers.ProjectCollectionFields.
-var projectBudgetSparseKeys = func() []string {
-	keys := make([]string, 0, len(projectBudgetSparseFields))
-	for _, field := range projectBudgetSparseFields {
-		keys = append(keys, string(field))
-	}
-	return keys
-}()
 
 func init() {
 	var err error
@@ -183,11 +171,6 @@ func ProjectBudgetList(engine *twapi.Engine) toolsets.ToolWrapper {
 			body, err := io.ReadAll(resp.Body)
 			if err != nil {
 				return nil, fmt.Errorf("failed to read response body: %w", err)
-			}
-			if !verbose {
-				if body, err = helpers.ProjectCollectionFields(body, "budgets", projectBudgetSparseKeys); err != nil {
-					return nil, fmt.Errorf("failed to trim project budgets: %w", err)
-				}
 			}
 
 			result := &mcp.CallToolResult{
