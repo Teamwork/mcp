@@ -70,11 +70,9 @@ func ProjectBudgetList(engine *twapi.Engine) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
 			Name: string(MethodProjectBudgetList),
-			Description: "List project budgets (top-level project financial budgets). Filter by project_ids or status. " +
-				"Returns only projects that HAVE a budget — there is no filter for projects without one, so finding " +
-				"those means listing budgets and diffing against twprojects-list_projects. When checking a known set " +
-				"of projects, pass project_ids to filter server-side instead of scanning every budget. " +
-				"Page with page (1-based); the response reports meta.page.pageOffset, which is page-1.",
+			Description: "Lists top-level project budgets. Filters: project_ids, status." +
+				"Returns only budgeted projects (diff with twprojects-list_projects for budgetless)." +
+				"Filter server-side via project_ids when known. 1-based page pagination (pageOffset = page - 1)",
 			Annotations: &mcp.ToolAnnotations{
 				Title:           "List Project Budgets",
 				ReadOnlyHint:    true,
