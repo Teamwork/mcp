@@ -28,7 +28,7 @@ func PageSchema() *jsonschema.Schema {
 // wasted round trip into a client-side validation error.
 func PageSizeSchema() *jsonschema.Schema {
 	return &jsonschema.Schema{
-		Description: "Number of results per page for pagination (1-500, default 50).",
+		Description: "Number of results per page for pagination (1-500).",
 		AnyOf: []*jsonschema.Schema{
 			{Type: "integer", Minimum: new(1.0), Maximum: new(maxPageSize)},
 			{Type: "null"},
