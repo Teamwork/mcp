@@ -5,9 +5,11 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/url"
+	"slices"
 	"strings"
 	"testing"
 
+	"github.com/google/jsonschema-go/jsonschema"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/teamwork/mcp/internal/testutil"
 	"github.com/teamwork/mcp/internal/twprojects"
@@ -27,7 +29,7 @@ func TestProjectBudgetList(t *testing.T) {
 	mcpServer := mcpServerMock(t, http.StatusOK, []byte(`{"meta":{"page":{"hasMore":false}},"budgets":[{"id":13579,"projectId":2468}]}`))
 	testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodProjectBudgetList.String(), map[string]any{
 		"project_ids": []float64{2468, 9753},
-		"status":      "active",
+		"status":      "ACTIVE",
 		"limit":       float64(5),
 		"page_size":   float64(2),
 		"cursor":      "next-cursor-token",
@@ -54,6 +56,75 @@ func TestProjectBudgetListPagination(t *testing.T) {
 	if got := query.Get("pageSize"); got != "250" {
 		t.Errorf("expected pageSize=250 in request query but got %q (raw query: %s)", got, lastURL.RawQuery)
 	}
+}
+
+// TestProjectBudgetListStatusFilter pins the status filter onto the outgoing
+// query. The tool used to advertise "complete", which the budgets endpoint
+// rejects with 400 "unknown project budget status".
+func TestProjectBudgetListStatusFilter(t *testing.T) {
+	for _, status := range []string{"UPCOMING", "ACTIVE", "COMPLETED"} {
+		t.Run(status, func(t *testing.T) {
+			mcpServer, lastURL := testutil.ProjectsMCPServerMockWithRequestURL(t, http.StatusOK,
+				[]byte(`{"meta":{"page":{"hasMore":false}},"budgets":[]}`))
+
+			testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodProjectBudgetList.String(), map[string]any{
+				"status": status,
+			})
+
+			if got := lastURL.Query().Get("status"); got != status {
+				t.Errorf("expected status=%q in request query but got %q (raw query: %s)",
+					status, got, lastURL.RawQuery)
+			}
+		})
+	}
+}
+
+// TestProjectBudgetListStatusEnumMatchesAPI pins the published enum to the
+// upstream vocabulary. The values are spelled out rather than read back from
+// projectBudgetStatuses, so widening that list to something the API rejects
+// fails here instead of at call time.
+func TestProjectBudgetListStatusEnumMatchesAPI(t *testing.T) {
+	// Accepted by GET /projects/api/v3/projects/budgets.json. Its enum also has
+	// ALL, ARCHIVED, DELETED and INVALID, which this tool doesn't expose.
+	want := []any{"UPCOMING", "ACTIVE", "COMPLETED"}
+
+	schema := projectBudgetListInputSchema(t)
+	property, ok := schema.Properties["status"]
+	if !ok {
+		t.Fatal("status property missing from input schema")
+	}
+
+	var got []any
+	for _, branch := range property.AnyOf {
+		if branch.Enum != nil {
+			got = branch.Enum
+		}
+	}
+	if !slices.Equal(got, want) {
+		t.Errorf("status enum is %v, want %v", got, want)
+	}
+}
+
+// projectBudgetListInputSchema returns the input schema
+// twprojects-list_project_budgets publishes.
+func projectBudgetListInputSchema(t *testing.T) *jsonschema.Schema {
+	t.Helper()
+
+	group := twprojects.DefaultToolsetGroup(false, true, testutil.ProjectsEngineMock(http.StatusOK, nil))
+	for _, toolset := range group.Toolsets {
+		for _, tool := range toolset.GetAvailableTools() {
+			if tool.Tool.Name != twprojects.MethodProjectBudgetList.String() {
+				continue
+			}
+			schema, ok := tool.Tool.InputSchema.(*jsonschema.Schema)
+			if !ok {
+				t.Fatalf("InputSchema is not *jsonschema.Schema (got %T)", tool.Tool.InputSchema)
+			}
+			return schema
+		}
+	}
+	t.Fatalf("tool %s not found", twprojects.MethodProjectBudgetList)
+	return nil
 }
 
 // sparseFieldsParams returns the fields[...] selections on a request query,
