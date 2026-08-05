@@ -447,6 +447,7 @@ func TimelogList(engine *twapi.Engine) toolsets.ToolWrapper {
 					"page":      helpers.PageSchema(),
 					"page_size": helpers.PageSizeSchema(),
 					"verbose":   helpers.VerboseSchema(),
+					"fields":    helpers.FieldsSchema("timelog"),
 				},
 				Required: []string{},
 			},
@@ -474,12 +475,13 @@ func TimelogList(engine *twapi.Engine) toolsets.ToolWrapper {
 				helpers.OptionalNumericParam(&timelogListRequest.Filters.Page, "page"),
 				helpers.OptionalNumericParam(&timelogListRequest.Filters.PageSize, "page_size"),
 				helpers.OptionalParam(&verbose, "verbose"),
+				helpers.OptionalFieldsParam[projects.Timelog](&timelogListRequest.Filters.Fields.Timelogs, "fields"),
 			)
 			if err != nil {
 				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
 			}
 
-			if !verbose {
+			if !verbose && len(timelogListRequest.Filters.Fields.Timelogs) == 0 {
 				timelogListRequest.Filters.Fields.Timelogs = []projects.TimelogField{
 					projects.TimelogFieldID,
 					projects.TimelogFieldDescription,

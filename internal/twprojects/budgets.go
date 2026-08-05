@@ -122,6 +122,7 @@ func ProjectBudgetList(engine *twapi.Engine) toolsets.ToolWrapper {
 						},
 					},
 					"verbose": helpers.VerboseSchema(),
+					"fields":  helpers.FieldsSchema("project budget"),
 				},
 				Required: []string{},
 			},
@@ -145,11 +146,12 @@ func ProjectBudgetList(engine *twapi.Engine) toolsets.ToolWrapper {
 				helpers.OptionalNumericParam(&projectBudgetListRequest.Filters.PageSize, "page_size"),
 				helpers.OptionalParam(&projectBudgetListRequest.Filters.Cursor, "cursor"),
 				helpers.OptionalParam(&verbose, "verbose"),
+				helpers.OptionalFieldsParam[projects.ProjectBudget](&projectBudgetListRequest.Filters.Fields.Budgets, "fields"),
 			)
 			if err != nil {
 				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
 			}
-			if !verbose {
+			if !verbose && len(projectBudgetListRequest.Filters.Fields.Budgets) == 0 {
 				projectBudgetListRequest.Filters.Fields.Budgets = projectBudgetSparseFields
 			}
 
@@ -208,6 +210,7 @@ func TasklistBudgetList(engine *twapi.Engine) toolsets.ToolWrapper {
 					"page":      helpers.PageSchema(),
 					"page_size": helpers.PageSizeSchema(),
 					"verbose":   helpers.VerboseSchema(),
+					"fields":    helpers.FieldsSchema("tasklist budget"),
 				},
 				Required: []string{"project_budget_id"},
 			},
@@ -233,11 +236,14 @@ func TasklistBudgetList(engine *twapi.Engine) toolsets.ToolWrapper {
 				helpers.OptionalNumericParam(&tasklistBudgetListRequest.Filters.Page, "page"),
 				helpers.OptionalNumericParam(&tasklistBudgetListRequest.Filters.PageSize, "page_size"),
 				helpers.OptionalParam(&verbose, "verbose"),
+				helpers.OptionalFieldsParam[projects.TasklistBudget](
+					&tasklistBudgetListRequest.Filters.Fields.TasklistBudgets, "fields",
+				),
 			)
 			if err != nil {
 				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
 			}
-			if !verbose {
+			if !verbose && len(tasklistBudgetListRequest.Filters.Fields.TasklistBudgets) == 0 {
 				tasklistBudgetListRequest.Filters.Fields.TasklistBudgets = []projects.TasklistBudgetField{
 					projects.TasklistBudgetFieldID,
 					projects.TasklistBudgetFieldType,

@@ -101,6 +101,7 @@ func ActivityList(engine *twapi.Engine) toolsets.ToolWrapper {
 					"page":      helpers.PageSchema(),
 					"page_size": helpers.PageSizeSchema(),
 					"verbose":   helpers.VerboseSchema(),
+					"fields":    helpers.FieldsSchema("activity"),
 				},
 				Required: []string{},
 			},
@@ -122,12 +123,13 @@ func ActivityList(engine *twapi.Engine) toolsets.ToolWrapper {
 				helpers.OptionalNumericParam(&activityListRequest.Filters.Page, "page"),
 				helpers.OptionalNumericParam(&activityListRequest.Filters.PageSize, "page_size"),
 				helpers.OptionalParam(&verbose, "verbose"),
+				helpers.OptionalFieldsParam[projects.Activity](&activityListRequest.Filters.Fields.Activities, "fields"),
 			)
 			if err != nil {
 				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
 			}
 
-			if !verbose {
+			if !verbose && len(activityListRequest.Filters.Fields.Activities) == 0 {
 				activityListRequest.Filters.Fields.Activities = []projects.ActivityField{
 					projects.ActivityFieldID,
 					projects.ActivityFieldDescription,

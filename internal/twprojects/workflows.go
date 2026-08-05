@@ -320,6 +320,7 @@ func WorkflowList(engine *twapi.Engine) toolsets.ToolWrapper {
 					"page":        helpers.PageSchema(),
 					"page_size":   helpers.PageSizeSchema(),
 					"verbose":     helpers.VerboseSchema(),
+					"fields":      helpers.FieldsSchema("workflow"),
 				},
 				Required: []string{},
 			},
@@ -338,12 +339,13 @@ func WorkflowList(engine *twapi.Engine) toolsets.ToolWrapper {
 				helpers.OptionalNumericParam(&workflowListRequest.Filters.Page, "page"),
 				helpers.OptionalNumericParam(&workflowListRequest.Filters.PageSize, "page_size"),
 				helpers.OptionalParam(&verbose, "verbose"),
+				helpers.OptionalFieldsParam[projects.Workflow](&workflowListRequest.Filters.Fields.Workflows, "fields"),
 			)
 			if err != nil {
 				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
 			}
 
-			if !verbose {
+			if !verbose && len(workflowListRequest.Filters.Fields.Workflows) == 0 {
 				workflowListRequest.Filters.Fields.Workflows = []projects.WorkflowField{
 					projects.WorkflowFieldID,
 					projects.WorkflowFieldName,

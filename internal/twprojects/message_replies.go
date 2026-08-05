@@ -402,6 +402,7 @@ func MessageReplyList(engine *twapi.Engine) toolsets.ToolWrapper {
 					"page":      helpers.PageSchema(),
 					"page_size": helpers.PageSizeSchema(),
 					"verbose":   helpers.VerboseSchema(),
+					"fields":    helpers.FieldsSchema("message reply"),
 				},
 				Required: []string{},
 			},
@@ -422,12 +423,13 @@ func MessageReplyList(engine *twapi.Engine) toolsets.ToolWrapper {
 				helpers.OptionalNumericParam(&messageReplyListRequest.Filters.Page, "page"),
 				helpers.OptionalNumericParam(&messageReplyListRequest.Filters.PageSize, "page_size"),
 				helpers.OptionalParam(&verbose, "verbose"),
+				helpers.OptionalFieldsParam[projects.MessageReply](&messageReplyListRequest.Filters.Fields.MessageReplies, "fields"),
 			)
 			if err != nil {
 				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
 			}
 
-			if !verbose {
+			if !verbose && len(messageReplyListRequest.Filters.Fields.MessageReplies) == 0 {
 				messageReplyListRequest.Filters.Fields.MessageReplies = []projects.MessageReplyField{
 					projects.MessageReplyFieldID,
 				}

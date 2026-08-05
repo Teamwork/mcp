@@ -452,6 +452,7 @@ func LinkList(engine *twapi.Engine) toolsets.ToolWrapper {
 					"page":           helpers.PageSchema(),
 					"page_size":      helpers.PageSizeSchema(),
 					"verbose":        helpers.VerboseSchema(),
+					"fields":         helpers.FieldsSchema("link"),
 				},
 				Required: []string{},
 			},
@@ -473,12 +474,13 @@ func LinkList(engine *twapi.Engine) toolsets.ToolWrapper {
 				helpers.OptionalNumericParam(&linkListRequest.Filters.Page, "page"),
 				helpers.OptionalNumericParam(&linkListRequest.Filters.PageSize, "page_size"),
 				helpers.OptionalParam(&verbose, "verbose"),
+				helpers.OptionalFieldsParam[projects.Link](&linkListRequest.Filters.Fields.Links, "fields"),
 			)
 			if err != nil {
 				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
 			}
 
-			if !verbose {
+			if !verbose && len(linkListRequest.Filters.Fields.Links) == 0 {
 				linkListRequest.Filters.Fields.Links = []projects.LinkField{
 					projects.LinkFieldID,
 					projects.LinkFieldTitle,

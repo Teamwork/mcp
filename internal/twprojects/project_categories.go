@@ -303,6 +303,7 @@ func ProjectCategoryList(engine *twapi.Engine) toolsets.ToolWrapper {
 					"page":        helpers.PageSchema(),
 					"page_size":   helpers.PageSizeSchema(),
 					"verbose":     helpers.VerboseSchema(),
+					"fields":      helpers.FieldsSchema("project category"),
 				},
 				Required: []string{},
 			},
@@ -321,12 +322,15 @@ func ProjectCategoryList(engine *twapi.Engine) toolsets.ToolWrapper {
 				helpers.OptionalNumericParam(&projectCategoryListRequest.Filters.Page, "page"),
 				helpers.OptionalNumericParam(&projectCategoryListRequest.Filters.PageSize, "page_size"),
 				helpers.OptionalParam(&verbose, "verbose"),
+				helpers.OptionalFieldsParam[projects.ProjectCategory](
+					&projectCategoryListRequest.Filters.Fields.ProjectCategories, "fields",
+				),
 			)
 			if err != nil {
 				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
 			}
 
-			if !verbose {
+			if !verbose && len(projectCategoryListRequest.Filters.Fields.ProjectCategories) == 0 {
 				projectCategoryListRequest.Filters.Fields.ProjectCategories = []projects.ProjectCategoryField{
 					projects.ProjectCategoryFieldID,
 					projects.ProjectCategoryFieldName,

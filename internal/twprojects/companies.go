@@ -534,6 +534,7 @@ func CompanyList(engine *twapi.Engine) toolsets.ToolWrapper {
 					"page":           helpers.PageSchema(),
 					"page_size":      helpers.PageSizeSchema(),
 					"verbose":        helpers.VerboseSchema(),
+					"fields":         helpers.FieldsSchema("company"),
 				},
 				Required: []string{},
 			},
@@ -554,12 +555,19 @@ func CompanyList(engine *twapi.Engine) toolsets.ToolWrapper {
 				helpers.OptionalNumericParam(&companyListRequest.Filters.Page, "page"),
 				helpers.OptionalNumericParam(&companyListRequest.Filters.PageSize, "page_size"),
 				helpers.OptionalParam(&verbose, "verbose"),
+				helpers.OptionalFieldsParam[projects.Company](&companyListRequest.Filters.Fields.Companies, "fields"),
 			)
 			if err != nil {
 				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
 			}
 
-			if verbose {
+			switch {
+			case len(companyListRequest.Filters.Fields.Companies) > 0:
+				// An explicit field selection overrides both defaults below: the
+				// caller has already said what it wants, and sideloading custom
+				// fields would smuggle back the bulk the selection exists to avoid.
+
+			case verbose:
 				// Include custom fields and values in the response to provide more
 				// context about the company. Custom fields often contain important
 				// metadata relevant to the company.
@@ -567,7 +575,8 @@ func CompanyList(engine *twapi.Engine) toolsets.ToolWrapper {
 					projects.CompanyRequestSideloadCustomFields,
 					projects.CompanyRequestSideloadCustomFieldValues,
 				}
-			} else {
+
+			default:
 				companyListRequest.Filters.Fields.Companies = []projects.CompanyField{
 					projects.CompanyFieldID,
 					projects.CompanyFieldName,

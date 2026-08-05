@@ -560,6 +560,7 @@ func ProjectList(engine *twapi.Engine) toolsets.ToolWrapper {
 					"page":           helpers.PageSchema(),
 					"page_size":      helpers.PageSizeSchema(),
 					"verbose":        helpers.VerboseSchema(),
+					"fields":         helpers.FieldsSchema("project"),
 				},
 				Required: []string{},
 			},
@@ -581,12 +582,19 @@ func ProjectList(engine *twapi.Engine) toolsets.ToolWrapper {
 				helpers.OptionalNumericParam(&projectListRequest.Filters.Page, "page"),
 				helpers.OptionalNumericParam(&projectListRequest.Filters.PageSize, "page_size"),
 				helpers.OptionalParam(&verbose, "verbose"),
+				helpers.OptionalFieldsParam[projects.Project](&projectListRequest.Filters.Fields.Projects, "fields"),
 			)
 			if err != nil {
 				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
 			}
 
-			if verbose {
+			switch {
+			case len(projectListRequest.Filters.Fields.Projects) > 0:
+				// An explicit field selection overrides both defaults below: the
+				// caller has already said what it wants, and the sideloads would
+				// smuggle back the bulk the selection exists to avoid.
+
+			case verbose:
 				// Include project categories and custom fields in the response to
 				// provide more context about the project, as categories are commonly
 				// used for organizing projects and understanding their purpose, and
@@ -597,7 +605,8 @@ func ProjectList(engine *twapi.Engine) toolsets.ToolWrapper {
 					projects.ProjectRequestSideloadCustomFields,
 					projects.ProjectRequestSideloadCustomFieldValues,
 				}
-			} else {
+
+			default:
 				projectListRequest.Filters.Fields.Projects = []projects.ProjectField{
 					projects.ProjectFieldID,
 					projects.ProjectFieldName,

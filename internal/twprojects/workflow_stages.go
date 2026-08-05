@@ -358,6 +358,7 @@ func WorkflowStageList(engine *twapi.Engine) toolsets.ToolWrapper {
 					"page":      helpers.PageSchema(),
 					"page_size": helpers.PageSizeSchema(),
 					"verbose":   helpers.VerboseSchema(),
+					"fields":    helpers.FieldsSchema("workflow stage"),
 				},
 				Required: []string{"workflow_id"},
 			},
@@ -376,12 +377,13 @@ func WorkflowStageList(engine *twapi.Engine) toolsets.ToolWrapper {
 				helpers.OptionalNumericParam(&workflowStageListRequest.Filters.Page, "page"),
 				helpers.OptionalNumericParam(&workflowStageListRequest.Filters.PageSize, "page_size"),
 				helpers.OptionalParam(&verbose, "verbose"),
+				helpers.OptionalFieldsParam[projects.WorkflowStage](&workflowStageListRequest.Filters.Fields.Stages, "fields"),
 			)
 			if err != nil {
 				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
 			}
 
-			if !verbose {
+			if !verbose && len(workflowStageListRequest.Filters.Fields.Stages) == 0 {
 				workflowStageListRequest.Filters.Fields.Stages = []projects.WorkflowStageField{
 					projects.WorkflowStageFieldID,
 					projects.WorkflowStageFieldName,

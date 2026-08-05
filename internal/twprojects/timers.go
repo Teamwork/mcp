@@ -523,6 +523,7 @@ func TimerList(engine *twapi.Engine) toolsets.ToolWrapper {
 					"page":      helpers.PageSchema(),
 					"page_size": helpers.PageSizeSchema(),
 					"verbose":   helpers.VerboseSchema(),
+					"fields":    helpers.FieldsSchema("timer"),
 				},
 				Required: []string{},
 			},
@@ -544,12 +545,13 @@ func TimerList(engine *twapi.Engine) toolsets.ToolWrapper {
 				helpers.OptionalNumericParam(&timerListRequest.Filters.Page, "page"),
 				helpers.OptionalNumericParam(&timerListRequest.Filters.PageSize, "page_size"),
 				helpers.OptionalParam(&verbose, "verbose"),
+				helpers.OptionalFieldsParam[projects.Timer](&timerListRequest.Filters.Fields.Timers, "fields"),
 			)
 			if err != nil {
 				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
 			}
 
-			if !verbose {
+			if !verbose && len(timerListRequest.Filters.Fields.Timers) == 0 {
 				timerListRequest.Filters.Fields.Timers = []projects.TimerField{
 					projects.TimerFieldID,
 					projects.TimerFieldDescription,

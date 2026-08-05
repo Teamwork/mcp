@@ -500,6 +500,7 @@ func CustomFieldValueList(engine *twapi.Engine) toolsets.ToolWrapper {
 					"page":      helpers.PageSchema(),
 					"page_size": helpers.PageSizeSchema(),
 					"verbose":   helpers.VerboseSchema(),
+					"fields":    helpers.FieldsSchema("custom field value"),
 				},
 				Required: []string{"entity", "entity_id"},
 			},
@@ -515,6 +516,7 @@ func CustomFieldValueList(engine *twapi.Engine) toolsets.ToolWrapper {
 			var entityID int64
 			var customFieldIDs []int64
 			var page, pageSize int64
+			var fields []projects.CustomFieldValueField
 			verbose := true
 			err := helpers.ParamGroup(arguments,
 				helpers.RequiredParam(&entity, "entity",
@@ -529,6 +531,7 @@ func CustomFieldValueList(engine *twapi.Engine) toolsets.ToolWrapper {
 				helpers.OptionalNumericParam(&page, "page"),
 				helpers.OptionalNumericParam(&pageSize, "page_size"),
 				helpers.OptionalParam(&verbose, "verbose"),
+				helpers.OptionalFieldsParam[projects.CustomFieldValue](&fields, "fields"),
 			)
 			if err != nil {
 				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
@@ -550,7 +553,10 @@ func CustomFieldValueList(engine *twapi.Engine) toolsets.ToolWrapper {
 			if pageSize > 0 {
 				customFieldValueListRequest.Filters.PageSize = pageSize
 			}
-			if !verbose {
+			switch {
+			case len(fields) > 0:
+				customFieldValueListRequest.Filters.Fields.CustomFieldValues = fields
+			case !verbose:
 				customFieldValueListRequest.Filters.Fields.CustomFieldValues = []projects.CustomFieldValueField{
 					projects.CustomFieldValueFieldID,
 					projects.CustomFieldValueFieldValue,

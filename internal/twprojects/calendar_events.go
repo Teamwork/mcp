@@ -89,6 +89,7 @@ func CalendarEventList(engine *twapi.Engine) toolsets.ToolWrapper {
 						},
 					},
 					"verbose": helpers.VerboseSchema(),
+					"fields":  helpers.FieldsSchema("calendar event"),
 				},
 				Required: []string{"calendar_id"},
 			},
@@ -109,11 +110,18 @@ func CalendarEventList(engine *twapi.Engine) toolsets.ToolWrapper {
 				helpers.OptionalNumericParam(&calendarEventListRequest.Filters.Limit, "limit"),
 				helpers.OptionalParam(&calendarEventListRequest.Filters.Cursor, "cursor"),
 				helpers.OptionalParam(&verbose, "verbose"),
+				helpers.OptionalFieldsParam[projects.CalendarEvent](&calendarEventListRequest.Filters.Fields.Events, "fields"),
 			)
 			if err != nil {
 				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
 			}
-			if verbose {
+			switch {
+			case len(calendarEventListRequest.Filters.Fields.Events) > 0:
+				// An explicit field selection overrides both defaults below: the
+				// caller has already said what it wants, and the sideloads would
+				// smuggle back the bulk the selection exists to avoid.
+
+			case verbose:
 				// Sideload the entities referenced by attendees and timeblocks so
 				// time-blocking events can be related to their project, task and
 				// timelog without extra tool calls.
@@ -123,7 +131,8 @@ func CalendarEventList(engine *twapi.Engine) toolsets.ToolWrapper {
 					projects.CalendarEventListRequestSideloadTasks,
 					projects.CalendarEventListRequestSideloadTimelogs,
 				}
-			} else {
+
+			default:
 				calendarEventListRequest.Filters.Fields.Events = []projects.CalendarEventField{
 					projects.CalendarEventFieldID,
 					projects.CalendarEventFieldSummary,

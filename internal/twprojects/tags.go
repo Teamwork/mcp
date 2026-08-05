@@ -308,6 +308,7 @@ func TagList(engine *twapi.Engine) toolsets.ToolWrapper {
 					"page":      helpers.PageSchema(),
 					"page_size": helpers.PageSizeSchema(),
 					"verbose":   helpers.VerboseSchema(),
+					"fields":    helpers.FieldsSchema("tag"),
 				},
 				Required: []string{},
 			},
@@ -341,12 +342,13 @@ func TagList(engine *twapi.Engine) toolsets.ToolWrapper {
 				helpers.OptionalNumericParam(&tagListRequest.Filters.Page, "page"),
 				helpers.OptionalNumericParam(&tagListRequest.Filters.PageSize, "page_size"),
 				helpers.OptionalParam(&verbose, "verbose"),
+				helpers.OptionalFieldsParam[projects.Tag](&tagListRequest.Filters.Fields.Tags, "fields"),
 			)
 			if err != nil {
 				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
 			}
 
-			if !verbose {
+			if !verbose && len(tagListRequest.Filters.Fields.Tags) == 0 {
 				tagListRequest.Filters.Fields.Tags = []projects.TagField{
 					projects.TagFieldID,
 					projects.TagFieldName,
