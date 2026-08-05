@@ -92,7 +92,13 @@ func ProjectBudgetList(engine *twapi.Engine) toolsets.ToolWrapper {
 					"status": {
 						Description: "Filter budgets by status.",
 						AnyOf: []*jsonschema.Schema{
-							{Type: "string", Enum: []any{"upcoming", "active", "complete"}},
+							// The endpoint 400s on anything outside its own vocabulary, so these
+							// come from the SDK constants rather than being spelled out here.
+							{Type: "string", Enum: []any{
+								string(projects.ProjectBudgetStatusUpcoming),
+								string(projects.ProjectBudgetStatusActive),
+								string(projects.ProjectBudgetStatusCompleted),
+							}},
 							{Type: "null"},
 						},
 					},
@@ -131,15 +137,9 @@ func ProjectBudgetList(engine *twapi.Engine) toolsets.ToolWrapper {
 			verbose := true
 			err := helpers.ParamGroup(arguments,
 				helpers.OptionalNumericListParam(&projectBudgetListRequest.Filters.ProjectIDs, "project_ids"),
-				helpers.OptionalParam(
-					&projectBudgetListRequest.Filters.Status,
-					"status",
-					helpers.RestrictValues(
-						projects.ProjectBudgetStatusUpcoming,
-						projects.ProjectBudgetStatusActive,
-						projects.ProjectBudgetStatusComplete,
-					),
-				),
+				// No RestrictValues on status: withInputValidation already rejects
+				// anything outside the schema enum before the handler runs.
+				helpers.OptionalParam(&projectBudgetListRequest.Filters.Status, "status"),
 				helpers.OptionalNumericParam(&projectBudgetListRequest.Filters.Limit, "limit"),
 				helpers.OptionalNumericParam(&projectBudgetListRequest.Filters.Page, "page"),
 				helpers.OptionalNumericParam(&projectBudgetListRequest.Filters.PageSize, "page_size"),
