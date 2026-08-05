@@ -1,5 +1,7 @@
 # Teamwork MCP Server
 
+[![MCP Toplist](https://mcptoplist.com/badge/com.teamwork%2Fmcp.svg)](https://mcptoplist.com/server/com.teamwork%2Fmcp)
+
 > Model Context Protocol server for Teamwork.com integration with Large Language
 > Models
 
