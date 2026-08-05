@@ -466,7 +466,7 @@ func TimelogList(engine *twapi.Engine) toolsets.ToolWrapper {
 				helpers.OptionalNumericListParam(&timelogListRequest.Filters.TagIDs, "tag_ids"),
 				helpers.OptionalPointerParam(&timelogListRequest.Filters.MatchAllTags, "match_all_tags"),
 				helpers.OptionalTimePointerParam(&timelogListRequest.Filters.StartDate, "start_date"),
-				helpers.OptionalTimePointerParam(&timelogListRequest.Filters.EndDate, "end_date"),
+				helpers.OptionalTimePointerParam(&timelogListRequest.Filters.EndDate, "end_date", helpers.EndOfDay()),
 				helpers.OptionalNumericListParam(&timelogListRequest.Filters.AssignedToUserIDs, "assigned_user_ids"),
 				helpers.OptionalNumericListParam(&timelogListRequest.Filters.AssignedToCompanyIDs, "assigned_company_ids"),
 				helpers.OptionalNumericListParam(&timelogListRequest.Filters.AssignedToTeamIDs, "assigned_team_ids"),

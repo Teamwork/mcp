@@ -277,6 +277,19 @@ func MessageList(engine *twapi.Engine) toolsets.ToolWrapper {
 			if err != nil {
 				return helpers.NewToolResultTextError("%v", err), nil
 			}
+			// These go onto the query string verbatim, so the looser layouts a
+			// model emits are normalised here rather than by a param binder.
+			createdBefore, err := helpers.NormalizeDateTime("created_before",
+				arguments.GetString("created_before", ""), true)
+			if err != nil {
+				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
+			}
+			createdAfter, err := helpers.NormalizeDateTime("created_after",
+				arguments.GetString("created_after", ""), false)
+			if err != nil {
+				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
+			}
+
 			req := messageListRequest{
 				ConversationID:  int64(arguments.GetInt("conversation_id", 0)),
 				Page:            arguments.GetInt("page", 0),
@@ -284,8 +297,8 @@ func MessageList(engine *twapi.Engine) toolsets.ToolWrapper {
 				SearchTerm:      arguments.GetString("search_term", ""),
 				BeforeMessageID: int64(arguments.GetInt("before_message_id", 0)),
 				AfterMessageID:  int64(arguments.GetInt("after_message_id", 0)),
-				CreatedBefore:   arguments.GetString("created_before", ""),
-				CreatedAfter:    arguments.GetString("created_after", ""),
+				CreatedBefore:   createdBefore,
+				CreatedAfter:    createdAfter,
 			}
 			return execute(ctx, engine, req, "failed to list chat messages")
 		},

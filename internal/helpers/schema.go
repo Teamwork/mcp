@@ -191,13 +191,23 @@ func UserGroupsSchema(description string, required bool) *jsonschema.Schema {
 	}
 }
 
-// DateTimeFilterSchema returns the schema for an optional RFC 3339 date-time
-// filter parameter. The caller supplies the purpose-specific description.
+// DateTimeFilterSchema returns the schema for an optional date-time filter
+// parameter. The caller supplies the purpose-specific description.
+//
+// Both accepted forms are spelled out with examples because a model asked about
+// a date range emits a bare YYYY-MM-DD by default: a schema that advertises only
+// format "date-time" costs a failed first call and a visible retry. The binders
+// accept the plain date (see dateTimeLayouts), and the description says what it
+// means so the caller is not left guessing whether the end of the range is
+// included.
 func DateTimeFilterSchema(description string) *jsonschema.Schema {
 	return &jsonschema.Schema{
-		Description: description,
+		Description: description + " Accepts an RFC 3339 timestamp (2026-08-03T14:30:00Z) or a plain " +
+			"YYYY-MM-DD date (2026-08-03), which covers that whole day in UTC.",
+		Examples: []any{"2026-08-03", "2026-08-03T14:30:00Z"},
 		AnyOf: []*jsonschema.Schema{
 			{Type: "string", Format: "date-time"},
+			{Type: "string", Format: "date"},
 			{Type: "null"},
 		},
 	}

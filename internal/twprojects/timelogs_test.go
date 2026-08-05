@@ -2,6 +2,7 @@ package twprojects_test
 
 import (
 	"net/http"
+	"strings"
 	"testing"
 
 	"github.com/teamwork/mcp/internal/testutil"
@@ -70,6 +71,29 @@ func TestTimelogList(t *testing.T) {
 		"page":                 float64(1),
 		"page_size":            float64(10),
 	})
+}
+
+// TestTimelogListAcceptsPlainDates pins the exact arguments that used to fail.
+// A plain YYYY-MM-DD is what a model emits when asked for a date range, so the
+// binder rejecting it broke the first call of every time-reporting conversation.
+// The window has to reach the end of the closing day: resolving end_date to its
+// first instant would answer the question while silently omitting that day's
+// timelogs.
+func TestTimelogListAcceptsPlainDates(t *testing.T) {
+	mcpServer, lastURL := testutil.ProjectsMCPServerMockWithRequestURL(t, http.StatusOK, []byte(`{}`))
+
+	testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodTimelogList.String(), map[string]any{
+		"start_date": "2026-06-24",
+		"end_date":   "2026-08-03",
+	})
+
+	query := lastURL.Query()
+	if got := query.Get("startDate"); !strings.HasPrefix(got, "2026-06-24T00:00:00") {
+		t.Errorf("expected startDate at the start of 2026-06-24 but got %q (raw query: %s)", got, lastURL.RawQuery)
+	}
+	if got := query.Get("endDate"); !strings.HasPrefix(got, "2026-08-03T23:59:59") {
+		t.Errorf("expected endDate at the end of 2026-08-03 but got %q (raw query: %s)", got, lastURL.RawQuery)
+	}
 }
 
 func TestTimelogListByProject(t *testing.T) {

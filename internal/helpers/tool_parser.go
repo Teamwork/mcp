@@ -258,7 +258,9 @@ func numericParam[T int8 | int16 | int32 | int64 |
 
 // RequiredTimeParam retrieves a required time parameter from a map, converting
 // it to a time.Time type. It returns an error if the key is not found or if the
-// type conversion fails. If the target is nil, it returns an error.
+// type conversion fails. If the target is nil, it returns an error. The accepted
+// layouts are listed in dateTimeLayouts; pass EndOfDay for an upper-bound
+// filter.
 func RequiredTimeParam(
 	target *time.Time,
 	key string,
@@ -271,7 +273,8 @@ func RequiredTimeParam(
 
 // OptionalTimeParam retrieves an optional time parameter from a map, converting
 // it to a time.Time type. It returns an error if the type conversion fails. If
-// the target is nil, it returns an error.
+// the target is nil, it returns an error. The accepted layouts are listed in
+// dateTimeLayouts; pass EndOfDay for an upper-bound filter.
 func OptionalTimeParam(
 	target *time.Time,
 	key string,
@@ -285,7 +288,8 @@ func OptionalTimeParam(
 // OptionalTimePointerParam retrieves an optional time parameter from a map and
 // sets it to a pointer target. It converts the value to a time.Time type and
 // applies middleware functions to the value before setting it. If the target is
-// nil, it returns an error.
+// nil, it returns an error. The accepted layouts are listed in dateTimeLayouts;
+// pass EndOfDay for an upper-bound filter.
 func OptionalTimePointerParam(
 	target **time.Time,
 	key string,
@@ -342,7 +346,7 @@ func timeParam(
 		}
 	}
 	var err error
-	*target, err = time.Parse(time.RFC3339, v)
+	*target, err = parseDateTime(v, false)
 	if err != nil {
 		return fmt.Errorf("invalid time format for %s: %w", key, err)
 	}
@@ -531,7 +535,7 @@ func dateParam(
 			return err
 		}
 	}
-	t, err := time.Parse("2006-01-02", v)
+	t, err := parseDate(v)
 	if err != nil {
 		return fmt.Errorf("invalid date format for %s: %w", key, err)
 	}
@@ -628,7 +632,7 @@ func legacyDateParam(
 			return err
 		}
 	}
-	t, err := time.Parse("20060102", v)
+	t, err := parseLegacyDate(v)
 	if err != nil {
 		return fmt.Errorf("invalid date format for %s: %w", key, err)
 	}
