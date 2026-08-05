@@ -4,6 +4,8 @@ package twprojects_test
 import (
 	"encoding/json"
 	"net/http"
+	"net/url"
+	"strings"
 	"testing"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
@@ -54,12 +56,33 @@ func TestProjectBudgetListPagination(t *testing.T) {
 	}
 }
 
-// TestProjectBudgetListVerboseFalseSendsSparseFields pins fields[budgets] onto
-// the outgoing query. The endpoint now implements sparse fieldsets under that
-// key, so verbose=false is honoured server-side and the handler streams the
-// body untouched; asserting on the response alone could not tell a parameter
-// that is sent from one that is dropped, since the mock replies with the same
-// canned body either way.
+// sparseFieldsParams returns the fields[...] selections on a request query,
+// keyed by entity. Tests here assert on the selected attributes, not on the
+// entity key: which key a slot maps to is the SDK's contract and is covered by
+// its own generated tests, so pinning the literal key would duplicate upstream
+// and break whenever upstream legitimately corrects a mapping.
+func sparseFieldsParams(query url.Values) map[string]string {
+	selections := make(map[string]string)
+	for key, values := range query {
+		if entity, ok := strings.CutPrefix(key, "fields["); ok {
+			if entity, ok := strings.CutSuffix(entity, "]"); ok {
+				selections[entity] = strings.Join(values, ",")
+			}
+		}
+	}
+	return selections
+}
+
+// TestProjectBudgetListVerboseFalseSendsSparseFields pins the sparse fieldset
+// onto the outgoing query. The endpoint implements sparse fieldsets, so
+// verbose=false is honoured server-side and the handler streams the body
+// untouched; asserting on the response alone could not tell a parameter that is
+// sent from one that is dropped, since the mock replies with the same canned
+// body either way.
+//
+// What is ours to guarantee is the wiring: that verbose=false populates the
+// slot at all, and with the intended attributes. An omitted or empty selection
+// means the API returns every field and verbose=false is a silent no-op.
 func TestProjectBudgetListVerboseFalseSendsSparseFields(t *testing.T) {
 	mcpServer, lastURL := testutil.ProjectsMCPServerMockWithRequestURL(t, http.StatusOK,
 		[]byte(`{"meta":{"page":{"hasMore":false}},"budgets":[{"id":13579,"projectId":2468}],"included":{}}`))
@@ -68,11 +91,18 @@ func TestProjectBudgetListVerboseFalseSendsSparseFields(t *testing.T) {
 		"verbose": false,
 	})
 
-	got := lastURL.Query().Get("fields[budgets]")
+	selections := sparseFieldsParams(lastURL.Query())
+	if len(selections) != 1 {
+		t.Fatalf("expected exactly one fields[...] selection but got %v (raw query: %s)",
+			selections, lastURL.RawQuery)
+	}
+
 	want := "id,projectId,type,status,capacity,capacityUsed,startDateTime,endDateTime"
-	if got != want {
-		t.Errorf("expected fields[budgets]=%q in request query but got %q (raw query: %s)",
-			want, got, lastURL.RawQuery)
+	for entity, got := range selections {
+		if got != want {
+			t.Errorf("expected fields[%s]=%q in request query but got %q (raw query: %s)",
+				entity, want, got, lastURL.RawQuery)
+		}
 	}
 }
 
@@ -108,7 +138,7 @@ func TestProjectBudgetListVerboseTrueRequestsAllFields(t *testing.T) {
 		}
 	}))
 
-	if got := lastURL.Query().Get("fields[budgets]"); got != "" {
-		t.Errorf("verbose=true must not send fields[budgets] but got %q", got)
+	if selections := sparseFieldsParams(lastURL.Query()); len(selections) != 0 {
+		t.Errorf("verbose=true must not restrict the fieldset but sent %v", selections)
 	}
 }
