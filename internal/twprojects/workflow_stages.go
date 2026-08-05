@@ -295,10 +295,11 @@ func WorkflowStageGet(engine *twapi.Engine) toolsets.ToolWrapper {
 						Type:        "integer",
 						Description: "The ID of the workflow stage to get.",
 					},
+					"fields": helpers.FieldsSchema("workflow stage"),
 				},
 				Required: []string{"workflow_id", "id"},
 			},
-			OutputSchema: workflowStageGetOutputSchema,
+			OutputSchema: helpers.WithOptionalFields(workflowStageGetOutputSchema),
 		},
 		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 			var workflowStageGetRequest projects.WorkflowStageGetRequest
@@ -310,9 +311,14 @@ func WorkflowStageGet(engine *twapi.Engine) toolsets.ToolWrapper {
 			err := helpers.ParamGroup(arguments,
 				helpers.RequiredNumericParam(&workflowStageGetRequest.Path.WorkflowID, "workflow_id"),
 				helpers.RequiredNumericParam(&workflowStageGetRequest.Path.ID, "id"),
+				helpers.OptionalFieldsParam[projects.WorkflowStage](&workflowStageGetRequest.Fields.Stage, "fields"),
 			)
 			if err != nil {
 				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
+			}
+
+			if len(workflowStageGetRequest.Fields.Stage) > 0 {
+				return helpers.NewRawToolResult(ctx, engine, workflowStageGetRequest, "failed to get workflow stage", nil)
 			}
 
 			stage, err := projects.WorkflowStageGet(ctx, engine, workflowStageGetRequest)

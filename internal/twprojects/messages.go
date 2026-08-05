@@ -340,10 +340,11 @@ func MessageGet(engine *twapi.Engine) toolsets.ToolWrapper {
 						Type:        "integer",
 						Description: "The ID of the message to get.",
 					},
+					"fields": helpers.FieldsSchema("message"),
 				},
 				Required: []string{"id"},
 			},
-			OutputSchema: messageGetOutputSchema,
+			OutputSchema: helpers.WithOptionalFields(messageGetOutputSchema),
 		},
 		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 			var messageGetRequest projects.MessageGetRequest
@@ -354,9 +355,16 @@ func MessageGet(engine *twapi.Engine) toolsets.ToolWrapper {
 			}
 			err := helpers.ParamGroup(arguments,
 				helpers.RequiredNumericParam(&messageGetRequest.Path.ID, "id"),
+				helpers.OptionalFieldsParam[projects.Message](&messageGetRequest.Fields.Message, "fields"),
 			)
 			if err != nil {
 				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
+			}
+
+			if len(messageGetRequest.Fields.Message) > 0 {
+				return helpers.NewRawToolResult(ctx, engine, messageGetRequest, "failed to get message",
+					helpers.WebLinkerWithIDPathBuilder("/app/messages"),
+				)
 			}
 
 			message, err := projects.MessageGet(ctx, engine, messageGetRequest)

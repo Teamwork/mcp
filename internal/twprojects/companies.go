@@ -454,10 +454,11 @@ func CompanyGet(engine *twapi.Engine) toolsets.ToolWrapper {
 						Type:        "integer",
 						Description: "The ID of the company to get.",
 					},
+					"fields": helpers.FieldsSchema("company"),
 				},
 				Required: []string{"id"},
 			},
-			OutputSchema: companyGetOutputSchema,
+			OutputSchema: helpers.WithOptionalFields(companyGetOutputSchema),
 		},
 		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 			var companyGetRequest projects.CompanyGetRequest
@@ -476,9 +477,19 @@ func CompanyGet(engine *twapi.Engine) toolsets.ToolWrapper {
 			}
 			err := helpers.ParamGroup(arguments,
 				helpers.RequiredNumericParam(&companyGetRequest.Path.ID, "id"),
+				helpers.OptionalFieldsParam[projects.Company](&companyGetRequest.Fields.Company, "fields"),
 			)
 			if err != nil {
 				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
+			}
+
+			if len(companyGetRequest.Fields.Company) > 0 {
+				// Drop the sideloads: they are not what the selection named, and
+				// they would return the bulk it exists to avoid.
+				companyGetRequest.Filters = projects.CompanyRequestFilters{}
+				return helpers.NewRawToolResult(ctx, engine, companyGetRequest, "failed to get company",
+					helpers.WebLinkerWithIDPathBuilder("/app/clients"),
+				)
 			}
 
 			company, err := projects.CompanyGet(ctx, engine, companyGetRequest)

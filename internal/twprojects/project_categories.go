@@ -244,10 +244,11 @@ func ProjectCategoryGet(engine *twapi.Engine) toolsets.ToolWrapper {
 						Type:        "integer",
 						Description: "The ID of the project category to get.",
 					},
+					"fields": helpers.FieldsSchema("project category"),
 				},
 				Required: []string{"id"},
 			},
-			OutputSchema: projectCategoryGetOutputSchema,
+			OutputSchema: helpers.WithOptionalFields(projectCategoryGetOutputSchema),
 		},
 		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 			var projectCategoryGetRequest projects.ProjectCategoryGetRequest
@@ -258,9 +259,16 @@ func ProjectCategoryGet(engine *twapi.Engine) toolsets.ToolWrapper {
 			}
 			err := helpers.ParamGroup(arguments,
 				helpers.RequiredNumericParam(&projectCategoryGetRequest.Path.ID, "id"),
+				helpers.OptionalFieldsParam[projects.ProjectCategory](&projectCategoryGetRequest.Fields.ProjectCategory, "fields"),
 			)
 			if err != nil {
 				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
+			}
+
+			if len(projectCategoryGetRequest.Fields.ProjectCategory) > 0 {
+				return helpers.NewRawToolResult(ctx, engine, projectCategoryGetRequest, "failed to get project category",
+					projectCategoryPathBuilder,
+				)
 			}
 
 			projectCategory, err := projects.ProjectCategoryGet(ctx, engine, projectCategoryGetRequest)

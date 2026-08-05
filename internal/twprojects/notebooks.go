@@ -272,10 +272,11 @@ func NotebookGet(engine *twapi.Engine) toolsets.ToolWrapper {
 						Type:        "integer",
 						Description: "The ID of the notebook to get.",
 					},
+					"fields": helpers.FieldsSchema("notebook"),
 				},
 				Required: []string{"id"},
 			},
-			OutputSchema: notebookGetOutputSchema,
+			OutputSchema: helpers.WithOptionalFields(notebookGetOutputSchema),
 		},
 		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 			var notebookGetRequest projects.NotebookGetRequest
@@ -286,9 +287,16 @@ func NotebookGet(engine *twapi.Engine) toolsets.ToolWrapper {
 			}
 			err := helpers.ParamGroup(arguments,
 				helpers.RequiredNumericParam(&notebookGetRequest.Path.ID, "id"),
+				helpers.OptionalFieldsParam[projects.Notebook](&notebookGetRequest.Fields.Notebook, "fields"),
 			)
 			if err != nil {
 				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
+			}
+
+			if len(notebookGetRequest.Fields.Notebook) > 0 {
+				return helpers.NewRawToolResult(ctx, engine, notebookGetRequest, "failed to get notebook",
+					helpers.WebLinkerWithIDPathBuilder("/app/notebooks"),
+				)
 			}
 
 			notebook, err := projects.NotebookGet(ctx, engine, notebookGetRequest)

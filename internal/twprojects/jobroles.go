@@ -210,10 +210,11 @@ func JobRoleGet(engine *twapi.Engine) toolsets.ToolWrapper {
 						Type:        "integer",
 						Description: "The ID of the job role to get.",
 					},
+					"fields": helpers.FieldsSchema("job role"),
 				},
 				Required: []string{"id"},
 			},
-			OutputSchema: jobRoleGetOutputSchema,
+			OutputSchema: helpers.WithOptionalFields(jobRoleGetOutputSchema),
 		},
 		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 			var jobRoleGetRequest projects.JobRoleGetRequest
@@ -224,9 +225,14 @@ func JobRoleGet(engine *twapi.Engine) toolsets.ToolWrapper {
 			}
 			err := helpers.ParamGroup(arguments,
 				helpers.RequiredNumericParam(&jobRoleGetRequest.Path.ID, "id"),
+				helpers.OptionalFieldsParam[projects.JobRole](&jobRoleGetRequest.Fields.JobRole, "fields"),
 			)
 			if err != nil {
 				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
+			}
+
+			if len(jobRoleGetRequest.Fields.JobRole) > 0 {
+				return helpers.NewRawToolResult(ctx, engine, jobRoleGetRequest, "failed to get job role", nil)
 			}
 
 			jobRole, err := projects.JobRoleGet(ctx, engine, jobRoleGetRequest)

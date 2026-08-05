@@ -478,10 +478,11 @@ func ProjectGet(engine *twapi.Engine) toolsets.ToolWrapper {
 						Type:        "integer",
 						Description: "The ID of the project to get.",
 					},
+					"fields": helpers.FieldsSchema("project"),
 				},
 				Required: []string{"id"},
 			},
-			OutputSchema: projectGetOutputSchema,
+			OutputSchema: helpers.WithOptionalFields(projectGetOutputSchema),
 		},
 		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 			var projectGetRequest projects.ProjectGetRequest
@@ -502,9 +503,19 @@ func ProjectGet(engine *twapi.Engine) toolsets.ToolWrapper {
 			}
 			err := helpers.ParamGroup(arguments,
 				helpers.RequiredNumericParam(&projectGetRequest.Path.ID, "id"),
+				helpers.OptionalFieldsParam[projects.Project](&projectGetRequest.Fields.Project, "fields"),
 			)
 			if err != nil {
 				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
+			}
+
+			if len(projectGetRequest.Fields.Project) > 0 {
+				// Drop the sideloads: they are not what the selection named, and
+				// they would return the bulk it exists to avoid.
+				projectGetRequest.Filters = projects.ProjectRequestFilters{}
+				return helpers.NewRawToolResult(ctx, engine, projectGetRequest, "failed to get project",
+					helpers.WebLinkerWithIDPathBuilder("/app/projects"),
+				)
 			}
 
 			project, err := projects.ProjectGet(ctx, engine, projectGetRequest)

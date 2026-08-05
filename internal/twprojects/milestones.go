@@ -297,10 +297,11 @@ func MilestoneGet(engine *twapi.Engine) toolsets.ToolWrapper {
 						Type:        "integer",
 						Description: "The ID of the milestone to get.",
 					},
+					"fields": helpers.FieldsSchema("milestone"),
 				},
 				Required: []string{"id"},
 			},
-			OutputSchema: milestoneGetOutputSchema,
+			OutputSchema: helpers.WithOptionalFields(milestoneGetOutputSchema),
 		},
 		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 			var milestoneGetRequest projects.MilestoneGetRequest
@@ -311,9 +312,16 @@ func MilestoneGet(engine *twapi.Engine) toolsets.ToolWrapper {
 			}
 			err := helpers.ParamGroup(arguments,
 				helpers.RequiredNumericParam(&milestoneGetRequest.Path.ID, "id"),
+				helpers.OptionalFieldsParam[projects.Milestone](&milestoneGetRequest.Fields.Milestone, "fields"),
 			)
 			if err != nil {
 				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
+			}
+
+			if len(milestoneGetRequest.Fields.Milestone) > 0 {
+				return helpers.NewRawToolResult(ctx, engine, milestoneGetRequest, "failed to get milestone",
+					helpers.WebLinkerWithIDPathBuilder("/app/milestones"),
+				)
 			}
 
 			milestone, err := projects.MilestoneGet(ctx, engine, milestoneGetRequest)

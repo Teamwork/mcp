@@ -354,10 +354,11 @@ func TimelogGet(engine *twapi.Engine) toolsets.ToolWrapper {
 						Type:        "integer",
 						Description: "The ID of the timelog to get.",
 					},
+					"fields": helpers.FieldsSchema("timelog"),
 				},
 				Required: []string{"id"},
 			},
-			OutputSchema: timelogGetOutputSchema,
+			OutputSchema: helpers.WithOptionalFields(timelogGetOutputSchema),
 		},
 		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 			var timelogGetRequest projects.TimelogGetRequest
@@ -368,9 +369,14 @@ func TimelogGet(engine *twapi.Engine) toolsets.ToolWrapper {
 			}
 			err := helpers.ParamGroup(arguments,
 				helpers.RequiredNumericParam(&timelogGetRequest.Path.ID, "id"),
+				helpers.OptionalFieldsParam[projects.Timelog](&timelogGetRequest.Fields.Timelog, "fields"),
 			)
 			if err != nil {
 				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
+			}
+
+			if len(timelogGetRequest.Fields.Timelog) > 0 {
+				return helpers.NewRawToolResult(ctx, engine, timelogGetRequest, "failed to get timelog", nil)
 			}
 
 			timelog, err := projects.TimelogGet(ctx, engine, timelogGetRequest)
