@@ -277,6 +277,7 @@ func JobRoleList(engine *twapi.Engine) toolsets.ToolWrapper {
 					"page":      helpers.PageSchema(),
 					"page_size": helpers.PageSizeSchema(),
 					"verbose":   helpers.VerboseSchema(),
+					"fields":    helpers.FieldsSchema("job role"),
 				},
 				Required: []string{},
 			},
@@ -295,12 +296,13 @@ func JobRoleList(engine *twapi.Engine) toolsets.ToolWrapper {
 				helpers.OptionalNumericParam(&jobRoleListRequest.Filters.Page, "page"),
 				helpers.OptionalNumericParam(&jobRoleListRequest.Filters.PageSize, "page_size"),
 				helpers.OptionalParam(&verbose, "verbose"),
+				helpers.OptionalFieldsParam[projects.JobRole](&jobRoleListRequest.Filters.Fields.JobRoles, "fields"),
 			)
 			if err != nil {
 				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
 			}
 
-			if !verbose {
+			if !verbose && len(jobRoleListRequest.Filters.Fields.JobRoles) == 0 {
 				jobRoleListRequest.Filters.Fields.JobRoles = []projects.JobRoleField{
 					projects.JobRoleFieldID,
 					projects.JobRoleFieldName,

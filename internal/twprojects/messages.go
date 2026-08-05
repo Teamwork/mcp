@@ -421,6 +421,7 @@ func MessageList(engine *twapi.Engine) toolsets.ToolWrapper {
 					"page":           helpers.PageSchema(),
 					"page_size":      helpers.PageSizeSchema(),
 					"verbose":        helpers.VerboseSchema(),
+					"fields":         helpers.FieldsSchema("message"),
 				},
 				Required: []string{},
 			},
@@ -442,12 +443,13 @@ func MessageList(engine *twapi.Engine) toolsets.ToolWrapper {
 				helpers.OptionalNumericParam(&messageListRequest.Filters.Page, "page"),
 				helpers.OptionalNumericParam(&messageListRequest.Filters.PageSize, "page_size"),
 				helpers.OptionalParam(&verbose, "verbose"),
+				helpers.OptionalFieldsParam[projects.Message](&messageListRequest.Filters.Fields.Messages, "fields"),
 			)
 			if err != nil {
 				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
 			}
 
-			if !verbose {
+			if !verbose && len(messageListRequest.Filters.Fields.Messages) == 0 {
 				messageListRequest.Filters.Fields.Messages = []projects.MessageField{
 					projects.MessageFieldID,
 					projects.MessageFieldTitle,

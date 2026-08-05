@@ -441,6 +441,7 @@ func UserList(engine *twapi.Engine) toolsets.ToolWrapper {
 					"page":      helpers.PageSchema(),
 					"page_size": helpers.PageSizeSchema(),
 					"verbose":   helpers.VerboseSchema(),
+					"fields":    helpers.FieldsSchema("user"),
 				},
 				Required: []string{},
 			},
@@ -467,12 +468,13 @@ func UserList(engine *twapi.Engine) toolsets.ToolWrapper {
 				helpers.OptionalNumericParam(&userListRequest.Filters.Page, "page"),
 				helpers.OptionalNumericParam(&userListRequest.Filters.PageSize, "page_size"),
 				helpers.OptionalParam(&verbose, "verbose"),
+				helpers.OptionalFieldsParam[projects.User](&userListRequest.Filters.Fields.Users, "fields"),
 			)
 			if err != nil {
 				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
 			}
 
-			if !verbose {
+			if !verbose && len(userListRequest.Filters.Fields.Users) == 0 {
 				userListRequest.Filters.Fields.Users = []projects.UserField{
 					projects.UserFieldID,
 					projects.UserFieldFirstName,

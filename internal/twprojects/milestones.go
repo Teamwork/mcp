@@ -379,6 +379,7 @@ func MilestoneList(engine *twapi.Engine) toolsets.ToolWrapper {
 					"page":           helpers.PageSchema(),
 					"page_size":      helpers.PageSizeSchema(),
 					"verbose":        helpers.VerboseSchema(),
+					"fields":         helpers.FieldsSchema("milestone"),
 				},
 				Required: []string{},
 			},
@@ -400,12 +401,13 @@ func MilestoneList(engine *twapi.Engine) toolsets.ToolWrapper {
 				helpers.OptionalNumericParam(&milestoneListRequest.Filters.Page, "page"),
 				helpers.OptionalNumericParam(&milestoneListRequest.Filters.PageSize, "page_size"),
 				helpers.OptionalParam(&verbose, "verbose"),
+				helpers.OptionalFieldsParam[projects.Milestone](&milestoneListRequest.Filters.Fields.Milestones, "fields"),
 			)
 			if err != nil {
 				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
 			}
 
-			if !verbose {
+			if !verbose && len(milestoneListRequest.Filters.Fields.Milestones) == 0 {
 				milestoneListRequest.Filters.Fields.Milestones = []projects.MilestoneField{
 					projects.MilestoneFieldID,
 					projects.MilestoneFieldName,

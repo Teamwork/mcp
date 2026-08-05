@@ -293,6 +293,7 @@ func SkillList(engine *twapi.Engine) toolsets.ToolWrapper {
 					"page":      helpers.PageSchema(),
 					"page_size": helpers.PageSizeSchema(),
 					"verbose":   helpers.VerboseSchema(),
+					"fields":    helpers.FieldsSchema("skill"),
 				},
 				Required: []string{},
 			},
@@ -311,12 +312,13 @@ func SkillList(engine *twapi.Engine) toolsets.ToolWrapper {
 				helpers.OptionalNumericParam(&skillListRequest.Filters.Page, "page"),
 				helpers.OptionalNumericParam(&skillListRequest.Filters.PageSize, "page_size"),
 				helpers.OptionalParam(&verbose, "verbose"),
+				helpers.OptionalFieldsParam[projects.Skill](&skillListRequest.Filters.Fields.Skills, "fields"),
 			)
 			if err != nil {
 				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
 			}
 
-			if !verbose {
+			if !verbose && len(skillListRequest.Filters.Fields.Skills) == 0 {
 				skillListRequest.Filters.Fields.Skills = []projects.SkillField{
 					projects.SkillFieldID,
 					projects.SkillFieldName,

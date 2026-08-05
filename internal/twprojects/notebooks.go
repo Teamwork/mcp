@@ -360,6 +360,7 @@ func NotebookList(engine *twapi.Engine) toolsets.ToolWrapper {
 					"page":      helpers.PageSchema(),
 					"page_size": helpers.PageSizeSchema(),
 					"verbose":   helpers.VerboseSchema(),
+					"fields":    helpers.FieldsSchema("notebook"),
 				},
 				Required: []string{},
 			},
@@ -382,12 +383,13 @@ func NotebookList(engine *twapi.Engine) toolsets.ToolWrapper {
 				helpers.OptionalNumericParam(&notebookListRequest.Filters.Page, "page"),
 				helpers.OptionalNumericParam(&notebookListRequest.Filters.PageSize, "page_size"),
 				helpers.OptionalParam(&verbose, "verbose"),
+				helpers.OptionalFieldsParam[projects.Notebook](&notebookListRequest.Filters.Fields.Notebooks, "fields"),
 			)
 			if err != nil {
 				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
 			}
 
-			if !verbose {
+			if !verbose && len(notebookListRequest.Filters.Fields.Notebooks) == 0 {
 				notebookListRequest.Filters.Fields.Notebooks = []projects.NotebookField{
 					projects.NotebookFieldID,
 					projects.NotebookFieldName,

@@ -399,6 +399,7 @@ func TeamList(engine *twapi.Engine) toolsets.ToolWrapper {
 					"page":        helpers.PageSchema(),
 					"page_size":   helpers.PageSizeSchema(),
 					"verbose":     helpers.VerboseSchema(),
+					"fields":      helpers.FieldsSchema("team"),
 				},
 				Required: []string{},
 			},
@@ -419,6 +420,7 @@ func TeamList(engine *twapi.Engine) toolsets.ToolWrapper {
 				helpers.OptionalNumericParam(&teamListRequest.Filters.Page, "page"),
 				helpers.OptionalNumericParam(&teamListRequest.Filters.PageSize, "page_size"),
 				helpers.OptionalParam(&verbose, "verbose"),
+				helpers.OptionalFieldsParam[projects.Team](&teamListRequest.Filters.Fields.Teams, "fields"),
 			)
 			if err != nil {
 				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
@@ -431,7 +433,7 @@ func TeamList(engine *twapi.Engine) toolsets.ToolWrapper {
 				teamListRequest.Filters.IncludeSubteams = true
 			}
 
-			if !verbose {
+			if !verbose && len(teamListRequest.Filters.Fields.Teams) == 0 {
 				teamListRequest.Filters.Fields.Teams = []projects.TeamField{
 					projects.TeamFieldID,
 					projects.TeamFieldName,

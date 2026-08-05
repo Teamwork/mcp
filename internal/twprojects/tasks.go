@@ -751,6 +751,7 @@ func TaskList(engine *twapi.Engine) toolsets.ToolWrapper {
 					"page":      helpers.PageSchema(),
 					"page_size": helpers.PageSizeSchema(),
 					"verbose":   helpers.VerboseSchema(),
+					"fields":    helpers.FieldsSchema("task"),
 				},
 				Required: []string{},
 			},
@@ -790,6 +791,7 @@ func TaskList(engine *twapi.Engine) toolsets.ToolWrapper {
 				helpers.OptionalPointerParam(&taskListRequest.Filters.OnlyUnassigned, "only_unassigned"),
 				helpers.OptionalPointerParam(&taskListRequest.Filters.OnlyUnplanned, "only_unplanned"),
 				helpers.OptionalParam(&verbose, "verbose"),
+				helpers.OptionalFieldsParam[projects.Task](&taskListRequest.Filters.Fields.Tasks, "fields"),
 			)
 			if err != nil {
 				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
@@ -801,7 +803,13 @@ func TaskList(engine *twapi.Engine) toolsets.ToolWrapper {
 				taskListRequest.Filters.IncludeCompletedTasks = showCompleted
 				taskListRequest.Filters.IncludeTasksFromCompletedTasklists = showCompleted
 			}
-			if verbose {
+			switch {
+			case len(taskListRequest.Filters.Fields.Tasks) > 0:
+				// An explicit field selection overrides both defaults below: the
+				// caller has already said what it wants, and sideloading custom
+				// fields would smuggle back the bulk the selection exists to avoid.
+
+			case verbose:
 				// Include custom fields and values in task list response for richer
 				// context, as they are commonly used in Teamwork projects and provide
 				// valuable information about the task.
@@ -811,7 +819,8 @@ func TaskList(engine *twapi.Engine) toolsets.ToolWrapper {
 				}
 				// Ensure predecessors are included in the response
 				taskListRequest.Filters.IncludeRelatedTasks = true
-			} else {
+
+			default:
 				taskListRequest.Filters.Fields.Tasks = []projects.TaskField{
 					projects.TaskFieldID,
 					projects.TaskFieldName,

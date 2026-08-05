@@ -54,6 +54,7 @@ func CalendarList(engine *twapi.Engine) toolsets.ToolWrapper {
 					"page":      helpers.PageSchema(),
 					"page_size": helpers.PageSizeSchema(),
 					"verbose":   helpers.VerboseSchema(),
+					"fields":    helpers.FieldsSchema("calendar"),
 				},
 				Required: []string{},
 			},
@@ -71,11 +72,12 @@ func CalendarList(engine *twapi.Engine) toolsets.ToolWrapper {
 				helpers.OptionalNumericParam(&calendarListRequest.Filters.Page, "page"),
 				helpers.OptionalNumericParam(&calendarListRequest.Filters.PageSize, "page_size"),
 				helpers.OptionalParam(&verbose, "verbose"),
+				helpers.OptionalFieldsParam[projects.Calendar](&calendarListRequest.Filters.Fields.Calendars, "fields"),
 			)
 			if err != nil {
 				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
 			}
-			if !verbose {
+			if !verbose && len(calendarListRequest.Filters.Fields.Calendars) == 0 {
 				calendarListRequest.Filters.Fields.Calendars = []projects.CalendarField{
 					projects.CalendarFieldID,
 					projects.CalendarFieldName,

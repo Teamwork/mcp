@@ -326,6 +326,7 @@ func TasklistList(engine *twapi.Engine) toolsets.ToolWrapper {
 					"page":      helpers.PageSchema(),
 					"page_size": helpers.PageSizeSchema(),
 					"verbose":   helpers.VerboseSchema(),
+					"fields":    helpers.FieldsSchema("tasklist"),
 				},
 				Required: []string{},
 			},
@@ -346,12 +347,13 @@ func TasklistList(engine *twapi.Engine) toolsets.ToolWrapper {
 				helpers.OptionalNumericParam(&tasklistListRequest.Filters.Page, "page"),
 				helpers.OptionalNumericParam(&tasklistListRequest.Filters.PageSize, "page_size"),
 				helpers.OptionalParam(&verbose, "verbose"),
+				helpers.OptionalFieldsParam[projects.Tasklist](&tasklistListRequest.Filters.Fields.Tasklists, "fields"),
 			)
 			if err != nil {
 				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
 			}
 
-			if !verbose {
+			if !verbose && len(tasklistListRequest.Filters.Fields.Tasklists) == 0 {
 				tasklistListRequest.Filters.Fields.Tasklists = []projects.TasklistField{
 					projects.TasklistFieldID,
 					projects.TasklistFieldName,

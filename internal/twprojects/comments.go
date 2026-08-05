@@ -507,6 +507,7 @@ func CommentList(engine *twapi.Engine) toolsets.ToolWrapper {
 					"page":      helpers.PageSchema(),
 					"page_size": helpers.PageSizeSchema(),
 					"verbose":   helpers.VerboseSchema(),
+					"fields":    helpers.FieldsSchema("comment"),
 				},
 				Required: []string{},
 			},
@@ -531,6 +532,7 @@ func CommentList(engine *twapi.Engine) toolsets.ToolWrapper {
 				helpers.OptionalNumericParam(&commentListRequest.Filters.Page, "page"),
 				helpers.OptionalNumericParam(&commentListRequest.Filters.PageSize, "page_size"),
 				helpers.OptionalParam(&verbose, "verbose"),
+				helpers.OptionalFieldsParam[projects.Comment](&commentListRequest.Filters.Fields.Comments, "fields"),
 			)
 			if err != nil {
 				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
@@ -541,7 +543,7 @@ func CommentList(engine *twapi.Engine) toolsets.ToolWrapper {
 				commentListRequest.Filters.UpdatedAfter = time.Now().AddDate(0, -3, 0)
 			}
 
-			if !verbose {
+			if !verbose && len(commentListRequest.Filters.Fields.Comments) == 0 {
 				commentListRequest.Filters.Fields.Comments = []projects.CommentField{
 					projects.CommentFieldID,
 				}

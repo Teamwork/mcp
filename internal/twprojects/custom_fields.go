@@ -651,6 +651,7 @@ func CustomFieldList(engine *twapi.Engine) toolsets.ToolWrapper {
 					"page":      helpers.PageSchema(),
 					"page_size": helpers.PageSizeSchema(),
 					"verbose":   helpers.VerboseSchema(),
+					"fields":    helpers.FieldsSchema("custom field"),
 				},
 				Required: []string{},
 			},
@@ -697,12 +698,13 @@ func CustomFieldList(engine *twapi.Engine) toolsets.ToolWrapper {
 				helpers.OptionalNumericParam(&customFieldListRequest.Filters.Page, "page"),
 				helpers.OptionalNumericParam(&customFieldListRequest.Filters.PageSize, "page_size"),
 				helpers.OptionalParam(&verbose, "verbose"),
+				helpers.OptionalFieldsParam[projects.CustomField](&customFieldListRequest.Filters.Fields.CustomFields, "fields"),
 			)
 			if err != nil {
 				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
 			}
 
-			if !verbose {
+			if !verbose && len(customFieldListRequest.Filters.Fields.CustomFields) == 0 {
 				customFieldListRequest.Filters.Fields.CustomFields = []projects.CustomFieldField{
 					projects.CustomFieldFieldID,
 					projects.CustomFieldFieldName,
