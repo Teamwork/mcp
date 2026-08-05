@@ -408,10 +408,11 @@ func CommentGet(engine *twapi.Engine) toolsets.ToolWrapper {
 						Type:        "integer",
 						Description: "The ID of the comment to get.",
 					},
+					"fields": helpers.FieldsSchema("comment"),
 				},
 				Required: []string{"id"},
 			},
-			OutputSchema: commentGetOutputSchema,
+			OutputSchema: helpers.WithOptionalFields(commentGetOutputSchema),
 		},
 		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 			var commentGetRequest projects.CommentGetRequest
@@ -422,9 +423,16 @@ func CommentGet(engine *twapi.Engine) toolsets.ToolWrapper {
 			}
 			err := helpers.ParamGroup(arguments,
 				helpers.RequiredNumericParam(&commentGetRequest.Path.ID, "id"),
+				helpers.OptionalFieldsParam[projects.Comment](&commentGetRequest.Fields.Comment, "fields"),
 			)
 			if err != nil {
 				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
+			}
+
+			if len(commentGetRequest.Fields.Comment) > 0 {
+				return helpers.NewRawToolResult(ctx, engine, commentGetRequest, "failed to get comment",
+					commentPathBuilder,
+				)
 			}
 
 			comment, err := projects.CommentGet(ctx, engine, commentGetRequest)

@@ -261,10 +261,11 @@ func WorkflowGet(engine *twapi.Engine) toolsets.ToolWrapper {
 						Type:        "integer",
 						Description: "The ID of the workflow to get.",
 					},
+					"fields": helpers.FieldsSchema("workflow"),
 				},
 				Required: []string{"id"},
 			},
-			OutputSchema: workflowGetOutputSchema,
+			OutputSchema: helpers.WithOptionalFields(workflowGetOutputSchema),
 		},
 		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 			var workflowGetRequest projects.WorkflowGetRequest
@@ -275,9 +276,14 @@ func WorkflowGet(engine *twapi.Engine) toolsets.ToolWrapper {
 			}
 			err := helpers.ParamGroup(arguments,
 				helpers.RequiredNumericParam(&workflowGetRequest.Path.ID, "id"),
+				helpers.OptionalFieldsParam[projects.Workflow](&workflowGetRequest.Fields.Workflow, "fields"),
 			)
 			if err != nil {
 				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
+			}
+
+			if len(workflowGetRequest.Fields.Workflow) > 0 {
+				return helpers.NewRawToolResult(ctx, engine, workflowGetRequest, "failed to get workflow", nil)
 			}
 
 			workflow, err := projects.WorkflowGet(ctx, engine, workflowGetRequest)

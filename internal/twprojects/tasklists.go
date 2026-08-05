@@ -247,10 +247,11 @@ func TasklistGet(engine *twapi.Engine) toolsets.ToolWrapper {
 						Type:        "integer",
 						Description: "The ID of the tasklist to get.",
 					},
+					"fields": helpers.FieldsSchema("tasklist"),
 				},
 				Required: []string{"id"},
 			},
-			OutputSchema: tasklistGetOutputSchema,
+			OutputSchema: helpers.WithOptionalFields(tasklistGetOutputSchema),
 		},
 		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 			var tasklistGetRequest projects.TasklistGetRequest
@@ -261,9 +262,16 @@ func TasklistGet(engine *twapi.Engine) toolsets.ToolWrapper {
 			}
 			err := helpers.ParamGroup(arguments,
 				helpers.RequiredNumericParam(&tasklistGetRequest.Path.ID, "id"),
+				helpers.OptionalFieldsParam[projects.Tasklist](&tasklistGetRequest.Fields.Tasklist, "fields"),
 			)
 			if err != nil {
 				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
+			}
+
+			if len(tasklistGetRequest.Fields.Tasklist) > 0 {
+				return helpers.NewRawToolResult(ctx, engine, tasklistGetRequest, "failed to get tasklist",
+					helpers.WebLinkerWithIDPathBuilder("/app/tasklists"),
+				)
 			}
 
 			tasklist, err := projects.TasklistGet(ctx, engine, tasklistGetRequest)

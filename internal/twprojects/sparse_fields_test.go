@@ -1,6 +1,7 @@
 package twprojects_test
 
 import (
+	"encoding/json"
 	"maps"
 	"net/http"
 	"slices"
@@ -15,13 +16,14 @@ import (
 	"github.com/teamwork/twapi-go-sdk/projects"
 )
 
-// fieldsToolCase describes a list tool exposing the `fields` parameter.
+// fieldsToolCase describes a tool exposing the `fields` parameter.
 //
 // attributes returns the attribute names the tool's entity accepts, derived
 // from the same entity struct the tool wires its sparse-fieldset slot to. A row
 // asking for every one of them therefore fails loudly if a tool is wired to the
-// wrong entity — the likeliest mistake in a change that touches every list tool
-// — because a name valid for the intended entity is rejected by the other.
+// wrong entity — the likeliest mistake in a change that touches every list and
+// get tool — because a name valid for the intended entity is rejected by the
+// other.
 type fieldsToolCase struct {
 	method     string
 	args       map[string]any
@@ -113,6 +115,70 @@ var fieldsToolCases = []fieldsToolCase{{
 	method:     twprojects.MethodWorkflowStageList.String(),
 	args:       map[string]any{"workflow_id": float64(123)},
 	attributes: attributesOf[projects.WorkflowStageField, projects.WorkflowStage],
+}, {
+	method:     twprojects.MethodCommentGet.String(),
+	args:       map[string]any{"id": float64(123)},
+	attributes: attributesOf[projects.CommentField, projects.Comment],
+}, {
+	method:     twprojects.MethodCompanyGet.String(),
+	args:       map[string]any{"id": float64(123)},
+	attributes: attributesOf[projects.CompanyField, projects.Company],
+}, {
+	method:     twprojects.MethodJobRoleGet.String(),
+	args:       map[string]any{"id": float64(123)},
+	attributes: attributesOf[projects.JobRoleField, projects.JobRole],
+}, {
+	method:     twprojects.MethodMessageGet.String(),
+	args:       map[string]any{"id": float64(123)},
+	attributes: attributesOf[projects.MessageField, projects.Message],
+}, {
+	method:     twprojects.MethodMessageReplyGet.String(),
+	args:       map[string]any{"id": float64(123)},
+	attributes: attributesOf[projects.MessageReplyField, projects.MessageReply],
+}, {
+	method:     twprojects.MethodMilestoneGet.String(),
+	args:       map[string]any{"id": float64(123)},
+	attributes: attributesOf[projects.MilestoneField, projects.Milestone],
+}, {
+	method:     twprojects.MethodNotebookGet.String(),
+	args:       map[string]any{"id": float64(123)},
+	attributes: attributesOf[projects.NotebookField, projects.Notebook],
+}, {
+	method:     twprojects.MethodProjectCategoryGet.String(),
+	args:       map[string]any{"id": float64(123)},
+	attributes: attributesOf[projects.ProjectCategoryField, projects.ProjectCategory],
+}, {
+	method:     twprojects.MethodProjectGet.String(),
+	args:       map[string]any{"id": float64(123)},
+	attributes: attributesOf[projects.ProjectField, projects.Project],
+}, {
+	method:     twprojects.MethodTaskGet.String(),
+	args:       map[string]any{"id": float64(123)},
+	attributes: attributesOf[projects.TaskField, projects.Task],
+}, {
+	method:     twprojects.MethodTasklistGet.String(),
+	args:       map[string]any{"id": float64(123)},
+	attributes: attributesOf[projects.TasklistField, projects.Tasklist],
+}, {
+	method:     twprojects.MethodTimelogGet.String(),
+	args:       map[string]any{"id": float64(123)},
+	attributes: attributesOf[projects.TimelogField, projects.Timelog],
+}, {
+	method:     twprojects.MethodTimerGet.String(),
+	args:       map[string]any{"id": float64(123)},
+	attributes: attributesOf[projects.TimerField, projects.Timer],
+}, {
+	method:     twprojects.MethodUserGet.String(),
+	args:       map[string]any{"id": float64(123)},
+	attributes: attributesOf[projects.UserField, projects.User],
+}, {
+	method:     twprojects.MethodWorkflowGet.String(),
+	args:       map[string]any{"id": float64(123)},
+	attributes: attributesOf[projects.WorkflowField, projects.Workflow],
+}, {
+	method:     twprojects.MethodWorkflowStageGet.String(),
+	args:       map[string]any{"workflow_id": float64(123), "id": float64(456)},
+	attributes: attributesOf[projects.WorkflowStageField, projects.WorkflowStage],
 }}
 
 func attributesOf[F ~string, E any]() []string {
@@ -124,10 +190,11 @@ func attributesOf[F ~string, E any]() []string {
 	return names
 }
 
-// TestListToolsExposeFields guards that every list tool advertising a `fields`
-// parameter actually declares one, so a tool added later without it is caught
-// rather than silently forcing callers back to the verbose switch.
-func TestListToolsExposeFields(t *testing.T) {
+// TestSparseFieldsToolsAreCovered ties the table above to the tools that
+// actually declare a `fields` parameter, in both directions: a tool wired up
+// without a row here is untested, and a row naming a tool that dropped the
+// parameter is stale.
+func TestSparseFieldsToolsAreCovered(t *testing.T) {
 	engine := testutil.ProjectsEngineMock(http.StatusOK, []byte(`{}`))
 	group := twprojects.DefaultToolsetGroup(false, true, engine)
 
@@ -155,12 +222,12 @@ func TestListToolsExposeFields(t *testing.T) {
 	}
 }
 
-// TestListToolsSendSelectedFields pins the caller's selection onto the outgoing
+// TestSparseFieldsSendSelection pins the caller's selection onto the outgoing
 // query. The mock replies with the same canned body whatever is asked for, so
 // asserting on the response could not distinguish a selection that is sent from
 // one that is dropped — and a dropped selection means the API returns every
 // attribute while the caller believes it asked for a few.
-func TestListToolsSendSelectedFields(t *testing.T) {
+func TestSparseFieldsSendSelection(t *testing.T) {
 	for _, testCase := range fieldsToolCases {
 		t.Run(testCase.method, func(t *testing.T) {
 			mcpServer, lastURL := testutil.ProjectsMCPServerMockWithRequestURL(t, http.StatusOK, []byte(`{}`))
@@ -183,11 +250,11 @@ func TestListToolsSendSelectedFields(t *testing.T) {
 	}
 }
 
-// TestListToolsAlwaysSelectID guards the id the handler appends to any
+// TestSparseFieldsAlwaysSelectID guards the id the handler appends to any
 // selection. Without it a caller asking only for names gets rows it cannot
 // address in a follow-up get_* call, and WebLinker has no id to build a web
 // link from, so it silently drops the link.
-func TestListToolsAlwaysSelectID(t *testing.T) {
+func TestSparseFieldsAlwaysSelectID(t *testing.T) {
 	for _, testCase := range fieldsToolCases {
 		t.Run(testCase.method, func(t *testing.T) {
 			attributes := testCase.attributes()
@@ -214,12 +281,103 @@ func TestListToolsAlwaysSelectID(t *testing.T) {
 	}
 }
 
-// TestListToolsFieldsOverrideVerbose covers the tools whose verbose=true branch
+// TestSparseFieldsGetOmitsUnselectedAttributes is the whole reason a selection
+// on a get_* tool streams the API body instead of re-marshalling the SDK's
+// typed response: those entity structs carry no `omitempty`, so every attribute
+// the caller left out would come back as a zero value that reads like real data
+// — a task with `"dueDate": null` is indistinguishable from a task with no due
+// date. The control below pins that difference.
+func TestSparseFieldsGetOmitsUnselectedAttributes(t *testing.T) {
+	const response = `{"task":{"id":7,"name":"Ship it"}}`
+
+	mcpServer := mcpServerMock(t, http.StatusOK, []byte(response))
+	testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodTaskGet.String(), map[string]any{
+		"id":     float64(7),
+		"fields": []any{"name"},
+	}, testutil.ExecuteToolRequestWithCheckMessage(func(t *testing.T, result mcp.Result) {
+		t.Helper()
+		testutil.CheckMessage(t, result)
+
+		got := slices.Sorted(maps.Keys(taskFromToolResult(t, result)))
+		if want := []string{"id", "name"}; !slices.Equal(got, want) {
+			t.Errorf("expected only the selected attributes %v but got %v", want, got)
+		}
+	}))
+
+	// Control: without a selection the tool keeps re-marshalling the typed
+	// response, which reports every attribute the SDK models whether the API
+	// returned it or not. That is the existing behaviour, left untouched.
+	mcpServer = mcpServerMock(t, http.StatusOK, []byte(response))
+	testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodTaskGet.String(), map[string]any{
+		"id": float64(7),
+	}, testutil.ExecuteToolRequestWithCheckMessage(func(t *testing.T, result mcp.Result) {
+		t.Helper()
+		testutil.CheckMessage(t, result)
+
+		if _, ok := taskFromToolResult(t, result)["dueDate"]; !ok {
+			t.Error("expected the unselected path to report every modelled attribute")
+		}
+	}))
+}
+
+// TestSparseFieldsGetDropsSideloads guards that a selection on a get_* tool
+// stops asking for the sideloads the handler requests by default: they are not
+// what the selection named, and they carry more bulk than the attributes it
+// excluded.
+func TestSparseFieldsGetDropsSideloads(t *testing.T) {
+	for _, method := range []string{
+		twprojects.MethodTaskGet.String(),
+		twprojects.MethodProjectGet.String(),
+		twprojects.MethodCompanyGet.String(),
+	} {
+		t.Run(method, func(t *testing.T) {
+			// Control: the tool does sideload without a selection, so the assertion
+			// below fails for the right reason.
+			mcpServer, lastURL := testutil.ProjectsMCPServerMockWithRequestURL(t, http.StatusOK, []byte(`{}`))
+			testutil.ExecuteToolRequest(t, mcpServer, method, map[string]any{"id": float64(7)})
+			if lastURL.Query().Get("include") == "" {
+				t.Fatalf("expected the tool to sideload by default (raw query: %s)", lastURL.RawQuery)
+			}
+
+			mcpServer, lastURL = testutil.ProjectsMCPServerMockWithRequestURL(t, http.StatusOK, []byte(`{}`))
+			testutil.ExecuteToolRequest(t, mcpServer, method, map[string]any{
+				"id":     float64(7),
+				"fields": []any{"name"},
+			})
+			if got := lastURL.Query().Get("include"); got != "" {
+				t.Errorf("expected no sideloads alongside a field selection but got include=%q", got)
+			}
+		})
+	}
+}
+
+// taskFromToolResult decodes the task object out of a get_task tool result.
+func taskFromToolResult(t *testing.T, result mcp.Result) map[string]json.RawMessage {
+	t.Helper()
+
+	toolResult, ok := result.(*mcp.CallToolResult)
+	if !ok {
+		t.Fatalf("unexpected result type: %T", result)
+	}
+	text, ok := toolResult.Content[0].(*mcp.TextContent)
+	if !ok {
+		t.Fatalf("unexpected content type: %T", toolResult.Content[0])
+	}
+	var payload struct {
+		Task map[string]json.RawMessage `json:"task"`
+	}
+	if err := json.Unmarshal([]byte(text.Text), &payload); err != nil {
+		t.Fatalf("failed to decode tool output: %v", err)
+	}
+	return payload.Task
+}
+
+// TestSparseFieldsOverrideVerbose covers the list tools whose verbose=true branch
 // sideloads related entities. A selection exists to shrink the response, so
 // honouring it while still asking for the sideloads would hand back most of the
 // bulk it was meant to avoid — and the sideloaded entities are not what the
 // selection names.
-func TestListToolsFieldsOverrideVerbose(t *testing.T) {
+func TestSparseFieldsOverrideVerbose(t *testing.T) {
 	for _, method := range []string{
 		twprojects.MethodTaskList.String(),
 		twprojects.MethodProjectList.String(),
@@ -259,11 +417,11 @@ func TestListToolsFieldsOverrideVerbose(t *testing.T) {
 	}
 }
 
-// TestListToolsVerboseFalseKeepsSelection guards the other order of arguments:
+// TestSparseFieldsVerboseFalseKeepsSelection guards the other order of arguments:
 // verbose=false must not overwrite an explicit selection with its own minimal
 // fieldset, which would silently return something narrower than what was asked
 // for.
-func TestListToolsVerboseFalseKeepsSelection(t *testing.T) {
+func TestSparseFieldsVerboseFalseKeepsSelection(t *testing.T) {
 	mcpServer, lastURL := testutil.ProjectsMCPServerMockWithRequestURL(t, http.StatusOK, []byte(`{}`))
 	testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodTaskList.String(), map[string]any{
 		"verbose": false,
@@ -277,11 +435,11 @@ func TestListToolsVerboseFalseKeepsSelection(t *testing.T) {
 	}
 }
 
-// TestListToolsRejectUnknownField guards the validation that turns a guessed
+// TestSparseFieldsRejectUnknownValue guards the validation that turns a guessed
 // attribute name into a correctable error. The API ignores attributes it does
 // not recognise, so passing one through would come back as a response quietly
 // missing a field the caller asked for.
-func TestListToolsRejectUnknownField(t *testing.T) {
+func TestSparseFieldsRejectUnknownValue(t *testing.T) {
 	for _, testCase := range fieldsToolCases {
 		t.Run(testCase.method, func(t *testing.T) {
 			mcpServer := mcpServerMock(t, http.StatusOK, []byte(`{}`))

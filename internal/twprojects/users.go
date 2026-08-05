@@ -311,10 +311,11 @@ func UserGet(engine *twapi.Engine) toolsets.ToolWrapper {
 						Type:        "integer",
 						Description: "The ID of the user to get.",
 					},
+					"fields": helpers.FieldsSchema("user"),
 				},
 				Required: []string{"id"},
 			},
-			OutputSchema: userGetOutputSchema,
+			OutputSchema: helpers.WithOptionalFields(userGetOutputSchema),
 		},
 		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 			var userGetRequest projects.UserGetRequest
@@ -325,9 +326,16 @@ func UserGet(engine *twapi.Engine) toolsets.ToolWrapper {
 			}
 			err := helpers.ParamGroup(arguments,
 				helpers.RequiredNumericParam(&userGetRequest.Path.ID, "id"),
+				helpers.OptionalFieldsParam[projects.User](&userGetRequest.Fields.User, "fields"),
 			)
 			if err != nil {
 				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
+			}
+
+			if len(userGetRequest.Fields.User) > 0 {
+				return helpers.NewRawToolResult(ctx, engine, userGetRequest, "failed to get user",
+					helpers.WebLinkerWithIDPathBuilder("/app/people"),
+				)
 			}
 
 			user, err := projects.UserGet(ctx, engine, userGetRequest)

@@ -429,10 +429,11 @@ func TimerGet(engine *twapi.Engine) toolsets.ToolWrapper {
 						Type:        "integer",
 						Description: "The ID of the timer to get.",
 					},
+					"fields": helpers.FieldsSchema("timer"),
 				},
 				Required: []string{"id"},
 			},
-			OutputSchema: timerGetOutputSchema,
+			OutputSchema: helpers.WithOptionalFields(timerGetOutputSchema),
 		},
 		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 			var timerGetRequest projects.TimerGetRequest
@@ -443,9 +444,16 @@ func TimerGet(engine *twapi.Engine) toolsets.ToolWrapper {
 			}
 			err := helpers.ParamGroup(arguments,
 				helpers.RequiredNumericParam(&timerGetRequest.Path.ID, "id"),
+				helpers.OptionalFieldsParam[projects.Timer](&timerGetRequest.Fields.Timer, "fields"),
 			)
 			if err != nil {
 				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
+			}
+
+			if len(timerGetRequest.Fields.Timer) > 0 {
+				return helpers.NewRawToolResult(ctx, engine, timerGetRequest, "failed to get timer",
+					helpers.WebLinkerWithIDPathBuilder("/app/timers"),
+				)
 			}
 
 			timer, err := projects.TimerGet(ctx, engine, timerGetRequest)

@@ -602,10 +602,11 @@ func TaskGet(engine *twapi.Engine) toolsets.ToolWrapper {
 						Type:        "integer",
 						Description: "The ID of the task to get.",
 					},
+					"fields": helpers.FieldsSchema("task"),
 				},
 				Required: []string{"id"},
 			},
-			OutputSchema: taskGetOutputSchema,
+			OutputSchema: helpers.WithOptionalFields(taskGetOutputSchema),
 		},
 		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 			var taskGetRequest projects.TaskGetRequest
@@ -625,9 +626,19 @@ func TaskGet(engine *twapi.Engine) toolsets.ToolWrapper {
 			}
 			err := helpers.ParamGroup(arguments,
 				helpers.RequiredNumericParam(&taskGetRequest.Path.ID, "id"),
+				helpers.OptionalFieldsParam[projects.Task](&taskGetRequest.Fields.Task, "fields"),
 			)
 			if err != nil {
 				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
+			}
+
+			if len(taskGetRequest.Fields.Task) > 0 {
+				// Drop the sideloads: they are not what the selection named, and
+				// they would return the bulk it exists to avoid.
+				taskGetRequest.Filters = projects.TaskRequestFilters{}
+				return helpers.NewRawToolResult(ctx, engine, taskGetRequest, "failed to get task",
+					helpers.WebLinkerWithIDPathBuilder("/app/tasks"),
+				)
 			}
 
 			task, err := projects.TaskGet(ctx, engine, taskGetRequest)
