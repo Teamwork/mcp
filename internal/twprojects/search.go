@@ -71,15 +71,7 @@ func Search(engine *twapi.Engine) toolsets.ToolWrapper {
 							{Type: "null"},
 						},
 					},
-					"updated_after": {
-						Description: "Only include items updated after this date.",
-						AnyOf: []*jsonschema.Schema{
-							{Type: "string"},
-							{Type: "null"},
-						},
-						Format:   "date-time",
-						Examples: []any{"2023-01-01T00:00:00Z"},
-					},
+					"updated_after": helpers.DateTimeFilterSchema("Only include items updated after this date."),
 					"extended_search": {
 						Description: "Whether to perform an extended search, which includes items updated more than 5 years ago.",
 						AnyOf: []*jsonschema.Schema{

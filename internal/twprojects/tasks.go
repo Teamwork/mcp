@@ -695,22 +695,8 @@ func TaskList(engine *twapi.Engine) toolsets.ToolWrapper {
 					},
 					"tag_ids":        helpers.TagIDsFilterSchema("tasks"),
 					"match_all_tags": helpers.MatchAllTagsSchema(),
-					"created_after": {
-						Description: "Filter tasks created after.",
-						Examples:    []any{"2023-01-01T00:00:00Z"},
-						AnyOf: []*jsonschema.Schema{
-							{Type: "string", Format: "date-time"},
-							{Type: "null"},
-						},
-					},
-					"created_before": {
-						Description: "Filter tasks created before.",
-						Examples:    []any{"2023-12-31T23:59:59Z"},
-						AnyOf: []*jsonschema.Schema{
-							{Type: "string", Format: "date-time"},
-							{Type: "null"},
-						},
-					},
+					"created_after":  helpers.DateTimeFilterSchema("Filter tasks created after."),
+					"created_before": helpers.DateTimeFilterSchema("Filter tasks created before."),
 					"created_by_user_ids": {
 						Description: "Filter tasks by creator.",
 						AnyOf: []*jsonschema.Schema{
@@ -718,38 +704,10 @@ func TaskList(engine *twapi.Engine) toolsets.ToolWrapper {
 							{Type: "null"},
 						},
 					},
-					"updated_after": {
-						Description: "Filter tasks updated after.",
-						Examples:    []any{"2023-01-01T00:00:00Z"},
-						AnyOf: []*jsonschema.Schema{
-							{Type: "string", Format: "date-time"},
-							{Type: "null"},
-						},
-					},
-					"updated_before": {
-						Description: "Filter tasks updated before.",
-						Examples:    []any{"2023-12-31T23:59:59Z"},
-						AnyOf: []*jsonschema.Schema{
-							{Type: "string", Format: "date-time"},
-							{Type: "null"},
-						},
-					},
-					"completed_after": {
-						Description: "Filter tasks completed after.",
-						Examples:    []any{"2023-01-01T00:00:00Z"},
-						AnyOf: []*jsonschema.Schema{
-							{Type: "string", Format: "date-time"},
-							{Type: "null"},
-						},
-					},
-					"completed_before": {
-						Description: "Filter tasks completed before.",
-						Examples:    []any{"2023-12-31T23:59:59Z"},
-						AnyOf: []*jsonschema.Schema{
-							{Type: "string", Format: "date-time"},
-							{Type: "null"},
-						},
-					},
+					"updated_after":    helpers.DateTimeFilterSchema("Filter tasks updated after."),
+					"updated_before":   helpers.DateTimeFilterSchema("Filter tasks updated before."),
+					"completed_after":  helpers.DateTimeFilterSchema("Filter tasks completed after."),
+					"completed_before": helpers.DateTimeFilterSchema("Filter tasks completed before."),
 					"due_after": {
 						Description: "Filter tasks due after.",
 						Examples:    []any{"2023-01-01"},
@@ -817,12 +775,15 @@ func TaskList(engine *twapi.Engine) toolsets.ToolWrapper {
 				helpers.OptionalNumericParam(&taskListRequest.Filters.Page, "page"),
 				helpers.OptionalNumericParam(&taskListRequest.Filters.PageSize, "page_size"),
 				helpers.OptionalTimePointerParam(&taskListRequest.Filters.CreatedAfter, "created_after"),
-				helpers.OptionalTimePointerParam(&taskListRequest.Filters.CreatedBefore, "created_before"),
+				helpers.OptionalTimePointerParam(&taskListRequest.Filters.CreatedBefore, "created_before",
+					helpers.EndOfDay()),
 				helpers.OptionalNumericListParam(&taskListRequest.Filters.CreatedByUserIDs, "created_by_user_ids"),
 				helpers.OptionalTimePointerParam(&taskListRequest.Filters.UpdatedAfter, "updated_after"),
-				helpers.OptionalTimePointerParam(&taskListRequest.Filters.UpdatedBefore, "updated_before"),
+				helpers.OptionalTimePointerParam(&taskListRequest.Filters.UpdatedBefore, "updated_before",
+					helpers.EndOfDay()),
 				helpers.OptionalTimePointerParam(&taskListRequest.Filters.CompletedAfter, "completed_after"),
-				helpers.OptionalTimePointerParam(&taskListRequest.Filters.CompletedBefore, "completed_before"),
+				helpers.OptionalTimePointerParam(&taskListRequest.Filters.CompletedBefore, "completed_before",
+					helpers.EndOfDay()),
 				helpers.OptionalDatePointerParam(&taskListRequest.Filters.DueAfter, "due_after"),
 				helpers.OptionalDatePointerParam(&taskListRequest.Filters.DueBefore, "due_before"),
 				helpers.OptionalPointerParam(&showCompleted, "show_completed"),

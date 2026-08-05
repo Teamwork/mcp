@@ -117,7 +117,7 @@ func ActivityList(engine *twapi.Engine) toolsets.ToolWrapper {
 			err := helpers.ParamGroup(arguments,
 				helpers.OptionalNumericParam(&activityListRequest.Path.ProjectID, "project_id"),
 				helpers.OptionalTimeParam(&activityListRequest.Filters.StartDate, "start_date"),
-				helpers.OptionalTimeParam(&activityListRequest.Filters.EndDate, "end_date"),
+				helpers.OptionalTimeParam(&activityListRequest.Filters.EndDate, "end_date", helpers.EndOfDay()),
 				helpers.OptionalListParam(&activityListRequest.Filters.LogItemTypes, "log_item_types"),
 				helpers.OptionalNumericParam(&activityListRequest.Filters.Page, "page"),
 				helpers.OptionalNumericParam(&activityListRequest.Filters.PageSize, "page_size"),

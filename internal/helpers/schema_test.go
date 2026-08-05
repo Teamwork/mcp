@@ -169,17 +169,29 @@ func TestDateTimeFilterSchema(t *testing.T) {
 	t.Parallel()
 
 	got := helpers.DateTimeFilterSchema("Filter tasks created after.")
-	if got.Description != "Filter tasks created after." {
-		t.Errorf("DateTimeFilterSchema description = %q", got.Description)
+	if !strings.HasPrefix(got.Description, "Filter tasks created after. ") {
+		t.Errorf("DateTimeFilterSchema description = %q, want the caller's text first", got.Description)
 	}
-	if len(got.AnyOf) != 2 {
-		t.Fatalf("DateTimeFilterSchema AnyOf len = %d, want 2", len(got.AnyOf))
+	// The plain-date form has to be advertised, not just accepted: a schema that
+	// mentions only RFC 3339 is what makes a model spend its first call on a
+	// value the binder rejects.
+	if !strings.Contains(got.Description, "YYYY-MM-DD") {
+		t.Errorf("DateTimeFilterSchema description should document the plain-date form, got %q", got.Description)
+	}
+	if len(got.Examples) == 0 {
+		t.Error("DateTimeFilterSchema should carry examples of both accepted forms")
+	}
+	if len(got.AnyOf) != 3 {
+		t.Fatalf("DateTimeFilterSchema AnyOf len = %d, want 3", len(got.AnyOf))
 	}
 	if got.AnyOf[0].Type != "string" || got.AnyOf[0].Format != "date-time" {
 		t.Errorf("DateTimeFilterSchema AnyOf[0] = %+v, want string/date-time", got.AnyOf[0])
 	}
-	if got.AnyOf[1].Type != "null" {
-		t.Errorf("DateTimeFilterSchema AnyOf[1].Type = %q, want null", got.AnyOf[1].Type)
+	if got.AnyOf[1].Type != "string" || got.AnyOf[1].Format != "date" {
+		t.Errorf("DateTimeFilterSchema AnyOf[1] = %+v, want string/date", got.AnyOf[1])
+	}
+	if got.AnyOf[2].Type != "null" {
+		t.Errorf("DateTimeFilterSchema AnyOf[2].Type = %q, want null", got.AnyOf[2].Type)
 	}
 }
 
