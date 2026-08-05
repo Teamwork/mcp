@@ -6,23 +6,31 @@ import (
 	"github.com/google/jsonschema-go/jsonschema"
 )
 
+// maxPageSize is the largest page the v3 API accepts
+const maxPageSize = 500.0
+
 // PageSchema returns the schema for a page-number pagination parameter.
 func PageSchema() *jsonschema.Schema {
 	return &jsonschema.Schema{
-		Description: "Page number for pagination of results.",
+		Description: "Page number for pagination of results (1-based).",
 		AnyOf: []*jsonschema.Schema{
-			{Type: "integer"},
+			{Type: "integer", Minimum: new(1.0)},
 			{Type: "null"},
 		},
 	}
 }
 
 // PageSizeSchema returns the schema for a page-size pagination parameter.
+//
+// The bounds are the ones the v3 API enforces
+// (https://apidocs.teamwork.com/guides/teamwork/how-does-paging-work): it
+// rejects anything above 500 with a 400, so declaring the ceiling turns a
+// wasted round trip into a client-side validation error.
 func PageSizeSchema() *jsonschema.Schema {
 	return &jsonschema.Schema{
-		Description: "Number of results per page for pagination.",
+		Description: "Number of results per page for pagination (1-500).",
 		AnyOf: []*jsonschema.Schema{
-			{Type: "integer"},
+			{Type: "integer", Minimum: new(1.0), Maximum: new(maxPageSize)},
 			{Type: "null"},
 		},
 	}
