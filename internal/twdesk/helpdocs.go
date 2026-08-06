@@ -95,7 +95,7 @@ func HelpDocArticleSearch(httpClient *http.Client) toolsets.ToolWrapper {
 						},
 					},
 					"siteID": {
-						Description: "Filter by help doc site ID.",
+						Description: "Filter by help doc site ID. Use twdesk-list_helpdoc_sites to discover.",
 						AnyOf: []*jsonschema.Schema{
 							{Type: "integer"},
 							{Type: "null"},
@@ -169,8 +169,9 @@ func HelpDocArticleCreate(httpClient *http.Client) toolsets.ToolWrapper {
 				AdditionalProperties: falseSchema(),
 				Properties: map[string]*jsonschema.Schema{
 					"siteID": {
-						Type:        "integer",
-						Description: "The ID of the help doc site to create the article in.",
+						Type: "integer",
+						Description: "The ID of the help doc site to create the article in. " +
+							"Use twdesk-list_helpdoc_sites to discover.",
 					},
 					"title": {
 						Type:        "string",
