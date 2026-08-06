@@ -131,6 +131,20 @@ func CalendarEventList(engine *twapi.Engine) toolsets.ToolWrapper {
 					projects.CalendarEventListRequestSideloadTasks,
 					projects.CalendarEventListRequestSideloadTimelogs,
 				}
+				// Restrict sideloads to the fields that resolve ids; otherwise every
+				// attendee drags a full user record into the response.
+				calendarEventListRequest.Filters.Fields.Users = []projects.UserField{
+					projects.UserFieldID, projects.UserFieldFirstName, projects.UserFieldLastName,
+				}
+				calendarEventListRequest.Filters.Fields.Projects = []projects.ProjectField{
+					projects.ProjectFieldID, projects.ProjectFieldName,
+				}
+				calendarEventListRequest.Filters.Fields.Tasks = []projects.TaskField{
+					projects.TaskFieldID, projects.TaskFieldName,
+				}
+				calendarEventListRequest.Filters.Fields.Timelogs = []projects.TimelogField{
+					projects.TimelogFieldID, projects.TimelogFieldDescription, projects.TimelogFieldMinutes,
+				}
 
 			default:
 				calendarEventListRequest.Filters.Fields.Events = []projects.CalendarEventField{
