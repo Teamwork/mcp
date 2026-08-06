@@ -459,6 +459,13 @@ func CommentList(engine *twapi.Engine) toolsets.ToolWrapper {
 							{Type: "null"},
 						},
 					},
+					"user_ids": {
+						Description: "A list of user IDs to filter comments by",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "array", Items: &jsonschema.Schema{Type: "integer"}},
+							{Type: "null"},
+						},
+					},
 					"file_version_id": {
 						Description: "The ID of the file version to retrieve comments for. Each file can have multiple versions, " +
 							"and comments can be associated with specific versions.",
@@ -500,6 +507,7 @@ func CommentList(engine *twapi.Engine) toolsets.ToolWrapper {
 				helpers.OptionalNumericParam(&commentListRequest.Filters.PageSize, "page_size"),
 				helpers.OptionalParam(&verbose, "verbose"),
 				helpers.OptionalFieldsParam[projects.Comment](&commentListRequest.Filters.Fields.Comments, "fields"),
+				helpers.OptionalNumericListParam(&commentListRequest.Filters.UserIDs, "user_ids"),
 			)
 			if err != nil {
 				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
