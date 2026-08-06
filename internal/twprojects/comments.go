@@ -8,6 +8,7 @@ import (
 	"math"
 	"net/http"
 	"reflect"
+	"slices"
 	"strings"
 	"time"
 
@@ -34,6 +35,26 @@ const (
 var (
 	commentGetOutputSchema  *jsonschema.Schema
 	commentListOutputSchema *jsonschema.Schema
+)
+
+// commentListFields is the attribute set list_comments asks for when the caller
+// names none: every attribute the SDK models except htmlBody.
+//
+// htmlBody is the same content as body a second time, and the larger of the
+// two — measured across one real account it came to 130% of the body payload —
+// so a list response carried the text twice for no extra meaning. Selecting the
+// rest server-side rather than stripping htmlBody from the response means we do
+// not pay to transfer it either. get_comment still returns it, and a caller that
+// wants it back in a list can name it in `fields`.
+//
+// Derived from the entity struct rather than restated as constants so an SDK
+// upgrade that adds an attribute picks it up here instead of quietly excluding
+// it.
+var commentListFields = slices.DeleteFunc(
+	helpers.SparseFieldNames[projects.CommentField, projects.Comment](),
+	func(field projects.CommentField) bool {
+		return field == projects.CommentFieldHTMLBody
+	},
 )
 
 func init() {
@@ -551,10 +572,15 @@ func CommentList(engine *twapi.Engine) toolsets.ToolWrapper {
 				commentListRequest.Filters.UpdatedAfter = time.Now().AddDate(0, -3, 0)
 			}
 
-			if !verbose && len(commentListRequest.Filters.Fields.Comments) == 0 {
+			switch {
+			case len(commentListRequest.Filters.Fields.Comments) > 0:
+				// an explicit selection wins over both defaults below
+			case !verbose:
 				commentListRequest.Filters.Fields.Comments = []projects.CommentField{
 					projects.CommentFieldID,
 				}
+			default:
+				commentListRequest.Filters.Fields.Comments = commentListFields
 			}
 
 			resp, err := twapi.ExecuteRaw(ctx, engine, commentListRequest)
