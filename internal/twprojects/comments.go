@@ -140,28 +140,7 @@ func CommentCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 							{Type: "null"},
 						},
 					},
-					"notify": {
-						Description: "Who to notify of the new comment.",
-						Default:     json.RawMessage(`true`),
-						AnyOf: []*jsonschema.Schema{
-							{
-								AnyOf: []*jsonschema.Schema{
-									{
-										Type:        "string",
-										Description: "Notify all project members.",
-										Enum:        []any{"all"},
-									},
-									{
-										Type:        "boolean",
-										Description: "Notify all followers of the entity this comment is related to.",
-										Enum:        []any{true},
-									},
-									helpers.UserGroupsSchema("", true),
-								},
-							},
-							{Type: "null"},
-						},
-					},
+					"notify": helpers.NotifySchema("Who to notify of the new comment.", true),
 				},
 				Required: []string{"object", "body"},
 			},
@@ -182,35 +161,18 @@ func CommentCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
 			}
 
-			if notify, ok := arguments["notify"]; ok {
-				switch value := notify.(type) {
-				case bool:
-					if !value {
-						return helpers.NewToolResultTextError("invalid parameters: notify must be true when using boolean"), nil
-					}
-					commentCreateRequest.Notify = projects.NewCommentNotifyFollowers()
-				case string:
-					switch strings.ToLower(value) {
-					case "all":
-						commentCreateRequest.Notify = projects.NewCommentNotifyAll()
-					default:
-						return helpers.NewToolResultTextError("invalid parameters: notify must be 'all'"), nil
-					}
-				case map[string]any:
-					if notifiers, toolResult := parseLegacyUserGroups(
-						arguments,
-						"notify",
-						"notifiers",
-					); toolResult != nil {
-						return toolResult, nil
-					} else if notifiers != nil {
-						commentCreateRequest.Notify = projects.NewCommentNotifyGroup(*notifiers)
-					}
-				default:
-					return helpers.NewToolResultTextError("invalid parameters: notify must be either boolean true, " +
-						"string ('all'), or an object"), nil
-				}
-			} else {
+			notifyChosen, notifiers, toolResult := parseNotify(arguments, true)
+			if toolResult != nil {
+				return toolResult, nil
+			}
+			switch notifyChosen {
+			case notifyChoiceAll:
+				commentCreateRequest.Notify = projects.NewCommentNotifyAll()
+			case notifyChoiceGroup:
+				commentCreateRequest.Notify = projects.NewCommentNotifyGroup(*notifiers)
+			case notifyChoiceNone:
+				// leave Notify unset: the API sends no notifications
+			default:
 				commentCreateRequest.Notify = projects.NewCommentNotifyFollowers()
 			}
 
@@ -294,28 +256,7 @@ func CommentUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 							{Type: "null"},
 						},
 					},
-					"notify": {
-						Description: "Who to notify of the comment change.",
-						Default:     json.RawMessage(`true`),
-						AnyOf: []*jsonschema.Schema{
-							{
-								AnyOf: []*jsonschema.Schema{
-									{
-										Type:        "string",
-										Description: "Notify all project members.",
-										Enum:        []any{"all"},
-									},
-									{
-										Type:        "boolean",
-										Description: "Notify all followers of the entity this comment is related to.",
-										Enum:        []any{true},
-									},
-									helpers.UserGroupsSchema("", true),
-								},
-							},
-							{Type: "null"},
-						},
-					},
+					"notify": helpers.NotifySchema("Who to notify of the comment change.", true),
 				},
 				Required: []string{"id", "body"},
 			},
@@ -337,35 +278,18 @@ func CommentUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
 			}
 
-			if notify, ok := arguments["notify"]; ok {
-				switch value := notify.(type) {
-				case bool:
-					if !value {
-						return helpers.NewToolResultTextError("invalid parameters: notify must be true when using boolean"), nil
-					}
-					commentUpdateRequest.Notify = projects.NewCommentNotifyFollowers()
-				case string:
-					switch strings.ToLower(value) {
-					case "all":
-						commentUpdateRequest.Notify = projects.NewCommentNotifyAll()
-					default:
-						return helpers.NewToolResultTextError("invalid parameters: notify must be 'all'"), nil
-					}
-				case map[string]any:
-					if notifiers, toolResult := parseLegacyUserGroups(
-						arguments,
-						"notify",
-						"notifiers",
-					); toolResult != nil {
-						return toolResult, nil
-					} else if notifiers != nil {
-						commentUpdateRequest.Notify = projects.NewCommentNotifyGroup(*notifiers)
-					}
-				default:
-					return helpers.NewToolResultTextError("invalid parameters: notify must be either boolean true, " +
-						"string ('all'), or an object"), nil
-				}
-			} else {
+			notifyChosen, notifiers, toolResult := parseNotify(arguments, true)
+			if toolResult != nil {
+				return toolResult, nil
+			}
+			switch notifyChosen {
+			case notifyChoiceAll:
+				commentUpdateRequest.Notify = projects.NewCommentNotifyAll()
+			case notifyChoiceGroup:
+				commentUpdateRequest.Notify = projects.NewCommentNotifyGroup(*notifiers)
+			case notifyChoiceNone:
+				// leave Notify unset: the API sends no notifications
+			default:
 				commentUpdateRequest.Notify = projects.NewCommentNotifyFollowers()
 			}
 

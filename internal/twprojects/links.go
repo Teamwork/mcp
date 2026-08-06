@@ -7,7 +7,6 @@ import (
 	"io"
 	"net/http"
 	"reflect"
-	"strings"
 
 	"github.com/google/jsonschema-go/jsonschema"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
@@ -108,23 +107,7 @@ func LinkCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 							{Type: "null"},
 						},
 					},
-					"notify": {
-						Description: "Who to notify of the new link.",
-						Default:     json.RawMessage(`"all"`),
-						AnyOf: []*jsonschema.Schema{
-							{
-								AnyOf: []*jsonschema.Schema{
-									{
-										Type:        "string",
-										Description: "Notify all project members.",
-										Enum:        []any{"all"},
-									},
-									helpers.UserGroupsSchema("", true),
-								},
-							},
-							{Type: "null"},
-						},
-					},
+					"notify": helpers.NotifySchema("Who to notify of the new link.", false),
 				},
 				Required: []string{"project_id", "code"},
 			},
@@ -148,30 +131,16 @@ func LinkCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
 			}
 
-			if notify, ok := arguments["notify"]; ok {
-				switch value := notify.(type) {
-				case string:
-					switch strings.ToLower(value) {
-					case "all":
-						linkCreateRequest.Notify = projects.NewLinkNotifyAll()
-					default:
-						return helpers.NewToolResultTextError("invalid parameters: notify must be 'all'"), nil
-					}
-				case map[string]any:
-					if notifiers, toolResult := parseLegacyUserGroups(
-						arguments,
-						"notify",
-						"notifiers",
-					); toolResult != nil {
-						return toolResult, nil
-					} else if notifiers != nil {
-						linkCreateRequest.Notify = projects.NewLinkNotifyGroup(*notifiers)
-					}
-				default:
-					return helpers.NewToolResultTextError("invalid parameters: notify must be either string ('all'), " +
-						"or an object"), nil
-				}
-			} else {
+			notifyChosen, notifiers, toolResult := parseNotify(arguments, false)
+			if toolResult != nil {
+				return toolResult, nil
+			}
+			switch notifyChosen {
+			case notifyChoiceGroup:
+				linkCreateRequest.Notify = projects.NewLinkNotifyGroup(*notifiers)
+			case notifyChoiceNone:
+				// leave Notify unset: the API sends no notifications
+			default:
 				linkCreateRequest.Notify = projects.NewLinkNotifyAll()
 			}
 
@@ -231,23 +200,7 @@ func LinkUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 							{Type: "null"},
 						},
 					},
-					"notify": {
-						Description: "Who to notify of the link update.",
-						Default:     json.RawMessage(`"all"`),
-						AnyOf: []*jsonschema.Schema{
-							{
-								AnyOf: []*jsonschema.Schema{
-									{
-										Type:        "string",
-										Description: "Notify all project members.",
-										Enum:        []any{"all"},
-									},
-									helpers.UserGroupsSchema("", true),
-								},
-							},
-							{Type: "null"},
-						},
-					},
+					"notify": helpers.NotifySchema("Who to notify of the link update.", false),
 				},
 				Required: []string{"id"},
 			},
@@ -271,30 +224,16 @@ func LinkUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
 			}
 
-			if notify, ok := arguments["notify"]; ok {
-				switch value := notify.(type) {
-				case string:
-					switch strings.ToLower(value) {
-					case "all":
-						linkUpdateRequest.Notify = projects.NewLinkNotifyAll()
-					default:
-						return helpers.NewToolResultTextError("invalid parameters: notify must be 'all'"), nil
-					}
-				case map[string]any:
-					if notifiers, toolResult := parseLegacyUserGroups(
-						arguments,
-						"notify",
-						"notifiers",
-					); toolResult != nil {
-						return toolResult, nil
-					} else if notifiers != nil {
-						linkUpdateRequest.Notify = projects.NewLinkNotifyGroup(*notifiers)
-					}
-				default:
-					return helpers.NewToolResultTextError("invalid parameters: notify must be either string ('all'), " +
-						"or an object"), nil
-				}
-			} else {
+			notifyChosen, notifiers, toolResult := parseNotify(arguments, false)
+			if toolResult != nil {
+				return toolResult, nil
+			}
+			switch notifyChosen {
+			case notifyChoiceGroup:
+				linkUpdateRequest.Notify = projects.NewLinkNotifyGroup(*notifiers)
+			case notifyChoiceNone:
+				// leave Notify unset: the API sends no notifications
+			default:
 				linkUpdateRequest.Notify = projects.NewLinkNotifyAll()
 			}
 
