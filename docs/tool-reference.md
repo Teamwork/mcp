@@ -109,11 +109,12 @@ Companies, customers, and user management in Teamwork Desk.
 
 ### Helpdocs — `twdesk-helpdocs`
 
-Help doc articles in Teamwork Desk.
+Help doc articles and sites in Teamwork Desk.
 
 | Resource | Create | Get | List | Update |
 |---|---|---|---|---|
 | Helpdoc Article | ✓ | ✓ | — | ✓ |
+| Helpdoc Site | — | ✓ | ✓ | — |
 
 **Other actions:** `search_helpdoc_articles`
 
