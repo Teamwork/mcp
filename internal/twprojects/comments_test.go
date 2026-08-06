@@ -337,3 +337,17 @@ func TestCommentListByLink(t *testing.T) {
 		"page_size":     float64(10),
 	})
 }
+
+func TestCommentListByUsers(t *testing.T) {
+	mcpServer, lastURL := testutil.ProjectsMCPServerMockWithRequestURL(t, http.StatusOK, []byte(`{}`))
+	testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodCommentList.String(), map[string]any{
+		"user_ids":      []any{float64(123), float64(456)},
+		"updated_after": "2025-01-01T00:00:00Z",
+		"page":          float64(1),
+		"page_size":     float64(10),
+	})
+
+	if got := lastURL.Query().Get("userIds"); got != "123,456" {
+		t.Errorf("expected userIds=123,456 in the outgoing query but got %q", got)
+	}
+}
