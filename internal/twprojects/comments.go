@@ -489,13 +489,13 @@ func CommentList(engine *twapi.Engine) toolsets.ToolWrapper {
 				helpers.OptionalNumericParam(&commentListRequest.Path.NotebookID, "notebook_id"),
 				helpers.OptionalNumericParam(&commentListRequest.Path.LinkID, "link_id"),
 				helpers.OptionalNumericParam(&commentListRequest.Path.FileVersionID, "file_version_id"),
+				helpers.OptionalNumericListParam(&commentListRequest.Filters.UserIDs, "user_ids"),
 				helpers.OptionalParam(&commentListRequest.Filters.SearchTerm, "search_term"),
 				helpers.OptionalTimeParam(&commentListRequest.Filters.UpdatedAfter, "updated_after"),
 				helpers.OptionalNumericParam(&commentListRequest.Filters.Page, "page"),
 				helpers.OptionalNumericParam(&commentListRequest.Filters.PageSize, "page_size"),
 				helpers.OptionalParam(&verbose, "verbose"),
 				helpers.OptionalFieldsParam[projects.Comment](&commentListRequest.Filters.Fields.Comments, "fields"),
-				helpers.OptionalNumericListParam(&commentListRequest.Filters.UserIDs, "user_ids"),
 			)
 			if err != nil {
 				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
