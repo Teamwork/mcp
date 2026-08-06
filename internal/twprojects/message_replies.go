@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"strings"
 
 	"github.com/google/jsonschema-go/jsonschema"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
@@ -78,23 +77,7 @@ func MessageReplyCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 							{Type: "null"},
 						},
 					},
-					"notify": {
-						Description: "Who to notify of the new reply.",
-						Default:     json.RawMessage(`"all"`),
-						AnyOf: []*jsonschema.Schema{
-							{
-								AnyOf: []*jsonschema.Schema{
-									{
-										Type:        "string",
-										Description: "Notify all project members.",
-										Enum:        []any{"all"},
-									},
-									helpers.UserGroupsSchema("", true),
-								},
-							},
-							{Type: "null"},
-						},
-					},
+					"notify": helpers.NotifySchema("Who to notify of the new reply.", false),
 				},
 				Required: []string{"message_id", "body"},
 			},
@@ -115,30 +98,16 @@ func MessageReplyCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
 			}
 
-			if notify, ok := arguments["notify"]; ok {
-				switch value := notify.(type) {
-				case string:
-					switch strings.ToLower(value) {
-					case "all":
-						messageReplyCreateRequest.Notify = projects.NewMessageNotifyAll()
-					default:
-						return helpers.NewToolResultTextError("invalid parameters: notify must be 'all'"), nil
-					}
-				case map[string]any:
-					if notifiers, toolResult := parseLegacyUserGroups(
-						arguments,
-						"notify",
-						"notifiers",
-					); toolResult != nil {
-						return toolResult, nil
-					} else if notifiers != nil {
-						messageReplyCreateRequest.Notify = projects.NewMessageNotifyGroup(*notifiers)
-					}
-				default:
-					return helpers.NewToolResultTextError("invalid parameters: notify must be either string ('all'), " +
-						"or an object"), nil
-				}
-			} else {
+			notifyChosen, notifiers, toolResult := parseNotify(arguments, false)
+			if toolResult != nil {
+				return toolResult, nil
+			}
+			switch notifyChosen {
+			case notifyChoiceGroup:
+				messageReplyCreateRequest.Notify = projects.NewMessageNotifyGroup(*notifiers)
+			case notifyChoiceNone:
+				// leave Notify unset: the API sends no notifications
+			default:
 				messageReplyCreateRequest.Notify = projects.NewMessageNotifyAll()
 			}
 
@@ -183,23 +152,7 @@ func MessageReplyUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 							{Type: "null"},
 						},
 					},
-					"notify": {
-						Description: "Who to notify of the reply update.",
-						Default:     json.RawMessage(`"all"`),
-						AnyOf: []*jsonschema.Schema{
-							{
-								AnyOf: []*jsonschema.Schema{
-									{
-										Type:        "string",
-										Description: "Notify all project members.",
-										Enum:        []any{"all"},
-									},
-									helpers.UserGroupsSchema("", true),
-								},
-							},
-							{Type: "null"},
-						},
-					},
+					"notify": helpers.NotifySchema("Who to notify of the reply update.", false),
 				},
 				Required: []string{"id"},
 			},
@@ -220,30 +173,16 @@ func MessageReplyUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
 			}
 
-			if notify, ok := arguments["notify"]; ok {
-				switch value := notify.(type) {
-				case string:
-					switch strings.ToLower(value) {
-					case "all":
-						messageReplyUpdateRequest.Notify = projects.NewMessageNotifyAll()
-					default:
-						return helpers.NewToolResultTextError("invalid parameters: notify must be 'all'"), nil
-					}
-				case map[string]any:
-					if notifiers, toolResult := parseLegacyUserGroups(
-						arguments,
-						"notify",
-						"notifiers",
-					); toolResult != nil {
-						return toolResult, nil
-					} else if notifiers != nil {
-						messageReplyUpdateRequest.Notify = projects.NewMessageNotifyGroup(*notifiers)
-					}
-				default:
-					return helpers.NewToolResultTextError("invalid parameters: notify must be either string ('all'), " +
-						"or an object"), nil
-				}
-			} else {
+			notifyChosen, notifiers, toolResult := parseNotify(arguments, false)
+			if toolResult != nil {
+				return toolResult, nil
+			}
+			switch notifyChosen {
+			case notifyChoiceGroup:
+				messageReplyUpdateRequest.Notify = projects.NewMessageNotifyGroup(*notifiers)
+			case notifyChoiceNone:
+				// leave Notify unset: the API sends no notifications
+			default:
 				messageReplyUpdateRequest.Notify = projects.NewMessageNotifyAll()
 			}
 

@@ -1,6 +1,7 @@
 package helpers
 
 import (
+	"encoding/json"
 	"fmt"
 
 	"github.com/google/jsonschema-go/jsonschema"
@@ -206,6 +207,50 @@ func UserGroupsSchema(description string, required bool) *jsonschema.Schema {
 		Description: description,
 		AnyOf: []*jsonschema.Schema{
 			obj,
+			{Type: "null"},
+		},
+	}
+}
+
+// NotifySchema returns the schema for a "notify" parameter. Every shape must
+// be advertised here: the MCP SDK validates arguments against the schema
+// before the handler runs, so parseNotify (twprojects) can only coerce what
+// the schema allows. false = notify nobody. true = followers and the default
+// when withFollowers (comments), otherwise an alias for "all", the default.
+func NotifySchema(description string, withFollowers bool) *jsonschema.Schema {
+	defaultValue := json.RawMessage(`"all"`)
+	boolDescription := `true is the same as "all": notify all project members. false notifies nobody.`
+	boolPhrase := `, the boolean true as an alias for "all"`
+	if withFollowers {
+		defaultValue = json.RawMessage(`true`)
+		boolDescription = "true notifies all followers of the entity this comment is related to. " +
+			"false notifies nobody."
+		boolPhrase = ", the boolean true to notify all followers of the related entity"
+	}
+	description += ` Accepts the string "all" to notify all project members` + boolPhrase +
+		`, the boolean false to notify nobody, a plain array of user IDs (e.g. [123, 456]), ` +
+		`or an object selecting user_ids, company_ids, team_ids and/or job_role_ids ` +
+		`(e.g. {"user_ids": [123, 456]}).`
+	return &jsonschema.Schema{
+		Description: description,
+		Default:     defaultValue,
+		AnyOf: []*jsonschema.Schema{
+			{
+				Type:        "string",
+				Description: "Notify all project members.",
+				Enum:        []any{"all"},
+			},
+			{
+				Type:        "boolean",
+				Description: boolDescription,
+			},
+			{
+				Type:        "array",
+				Description: `The IDs of the users to notify; shorthand for {"user_ids": [...]}.`,
+				Items:       &jsonschema.Schema{Type: "integer"},
+				MinItems:    new(1),
+			},
+			UserGroupsSchema("", true),
 			{Type: "null"},
 		},
 	}

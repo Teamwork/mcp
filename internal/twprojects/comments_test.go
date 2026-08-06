@@ -1,6 +1,7 @@
 package twprojects_test
 
 import (
+	"encoding/json"
 	"net/http"
 	"testing"
 
@@ -24,6 +25,48 @@ func TestCommentCreate(t *testing.T) {
 			"company_ids": []any{float64(4)},
 		},
 	})
+}
+
+// Comment-specific notify contract: true (and the default) mean followers;
+// the shared shapes behave as in the other notify-carrying tools.
+func TestCommentCreateNotifyShapes(t *testing.T) {
+	tests := []struct {
+		name       string
+		notify     any
+		wantNotify string // raw JSON as serialized for the API; empty means omitted
+	}{
+		{name: "boolean true notifies followers", notify: true, wantNotify: `true`},
+		{name: "boolean false notifies nobody", notify: false, wantNotify: ""},
+		{name: "explicit null falls back to followers", notify: nil, wantNotify: `true`},
+		{name: "string all notifies project members", notify: "all", wantNotify: `"ALL"`},
+		{name: "array of user IDs", notify: []any{float64(1), float64(2)}, wantNotify: `"1,2"`},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mcpServer, requestBody := mcpServerMockWithRequestBody(t, http.StatusCreated, []byte(`{"id":"123"}`))
+			testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodCommentCreate.String(), map[string]any{
+				"object": map[string]any{
+					"type": "tasks",
+					"id":   float64(123),
+				},
+				"body":   "Example",
+				"notify": tt.notify,
+			})
+
+			var payload struct {
+				Comment struct {
+					Notify json.RawMessage `json:"notify"`
+				} `json:"comment"`
+			}
+			if err := json.Unmarshal(*requestBody, &payload); err != nil {
+				t.Fatalf("failed to decode request body %q: %v", string(*requestBody), err)
+			}
+			if string(payload.Comment.Notify) != tt.wantNotify {
+				t.Errorf("expected notify %s, got %s (body %q)",
+					tt.wantNotify, payload.Comment.Notify, string(*requestBody))
+			}
+		})
+	}
 }
 
 func TestCommentUpdate(t *testing.T) {
