@@ -9,6 +9,7 @@ import (
 
 	"github.com/google/jsonschema-go/jsonschema"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
+	"github.com/sonh/qs"
 	deskclient "github.com/teamwork/desksdkgo/client"
 	deskmodels "github.com/teamwork/desksdkgo/models"
 	"github.com/teamwork/mcp/internal/helpers"
@@ -84,6 +85,24 @@ func TicketGet(httpClient *http.Client) toolsets.ToolWrapper {
 	}
 }
 
+// ticketSearchService points a generic Desk service at the ticket search
+// endpoint.
+//
+// client.Tickets.Search cannot be used: it builds its query string solely from
+// the qs-encoded SearchTicketsFilter, which has no page, pageSize, ordering or
+// sparse-fieldset field. Every call therefore came back as the endpoint's
+// default first page of 50 tickets with the full attribute set, no matter what
+// the caller asked for, and the response metadata reported those defaults so
+// the caller could not tell. Routing through Service.List hits the same
+// /search/tickets.json path while letting the handler own the query string.
+func ticketSearchService(
+	client *deskclient.Client,
+) *deskclient.Service[deskmodels.TicketResponse, deskmodels.TicketsResponse] {
+	return deskclient.NewService[deskmodels.TicketResponse, deskmodels.TicketsResponse](
+		client, deskclient.NewDefaultPathHandler("search/tickets"),
+	)
+}
+
 // TicketSearch uses the search API to find tickets in Teamwork Desk
 func TicketSearch(httpClient *http.Client) toolsets.ToolWrapper {
 	properties := map[string]*jsonschema.Schema{
@@ -143,6 +162,8 @@ func TicketSearch(httpClient *http.Client) toolsets.ToolWrapper {
 				{Type: "null"},
 			},
 		},
+		"createdAfter":  helpers.DateTimeFilterSchema("Filter by ticket creation date: only tickets created after this."),
+		"createdBefore": helpers.DateTimeFilterSchema("Filter by ticket creation date: only tickets created before this."),
 	}
 	properties = paginationOptions(properties)
 
@@ -155,7 +176,8 @@ func TicketSearch(httpClient *http.Client) toolsets.ToolWrapper {
 				DestructiveHint: new(false),
 				OpenWorldHint:   new(false),
 			},
-			Description: "Search tickets. Filter by inbox, customer, company, tag, status, priority, or user.",
+			Description: "Search tickets. Filter by inbox, customer, company, tag, status, priority, user, " +
+				"or creation date range.",
 			InputSchema: &jsonschema.Schema{
 				Type:                 "object",
 				AdditionalProperties: falseSchema(),
@@ -163,6 +185,7 @@ func TicketSearch(httpClient *http.Client) toolsets.ToolWrapper {
 				Required: append(paginationRequiredKeys(),
 					"search", "inboxIDs", "customerIDs", "companyIDs",
 					"tagIDs", "statusIDs", "priorityIDs", "userIDs",
+					"createdAfter", "createdBefore",
 				),
 			},
 		},
@@ -173,35 +196,56 @@ func TicketSearch(httpClient *http.Client) toolsets.ToolWrapper {
 				return helpers.NewToolResultTextError("%v", err), nil
 			}
 
-			params := &deskmodels.SearchTicketsFilter{}
+			filter := &deskmodels.SearchTicketsFilter{}
 
-			params.Search = arguments.GetString("search", "")
+			filter.Search = arguments.GetString("search", "")
 
 			if arguments.GetIntSlice("inboxIDs", nil) != nil {
-				params.Inboxes = helpers.IntSliceToInt64(arguments.GetIntSlice("inboxIDs", nil))
+				filter.Inboxes = helpers.IntSliceToInt64(arguments.GetIntSlice("inboxIDs", nil))
 			}
 			if arguments.GetIntSlice("customerIDs", nil) != nil {
-				params.Customers = helpers.IntSliceToInt64(arguments.GetIntSlice("customerIDs", nil))
+				filter.Customers = helpers.IntSliceToInt64(arguments.GetIntSlice("customerIDs", nil))
 			}
 			if arguments.GetIntSlice("companyIDs", nil) != nil {
-				params.Companies = helpers.IntSliceToInt64(arguments.GetIntSlice("companyIDs", nil))
+				filter.Companies = helpers.IntSliceToInt64(arguments.GetIntSlice("companyIDs", nil))
 			}
 			if arguments.GetIntSlice("tagIDs", nil) != nil {
-				params.Tags = helpers.IntSliceToInt64(arguments.GetIntSlice("tagIDs", nil))
+				filter.Tags = helpers.IntSliceToInt64(arguments.GetIntSlice("tagIDs", nil))
 			}
 			if arguments.GetIntSlice("statusIDs", nil) != nil {
-				params.Statuses = helpers.IntSliceToInt64(arguments.GetIntSlice("statusIDs", nil))
+				filter.Statuses = helpers.IntSliceToInt64(arguments.GetIntSlice("statusIDs", nil))
 			}
 			if arguments.GetIntSlice("priorityIDs", nil) != nil {
-				params.Priorities = helpers.IntSliceToInt64(arguments.GetIntSlice("priorityIDs", nil))
+				filter.Priorities = helpers.IntSliceToInt64(arguments.GetIntSlice("priorityIDs", nil))
 			}
 			if arguments.GetIntSlice("userIDs", nil) != nil {
-				params.Agents = helpers.IntSliceToInt64(arguments.GetIntSlice("userIDs", nil))
+				filter.Agents = helpers.IntSliceToInt64(arguments.GetIntSlice("userIDs", nil))
 			}
 
-			tickets, err := client.Tickets.Search(ctx, params)
+			// The creation-date window is one of the few filter fields the SDK
+			// models as a time.Time, and the endpoint binds it as one, so it rides
+			// along in the qs encoding below as RFC 3339 rather than being set on
+			// the query string by hand. EndOfDay makes a date-only createdBefore
+			// cover the day it names instead of stopping at its first instant.
+			if err := helpers.ParamGroup(arguments,
+				helpers.OptionalTimePointerParam(&filter.StartDate, "createdAfter"),
+				helpers.OptionalTimePointerParam(&filter.EndDate, "createdBefore", helpers.EndOfDay()),
+			); err != nil {
+				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
+			}
+
+			// Encode the filter the same way the SDK's Search does, then add the
+			// pagination, ordering and sparse fieldset the filter struct cannot
+			// carry. See ticketSearchService.
+			params, err := qs.NewEncoder().Values(filter)
 			if err != nil {
-				return nil, fmt.Errorf("failed to list tickets: %w", err)
+				return nil, fmt.Errorf("failed to encode ticket search filter: %w", err)
+			}
+			setSearchPagination(&params, arguments)
+
+			tickets, err := ticketSearchService(client).List(ctx, params)
+			if err != nil {
+				return nil, fmt.Errorf("failed to search tickets: %w", err)
 			}
 			return helpers.NewToolResultJSON(tickets)
 		},

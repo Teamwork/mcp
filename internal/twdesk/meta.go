@@ -71,11 +71,37 @@ func paginationOptions(properties map[string]*jsonschema.Schema) map[string]*jso
 	return properties
 }
 
+// defaultPageSize is the page size used when the caller does not supply one.
+const defaultPageSize = 10
+
 func setPagination(v *url.Values, arguments helpers.ToolArguments) {
 	v.Set("page", fmt.Sprintf("%d", arguments.GetInt("page", 1)))
-	v.Set("pageSize", fmt.Sprintf("%d", arguments.GetInt("pageSize", 10)))
+	v.Set("pageSize", fmt.Sprintf("%d", arguments.GetInt("pageSize", defaultPageSize)))
 	v.Set("orderBy", arguments.GetString("orderBy", "createdAt"))
 	v.Set("orderMode", arguments.GetString("orderDirection", "desc"))
+	if fields := strings.Join(arguments.GetStringSlice("fields", nil), ","); fields != "" {
+		v.Set("fields", fields)
+	}
+}
+
+// setSearchPagination applies pagination, ordering and the sparse fieldset to
+// the query of a Desk *search* endpoint.
+//
+// It differs from setPagination in that ordering is only sent when the caller
+// asked for it. The search endpoints document page and pageSize (see
+// deskmodels.SearchHelpdocsFilter, and the pageSize/pageOffset the search
+// response reports back), but no ordering parameter, so defaulting the sort
+// would put an unverified parameter on every call. Forwarding it when asked
+// costs nothing if the endpoint ignores it.
+func setSearchPagination(v *url.Values, arguments helpers.ToolArguments) {
+	v.Set("page", fmt.Sprintf("%d", arguments.GetInt("page", 1)))
+	v.Set("pageSize", fmt.Sprintf("%d", arguments.GetInt("pageSize", defaultPageSize)))
+	if orderBy := arguments.GetString("orderBy", ""); orderBy != "" {
+		v.Set("orderBy", orderBy)
+	}
+	if orderDirection := arguments.GetString("orderDirection", ""); orderDirection != "" {
+		v.Set("orderMode", orderDirection)
+	}
 	if fields := strings.Join(arguments.GetStringSlice("fields", nil), ","); fields != "" {
 		v.Set("fields", fields)
 	}
