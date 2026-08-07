@@ -318,6 +318,69 @@ func DeskMCPServerMock(t *testing.T, status int, response []byte) (*mcp.Server, 
 	return mcpServer, cleanup
 }
 
+// DeskMCPServerMockWithRequestURL is like DeskMCPServerMock but also captures
+// the URL of the most recent HTTP request a tool sent, so tests can assert on
+// the query string the tool actually builds.
+//
+// Asserting the response alone cannot catch a filter or pagination parameter
+// that is never sent: the mock replies with the same canned body regardless, so
+// a dropped parameter looks identical to a working one.
+//
+// The URL is returned through an accessor rather than a pointer because the
+// capture happens on the httptest server's goroutine.
+func DeskMCPServerMockWithRequestURL(
+	t *testing.T,
+	status int,
+	response []byte,
+) (*mcp.Server, func() url.URL, func()) {
+	t.Helper()
+
+	mcpServer := mcp.NewServer(&mcp.Implementation{
+		Name:    "test-server",
+		Version: "1.0.0",
+	}, &mcp.ServerOptions{})
+
+	var mu sync.Mutex
+	var lastURL url.URL
+	testServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		mu.Lock()
+		lastURL = *r.URL
+		mu.Unlock()
+
+		w.WriteHeader(status)
+		if _, err := w.Write(response); err != nil {
+			slog.Error("failed to write response", "error", err.Error())
+		}
+	}))
+	testServerURL := testServer.URL
+	cleanup := func() {
+		testServer.Close()
+	}
+	lastRequestURL := func() url.URL {
+		mu.Lock()
+		defer mu.Unlock()
+		return lastURL
+	}
+
+	httpClient := testServer.Client()
+	toolsetGroup := twdesk.DefaultToolsetGroup(false, httpClient)
+	if err := toolsetGroup.EnableToolsets(toolsets.MethodAll); err != nil {
+		cleanup()
+		t.Fatalf("failed to enable toolsets: %v", err)
+	}
+	toolsetGroup.RegisterAll(mcpServer)
+
+	// Add middleware to inject test server URL into context so handlers route correctly
+	mcpServer.AddReceivingMiddleware(func(next mcp.MethodHandler) mcp.MethodHandler {
+		return func(ctx context.Context, method string, req mcp.Request) (result mcp.Result, err error) {
+			ctx = config.WithCustomerURL(ctx, testServerURL)
+			return next(ctx, method, req)
+		}
+	})
+
+	return mcpServer, lastRequestURL, cleanup
+}
+
 // ToolRequest represents a tool request for testing
 type ToolRequest struct {
 	mcp.CallToolRequest
