@@ -162,6 +162,8 @@ func TicketSearch(httpClient *http.Client) toolsets.ToolWrapper {
 				{Type: "null"},
 			},
 		},
+		"createdAfter":  helpers.DateTimeFilterSchema("Filter by ticket creation date: only tickets created after this."),
+		"createdBefore": helpers.DateTimeFilterSchema("Filter by ticket creation date: only tickets created before this."),
 	}
 	properties = paginationOptions(properties)
 
@@ -174,7 +176,8 @@ func TicketSearch(httpClient *http.Client) toolsets.ToolWrapper {
 				DestructiveHint: new(false),
 				OpenWorldHint:   new(false),
 			},
-			Description: "Search tickets. Filter by inbox, customer, company, tag, status, priority, or user.",
+			Description: "Search tickets. Filter by inbox, customer, company, tag, status, priority, user, " +
+				"or creation date range.",
 			InputSchema: &jsonschema.Schema{
 				Type:                 "object",
 				AdditionalProperties: falseSchema(),
@@ -182,6 +185,7 @@ func TicketSearch(httpClient *http.Client) toolsets.ToolWrapper {
 				Required: append(paginationRequiredKeys(),
 					"search", "inboxIDs", "customerIDs", "companyIDs",
 					"tagIDs", "statusIDs", "priorityIDs", "userIDs",
+					"createdAfter", "createdBefore",
 				),
 			},
 		},
@@ -216,6 +220,18 @@ func TicketSearch(httpClient *http.Client) toolsets.ToolWrapper {
 			}
 			if arguments.GetIntSlice("userIDs", nil) != nil {
 				filter.Agents = helpers.IntSliceToInt64(arguments.GetIntSlice("userIDs", nil))
+			}
+
+			// The creation-date window is one of the few filter fields the SDK
+			// models as a time.Time, and the endpoint binds it as one, so it rides
+			// along in the qs encoding below as RFC 3339 rather than being set on
+			// the query string by hand. EndOfDay makes a date-only createdBefore
+			// cover the day it names instead of stopping at its first instant.
+			if err := helpers.ParamGroup(arguments,
+				helpers.OptionalTimePointerParam(&filter.StartDate, "createdAfter"),
+				helpers.OptionalTimePointerParam(&filter.EndDate, "createdBefore", helpers.EndOfDay()),
+			); err != nil {
+				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
 			}
 
 			// Encode the filter the same way the SDK's Search does, then add the
