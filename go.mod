@@ -11,7 +11,7 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/localit-io/tiktoken-go v0.2.1
 	github.com/modelcontextprotocol/go-sdk v1.7.0
-	github.com/sonh/qs v0.6.4
+	github.com/sonh/qs v0.7.0
 	github.com/teamwork/desksdkgo v1.0.1
 	github.com/teamwork/spacessdkgo v0.0.0-20260518181558-a6af69d00abb
 	github.com/teamwork/twapi-go-sdk v1.20.9

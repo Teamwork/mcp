@@ -162,8 +162,8 @@ github.com/segmentio/encoding v0.5.4/go.mod h1:HS1ZKa3kSN32ZHVZ7ZLPLXWvOVIiZtyJn
 github.com/shirou/gopsutil/v4 v4.26.2 h1:X8i6sicvUFih4BmYIGT1m2wwgw2VG9YgrDTi7cIRGUI=
 github.com/shirou/gopsutil/v4 v4.26.2/go.mod h1:LZ6ewCSkBqUpvSOf+LsTGnRinC6iaNUNMGBtDkJBaLQ=
 github.com/sirupsen/logrus v1.7.0/go.mod h1:yWOB1SBYBC5VeMP7gHvWumXLIWorT60ONWic61uBYv0=
-github.com/sonh/qs v0.6.4 h1:iPfyeV8/656XeQruE6VOXWU8FMFqFThTL/M6plP+Uwk=
-github.com/sonh/qs v0.6.4/go.mod h1:8PGnJKqzv2SuLV/1gp4ZauzqnyG/8TwJOGvLZzyc800=
+github.com/sonh/qs v0.7.0 h1:tZZFBpFOpUx3gutixj3U0Z7a6ZfRoX6L7ru043QjhW0=
+github.com/sonh/qs v0.7.0/go.mod h1:8PGnJKqzv2SuLV/1gp4ZauzqnyG/8TwJOGvLZzyc800=
 github.com/spaolacci/murmur3 v1.1.0 h1:7c1g84S4BPRrfL5Xrdp6fOJ206sU9y293DDHaoy0bLI=
 github.com/spaolacci/murmur3 v1.1.0/go.mod h1:JwIasOWyU6f++ZhiEuf87xNszmSA2myDM2Kzu9HwQUA=
 github.com/stretchr/objx v0.1.0/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=
