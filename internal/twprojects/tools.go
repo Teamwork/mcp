@@ -100,6 +100,7 @@ func DefaultToolsetGroup(readOnly, allowDelete bool, engine *twapi.Engine) *tool
 	tasksWriteTools := []toolsets.ToolWrapper{
 		TaskComplete(engine),
 		TaskCreate(engine),
+		TaskMove(engine),
 		TasklistCreate(engine),
 		TasklistUpdate(engine),
 		TaskUpdate(engine),

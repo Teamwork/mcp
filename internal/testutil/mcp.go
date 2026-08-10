@@ -160,7 +160,11 @@ func ChatMCPServerMock(t *testing.T, status int, response []byte) *mcp.Server {
 // ProjectsMockRoute pairs a substring match against the request URL path with
 // the status and body to return when it matches.
 type ProjectsMockRoute struct {
-	Match  string
+	Match string
+	// Method restricts the route to a single HTTP method. An empty value matches
+	// any method, which is what path-only routing needs; set it when one path
+	// serves several verbs, as /tasks/{id}.json does for get and update.
+	Method string
 	Status int
 	Body   []byte
 }
@@ -183,6 +187,9 @@ func ProjectsMCPServerRoutedMock(
 		return twapi.HTTPClientFunc(func(req *http.Request) (*http.Response, error) {
 			path := req.URL.Path
 			for _, route := range routes {
+				if route.Method != "" && route.Method != req.Method {
+					continue
+				}
 				if strings.Contains(path, route.Match) {
 					return newProjectsMockHTTPResponse(route.Status, route.Body), nil
 				}
@@ -230,6 +237,9 @@ func ProjectsMCPServerRoutedMockWithRequestBody(
 			}
 			path := req.URL.Path
 			for _, route := range routes {
+				if route.Method != "" && route.Method != req.Method {
+					continue
+				}
 				if strings.Contains(path, route.Match) {
 					return newProjectsMockHTTPResponse(route.Status, route.Body), nil
 				}
@@ -239,6 +249,55 @@ func ProjectsMCPServerRoutedMockWithRequestBody(
 	}))
 
 	return projectsMCPServer(t, engine), &lastBody
+}
+
+// ProjectsRecordedRequest is one HTTP request captured by
+// ProjectsMCPServerRecordingMock.
+type ProjectsRecordedRequest struct {
+	Method string
+	Path   string
+	Body   []byte
+}
+
+// ProjectsMCPServerRecordingMock is like ProjectsMCPServerRoutedMock but
+// records every request in order rather than only the last body. Tools that fan
+// one call out into many writes need this: the order of those writes is part of
+// the contract (move_tasks must patch a parent before its children), and a
+// single captured body cannot show it.
+func ProjectsMCPServerRecordingMock(
+	t *testing.T,
+	routes []ProjectsMockRoute,
+	fallbackStatus int,
+	fallbackBody []byte,
+) (*mcp.Server, *[]ProjectsRecordedRequest) {
+	t.Helper()
+
+	var recorded []ProjectsRecordedRequest
+	engine := twapi.NewEngine(ProjectsSessionMock{}, twapi.WithMiddleware(func(twapi.HTTPClient) twapi.HTTPClient {
+		return twapi.HTTPClientFunc(func(req *http.Request) (*http.Response, error) {
+			entry := ProjectsRecordedRequest{Method: req.Method, Path: req.URL.Path}
+			if req.Body != nil {
+				body, err := io.ReadAll(req.Body)
+				if err != nil {
+					return nil, err
+				}
+				entry.Body = body
+			}
+			recorded = append(recorded, entry)
+
+			for _, route := range routes {
+				if route.Method != "" && route.Method != req.Method {
+					continue
+				}
+				if strings.Contains(req.URL.Path, route.Match) {
+					return newProjectsMockHTTPResponse(route.Status, route.Body), nil
+				}
+			}
+			return newProjectsMockHTTPResponse(fallbackStatus, fallbackBody), nil
+		})
+	}))
+
+	return projectsMCPServer(t, engine), &recorded
 }
 
 // ProjectsMCPServerSequencedMock creates a mock MCP server for twprojects

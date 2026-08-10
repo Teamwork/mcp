@@ -67,7 +67,7 @@ Task, tasklist, and workflow management in Teamwork.com.
 | Workflow | ✓ | ✓ | ✓ | ✓ |
 | Workflow Stage | ✓ | ✓ | ✓ | ✓ |
 
-**Other actions:** `complete_task`, `link_project_to_workflow`, `move_task_to_workflow_stage`
+**Other actions:** `complete_task`, `link_project_to_workflow`, `move_task_to_workflow_stage`, `move_tasks`
 
 ### Time — `twprojects-time`
 

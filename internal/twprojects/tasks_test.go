@@ -2,6 +2,7 @@ package twprojects_test
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"testing"
 
@@ -148,6 +149,219 @@ func TestTaskUpdateClearAssigneesConflictsWithAssignees(t *testing.T) {
 		}
 		if !toolResult.IsError {
 			t.Errorf("expected an error when combining clear_assignees with a non-empty assignees value")
+		}
+	}))
+}
+
+func TestTaskUpdateClearParentTask(t *testing.T) {
+	mcpServer, requestBody := mcpServerMockWithRequestBody(t, http.StatusOK, []byte(`{}`))
+	testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodTaskUpdate.String(), map[string]any{
+		"id":                float64(123),
+		"clear_parent_task": true,
+	})
+
+	var payload struct {
+		Task struct {
+			ParentTaskID *int64 `json:"parentTaskId"`
+		} `json:"task"`
+	}
+	if err := json.Unmarshal(*requestBody, &payload); err != nil {
+		t.Fatalf("failed to decode request body %q: %v", string(*requestBody), err)
+	}
+
+	// Zero is the sentinel the v3 API accepts to detach a subtask. Omitting the
+	// field entirely leaves the parent link intact, which is the silent no-op
+	// this parameter exists to avoid.
+	if payload.Task.ParentTaskID == nil {
+		t.Fatalf("expected parentTaskId to reach the wire, got body %q", string(*requestBody))
+	}
+	if *payload.Task.ParentTaskID != 0 {
+		t.Errorf("expected parentTaskId 0, got %d (body %q)", *payload.Task.ParentTaskID, string(*requestBody))
+	}
+}
+
+func TestTaskUpdateClearParentTaskConflictsWithParentTaskID(t *testing.T) {
+	mcpServer := mcpServerMock(t, http.StatusOK, []byte(`{}`))
+	testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodTaskUpdate.String(), map[string]any{
+		"id":                float64(123),
+		"clear_parent_task": true,
+		"parent_task_id":    float64(456),
+	}, testutil.ExecuteToolRequestWithCheckMessage(func(t *testing.T, result mcp.Result) {
+		toolResult, ok := result.(*mcp.CallToolResult)
+		if !ok {
+			t.Fatalf("unexpected result type: %T", result)
+		}
+		if !toolResult.IsError {
+			t.Errorf("expected an error when combining clear_parent_task with parent_task_id")
+		}
+	}))
+}
+
+// TestTaskUpdateNullParentTaskIDIsNotAClear pins the meaning of an explicit
+// null. Every optional parameter advertises null so OpenAI strict-mode clients,
+// which must send every property, can fill the unset ones (see commit be42c41).
+// Treating null as "detach from parent" would silently promote a subtask to
+// top-level on any unrelated update those clients make.
+func TestTaskUpdateNullParentTaskIDIsNotAClear(t *testing.T) {
+	mcpServer, requestBody := mcpServerMockWithRequestBody(t, http.StatusOK, []byte(`{}`))
+	testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodTaskUpdate.String(), map[string]any{
+		"id":             float64(123),
+		"parent_task_id": nil,
+		"name":           "renamed",
+	})
+
+	var payload struct {
+		Task map[string]any `json:"task"`
+	}
+	if err := json.Unmarshal(*requestBody, &payload); err != nil {
+		t.Fatalf("failed to decode request body %q: %v", string(*requestBody), err)
+	}
+	if _, ok := payload.Task["parentTaskId"]; ok {
+		t.Errorf("expected parentTaskId to be omitted for a null value, got body %q", string(*requestBody))
+	}
+}
+
+// taskMoveFixture serves task 2, a subtask of task 1, whose own subtree is 3
+// and 4. The v1 move endpoint answers with every task the cascade touched.
+func taskMoveFixture(t *testing.T, taskTasklistID int64) (*mcp.Server, *[]testutil.ProjectsRecordedRequest) {
+	t.Helper()
+
+	task := []byte(fmt.Sprintf(
+		`{"task":{"id":2,"name":"Credit Flow","tasklist":{"id":%d},"parentTask":{"id":1}}}`, taskTasklistID))
+	moved := []byte(`{"affectedTaskIds":"2,3,4","STATUS":"OK"}`)
+
+	return mcpServerRecordingMock(t, []testutil.ProjectsMockRoute{
+		{Method: http.MethodPut, Match: "/tasks/", Status: http.StatusOK, Body: moved},
+		{Method: http.MethodGet, Match: "/tasks/", Status: http.StatusOK, Body: task},
+	}, http.StatusOK, []byte(`{}`))
+}
+
+func requestsOfMethod(recorded []testutil.ProjectsRecordedRequest, method string) []testutil.ProjectsRecordedRequest {
+	var matched []testutil.ProjectsRecordedRequest
+	for _, entry := range recorded {
+		if entry.Method == method {
+			matched = append(matched, entry)
+		}
+	}
+	return matched
+}
+
+func TestTaskMoveCarriesSubtreeInOneCall(t *testing.T) {
+	mcpServer, recorded := taskMoveFixture(t, 10)
+	testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodTaskMove.String(), map[string]any{
+		"task_ids":    []float64{2},
+		"tasklist_id": float64(20),
+	})
+
+	// The subtree travels with the parent, so one write is enough. Patching each
+	// descendant separately is the call amplification this tool exists to avoid.
+	writes := requestsOfMethod(*recorded, http.MethodPut)
+	if len(writes) != 1 {
+		t.Fatalf("expected a single write, got %d", len(writes))
+	}
+	if want := "/tasks/2.json"; writes[0].Path != want {
+		t.Errorf("expected v1 path %s, got %s", want, writes[0].Path)
+	}
+
+	var payload struct {
+		TodoItem struct {
+			ID           int64  `json:"id"`
+			TasklistID   int64  `json:"taskListId"`
+			ParentTaskID *int64 `json:"parentTaskId"`
+		} `json:"todo-item"`
+	}
+	if err := json.Unmarshal(writes[0].Body, &payload); err != nil {
+		t.Fatalf("failed to decode request body %q: %v", string(writes[0].Body), err)
+	}
+	if payload.TodoItem.TasklistID != 20 {
+		t.Errorf("expected taskListId 20, got %d", payload.TodoItem.TasklistID)
+	}
+	// Task 1 stays behind, so the link has to go or the API refuses the move.
+	if payload.TodoItem.ParentTaskID == nil || *payload.TodoItem.ParentTaskID != 0 {
+		t.Errorf("expected parentTaskId 0, got %v (body %q)", payload.TodoItem.ParentTaskID, string(writes[0].Body))
+	}
+}
+
+// TestTaskMoveKeepsParentLinkWhenParentIsNotMoving guards the detach decision:
+// a top-level task has no link to clear, and sending the zero anyway would be a
+// silent no-op at best.
+func TestTaskMoveKeepsParentLinkForTopLevelTask(t *testing.T) {
+	mcpServer, recorded := mcpServerRecordingMock(t, []testutil.ProjectsMockRoute{
+		{Method: http.MethodPut, Match: "/tasks/", Status: http.StatusOK,
+			Body: []byte(`{"affectedTaskIds":"7","STATUS":"OK"}`)},
+		{Method: http.MethodGet, Match: "/tasks/", Status: http.StatusOK,
+			Body: []byte(`{"task":{"id":7,"name":"Standalone","tasklist":{"id":10}}}`)},
+	}, http.StatusOK, []byte(`{}`))
+	testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodTaskMove.String(), map[string]any{
+		"task_ids":    []float64{7},
+		"tasklist_id": float64(20),
+	})
+
+	writes := requestsOfMethod(*recorded, http.MethodPut)
+	if len(writes) != 1 {
+		t.Fatalf("expected a single write, got %d", len(writes))
+	}
+	var payload struct {
+		TodoItem map[string]any `json:"todo-item"`
+	}
+	if err := json.Unmarshal(writes[0].Body, &payload); err != nil {
+		t.Fatalf("failed to decode request body %q: %v", string(writes[0].Body), err)
+	}
+	if _, ok := payload.TodoItem["parentTaskId"]; ok {
+		t.Errorf("expected parentTaskId to be omitted, got body %q", string(writes[0].Body))
+	}
+}
+
+// TestTaskMoveSkipsTasksCarriedByAnotherMove covers a caller naming both a task
+// and one of its descendants. Moving the descendant again would detach it from
+// the parent that just carried it across.
+func TestTaskMoveSkipsTasksCarriedByAnotherMove(t *testing.T) {
+	mcpServer, recorded := mcpServerRecordingMock(t, []testutil.ProjectsMockRoute{
+		{Method: http.MethodPut, Match: "/tasks/", Status: http.StatusOK,
+			Body: []byte(`{"affectedTaskIds":"2,3,4","STATUS":"OK"}`)},
+		{Method: http.MethodGet, Match: "/tasks/2.json", Status: http.StatusOK,
+			Body: []byte(`{"task":{"id":2,"tasklist":{"id":10},"parentTask":{"id":1}}}`)},
+		{Method: http.MethodGet, Match: "/tasks/3.json", Status: http.StatusOK,
+			Body: []byte(`{"task":{"id":3,"tasklist":{"id":10},"parentTask":{"id":2}}}`)},
+	}, http.StatusOK, []byte(`{}`))
+	testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodTaskMove.String(), map[string]any{
+		"task_ids":    []float64{2, 3},
+		"tasklist_id": float64(20),
+	})
+
+	writes := requestsOfMethod(*recorded, http.MethodPut)
+	if len(writes) != 1 {
+		t.Fatalf("expected only the ancestor to be written, got %d writes", len(writes))
+	}
+	if want := "/tasks/2.json"; writes[0].Path != want {
+		t.Errorf("expected the write to target %s, got %s", want, writes[0].Path)
+	}
+}
+
+func TestTaskMoveSkipsTasksAlreadyInDestination(t *testing.T) {
+	mcpServer, recorded := taskMoveFixture(t, 20)
+	testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodTaskMove.String(), map[string]any{
+		"task_ids":    []float64{2},
+		"tasklist_id": float64(20),
+	})
+
+	if writes := requestsOfMethod(*recorded, http.MethodPut); len(writes) != 0 {
+		t.Errorf("expected no write, got %d", len(writes))
+	}
+}
+
+func TestTaskMoveRequiresTaskIDs(t *testing.T) {
+	mcpServer := mcpServerMock(t, http.StatusOK, []byte(`{}`))
+	testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodTaskMove.String(), map[string]any{
+		"task_ids":    []float64{},
+		"tasklist_id": float64(20),
+	}, testutil.ExecuteToolRequestWithCheckMessage(func(t *testing.T, result mcp.Result) {
+		toolResult, ok := result.(*mcp.CallToolResult)
+		if !ok {
+			t.Fatalf("unexpected result type: %T", result)
+		}
+		if !toolResult.IsError {
+			t.Errorf("expected an error when task_ids is empty")
 		}
 	}))
 }
