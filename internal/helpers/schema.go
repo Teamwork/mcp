@@ -125,20 +125,27 @@ func VerboseSchema() *jsonschema.Schema {
 }
 
 // FieldsSchema returns the schema for the sparse-fieldset parameter of a list
-// tool, letting the caller name the attributes it wants instead of choosing
-// between everything (verbose=true) and id plus a label (verbose=false).
+// or get tool. E is the SDK entity struct the tool selects attributes of, the
+// same one its OptionalFieldsParam validates against:
 //
-// The accepted values are the property names of the entity in the tool's own
-// output schema, so the schema deliberately omits an enum: repeating dozens of
-// names the caller can already read there would inflate every tools/list
-// response. OptionalFieldsParam rejects anything outside that set and names the
-// valid values in the error, so a guess costs one round trip rather than a
-// silently truncated result.
-func FieldsSchema(entity string) *jsonschema.Schema {
+//	helpers.FieldsSchema[projects.Task]("task")
+//
+// The accepted names are enumerated off E, so the enum cannot drift from the
+// validator. The enum is the only place a model can read them: tool definitions
+// carry no output schema, so without it the vocabulary is learnt one rejection
+// at a time.
+func FieldsSchema[E any](entity string) *jsonschema.Schema {
+	names := SparseFieldNames[string, E]()
+	// Nil for a non-struct E: a missing constraint, not one that rejects
+	// everything.
+	var enum []any
+	for _, name := range names {
+		enum = append(enum, name)
+	}
 	return &jsonschema.Schema{
-		Description: fmt.Sprintf("The attributes to return for each %s, named as in this tool's output schema.", entity),
+		Description: fmt.Sprintf("The attributes to return for each %s, from the listed names.", entity),
 		AnyOf: []*jsonschema.Schema{
-			{Type: "array", Items: &jsonschema.Schema{Type: "string"}},
+			{Type: "array", Items: &jsonschema.Schema{Type: "string", Enum: enum}},
 			{Type: "null"},
 		},
 	}
