@@ -37,6 +37,45 @@ func paginationRequiredKeys() []string {
 	return []string{"page", "pageSize", "orderBy", "orderDirection", "fields"}
 }
 
+// Desk's page-size ceilings. These are lower than the v3 API's, which is why
+// Desk does not use helpers.PageSizeSchema: advertising 500 to a caller whose
+// request will come back holding 100 rows (or 50, on a search) reads as a short
+// last page rather than as a cap, and nothing in the response says otherwise.
+//
+// Neither endpoint rejects an oversized page — both quietly rewrite it:
+//   - list endpoints clamp anything over 100 to 100 (deskapi
+//     RequestCommons.ApplyDefaults; its OverrideMaxPageSize escape hatch is
+//     tagged query:"-", so a client cannot lift the cap)
+//   - the search endpoints reset anything over 200, or under 1, to 50 — a
+//     request for 250 comes back smaller than one for 200
+const (
+	maxPageSize       = 100.0
+	maxSearchPageSize = 200.0
+)
+
+// pageSizeSchema returns the schema for the pageSize parameter of a Desk list
+// endpoint.
+func pageSizeSchema() *jsonschema.Schema {
+	return deskPageSizeSchema(maxPageSize)
+}
+
+// searchPageSizeSchema returns the schema for the pageSize parameter of a Desk
+// search endpoint, which allows a larger page than the list endpoints do.
+func searchPageSizeSchema() *jsonschema.Schema {
+	return deskPageSizeSchema(maxSearchPageSize)
+}
+
+func deskPageSizeSchema(maximum float64) *jsonschema.Schema {
+	return &jsonschema.Schema{
+		Description: fmt.Sprintf("Number of results per page for pagination (1-%[1]d). The API silently reduces "+
+			"anything above %[1]d, so a larger value returns fewer results rather than more.", int(maximum)),
+		AnyOf: []*jsonschema.Schema{
+			{Type: "integer", Minimum: new(1.0), Maximum: new(maximum)},
+			{Type: "null"},
+		},
+	}
+}
+
 // sparseFieldsSchema returns the JSON schema for the optional sparse fieldset parameter.
 func sparseFieldsSchema() *jsonschema.Schema {
 	return &jsonschema.Schema{
@@ -60,11 +99,24 @@ func getParams(arguments helpers.ToolArguments) url.Values {
 }
 
 func paginationOptions(properties map[string]*jsonschema.Schema) map[string]*jsonschema.Schema {
+	return paginationOptionsWithPageSize(properties, pageSizeSchema())
+}
+
+// searchPaginationOptions is paginationOptions for the search endpoints, which
+// take a larger page than the list endpoints. Only pageSize differs.
+func searchPaginationOptions(properties map[string]*jsonschema.Schema) map[string]*jsonschema.Schema {
+	return paginationOptionsWithPageSize(properties, searchPageSizeSchema())
+}
+
+func paginationOptionsWithPageSize(
+	properties map[string]*jsonschema.Schema,
+	pageSize *jsonschema.Schema,
+) map[string]*jsonschema.Schema {
 	if properties == nil {
 		properties = make(map[string]*jsonschema.Schema)
 	}
 	properties["page"] = helpers.PageSchema()
-	properties["pageSize"] = helpers.PageSizeSchema()
+	properties["pageSize"] = pageSize
 	properties["orderBy"] = helpers.OrderBySchema()
 	properties["orderDirection"] = helpers.OrderDirectionSchema()
 	properties["fields"] = sparseFieldsSchema()
