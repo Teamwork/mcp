@@ -2,11 +2,14 @@ package twprojects
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
+	"github.com/teamwork/mcp/internal/helpers"
 	"github.com/teamwork/mcp/internal/toolsets"
 	"github.com/teamwork/twapi-go-sdk"
 	"github.com/teamwork/twapi-go-sdk/projects"
@@ -50,16 +53,49 @@ func TaskSkillsAndRolesPrompt(engine *twapi.Engine) toolsets.ServerPrompt {
 				return nil, fmt.Errorf("failed to get task: %w", err)
 			}
 
-			tasklistResponse, err := projects.TasklistGet(ctx, engine,
-				projects.NewTasklistGetRequest(taskResponse.Task.Tasklist.ID))
-			if err != nil {
-				return nil, fmt.Errorf("failed to get tasklist: %w", err)
+			var (
+				tasklistResponse *projects.TasklistGetResponse
+				projectResponse  *projects.ProjectGetResponse
+			)
+
+			tasklistID := taskResponse.Task.Tasklist.ID
+			loadTasklist := func() error {
+				var err error
+				tasklistResponse, err = projects.TasklistGet(ctx, engine, projects.NewTasklistGetRequest(tasklistID))
+				if err != nil {
+					return fmt.Errorf("failed to get tasklist: %w", err)
+				}
+				return nil
+			}
+			loadProject := func(projectID int64) error {
+				var err error
+				projectResponse, err = projects.ProjectGet(ctx, engine, projects.NewProjectGetRequest(projectID))
+				if err != nil {
+					return fmt.Errorf("failed to get project: %w", err)
+				}
+				return nil
 			}
 
-			projectResponse, err := projects.ProjectGet(ctx, engine,
-				projects.NewProjectGetRequest(tasklistResponse.Tasklist.Project.ID))
-			if err != nil {
-				return nil, fmt.Errorf("failed to get project: %w", err)
+			// The task's tasklist relationship hints which project it belongs to, so
+			// the tasklist — still loaded for its name — and the project no longer
+			// have to be fetched one after the other.
+			if projectID, ok := helpers.RelationshipMetaID(taskResponse.Task.Tasklist.Meta, "projectId"); ok {
+				var wg sync.WaitGroup
+				var tasklistErr, projectErr error
+				wg.Go(func() { tasklistErr = loadTasklist() })
+				wg.Go(func() { projectErr = loadProject(projectID) })
+				wg.Wait()
+				if err := errors.Join(tasklistErr, projectErr); err != nil {
+					return nil, err
+				}
+			} else {
+				// Sites on an API without the hint still pay the chained round trip.
+				if err := loadTasklist(); err != nil {
+					return nil, err
+				}
+				if err := loadProject(tasklistResponse.Tasklist.Project.ID); err != nil {
+					return nil, err
+				}
 			}
 
 			skillsNext, err := twapi.Iterate[projects.SkillListRequest, *projects.SkillListResponse](
