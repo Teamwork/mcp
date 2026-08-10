@@ -109,7 +109,7 @@ func TestTicketSearchForwardsPaginationAndFields(t *testing.T) {
 		"createdAfter":   nil,
 		"createdBefore":  nil,
 		"page":           float64(3),
-		"pageSize":       float64(250),
+		"pageSize":       float64(200),
 		"orderBy":        "createdAt",
 		"orderDirection": "asc",
 		"fields":         []string{"id", "subject"},
@@ -123,7 +123,7 @@ func TestTicketSearchForwardsPaginationAndFields(t *testing.T) {
 	query := requestURL.Query()
 	for key, want := range map[string]string{
 		"page":      "3",
-		"pageSize":  "250",
+		"pageSize":  "200",
 		"orderBy":   "createdAt",
 		"orderMode": "asc",
 		"fields":    "id,subject",
@@ -187,10 +187,11 @@ func TestTicketSearchDefaultsPaginationWithoutOrdering(t *testing.T) {
 }
 
 // TestTicketSearchForwardsCreatedDateRange pins the creation-date window onto
-// the query string as the endpoint's startDate/endDate. The endpoint binds them
-// as time.Time, so they go over the wire as RFC 3339 via the filter struct's own
-// fields, and a date-only createdBefore covers the whole day it names rather
-// than stopping at that day's first instant.
+// the query string as the endpoint's startDate/endDate, in the plain YYYY-MM-DD
+// form the Desk web app's own search sends. An RFC 3339 value is truncated to
+// its day rather than forwarded: qs would render the filter struct's *time.Time
+// fields as RFC 3339, and sending that shape is what this tool first shipped
+// with and what the endpoint rejected.
 func TestTicketSearchForwardsCreatedDateRange(t *testing.T) {
 	tests := []struct {
 		name                           string
@@ -199,28 +200,28 @@ func TestTicketSearchForwardsCreatedDateRange(t *testing.T) {
 		wantStart, wantEnd             string
 		wantStartAbsent, wantEndAbsent bool
 	}{{
-		name:          "plain dates widen to cover the closing day",
+		name:          "plain dates",
 		createdAfter:  "2026-08-05",
 		createdBefore: "2026-08-06",
-		wantStart:     "2026-08-05T00:00:00Z",
-		wantEnd:       "2026-08-06T23:59:59Z",
+		wantStart:     "2026-08-05",
+		wantEnd:       "2026-08-06",
 	}, {
-		name:          "timestamps kept to the second",
+		name:          "timestamps truncated to the day",
 		createdAfter:  "2026-08-05T14:30:00Z",
 		createdBefore: "2026-08-06T09:15:00Z",
-		wantStart:     "2026-08-05T14:30:00Z",
-		wantEnd:       "2026-08-06T09:15:00Z",
+		wantStart:     "2026-08-05",
+		wantEnd:       "2026-08-06",
 	}, {
 		name:            "open-ended lower bound",
 		createdAfter:    nil,
 		createdBefore:   "2026-08-06",
 		wantStartAbsent: true,
-		wantEnd:         "2026-08-06T23:59:59Z",
+		wantEnd:         "2026-08-06",
 	}, {
 		name:          "open-ended upper bound",
 		createdAfter:  "2026-08-05",
 		createdBefore: nil,
-		wantStart:     "2026-08-05T00:00:00Z",
+		wantStart:     "2026-08-05",
 		wantEndAbsent: true,
 	}}
 

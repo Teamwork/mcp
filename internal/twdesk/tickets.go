@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"time"
 
 	"github.com/google/jsonschema-go/jsonschema"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
@@ -162,10 +163,16 @@ func TicketSearch(httpClient *http.Client) toolsets.ToolWrapper {
 				{Type: "null"},
 			},
 		},
-		"createdAfter":  helpers.DateTimeFilterSchema("Filter by ticket creation date: only tickets created after this."),
-		"createdBefore": helpers.DateTimeFilterSchema("Filter by ticket creation date: only tickets created before this."),
+		"createdAfter": helpers.DateTimeFilterSchema(
+			"Filter by ticket creation date: only tickets created on or after this day. " +
+				"This search filters by whole days, so a time of day is ignored.",
+		),
+		"createdBefore": helpers.DateTimeFilterSchema(
+			"Filter by ticket creation date: only tickets created on or before this day. " +
+				"This search filters by whole days, so a time of day is ignored.",
+		),
 	}
-	properties = paginationOptions(properties)
+	properties = searchPaginationOptions(properties)
 
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
@@ -222,14 +229,13 @@ func TicketSearch(httpClient *http.Client) toolsets.ToolWrapper {
 				filter.Agents = helpers.IntSliceToInt64(arguments.GetIntSlice("userIDs", nil))
 			}
 
-			// The creation-date window is one of the few filter fields the SDK
-			// models as a time.Time, and the endpoint binds it as one, so it rides
-			// along in the qs encoding below as RFC 3339 rather than being set on
-			// the query string by hand. EndOfDay makes a date-only createdBefore
-			// cover the day it names instead of stopping at its first instant.
+			// The creation-date window is bound here rather than onto
+			// filter.StartDate/EndDate so that the value the endpoint receives is
+			// not the RFC 3339 one qs renders a time.Time as. See below.
+			var createdAfter, createdBefore *time.Time
 			if err := helpers.ParamGroup(arguments,
-				helpers.OptionalTimePointerParam(&filter.StartDate, "createdAfter"),
-				helpers.OptionalTimePointerParam(&filter.EndDate, "createdBefore", helpers.EndOfDay()),
+				helpers.OptionalTimePointerParam(&createdAfter, "createdAfter"),
+				helpers.OptionalTimePointerParam(&createdBefore, "createdBefore"),
 			); err != nil {
 				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
 			}
@@ -242,6 +248,13 @@ func TicketSearch(httpClient *http.Client) toolsets.ToolWrapper {
 				return nil, fmt.Errorf("failed to encode ticket search filter: %w", err)
 			}
 			setSearchPagination(&params, arguments)
+
+			if createdAfter != nil {
+				params.Set("startDate", createdAfter.Format(time.DateOnly))
+			}
+			if createdBefore != nil {
+				params.Set("endDate", createdBefore.Format(time.DateOnly))
+			}
 
 			tickets, err := ticketSearchService(client).List(ctx, params)
 			if err != nil {
