@@ -1,7 +1,6 @@
 package twprojects
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -31,11 +30,6 @@ const (
 	MethodTaskList     toolsets.Method = "twprojects-list_tasks"
 	MethodTaskMove     toolsets.Method = "twprojects-move_tasks"
 )
-
-// taskMoveMaxDepth bounds the walk up a task's ancestor chain. Real subtask
-// nesting is a handful of levels; the cap only stops a corrupt chain from
-// looping forever.
-const taskMoveMaxDepth = 20
 
 var (
 	taskGetOutputSchema  *jsonschema.Schema
@@ -282,9 +276,9 @@ func TaskUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 						},
 					},
 					"tasklist_id": {
-						Description: "The ID of the tasklist. This moves the task alone and leaves its " +
-							"subtasks behind; use twprojects-move_tasks to move a task together with its " +
-							"subtasks.",
+						Description: "The ID of the tasklist. Moving the task carries its subtasks along " +
+							"and detaches it from any parent staying behind. Use twprojects-move_tasks to " +
+							"move several tasks at once.",
 						AnyOf: []*jsonschema.Schema{
 							{Type: "integer"},
 							{Type: "null"},
@@ -536,97 +530,14 @@ func TaskUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 	}
 }
 
-// taskMoveV1Request moves a task to another tasklist through the v1 API.
-//
-// v3's PATCH /projects/api/v3/tasks/{id}.json moves only the task it names,
-// leaving the subtasks behind in a state that violates the API's own rule that
-// a subtask shares its parent's tasklist. The v1 endpoint cascades instead: one
-// call moves the task and its whole subtree, and answers with every task ID it
-// touched. Verified against a live installation, where moving one parent
-// returned six affected IDs.
-type taskMoveV1Request struct {
-	TaskID     int64
-	TasklistID int64
-
-	// DetachFromParent clears the task's parent link in the same call. Needed
-	// when the parent stays behind, since the API rejects a subtask whose
-	// tasklist differs from its parent's.
-	DetachFromParent bool
-}
-
-// HTTPRequest builds the PUT /tasks/{id}.json request. v1 lives at the
-// installation root, with no /projects/api prefix.
-func (t taskMoveV1Request) HTTPRequest(ctx context.Context, server string) (*http.Request, error) {
-	uri := server + "/tasks/" + strconv.FormatInt(t.TaskID, 10) + ".json"
-
-	type todoItem struct {
-		ID         int64 `json:"id"`
-		TasklistID int64 `json:"taskListId"`
-		// ParentTaskID is a pointer so the zero that detaches is distinguishable
-		// from "leave the link alone", which is what omitting the field means.
-		ParentTaskID *int64 `json:"parentTaskId,omitempty"`
-	}
-	payload := struct {
-		TodoItem todoItem `json:"todo-item"`
-	}{TodoItem: todoItem{ID: t.TaskID, TasklistID: t.TasklistID}}
-	if t.DetachFromParent {
-		payload.TodoItem.ParentTaskID = new(int64(0))
-	}
-
-	var body bytes.Buffer
-	if err := json.NewEncoder(&body).Encode(payload); err != nil {
-		return nil, fmt.Errorf("failed to encode move task request: %w", err)
-	}
-
-	req, err := http.NewRequestWithContext(ctx, http.MethodPut, uri, &body)
-	if err != nil {
-		return nil, err
-	}
-	req.Header.Set("Content-Type", "application/json")
-	return req, nil
-}
-
-// taskMoveV1Response carries the IDs the cascade touched, as a comma-separated
-// string.
-type taskMoveV1Response struct {
-	AffectedTaskIDs string `json:"affectedTaskIds"`
-	Status          string `json:"STATUS"`
-}
-
-// HandleHTTPResponse handles the HTTP response for the taskMoveV1Response.
-func (t *taskMoveV1Response) HandleHTTPResponse(resp *http.Response) error {
-	if resp.StatusCode != http.StatusOK {
-		return twapi.NewHTTPError(resp, "failed to move task")
-	}
-	if err := json.NewDecoder(resp.Body).Decode(t); err != nil {
-		return fmt.Errorf("failed to decode move task response: %w", err)
-	}
-	return nil
-}
-
-// affected parses the comma-separated affectedTaskIds into IDs, skipping
-// anything unparseable rather than failing a move that already happened.
-func (t *taskMoveV1Response) affected() []int64 {
-	var ids []int64
-	for _, field := range strings.Split(t.AffectedTaskIDs, ",") {
-		id, err := strconv.ParseInt(strings.TrimSpace(field), 10, 64)
-		if err != nil {
-			continue
-		}
-		ids = append(ids, id)
-	}
-	return ids
-}
-
 // TaskMove moves tasks, along with every subtask beneath them, to another
 // tasklist in Teamwork.com.
 //
-// The move itself is one request per task, because the v1 endpoint carries the
-// whole subtree. What the caller cannot do cheaply is decide whether a task
-// needs detaching first: the API rejects a subtask whose tasklist would differ
-// from its parent's, and discovering that rule costs a failed call. This
-// resolves each task, detaches only the ones whose parent stays behind, and
-// drops any task an earlier cascade already carried.
+// One update per task is all this takes. v3 moves the whole subtree with the
+// task and drops an inherited parent the move would invalidate, so neither the
+// ordering nor the detaching has to happen here (projectsapigo 932f6ae200,
+// "Fix: Allow a subtask to be moved to another tasklist"). What the tool adds
+// is the batch: several subtrees move in one call instead of one call each.
 func TaskMove(engine *twapi.Engine) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
@@ -674,122 +585,37 @@ func TaskMove(engine *twapi.Engine) toolsets.ToolWrapper {
 				return helpers.NewToolResultTextError("task_ids must contain at least one task ID"), nil
 			}
 
-			requested := make(map[int64]bool, len(taskIDs))
-			roots := make([]int64, 0, len(taskIDs))
-			for _, id := range taskIDs {
-				if !requested[id] {
-					requested[id] = true
-					roots = append(roots, id)
-				}
-			}
-
-			// Resolving each task is memoised because the ancestor walk below
-			// revisits the same parents across siblings.
-			tasks := make(map[int64]projects.Task, len(roots))
-			resolve := func(id int64) (projects.Task, error) {
-				if task, ok := tasks[id]; ok {
-					return task, nil
-				}
-				taskGetResponse, err := projects.TaskGet(ctx, engine, projects.NewTaskGetRequest(id))
-				if err != nil {
-					return projects.Task{}, err
-				}
-				tasks[id] = taskGetResponse.Task
-				return taskGetResponse.Task, nil
-			}
-
-			for _, id := range roots {
-				if _, err := resolve(id); err != nil {
-					return helpers.HandleAPIError(err, fmt.Sprintf("failed to load task %d", id))
-				}
-			}
-
-			// Naming both a task and one of its descendants would move the
-			// descendant twice, and the second move would detach it from the parent
-			// that just carried it across. Only the topmost of each pair is moved.
-			// Skipped when a single task is requested, where nothing can be an
-			// ancestor of anything else, to keep that case at one GET.
-			descendsFromRequested := func(id int64) (bool, error) {
-				if len(roots) == 1 {
-					return false, nil
-				}
-				for depth := 0; depth < taskMoveMaxDepth; depth++ {
-					task, err := resolve(id)
-					if err != nil {
-						return false, err
-					}
-					if task.ParentTask == nil {
-						return false, nil
-					}
-					if requested[task.ParentTask.ID] {
-						return true, nil
-					}
-					id = task.ParentTask.ID
-				}
-				return false, nil
-			}
-
-			var moved, detached, alreadyThere, carried []int64
+			seen := make(map[int64]bool, len(taskIDs))
+			var moved []int64
 			var failures []string
-			movedByCascade := make(map[int64]bool)
-
-			for _, id := range roots {
-				task := tasks[id]
-
-				if task.Tasklist.ID == tasklistID {
-					alreadyThere = append(alreadyThere, id)
+			for _, id := range taskIDs {
+				if seen[id] {
 					continue
 				}
-				if movedByCascade[id] {
-					carried = append(carried, id)
-					continue
-				}
-				nested, err := descendsFromRequested(id)
-				if err != nil {
-					return helpers.HandleAPIError(err, fmt.Sprintf("failed to load the parents of task %d", id))
-				}
-				if nested {
-					carried = append(carried, id)
-					continue
-				}
+				seen[id] = true
 
-				// Any parent this task still has is staying behind: a requested
-				// ancestor would have sent it down the carried path above.
-				moveRequest := taskMoveV1Request{
-					TaskID:           id,
-					TasklistID:       tasklistID,
-					DetachFromParent: task.ParentTask != nil,
-				}
-				moveResponse, err := twapi.Execute[taskMoveV1Request, *taskMoveV1Response](ctx, engine, moveRequest)
-				if err != nil {
+				// Naming both a task and one of its descendants is safe to send as
+				// is: the ancestor's move carries the descendant, and the second
+				// update then finds it already in the destination and skips the
+				// move, leaving the parent link alone.
+				taskUpdateRequest := projects.NewTaskUpdateRequest(id)
+				// One move can touch a whole subtree; notifying on each would bury
+				// every follower under a reorganisation they did not ask about.
+				taskUpdateRequest.Options.Notify = false
+				taskUpdateRequest.TasklistID = &tasklistID
+
+				if _, err := projects.TaskUpdate(ctx, engine, taskUpdateRequest); err != nil {
 					failures = append(failures, fmt.Sprintf("task %d: %s", id, err.Error()))
 					continue
 				}
-
-				affected := moveResponse.affected()
-				for _, affectedID := range affected {
-					movedByCascade[affectedID] = true
-				}
-				moved = append(moved, affected...)
-				if moveRequest.DetachFromParent {
-					detached = append(detached, id)
-				}
+				moved = append(moved, id)
 			}
 
 			var report strings.Builder
-			fmt.Fprintf(&report, "Moved %d tasks to tasklist %d.", len(moved), tasklistID)
+			fmt.Fprintf(&report, "Moved %d of %d tasks to tasklist %d, each with its subtasks.",
+				len(moved), len(seen), tasklistID)
 			if len(moved) > 0 {
-				fmt.Fprintf(&report, "\nMoved, including subtasks carried along: %s.", joinTaskIDs(moved))
-			}
-			if len(detached) > 0 {
-				fmt.Fprintf(&report, "\nDetached from a parent left behind, now top-level: %s.",
-					joinTaskIDs(detached))
-			}
-			if len(carried) > 0 {
-				fmt.Fprintf(&report, "\nAlready carried by another requested task: %s.", joinTaskIDs(carried))
-			}
-			if len(alreadyThere) > 0 {
-				fmt.Fprintf(&report, "\nAlready in the destination tasklist: %s.", joinTaskIDs(alreadyThere))
+				fmt.Fprintf(&report, "\nMoved: %s.", joinTaskIDs(moved))
 			}
 			for _, failure := range failures {
 				fmt.Fprintf(&report, "\nFailed: %s.", failure)

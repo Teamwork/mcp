@@ -2,7 +2,6 @@ package twprojects_test
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"testing"
 
@@ -221,132 +220,58 @@ func TestTaskUpdateNullParentTaskIDIsNotAClear(t *testing.T) {
 	}
 }
 
-// taskMoveFixture serves task 2, a subtask of task 1, whose own subtree is 3
-// and 4. The v1 move endpoint answers with every task the cascade touched.
-func taskMoveFixture(t *testing.T, taskTasklistID int64) (*mcp.Server, *[]testutil.ProjectsRecordedRequest) {
-	t.Helper()
+func TestTaskMoveUpdatesEachTaskOnce(t *testing.T) {
+	mcpServer, recorded := mcpServerRecordingMock(t, nil, http.StatusOK, []byte(`{}`))
+	testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodTaskMove.String(), map[string]any{
+		"task_ids":    []float64{2, 5},
+		"tasklist_id": float64(20),
+	})
 
-	task := []byte(fmt.Sprintf(
-		`{"task":{"id":2,"name":"Credit Flow","tasklist":{"id":%d},"parentTask":{"id":1}}}`, taskTasklistID))
-	moved := []byte(`{"affectedTaskIds":"2,3,4","STATUS":"OK"}`)
-
-	return mcpServerRecordingMock(t, []testutil.ProjectsMockRoute{
-		{Method: http.MethodPut, Match: "/tasks/", Status: http.StatusOK, Body: moved},
-		{Method: http.MethodGet, Match: "/tasks/", Status: http.StatusOK, Body: task},
-	}, http.StatusOK, []byte(`{}`))
-}
-
-func requestsOfMethod(recorded []testutil.ProjectsRecordedRequest, method string) []testutil.ProjectsRecordedRequest {
-	var matched []testutil.ProjectsRecordedRequest
-	for _, entry := range recorded {
-		if entry.Method == method {
-			matched = append(matched, entry)
+	// v3 carries the subtree and drops an invalidated parent itself, so each
+	// requested task costs exactly one write and nothing else.
+	if len(*recorded) != 2 {
+		t.Fatalf("expected 2 requests, got %d", len(*recorded))
+	}
+	for i, entry := range *recorded {
+		if entry.Method != http.MethodPut {
+			t.Errorf("request %d: expected PUT, got %s", i, entry.Method)
+		}
+		var payload struct {
+			Task struct {
+				TasklistID   *int64 `json:"tasklistId"`
+				ParentTaskID *int64 `json:"parentTaskId"`
+			} `json:"task"`
+		}
+		if err := json.Unmarshal(entry.Body, &payload); err != nil {
+			t.Fatalf("request %d: failed to decode body %q: %v", i, string(entry.Body), err)
+		}
+		if payload.Task.TasklistID == nil || *payload.Task.TasklistID != 20 {
+			t.Errorf("request %d: expected tasklistId 20, got %v", i, payload.Task.TasklistID)
+		}
+		// Sending a parent would make the API validate it instead of dropping the
+		// inherited one, which is what re-introduces "parent task is in another
+		// list".
+		if payload.Task.ParentTaskID != nil {
+			t.Errorf("request %d: expected no parentTaskId, got %d", i, *payload.Task.ParentTaskID)
 		}
 	}
-	return matched
-}
 
-func TestTaskMoveCarriesSubtreeInOneCall(t *testing.T) {
-	mcpServer, recorded := taskMoveFixture(t, 10)
-	testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodTaskMove.String(), map[string]any{
-		"task_ids":    []float64{2},
-		"tasklist_id": float64(20),
-	})
-
-	// The subtree travels with the parent, so one write is enough. Patching each
-	// descendant separately is the call amplification this tool exists to avoid.
-	writes := requestsOfMethod(*recorded, http.MethodPut)
-	if len(writes) != 1 {
-		t.Fatalf("expected a single write, got %d", len(writes))
-	}
-	if want := "/tasks/2.json"; writes[0].Path != want {
-		t.Errorf("expected v1 path %s, got %s", want, writes[0].Path)
-	}
-
-	var payload struct {
-		TodoItem struct {
-			ID           int64  `json:"id"`
-			TasklistID   int64  `json:"taskListId"`
-			ParentTaskID *int64 `json:"parentTaskId"`
-		} `json:"todo-item"`
-	}
-	if err := json.Unmarshal(writes[0].Body, &payload); err != nil {
-		t.Fatalf("failed to decode request body %q: %v", string(writes[0].Body), err)
-	}
-	if payload.TodoItem.TasklistID != 20 {
-		t.Errorf("expected taskListId 20, got %d", payload.TodoItem.TasklistID)
-	}
-	// Task 1 stays behind, so the link has to go or the API refuses the move.
-	if payload.TodoItem.ParentTaskID == nil || *payload.TodoItem.ParentTaskID != 0 {
-		t.Errorf("expected parentTaskId 0, got %v (body %q)", payload.TodoItem.ParentTaskID, string(writes[0].Body))
+	for i, want := range []string{"/projects/api/v3/tasks/2.json", "/projects/api/v3/tasks/5.json"} {
+		if got := (*recorded)[i].Path; got != want {
+			t.Errorf("request %d: expected path %s, got %s", i, want, got)
+		}
 	}
 }
 
-// TestTaskMoveKeepsParentLinkWhenParentIsNotMoving guards the detach decision:
-// a top-level task has no link to clear, and sending the zero anyway would be a
-// silent no-op at best.
-func TestTaskMoveKeepsParentLinkForTopLevelTask(t *testing.T) {
-	mcpServer, recorded := mcpServerRecordingMock(t, []testutil.ProjectsMockRoute{
-		{Method: http.MethodPut, Match: "/tasks/", Status: http.StatusOK,
-			Body: []byte(`{"affectedTaskIds":"7","STATUS":"OK"}`)},
-		{Method: http.MethodGet, Match: "/tasks/", Status: http.StatusOK,
-			Body: []byte(`{"task":{"id":7,"name":"Standalone","tasklist":{"id":10}}}`)},
-	}, http.StatusOK, []byte(`{}`))
+func TestTaskMoveDeduplicatesTaskIDs(t *testing.T) {
+	mcpServer, recorded := mcpServerRecordingMock(t, nil, http.StatusOK, []byte(`{}`))
 	testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodTaskMove.String(), map[string]any{
-		"task_ids":    []float64{7},
+		"task_ids":    []float64{2, 2, 2},
 		"tasklist_id": float64(20),
 	})
 
-	writes := requestsOfMethod(*recorded, http.MethodPut)
-	if len(writes) != 1 {
-		t.Fatalf("expected a single write, got %d", len(writes))
-	}
-	var payload struct {
-		TodoItem map[string]any `json:"todo-item"`
-	}
-	if err := json.Unmarshal(writes[0].Body, &payload); err != nil {
-		t.Fatalf("failed to decode request body %q: %v", string(writes[0].Body), err)
-	}
-	if _, ok := payload.TodoItem["parentTaskId"]; ok {
-		t.Errorf("expected parentTaskId to be omitted, got body %q", string(writes[0].Body))
-	}
-}
-
-// TestTaskMoveSkipsTasksCarriedByAnotherMove covers a caller naming both a task
-// and one of its descendants. Moving the descendant again would detach it from
-// the parent that just carried it across.
-func TestTaskMoveSkipsTasksCarriedByAnotherMove(t *testing.T) {
-	mcpServer, recorded := mcpServerRecordingMock(t, []testutil.ProjectsMockRoute{
-		{Method: http.MethodPut, Match: "/tasks/", Status: http.StatusOK,
-			Body: []byte(`{"affectedTaskIds":"2,3,4","STATUS":"OK"}`)},
-		{Method: http.MethodGet, Match: "/tasks/2.json", Status: http.StatusOK,
-			Body: []byte(`{"task":{"id":2,"tasklist":{"id":10},"parentTask":{"id":1}}}`)},
-		{Method: http.MethodGet, Match: "/tasks/3.json", Status: http.StatusOK,
-			Body: []byte(`{"task":{"id":3,"tasklist":{"id":10},"parentTask":{"id":2}}}`)},
-	}, http.StatusOK, []byte(`{}`))
-	testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodTaskMove.String(), map[string]any{
-		"task_ids":    []float64{2, 3},
-		"tasklist_id": float64(20),
-	})
-
-	writes := requestsOfMethod(*recorded, http.MethodPut)
-	if len(writes) != 1 {
-		t.Fatalf("expected only the ancestor to be written, got %d writes", len(writes))
-	}
-	if want := "/tasks/2.json"; writes[0].Path != want {
-		t.Errorf("expected the write to target %s, got %s", want, writes[0].Path)
-	}
-}
-
-func TestTaskMoveSkipsTasksAlreadyInDestination(t *testing.T) {
-	mcpServer, recorded := taskMoveFixture(t, 20)
-	testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodTaskMove.String(), map[string]any{
-		"task_ids":    []float64{2},
-		"tasklist_id": float64(20),
-	})
-
-	if writes := requestsOfMethod(*recorded, http.MethodPut); len(writes) != 0 {
-		t.Errorf("expected no write, got %d", len(writes))
+	if len(*recorded) != 1 {
+		t.Fatalf("expected a repeated ID to be written once, got %d requests", len(*recorded))
 	}
 }
 
