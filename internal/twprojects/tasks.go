@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -530,14 +531,92 @@ func TaskUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 	}
 }
 
+const (
+	// taskMoveMaxDepth bounds the walk up a task's ancestor chain. Real nesting is
+	// a handful of levels; the cap only stops a corrupt chain looping forever.
+	taskMoveMaxDepth = 20
+
+	// taskMoveMaxTasks bounds the fan-out. Each task costs a read and a write, run
+	// in sequence, so a longer list would outlive the request.
+	taskMoveMaxTasks = 50
+)
+
+// taskMoveCarriedTasks reports which of the requested tasks another one will
+// carry, so they are not moved a second time.
+//
+// The order the caller listed them in decides whether that second move is
+// harmless. An ancestor moved first carries the descendant, and updating the
+// descendant afterwards is a no-op because it is already in the destination. A
+// descendant moved first, though, leaves its parent behind and so gets detached,
+// flattening the subtree the tool promises to preserve.
+func taskMoveCarriedTasks(
+	ctx context.Context,
+	engine *twapi.Engine,
+	roots []int64,
+	requested map[int64]bool,
+	tasklistID int64,
+) (map[int64]bool, error) {
+	carried := make(map[int64]bool)
+	if len(roots) == 1 {
+		// Nothing can be an ancestor of anything else, so skip the reads.
+		return carried, nil
+	}
+
+	tasks := make(map[int64]projects.Task, len(roots))
+	resolve := func(id int64) (projects.Task, error) {
+		if task, ok := tasks[id]; ok {
+			return task, nil
+		}
+		taskGetResponse, err := projects.TaskGet(ctx, engine, projects.NewTaskGetRequest(id))
+		if err != nil {
+			return projects.Task{}, err
+		}
+		tasks[id] = taskGetResponse.Task
+		return taskGetResponse.Task, nil
+	}
+
+	for _, root := range roots {
+		id := root
+		for depth := 0; depth < taskMoveMaxDepth; depth++ {
+			task, err := resolve(id)
+			if err != nil {
+				return nil, err
+			}
+			if task.ParentTask == nil {
+				break
+			}
+			parent, err := resolve(task.ParentTask.ID)
+			if err != nil {
+				return nil, err
+			}
+			// An ancestor already in the destination stays put, so it carries
+			// nothing and the descendant still has to move itself.
+			if requested[parent.ID] && parent.Tasklist.ID != tasklistID {
+				carried[root] = true
+				break
+			}
+			id = parent.ID
+		}
+	}
+	return carried, nil
+}
+
+func sortedTaskIDs(ids map[int64]bool) []int64 {
+	sorted := make([]int64, 0, len(ids))
+	for id := range ids {
+		sorted = append(sorted, id)
+	}
+	slices.Sort(sorted)
+	return sorted
+}
+
 // TaskMove moves tasks, along with every subtask beneath them, to another
 // tasklist in Teamwork.com.
 //
-// One update per task is all this takes. v3 moves the whole subtree with the
-// task and drops an inherited parent the move would invalidate, so neither the
-// ordering nor the detaching has to happen here (projectsapigo 932f6ae200,
-// "Fix: Allow a subtask to be moved to another tasklist"). What the tool adds
-// is the batch: several subtrees move in one call instead of one call each.
+// One update per task is all this takes: the API moves the whole subtree and
+// drops an inherited parent the move would invalidate, so no detaching happens
+// here. What the tool adds is the batch, plus a skip for any task another one
+// will carry — moving a descendant before its ancestor would detach it.
 func TaskMove(engine *twapi.Engine) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
@@ -584,20 +663,35 @@ func TaskMove(engine *twapi.Engine) toolsets.ToolWrapper {
 			if len(taskIDs) == 0 {
 				return helpers.NewToolResultTextError("task_ids must contain at least one task ID"), nil
 			}
+			if len(taskIDs) > taskMoveMaxTasks {
+				return helpers.NewToolResultTextError(
+					"task_ids accepts at most %d tasks, got %d; subtasks move automatically, so only "+
+						"the topmost task of each subtree needs to be listed",
+					taskMoveMaxTasks, len(taskIDs),
+				), nil
+			}
 
 			seen := make(map[int64]bool, len(taskIDs))
+			roots := make([]int64, 0, len(taskIDs))
+			for _, id := range taskIDs {
+				if !seen[id] {
+					seen[id] = true
+					roots = append(roots, id)
+				}
+			}
+
+			carried, err := taskMoveCarriedTasks(ctx, engine, roots, seen, tasklistID)
+			if err != nil {
+				return helpers.HandleAPIError(err, "failed to load the parents of the requested tasks")
+			}
+
 			var moved []int64
 			var failures []string
-			for _, id := range taskIDs {
-				if seen[id] {
+			for _, id := range roots {
+				if carried[id] {
 					continue
 				}
-				seen[id] = true
 
-				// Naming both a task and one of its descendants is safe to send as
-				// is: the ancestor's move carries the descendant, and the second
-				// update then finds it already in the destination and skips the
-				// move, leaving the parent link alone.
 				taskUpdateRequest := projects.NewTaskUpdateRequest(id)
 				// One move can touch a whole subtree; notifying on each would bury
 				// every follower under a reorganisation they did not ask about.
@@ -613,9 +707,12 @@ func TaskMove(engine *twapi.Engine) toolsets.ToolWrapper {
 
 			var report strings.Builder
 			fmt.Fprintf(&report, "Moved %d of %d tasks to tasklist %d, each with its subtasks.",
-				len(moved), len(seen), tasklistID)
+				len(moved), len(roots), tasklistID)
 			if len(moved) > 0 {
 				fmt.Fprintf(&report, "\nMoved: %s.", joinTaskIDs(moved))
+			}
+			if len(carried) > 0 {
+				fmt.Fprintf(&report, "\nCarried by another requested task: %s.", joinTaskIDs(sortedTaskIDs(carried)))
 			}
 			for _, failure := range failures {
 				fmt.Fprintf(&report, "\nFailed: %s.", failure)

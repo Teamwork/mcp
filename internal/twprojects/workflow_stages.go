@@ -1,7 +1,6 @@
 package twprojects
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -217,57 +216,6 @@ func WorkflowStageDelete(engine *twapi.Engine) toolsets.ToolWrapper {
 	}
 }
 
-// workflowStageTasksMoveRequest moves one or more tasks into a workflow stage.
-//
-// twapi-go-sdk only models the single-task PATCH
-// /tasks/{taskId}/workflows/{workflowId}.json, which carries the task in the
-// path and so costs one round trip per task. The stage's own tasks endpoint
-// takes a taskIds array and moves the whole set in one call, so it is built
-// here rather than looped over there.
-//
-// https://apidocs.teamwork.com/guides/teamwork/workflows-api-getting-started-guide
-type workflowStageTasksMoveRequest struct {
-	WorkflowID int64
-	StageID    int64
-	TaskIDs    []int64
-}
-
-// HTTPRequest builds the POST
-// /projects/api/v3/workflows/{workflowId}/stages/{stageId}/tasks.json request.
-func (w workflowStageTasksMoveRequest) HTTPRequest(ctx context.Context, server string) (*http.Request, error) {
-	uri := fmt.Sprintf("%s/projects/api/v3/workflows/%d/stages/%d/tasks.json", server, w.WorkflowID, w.StageID)
-
-	payload := struct {
-		TaskIDs []int64 `json:"taskIds"`
-	}{TaskIDs: w.TaskIDs}
-
-	var body bytes.Buffer
-	if err := json.NewEncoder(&body).Encode(payload); err != nil {
-		return nil, fmt.Errorf("failed to encode move tasks to workflow stage request: %w", err)
-	}
-
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, uri, &body)
-	if err != nil {
-		return nil, err
-	}
-	req.Header.Set("Content-Type", "application/json")
-	return req, nil
-}
-
-// workflowStageTasksMoveResponse carries no payload; the endpoint answers with
-// the outcome in its status code alone.
-type workflowStageTasksMoveResponse struct{}
-
-// HandleHTTPResponse accepts any 2xx rather than pinning one code. The endpoint
-// is documented without a response body, and its single-task sibling answers
-// 204 while a create-shaped POST may answer 200 or 201.
-func (*workflowStageTasksMoveResponse) HandleHTTPResponse(resp *http.Response) error {
-	if resp.StatusCode < http.StatusOK || resp.StatusCode >= http.StatusMultipleChoices {
-		return twapi.NewHTTPError(resp, "failed to move tasks to workflow stage")
-	}
-	return nil
-}
-
 // WorkflowStageTaskMove moves tasks to a specific stage within a workflow in
 // Teamwork.com.
 func WorkflowStageTaskMove(engine *twapi.Engine) toolsets.ToolWrapper {
@@ -311,10 +259,10 @@ func WorkflowStageTaskMove(engine *twapi.Engine) toolsets.ToolWrapper {
 				return helpers.NewToolResultTextError("failed to decode request: %s", err.Error()), nil
 			}
 
-			var moveRequest workflowStageTasksMoveRequest
+			var moveRequest projects.WorkflowStageTasksMoveRequest
 			if err := helpers.ParamGroup(arguments,
-				helpers.RequiredNumericParam(&moveRequest.WorkflowID, "workflow_id"),
-				helpers.RequiredNumericParam(&moveRequest.StageID, "stage_id"),
+				helpers.RequiredNumericParam(&moveRequest.Path.WorkflowID, "workflow_id"),
+				helpers.RequiredNumericParam(&moveRequest.Path.StageID, "stage_id"),
 				helpers.OptionalNumericListParam(&moveRequest.TaskIDs, "task_ids"),
 			); err != nil {
 				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
@@ -339,9 +287,7 @@ func WorkflowStageTaskMove(engine *twapi.Engine) toolsets.ToolWrapper {
 				return helpers.NewToolResultTextError("task_ids must contain at least one task ID"), nil
 			}
 
-			_, err := twapi.Execute[workflowStageTasksMoveRequest, *workflowStageTasksMoveResponse](
-				ctx, engine, moveRequest,
-			)
+			_, err := projects.WorkflowStageTasksMove(ctx, engine, moveRequest)
 			if err != nil {
 				return helpers.HandleAPIError(err, "failed to move tasks to workflow stage")
 			}

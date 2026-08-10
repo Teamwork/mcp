@@ -220,19 +220,35 @@ func TestTaskUpdateNullParentTaskIDIsNotAClear(t *testing.T) {
 	}
 }
 
+func requestsOfMethod(recorded []testutil.ProjectsRecordedRequest, method string) []testutil.ProjectsRecordedRequest {
+	var matched []testutil.ProjectsRecordedRequest
+	for _, entry := range recorded {
+		if entry.Method == method {
+			matched = append(matched, entry)
+		}
+	}
+	return matched
+}
+
 func TestTaskMoveUpdatesEachTaskOnce(t *testing.T) {
-	mcpServer, recorded := mcpServerRecordingMock(t, nil, http.StatusOK, []byte(`{}`))
+	mcpServer, recorded := mcpServerRecordingMock(t, []testutil.ProjectsMockRoute{
+		{Method: http.MethodGet, Match: "/tasks/2.json", Status: http.StatusOK,
+			Body: []byte(`{"task":{"id":2,"tasklist":{"id":10}}}`)},
+		{Method: http.MethodGet, Match: "/tasks/5.json", Status: http.StatusOK,
+			Body: []byte(`{"task":{"id":5,"tasklist":{"id":10}}}`)},
+	}, http.StatusOK, []byte(`{}`))
 	testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodTaskMove.String(), map[string]any{
 		"task_ids":    []float64{2, 5},
 		"tasklist_id": float64(20),
 	})
 
 	// v3 carries the subtree and drops an invalidated parent itself, so each
-	// requested task costs exactly one write and nothing else.
-	if len(*recorded) != 2 {
-		t.Fatalf("expected 2 requests, got %d", len(*recorded))
+	// unrelated task costs exactly one write.
+	writes := requestsOfMethod(*recorded, http.MethodPut)
+	if len(writes) != 2 {
+		t.Fatalf("expected 2 writes, got %d", len(writes))
 	}
-	for i, entry := range *recorded {
+	for i, entry := range writes {
 		if entry.Method != http.MethodPut {
 			t.Errorf("request %d: expected PUT, got %s", i, entry.Method)
 		}
@@ -257,10 +273,94 @@ func TestTaskMoveUpdatesEachTaskOnce(t *testing.T) {
 	}
 
 	for i, want := range []string{"/projects/api/v3/tasks/2.json", "/projects/api/v3/tasks/5.json"} {
-		if got := (*recorded)[i].Path; got != want {
+		if got := writes[i].Path; got != want {
 			t.Errorf("request %d: expected path %s, got %s", i, want, got)
 		}
 	}
+}
+
+// TestTaskMoveReadsNothingForASingleTask keeps the common case at one request:
+// with one task named, nothing can be an ancestor of anything else.
+func TestTaskMoveReadsNothingForASingleTask(t *testing.T) {
+	mcpServer, recorded := mcpServerRecordingMock(t, nil, http.StatusOK, []byte(`{}`))
+	testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodTaskMove.String(), map[string]any{
+		"task_ids":    []float64{2},
+		"tasklist_id": float64(20),
+	})
+
+	if len(*recorded) != 1 {
+		t.Fatalf("expected a single request, got %d", len(*recorded))
+	}
+	if (*recorded)[0].Method != http.MethodPut {
+		t.Errorf("expected the only request to be the write, got %s", (*recorded)[0].Method)
+	}
+}
+
+// TestTaskMoveSkipsDescendantListedFirst is the ordering hazard. The API detaches
+// a task whose parent stays behind, so moving task 3 before its parent task 2
+// would flatten the subtree instead of letting task 2 carry it.
+func TestTaskMoveSkipsDescendantListedFirst(t *testing.T) {
+	mcpServer, recorded := mcpServerRecordingMock(t, []testutil.ProjectsMockRoute{
+		{Method: http.MethodGet, Match: "/tasks/2.json", Status: http.StatusOK,
+			Body: []byte(`{"task":{"id":2,"tasklist":{"id":10}}}`)},
+		{Method: http.MethodGet, Match: "/tasks/3.json", Status: http.StatusOK,
+			Body: []byte(`{"task":{"id":3,"tasklist":{"id":10},"parentTask":{"id":2}}}`)},
+	}, http.StatusOK, []byte(`{}`))
+	testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodTaskMove.String(), map[string]any{
+		"task_ids":    []float64{3, 2},
+		"tasklist_id": float64(20),
+	})
+
+	writes := requestsOfMethod(*recorded, http.MethodPut)
+	if len(writes) != 1 {
+		t.Fatalf("expected only the ancestor to be written, got %d writes", len(writes))
+	}
+	if want := "/projects/api/v3/tasks/2.json"; writes[0].Path != want {
+		t.Errorf("expected the write to target %s, got %s", want, writes[0].Path)
+	}
+}
+
+// TestTaskMoveMovesChildOfTaskAlreadyInDestination guards the other half: a
+// requested ancestor that is not moving carries nothing, so the child still has
+// to move itself.
+func TestTaskMoveMovesChildOfTaskAlreadyInDestination(t *testing.T) {
+	mcpServer, recorded := mcpServerRecordingMock(t, []testutil.ProjectsMockRoute{
+		{Method: http.MethodGet, Match: "/tasks/2.json", Status: http.StatusOK,
+			Body: []byte(`{"task":{"id":2,"tasklist":{"id":20}}}`)},
+		{Method: http.MethodGet, Match: "/tasks/3.json", Status: http.StatusOK,
+			Body: []byte(`{"task":{"id":3,"tasklist":{"id":10},"parentTask":{"id":2}}}`)},
+	}, http.StatusOK, []byte(`{}`))
+	testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodTaskMove.String(), map[string]any{
+		"task_ids":    []float64{2, 3},
+		"tasklist_id": float64(20),
+	})
+
+	writes := requestsOfMethod(*recorded, http.MethodPut)
+	if len(writes) != 2 {
+		t.Fatalf("expected both tasks to be written, got %d writes", len(writes))
+	}
+}
+
+// TestTaskMoveRejectsOversizedList keeps the fan-out bounded: each task costs a
+// read and a write, in sequence.
+func TestTaskMoveRejectsOversizedList(t *testing.T) {
+	ids := make([]float64, 51)
+	for i := range ids {
+		ids[i] = float64(i + 1)
+	}
+	mcpServer := mcpServerMock(t, http.StatusOK, []byte(`{}`))
+	testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodTaskMove.String(), map[string]any{
+		"task_ids":    ids,
+		"tasklist_id": float64(20),
+	}, testutil.ExecuteToolRequestWithCheckMessage(func(t *testing.T, result mcp.Result) {
+		toolResult, ok := result.(*mcp.CallToolResult)
+		if !ok {
+			t.Fatalf("unexpected result type: %T", result)
+		}
+		if !toolResult.IsError {
+			t.Errorf("expected an error when task_ids exceeds the cap")
+		}
+	}))
 }
 
 func TestTaskMoveDeduplicatesTaskIDs(t *testing.T) {
