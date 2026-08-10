@@ -391,7 +391,7 @@ func LinkList(engine *twapi.Engine) toolsets.ToolWrapper {
 					"page":           helpers.PageSchema(),
 					"page_size":      helpers.PageSizeSchema(),
 					"verbose":        helpers.VerboseSchema(),
-					"fields":         helpers.FieldsSchema("link"),
+					"fields":         helpers.FieldsSchema[projects.Link]("link"),
 				},
 				Required: []string{},
 			},

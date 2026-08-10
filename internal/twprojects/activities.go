@@ -101,7 +101,7 @@ func ActivityList(engine *twapi.Engine) toolsets.ToolWrapper {
 					"page":      helpers.PageSchema(),
 					"page_size": helpers.PageSizeSchema(),
 					"verbose":   helpers.VerboseSchema(),
-					"fields":    helpers.FieldsSchema("activity"),
+					"fields":    helpers.FieldsSchema[projects.Activity]("activity"),
 				},
 				Required: []string{},
 			},

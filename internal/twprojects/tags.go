@@ -308,7 +308,7 @@ func TagList(engine *twapi.Engine) toolsets.ToolWrapper {
 					"page":      helpers.PageSchema(),
 					"page_size": helpers.PageSizeSchema(),
 					"verbose":   helpers.VerboseSchema(),
-					"fields":    helpers.FieldsSchema("tag"),
+					"fields":    helpers.FieldsSchema[projects.Tag]("tag"),
 				},
 				Required: []string{},
 			},

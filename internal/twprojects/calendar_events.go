@@ -89,7 +89,7 @@ func CalendarEventList(engine *twapi.Engine) toolsets.ToolWrapper {
 						},
 					},
 					"verbose": helpers.VerboseSchema(),
-					"fields":  helpers.FieldsSchema("calendar event"),
+					"fields":  helpers.FieldsSchema[projects.CalendarEvent]("calendar event"),
 				},
 				Required: []string{"calendar_id"},
 			},

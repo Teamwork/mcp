@@ -399,7 +399,7 @@ func TeamList(engine *twapi.Engine) toolsets.ToolWrapper {
 					"page":        helpers.PageSchema(),
 					"page_size":   helpers.PageSizeSchema(),
 					"verbose":     helpers.VerboseSchema(),
-					"fields":      helpers.FieldsSchema("team"),
+					"fields":      helpers.FieldsSchema[projects.Team]("team"),
 				},
 				Required: []string{},
 			},

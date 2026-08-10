@@ -171,16 +171,33 @@ func TestOptionalFieldsParamErrorListsValidValues(t *testing.T) {
 }
 
 func TestFieldsSchema(t *testing.T) {
-	schema := helpers.FieldsSchema("task")
-	if !strings.Contains(schema.Description, "task") {
+	schema := helpers.FieldsSchema[testEntity]("thing")
+	if !strings.Contains(schema.Description, "thing") {
 		t.Errorf("expected the entity in the description but got %q", schema.Description)
+	}
+	// An LLM client never sees the output schema, so pointing at it is no help.
+	if strings.Contains(schema.Description, "output schema") {
+		t.Errorf("expected the description not to point at the output schema but got %q", schema.Description)
 	}
 	if len(schema.AnyOf) != 2 {
 		t.Fatalf("expected a nullable array schema but got %d branches", len(schema.AnyOf))
 	}
 	// OpenAI's Responses API rejects an array node without items, so the branch
 	// must declare them even though the tool is registered non-strict.
-	if schema.AnyOf[0].Items == nil {
-		t.Error("expected the array branch to declare items")
+	items := schema.AnyOf[0].Items
+	if items == nil {
+		t.Fatal("expected the array branch to declare items")
+	}
+	// The enum must be the whole set OptionalFieldsParam accepts, not a subset.
+	var got []testField
+	for _, value := range items.Enum {
+		name, ok := value.(string)
+		if !ok {
+			t.Fatalf("expected string enum values but got %T", value)
+		}
+		got = append(got, testField(name))
+	}
+	if want := helpers.SparseFieldNames[testField, testEntity](); !slices.Equal(got, want) {
+		t.Errorf("expected the enum to be %v but got %v", want, got)
 	}
 }

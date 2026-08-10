@@ -222,6 +222,68 @@ func TestSparseFieldsToolsAreCovered(t *testing.T) {
 	}
 }
 
+// TestSparseFieldsSchemaEnumMatchesValidator pins the vocabulary a client sees
+// before calling to the one the tool accepts. An enum that is missing, short a
+// name, or reflected off the wrong entity puts the model back to learning the
+// names one rejection at a time. Riding the table TestSparseFieldsToolsAreCovered
+// keeps in step with the toolset covers future tools automatically.
+func TestSparseFieldsSchemaEnumMatchesValidator(t *testing.T) {
+	engine := testutil.ProjectsEngineMock(http.StatusOK, []byte(`{}`))
+	group := twprojects.DefaultToolsetGroup(false, true, engine)
+
+	schemas := make(map[string]*jsonschema.Schema)
+	for _, toolset := range group.Toolsets {
+		for _, tool := range toolset.GetAvailableTools() {
+			schema, ok := tool.Tool.InputSchema.(*jsonschema.Schema)
+			if !ok {
+				continue
+			}
+			if fields, ok := schema.Properties["fields"]; ok {
+				schemas[tool.Tool.Name] = fields
+			}
+		}
+	}
+
+	for _, testCase := range fieldsToolCases {
+		t.Run(testCase.method, func(t *testing.T) {
+			schema, ok := schemas[testCase.method]
+			if !ok {
+				t.Fatalf("%s does not declare a fields parameter", testCase.method)
+			}
+			enum := fieldsSchemaEnum(t, schema)
+			if want := testCase.attributes(); !slices.Equal(enum, want) {
+				t.Errorf("expected the fields enum to be %v but got %v", want, enum)
+			}
+		})
+	}
+}
+
+// fieldsSchemaEnum reads the names enumerated by a `fields` schema, from the
+// array branch's item schema where a client looks for them.
+func fieldsSchemaEnum(t *testing.T, schema *jsonschema.Schema) []string {
+	t.Helper()
+
+	for _, branch := range schema.AnyOf {
+		if branch.Type != "array" {
+			continue
+		}
+		if branch.Items == nil {
+			t.Fatal("expected the array branch to declare items")
+		}
+		names := make([]string, 0, len(branch.Items.Enum))
+		for _, value := range branch.Items.Enum {
+			name, ok := value.(string)
+			if !ok {
+				t.Fatalf("expected string enum values but got %T", value)
+			}
+			names = append(names, name)
+		}
+		return names
+	}
+	t.Fatal("expected an array branch in the fields schema")
+	return nil
+}
+
 // TestSparseFieldsSendSelection pins the caller's selection onto the outgoing
 // query. The mock replies with the same canned body whatever is asked for, so
 // asserting on the response could not distinguish a selection that is sent from
@@ -439,6 +501,10 @@ func TestSparseFieldsVerboseFalseKeepsSelection(t *testing.T) {
 // attribute name into a correctable error. The API ignores attributes it does
 // not recognise, so passing one through would come back as a response quietly
 // missing a field the caller asked for.
+//
+// Which layer rejects it is not asserted: with the enum in the schema the SDK
+// validates before the handler runs. Either way the error must name the
+// rejected value and every accepted one, so recovery costs one round trip.
 func TestSparseFieldsRejectUnknownValue(t *testing.T) {
 	for _, testCase := range fieldsToolCases {
 		t.Run(testCase.method, func(t *testing.T) {
@@ -461,8 +527,10 @@ func TestSparseFieldsRejectUnknownValue(t *testing.T) {
 					if !strings.Contains(text.Text, "notAnAttribute") {
 						t.Errorf("expected the rejected attribute in the error but got %q", text.Text)
 					}
-					if !strings.Contains(text.Text, "must be one of") {
-						t.Errorf("expected the valid attributes in the error but got %q", text.Text)
+					for _, attribute := range testCase.attributes() {
+						if !strings.Contains(text.Text, attribute) {
+							t.Errorf("expected the valid attribute %q in the error but got %q", attribute, text.Text)
+						}
 					}
 				}))
 		})

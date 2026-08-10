@@ -500,7 +500,7 @@ func CustomFieldValueList(engine *twapi.Engine) toolsets.ToolWrapper {
 					"page":      helpers.PageSchema(),
 					"page_size": helpers.PageSizeSchema(),
 					"verbose":   helpers.VerboseSchema(),
-					"fields":    helpers.FieldsSchema("custom field value"),
+					"fields":    helpers.FieldsSchema[projects.CustomFieldValue]("custom field value"),
 				},
 				Required: []string{"entity", "entity_id"},
 			},
