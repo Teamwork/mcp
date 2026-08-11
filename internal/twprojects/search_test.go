@@ -3,12 +3,14 @@ package twprojects_test
 import (
 	"encoding/json"
 	"net/http"
+	"reflect"
 	"strings"
 	"testing"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/teamwork/mcp/internal/testutil"
 	"github.com/teamwork/mcp/internal/twprojects"
+	"github.com/teamwork/twapi-go-sdk/projects"
 )
 
 func TestSearch(t *testing.T) {
@@ -20,9 +22,71 @@ func TestSearch(t *testing.T) {
 		"updated_after":           "2023-01-01T00:00:00Z",
 		"extended_search":         true,
 		"include":                 []any{"tasks", "projects"},
+		"include_highlights":      true,
 		"cursor":                  "c858b04ba8b066bcb4f83727c23de6e9238de642",
 		"limit":                   float64(10),
 	})
+}
+
+// TestSearchIncludeHighlights guards that the flag reaches the wire.
+func TestSearchIncludeHighlights(t *testing.T) {
+	mcpServer, lastURL := testutil.ProjectsMCPServerMockWithRequestURL(t, http.StatusOK, []byte(`{}`))
+	testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodSearch.String(), map[string]any{
+		"search_term":        "test",
+		"include_highlights": true,
+	})
+
+	if got := lastURL.Query().Get("includeHighlights"); got != "true" {
+		t.Errorf("expected includeHighlights=%q but got %q", "true", got)
+	}
+}
+
+// TestSearchOmitsHighlightsByDefault pins that highlights stay opt-in: the
+// fragments cost tokens on every hit.
+func TestSearchOmitsHighlightsByDefault(t *testing.T) {
+	mcpServer, lastURL := testutil.ProjectsMCPServerMockWithRequestURL(t, http.StatusOK, []byte(`{}`))
+	testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodSearch.String(), map[string]any{
+		"search_term": "test",
+	})
+
+	if lastURL.Query().Has("includeHighlights") {
+		t.Errorf("expected includeHighlights to be unset but got %q", lastURL.Query().Get("includeHighlights"))
+	}
+}
+
+// TestSearchReturnsHighlightsUntouched guards that the fragments survive the
+// truncation pass and output-schema validation.
+func TestSearchReturnsHighlightsUntouched(t *testing.T) {
+	response := `{
+		"search": [{"id": 33, "type": "tasks", "meta": {"highlights": {
+			"taskName": ["<em>Test</em> task"],
+			"taskDescription": ["something about the <em>test</em>", "second <em>test</em> fragment"]
+		}}}],
+		"included": {
+			"tasks": {"33": {"id": 33, "name": "Test task", "description": "` + strings.Repeat("a", 1234) + `"}}
+		}
+	}`
+
+	mcpServer := mcpServerMock(t, http.StatusOK, []byte(response))
+	testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodSearch.String(), map[string]any{
+		"search_term":        "test",
+		"include_highlights": true,
+	}, testutil.ExecuteToolRequestWithCheckMessage(func(t *testing.T, result mcp.Result) {
+		t.Helper()
+		testutil.CheckMessage(t, result)
+
+		want := map[string][]string{
+			"taskName":        {"<em>Test</em> task"},
+			"taskDescription": {"something about the <em>test</em>", "second <em>test</em> fragment"},
+		}
+		items := searchItemsFromToolResult(t, result)
+		if len(items) != 1 {
+			t.Fatalf("expected a single search item but got %d", len(items))
+		}
+		if got := items[0].Highlights(); !reflect.DeepEqual(got, want) {
+			t.Errorf("expected highlights %v but got %v", want, got)
+		}
+	}))
 }
 
 // TestSearchDefaultSideloads pins that an unnarrowed search asks for every
@@ -202,9 +266,36 @@ func TestSearchLeavesShortContentAlone(t *testing.T) {
 	}))
 }
 
+// searchItemsFromToolResult decodes the hit list out of a search tool result,
+// as the SDK type so the wire format is covered too.
+func searchItemsFromToolResult(t *testing.T, result mcp.Result) []projects.SearchItem {
+	t.Helper()
+
+	var payload struct {
+		Items []projects.SearchItem `json:"search"`
+	}
+	if err := json.Unmarshal([]byte(searchTextFromToolResult(t, result)), &payload); err != nil {
+		t.Fatalf("failed to decode tool output: %v", err)
+	}
+	return payload.Items
+}
+
 // searchIncludedFromToolResult decodes the sideload sections out of a search
 // tool result.
 func searchIncludedFromToolResult(t *testing.T, result mcp.Result) map[string]map[string]map[string]any {
+	t.Helper()
+
+	var payload struct {
+		Included map[string]map[string]map[string]any `json:"included"`
+	}
+	if err := json.Unmarshal([]byte(searchTextFromToolResult(t, result)), &payload); err != nil {
+		t.Fatalf("failed to decode tool output: %v", err)
+	}
+	return payload.Included
+}
+
+// searchTextFromToolResult returns the raw payload of a search tool result.
+func searchTextFromToolResult(t *testing.T, result mcp.Result) string {
 	t.Helper()
 
 	toolResult, ok := result.(*mcp.CallToolResult)
@@ -215,11 +306,5 @@ func searchIncludedFromToolResult(t *testing.T, result mcp.Result) map[string]ma
 	if !ok {
 		t.Fatalf("unexpected content type: %T", toolResult.Content[0])
 	}
-	var payload struct {
-		Included map[string]map[string]map[string]any `json:"included"`
-	}
-	if err := json.Unmarshal([]byte(text.Text), &payload); err != nil {
-		t.Fatalf("failed to decode tool output: %v", err)
-	}
-	return payload.Included
+	return text.Text
 }
