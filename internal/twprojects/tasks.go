@@ -6,6 +6,9 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"slices"
+	"strconv"
+	"strings"
 
 	"github.com/google/jsonschema-go/jsonschema"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
@@ -26,6 +29,7 @@ const (
 	MethodTaskComplete toolsets.Method = "twprojects-complete_task"
 	MethodTaskGet      toolsets.Method = "twprojects-get_task"
 	MethodTaskList     toolsets.Method = "twprojects-list_tasks"
+	MethodTaskMove     toolsets.Method = "twprojects-move_tasks"
 )
 
 var (
@@ -273,7 +277,9 @@ func TaskUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 						},
 					},
 					"tasklist_id": {
-						Description: "The ID of the tasklist.",
+						Description: "The ID of the tasklist. Moving the task carries its subtasks along " +
+							"and detaches it from any parent staying behind. Use twprojects-move_tasks to " +
+							"move several tasks at once.",
 						AnyOf: []*jsonschema.Schema{
 							{Type: "integer"},
 							{Type: "null"},
@@ -312,9 +318,20 @@ func TaskUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 						},
 					},
 					"parent_task_id": {
-						Description: "The ID of the parent task if creating a subtask.",
+						Description: "The ID of the parent task, making this task a subtask. A subtask must " +
+							"live in the same tasklist as its parent, so moving one with tasklist_id fails " +
+							"until the parent has moved or the link is cleared. To detach the task from its " +
+							"parent, use clear_parent_task instead.",
 						AnyOf: []*jsonschema.Schema{
 							{Type: "integer"},
+							{Type: "null"},
+						},
+					},
+					"clear_parent_task": {
+						Description: "If true, detaches the task from its parent, promoting it to a top-level " +
+							"task. Cannot be combined with parent_task_id.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "boolean"},
 							{Type: "null"},
 						},
 					},
@@ -393,6 +410,27 @@ func TaskUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 				helpers.OptionalParam(&clearAssignees, "clear_assignees"),
 			); err != nil {
 				return helpers.NewToolResultTextError("invalid clear_assignees: %s", err.Error()), nil
+			}
+
+			var clearParentTask bool
+			if err := helpers.ParamGroup(arguments,
+				helpers.OptionalParam(&clearParentTask, "clear_parent_task"),
+			); err != nil {
+				return helpers.NewToolResultTextError("invalid clear_parent_task: %s", err.Error()), nil
+			}
+			if clearParentTask {
+				if taskUpdateRequest.ParentTaskID != nil {
+					return helpers.NewToolResultTextError(
+						"clear_parent_task cannot be combined with parent_task_id",
+					), nil
+				}
+				// A null parent_task_id cannot express this: null means "not
+				// provided" for every optional parameter, because OpenAI strict mode
+				// requires clients to send every property and fill the unset ones
+				// with null. Zero is the sentinel the v3 API accepts to detach, and
+				// it survives the SDK's omitempty because only a nil pointer is
+				// omitted.
+				taskUpdateRequest.ParentTaskID = new(int64(0))
 			}
 
 			if assignees, toolResult := parseUserGroups(
@@ -491,6 +529,208 @@ func TaskUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 			return helpers.NewToolResultText("Task updated successfully"), nil
 		},
 	}
+}
+
+const (
+	// taskMoveMaxDepth bounds the walk up a task's ancestor chain. Real nesting is
+	// a handful of levels; the cap only stops a corrupt chain looping forever.
+	taskMoveMaxDepth = 20
+
+	// taskMoveMaxTasks bounds the fan-out. Each task costs a read and a write, run
+	// in sequence, so a longer list would outlive the request.
+	taskMoveMaxTasks = 50
+)
+
+// taskMoveCarriedTasks reports which of the requested tasks another one will
+// carry, so they are not moved a second time.
+//
+// The order the caller listed them in decides whether that second move is
+// harmless. An ancestor moved first carries the descendant, and updating the
+// descendant afterwards is a no-op because it is already in the destination. A
+// descendant moved first, though, leaves its parent behind and so gets detached,
+// flattening the subtree the tool promises to preserve.
+func taskMoveCarriedTasks(
+	ctx context.Context,
+	engine *twapi.Engine,
+	roots []int64,
+	requested map[int64]bool,
+	tasklistID int64,
+) (map[int64]bool, error) {
+	carried := make(map[int64]bool)
+	if len(roots) == 1 {
+		// Nothing can be an ancestor of anything else, so skip the reads.
+		return carried, nil
+	}
+
+	tasks := make(map[int64]projects.Task, len(roots))
+	resolve := func(id int64) (projects.Task, error) {
+		if task, ok := tasks[id]; ok {
+			return task, nil
+		}
+		taskGetResponse, err := projects.TaskGet(ctx, engine, projects.NewTaskGetRequest(id))
+		if err != nil {
+			return projects.Task{}, err
+		}
+		tasks[id] = taskGetResponse.Task
+		return taskGetResponse.Task, nil
+	}
+
+	for _, root := range roots {
+		id := root
+		for depth := 0; depth < taskMoveMaxDepth; depth++ {
+			task, err := resolve(id)
+			if err != nil {
+				return nil, err
+			}
+			if task.ParentTask == nil {
+				break
+			}
+			parent, err := resolve(task.ParentTask.ID)
+			if err != nil {
+				return nil, err
+			}
+			// An ancestor already in the destination stays put, so it carries
+			// nothing and the descendant still has to move itself.
+			if requested[parent.ID] && parent.Tasklist.ID != tasklistID {
+				carried[root] = true
+				break
+			}
+			id = parent.ID
+		}
+	}
+	return carried, nil
+}
+
+func sortedTaskIDs(ids map[int64]bool) []int64 {
+	sorted := make([]int64, 0, len(ids))
+	for id := range ids {
+		sorted = append(sorted, id)
+	}
+	slices.Sort(sorted)
+	return sorted
+}
+
+// TaskMove moves tasks, along with every subtask beneath them, to another
+// tasklist in Teamwork.com.
+//
+// One update per task is all this takes: the API moves the whole subtree and
+// drops an inherited parent the move would invalidate, so no detaching happens
+// here. What the tool adds is the batch, plus a skip for any task another one
+// will carry — moving a descendant before its ancestor would detach it.
+func TaskMove(engine *twapi.Engine) toolsets.ToolWrapper {
+	return toolsets.ToolWrapper{
+		Tool: &mcp.Tool{
+			Name: string(MethodTaskMove),
+			Description: "Move tasks and all their subtasks to another tasklist, preserving the " +
+				"parent/child structure. Subtasks move with their parent automatically, so only the " +
+				"topmost task of each subtree needs to be listed. A task whose parent is not part of " +
+				"the move is detached from it, becoming a top-level task in the destination.",
+			Annotations: &mcp.ToolAnnotations{
+				Title:           "Move Tasks",
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
+			},
+			InputSchema: &jsonschema.Schema{
+				Type: "object",
+				Properties: map[string]*jsonschema.Schema{
+					"task_ids": {
+						Type:        "array",
+						Items:       &jsonschema.Schema{Type: "integer"},
+						Description: "The IDs of the tasks to move. Subtasks are moved automatically.",
+					},
+					"tasklist_id": {
+						Type:        "integer",
+						Description: "The ID of the destination tasklist.",
+					},
+				},
+				Required: []string{"task_ids", "tasklist_id"},
+			},
+		},
+		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+			var arguments map[string]any
+			if err := json.Unmarshal(request.Params.Arguments, &arguments); err != nil {
+				return helpers.NewToolResultTextError("failed to decode request: %s", err.Error()), nil
+			}
+
+			var taskIDs []int64
+			var tasklistID int64
+			if err := helpers.ParamGroup(arguments,
+				helpers.OptionalNumericListParam(&taskIDs, "task_ids"),
+				helpers.RequiredNumericParam(&tasklistID, "tasklist_id"),
+			); err != nil {
+				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
+			}
+			if len(taskIDs) == 0 {
+				return helpers.NewToolResultTextError("task_ids must contain at least one task ID"), nil
+			}
+			if len(taskIDs) > taskMoveMaxTasks {
+				return helpers.NewToolResultTextError(
+					"task_ids accepts at most %d tasks, got %d; subtasks move automatically, so only "+
+						"the topmost task of each subtree needs to be listed",
+					taskMoveMaxTasks, len(taskIDs),
+				), nil
+			}
+
+			seen := make(map[int64]bool, len(taskIDs))
+			roots := make([]int64, 0, len(taskIDs))
+			for _, id := range taskIDs {
+				if !seen[id] {
+					seen[id] = true
+					roots = append(roots, id)
+				}
+			}
+
+			carried, err := taskMoveCarriedTasks(ctx, engine, roots, seen, tasklistID)
+			if err != nil {
+				return helpers.HandleAPIError(err, "failed to load the parents of the requested tasks")
+			}
+
+			var moved []int64
+			var failures []string
+			for _, id := range roots {
+				if carried[id] {
+					continue
+				}
+
+				taskUpdateRequest := projects.NewTaskUpdateRequest(id)
+				// One move can touch a whole subtree; notifying on each would bury
+				// every follower under a reorganisation they did not ask about.
+				taskUpdateRequest.Options.Notify = false
+				taskUpdateRequest.TasklistID = &tasklistID
+
+				if _, err := projects.TaskUpdate(ctx, engine, taskUpdateRequest); err != nil {
+					failures = append(failures, fmt.Sprintf("task %d: %s", id, err.Error()))
+					continue
+				}
+				moved = append(moved, id)
+			}
+
+			var report strings.Builder
+			fmt.Fprintf(&report, "Moved %d of %d tasks to tasklist %d, each with its subtasks.",
+				len(moved), len(roots), tasklistID)
+			if len(moved) > 0 {
+				fmt.Fprintf(&report, "\nMoved: %s.", joinTaskIDs(moved))
+			}
+			if len(carried) > 0 {
+				fmt.Fprintf(&report, "\nCarried by another requested task: %s.", joinTaskIDs(sortedTaskIDs(carried)))
+			}
+			for _, failure := range failures {
+				fmt.Fprintf(&report, "\nFailed: %s.", failure)
+			}
+			if len(failures) > 0 {
+				return helpers.NewToolResultTextError("%s", report.String()), nil
+			}
+			return helpers.NewToolResultText("%s", report.String()), nil
+		},
+	}
+}
+
+func joinTaskIDs(ids []int64) string {
+	formatted := make([]string, 0, len(ids))
+	for _, id := range ids {
+		formatted = append(formatted, strconv.FormatInt(id, 10))
+	}
+	return strings.Join(formatted, ", ")
 }
 
 // TaskDelete deletes a task in Teamwork.com.

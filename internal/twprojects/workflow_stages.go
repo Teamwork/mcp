@@ -216,15 +216,15 @@ func WorkflowStageDelete(engine *twapi.Engine) toolsets.ToolWrapper {
 	}
 }
 
-// WorkflowStageTaskMove moves a task to a specific stage within a workflow in
+// WorkflowStageTaskMove moves tasks to a specific stage within a workflow in
 // Teamwork.com.
 func WorkflowStageTaskMove(engine *twapi.Engine) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
 			Name:        string(MethodWorkflowStageTaskMove),
-			Description: "Move a task to a workflow stage.",
+			Description: "Move one or more tasks to a workflow stage.",
 			Annotations: &mcp.ToolAnnotations{
-				Title:           "Move Task to Workflow Stage",
+				Title:           "Move Tasks to Workflow Stage",
 				DestructiveHint: new(false),
 				OpenWorldHint:   new(false),
 			},
@@ -237,37 +237,65 @@ func WorkflowStageTaskMove(engine *twapi.Engine) toolsets.ToolWrapper {
 					},
 					"stage_id": {
 						Type:        "integer",
-						Description: "The ID of the workflow stage to move the task to.",
+						Description: "The ID of the workflow stage to move the tasks to.",
 					},
-					"task_id": {
-						Type:        "integer",
-						Description: "The ID of the task to move.",
+					"task_ids": {
+						Type:  "array",
+						Items: &jsonschema.Schema{Type: "integer"},
+						Description: "The IDs of the tasks to move. At least one is needed; all of them " +
+							"move in a single call.",
 					},
 				},
-				Required: []string{"workflow_id", "stage_id", "task_id"},
+				// task_ids is deliberately absent from Required. The SDK validates
+				// the schema before the handler runs, so requiring it would reject
+				// clients still sending the scalar task_id this tool advertised
+				// before it could move a set, and the handler could never see them.
+				Required: []string{"workflow_id", "stage_id"},
 			},
 		},
 		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-			var workflowStageTaskMoveRequest projects.WorkflowStageTaskMoveRequest
-
 			var arguments map[string]any
 			if err := json.Unmarshal(request.Params.Arguments, &arguments); err != nil {
 				return helpers.NewToolResultTextError("failed to decode request: %s", err.Error()), nil
 			}
-			err := helpers.ParamGroup(arguments,
-				helpers.RequiredNumericParam(&workflowStageTaskMoveRequest.Path.WorkflowID, "workflow_id"),
-				helpers.RequiredNumericParam(&workflowStageTaskMoveRequest.StageID, "stage_id"),
-				helpers.RequiredNumericParam(&workflowStageTaskMoveRequest.Path.TaskID, "task_id"),
-			)
-			if err != nil {
+
+			var moveRequest projects.WorkflowStageTasksMoveRequest
+			if err := helpers.ParamGroup(arguments,
+				helpers.RequiredNumericParam(&moveRequest.Path.WorkflowID, "workflow_id"),
+				helpers.RequiredNumericParam(&moveRequest.Path.StageID, "stage_id"),
+				helpers.OptionalNumericListParam(&moveRequest.TaskIDs, "task_ids"),
+			); err != nil {
 				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
 			}
 
-			_, err = projects.WorkflowStageTaskMove(ctx, engine, workflowStageTaskMoveRequest)
-			if err != nil {
-				return helpers.HandleAPIError(err, "failed to move task to workflow stage")
+			// This tool advertised a scalar task_id before it could move a set.
+			// Clients holding a cached tool list still send it, so it is accepted
+			// but no longer advertised, to keep one way of saying this in the
+			// schema.
+			if len(moveRequest.TaskIDs) == 0 {
+				var legacyTaskID int64
+				if err := helpers.ParamGroup(arguments,
+					helpers.OptionalNumericParam(&legacyTaskID, "task_id"),
+				); err != nil {
+					return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
+				}
+				if legacyTaskID > 0 {
+					moveRequest.TaskIDs = []int64{legacyTaskID}
+				}
 			}
-			return helpers.NewToolResultText("Task moved to workflow stage successfully"), nil
+			if len(moveRequest.TaskIDs) == 0 {
+				return helpers.NewToolResultTextError("task_ids must contain at least one task ID"), nil
+			}
+
+			_, err := projects.WorkflowStageTasksMove(ctx, engine, moveRequest)
+			if err != nil {
+				return helpers.HandleAPIError(err, "failed to move tasks to workflow stage")
+			}
+			if len(moveRequest.TaskIDs) == 1 {
+				return helpers.NewToolResultText("Task moved to workflow stage successfully"), nil
+			}
+			return helpers.NewToolResultText("%d tasks moved to workflow stage successfully",
+				len(moveRequest.TaskIDs)), nil
 		},
 	}
 }

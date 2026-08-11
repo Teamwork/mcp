@@ -8,4 +8,5 @@ import (
 var (
 	mcpServerMock                = testutil.ProjectsMCPServerMock
 	mcpServerMockWithRequestBody = testutil.ProjectsMCPServerMockWithRequestBody
+	mcpServerRecordingMock       = testutil.ProjectsMCPServerRecordingMock
 )
