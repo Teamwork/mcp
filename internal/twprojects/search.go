@@ -91,6 +91,25 @@ func init() {
 		panic(fmt.Sprintf("failed to generate JSON schema for SearchResponse: %v", err))
 	}
 	helpers.WithMetaWebLinkSchema(searchOutputSchema)
+	withSearchHighlightsSchema(searchOutputSchema)
+}
+
+// withSearchHighlightsSchema documents the highlights on a hit, whose meta the
+// SDK models as a free-form map. The shape goes in the description because
+// helpers.WithOptionalFields strips additionalProperties.
+func withSearchHighlightsSchema(schema *jsonschema.Schema) {
+	items := schema.Properties["search"]
+	if items == nil || items.Items == nil {
+		panic("search output schema has no hit list")
+	}
+	meta := items.Items.Properties["meta"]
+	if meta == nil || meta.Properties == nil {
+		panic("search hit schema has no meta object")
+	}
+	meta.Properties["highlights"] = &jsonschema.Schema{
+		Type:        "object",
+		Description: "Fragments that matched, keyed by field, with the matches wrapped in <em> tags.",
+	}
 }
 
 // Search lists searches in Teamwork.com.
@@ -145,6 +164,14 @@ func Search(engine *twapi.Engine) toolsets.ToolWrapper {
 							{Type: "null"},
 						},
 					},
+					"include_highlights": {
+						Description: "Whether to return why each result matched, as fragments under its meta.highlights. " +
+							"Unavailable on an extended search.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "boolean"},
+							{Type: "null"},
+						},
+					},
 					"include": {
 						Description: "Entity types to return as full records in the response sideloads. " +
 							"Defaults to all supported types; narrow it to the types of interest to keep the response small.",
@@ -194,6 +221,7 @@ func Search(engine *twapi.Engine) toolsets.ToolWrapper {
 				helpers.OptionalPointerParam(&searchRequest.Filters.IncludeCompletedItems, "include_completed_items"),
 				helpers.OptionalTimeParam(&searchRequest.Filters.UpdatedAfter, "updated_after"),
 				helpers.OptionalPointerParam(&searchRequest.Filters.ExtendedSearch, "extended_search"),
+				helpers.OptionalPointerParam(&searchRequest.Filters.IncludeHighlights, "include_highlights"),
 				helpers.OptionalListParam(&searchRequest.Filters.Include, "include",
 					helpers.RestrictValues(searchSideloads...)),
 				helpers.OptionalParam(&searchRequest.Filters.Cursor, "cursor"),
