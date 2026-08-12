@@ -66,6 +66,13 @@ func TagCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 						Type:        "string",
 						Description: "The name of the tag. It must have less than 50 characters.",
 					},
+					"color": {
+						Description: "The color of the tag. It must be a valid hex color code.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string"},
+							{Type: "null"},
+						},
+					},
 					"project_id": {
 						Description: "The ID of the project to associate the tag with. This is for project-scoped tags.",
 						AnyOf: []*jsonschema.Schema{
@@ -86,6 +93,7 @@ func TagCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 			}
 			err := helpers.ParamGroup(arguments,
 				helpers.RequiredParam(&tagCreateRequest.Name, "name"),
+				helpers.OptionalParam(&tagCreateRequest.Color, "color"),
 				helpers.OptionalNumericPointerParam(&tagCreateRequest.ProjectID, "project_id"),
 			)
 			if err != nil {
@@ -126,6 +134,13 @@ func TagUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 							{Type: "null"},
 						},
 					},
+					"color": {
+						Description: "The color of the tag. It must be a valid hex color code.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string"},
+							{Type: "null"},
+						},
+					},
 					"project_id": {
 						Description: "The ID of the project to associate the tag with. This is for project-scoped tags.",
 						AnyOf: []*jsonschema.Schema{
@@ -147,6 +162,7 @@ func TagUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 			err := helpers.ParamGroup(arguments,
 				helpers.RequiredNumericParam(&tagUpdateRequest.Path.ID, "id"),
 				helpers.OptionalPointerParam(&tagUpdateRequest.Name, "name"),
+				helpers.OptionalPointerParam(&tagUpdateRequest.Color, "color"),
 				helpers.OptionalNumericPointerParam(&tagUpdateRequest.ProjectID, "project_id"),
 			)
 			if err != nil {
