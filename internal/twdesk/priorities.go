@@ -2,7 +2,6 @@ package twdesk
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 	"net/url"
 
@@ -59,7 +58,7 @@ func PriorityGet(httpClient *http.Client) toolsets.ToolWrapper {
 
 			priority, err := client.TicketPriorities.Get(ctx, arguments.GetInt("id", 0), getParams(arguments))
 			if err != nil {
-				return nil, fmt.Errorf("failed to get priority: %w", err)
+				return helpers.HandleAPIError(err, "failed to get priority")
 			}
 			return helpers.NewToolResultJSON(priority)
 		},
@@ -128,7 +127,7 @@ func PriorityList(httpClient *http.Client) toolsets.ToolWrapper {
 
 			priorities, err := client.TicketPriorities.List(ctx, params)
 			if err != nil {
-				return nil, fmt.Errorf("failed to list priorities: %w", err)
+				return helpers.HandleAPIError(err, "failed to list priorities")
 			}
 			return helpers.NewToolResultJSON(priorities)
 		},
@@ -180,7 +179,7 @@ func PriorityCreate(httpClient *http.Client) toolsets.ToolWrapper {
 				},
 			})
 			if err != nil {
-				return nil, fmt.Errorf("failed to create priority: %w", err)
+				return helpers.HandleAPIError(err, "failed to create priority")
 			}
 			return helpers.NewToolResultText("Priority created successfully with ID %d", priority.TicketPriority.ID), nil
 		},
@@ -238,7 +237,7 @@ func PriorityUpdate(httpClient *http.Client) toolsets.ToolWrapper {
 				},
 			})
 			if err != nil {
-				return nil, fmt.Errorf("failed to update priority: %w", err)
+				return helpers.HandleAPIError(err, "failed to update priority")
 			}
 
 			return helpers.NewToolResultText("Priority updated successfully"), nil

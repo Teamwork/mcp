@@ -2,7 +2,6 @@ package twdesk
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 	"net/url"
 
@@ -56,7 +55,7 @@ func InboxGet(httpClient *http.Client) toolsets.ToolWrapper {
 
 			inbox, err := client.Inboxes.Get(ctx, arguments.GetInt("id", 0), getParams(arguments))
 			if err != nil {
-				return nil, fmt.Errorf("failed to get inbox: %w", err)
+				return helpers.HandleAPIError(err, "failed to get inbox")
 			}
 			return helpers.NewToolResultJSON(inbox)
 		},
@@ -125,7 +124,7 @@ func InboxList(httpClient *http.Client) toolsets.ToolWrapper {
 
 			inboxes, err := client.Inboxes.List(ctx, params)
 			if err != nil {
-				return nil, fmt.Errorf("failed to list inboxes: %w", err)
+				return helpers.HandleAPIError(err, "failed to list inboxes")
 			}
 			return helpers.NewToolResultJSON(inboxes)
 		},

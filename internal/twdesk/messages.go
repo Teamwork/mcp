@@ -2,7 +2,6 @@ package twdesk
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 
 	"github.com/google/jsonschema-go/jsonschema"
@@ -98,7 +97,7 @@ func MessageCreate(httpClient *http.Client) toolsets.ToolWrapper {
 
 			message, err := client.Messages.CreateForTicket(ctx, arguments.GetInt("ticketID", 0), &data)
 			if err != nil {
-				return nil, fmt.Errorf("failed to create message: %w", err)
+				return helpers.HandleAPIError(err, "failed to create message")
 			}
 
 			return helpers.NewToolResultJSON(message)

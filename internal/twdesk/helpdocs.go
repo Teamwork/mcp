@@ -2,7 +2,6 @@ package twdesk
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 
 	"github.com/google/jsonschema-go/jsonschema"
@@ -57,7 +56,7 @@ func HelpDocArticleGet(httpClient *http.Client) toolsets.ToolWrapper {
 
 			article, err := client.HelpDocArticles.Get(ctx, arguments.GetInt("id", 0), getParams(arguments))
 			if err != nil {
-				return nil, fmt.Errorf("failed to get help doc article: %w", err)
+				return helpers.HandleAPIError(err, "failed to get help doc article")
 			}
 			return helpers.NewToolResultJSON(article)
 		},
@@ -144,7 +143,7 @@ func HelpDocArticleSearch(httpClient *http.Client) toolsets.ToolWrapper {
 
 			articles, err := client.HelpDocArticles.Search(ctx, filter)
 			if err != nil {
-				return nil, fmt.Errorf("failed to search help doc articles: %w", err)
+				return helpers.HandleAPIError(err, "failed to search help doc articles")
 			}
 			return helpers.NewToolResultJSON(articles)
 		},
@@ -225,16 +224,22 @@ func HelpDocArticleCreate(httpClient *http.Client) toolsets.ToolWrapper {
 				Title: &title,
 			}
 
-			if contents := arguments.GetString("contents", ""); contents != "" {
+			contents := arguments.GetString("contents", "")
+			if contents != "" {
 				article.Contents = &contents
 			}
-			if description := arguments.GetString("description", ""); description != "" {
+
+			description := arguments.GetString("description", "")
+			if description != "" {
 				article.Description = &description
 			}
-			if status := arguments.GetString("status", ""); status != "" {
+
+			status := arguments.GetString("status", "")
+			if status != "" {
 				article.Status = &status
 			}
-			if val := arguments["isPrivate"]; val != nil {
+
+			if arguments["isPrivate"] != nil {
 				isPrivate := arguments.GetBool("isPrivate", false)
 				article.IsPrivate = &isPrivate
 			}
@@ -243,7 +248,7 @@ func HelpDocArticleCreate(httpClient *http.Client) toolsets.ToolWrapper {
 				HelpDocArticle: article,
 			})
 			if err != nil {
-				return nil, fmt.Errorf("failed to create help doc article: %w", err)
+				return helpers.HandleAPIError(err, "failed to create help doc article")
 			}
 			return helpers.NewToolResultText("Help doc article created successfully with ID %d", result.HelpDocArticle.ID), nil
 		},
@@ -319,19 +324,27 @@ func HelpDocArticleUpdate(httpClient *http.Client) toolsets.ToolWrapper {
 
 			article := deskmodels.HelpDocArticle{}
 
-			if title := arguments.GetString("title", ""); title != "" {
+			title := arguments.GetString("title", "")
+			if title != "" {
 				article.Title = &title
 			}
-			if contents := arguments.GetString("contents", ""); contents != "" {
+
+			contents := arguments.GetString("contents", "")
+			if contents != "" {
 				article.Contents = &contents
 			}
-			if description := arguments.GetString("description", ""); description != "" {
+
+			description := arguments.GetString("description", "")
+			if description != "" {
 				article.Description = &description
 			}
-			if status := arguments.GetString("status", ""); status != "" {
+
+			status := arguments.GetString("status", "")
+			if status != "" {
 				article.Status = &status
 			}
-			if val := arguments["isPrivate"]; val != nil {
+
+			if arguments["isPrivate"] != nil {
 				isPrivate := arguments.GetBool("isPrivate", false)
 				article.IsPrivate = &isPrivate
 			}
@@ -340,7 +353,7 @@ func HelpDocArticleUpdate(httpClient *http.Client) toolsets.ToolWrapper {
 				HelpDocArticle: article,
 			})
 			if err != nil {
-				return nil, fmt.Errorf("failed to update help doc article: %w", err)
+				return helpers.HandleAPIError(err, "failed to update help doc article")
 			}
 			return helpers.NewToolResultText("Help doc article updated successfully"), nil
 		},

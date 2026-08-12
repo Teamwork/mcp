@@ -92,7 +92,9 @@ func sparseFieldsSchema() *jsonschema.Schema {
 func getParams(arguments helpers.ToolArguments) url.Values {
 	params := url.Values{}
 	params.Set("includes", "all")
-	if fields := strings.Join(arguments.GetStringSlice("fields", nil), ","); fields != "" {
+
+	fields := strings.Join(arguments.GetStringSlice("fields", nil), ",")
+	if fields != "" {
 		params.Set("fields", fields)
 	}
 	return params
@@ -131,7 +133,9 @@ func setPagination(v *url.Values, arguments helpers.ToolArguments) {
 	v.Set("pageSize", fmt.Sprintf("%d", arguments.GetInt("pageSize", defaultPageSize)))
 	v.Set("orderBy", arguments.GetString("orderBy", "createdAt"))
 	v.Set("orderMode", arguments.GetString("orderDirection", "desc"))
-	if fields := strings.Join(arguments.GetStringSlice("fields", nil), ","); fields != "" {
+
+	fields := strings.Join(arguments.GetStringSlice("fields", nil), ",")
+	if fields != "" {
 		v.Set("fields", fields)
 	}
 }
@@ -148,13 +152,19 @@ func setPagination(v *url.Values, arguments helpers.ToolArguments) {
 func setSearchPagination(v *url.Values, arguments helpers.ToolArguments) {
 	v.Set("page", fmt.Sprintf("%d", arguments.GetInt("page", 1)))
 	v.Set("pageSize", fmt.Sprintf("%d", arguments.GetInt("pageSize", defaultPageSize)))
-	if orderBy := arguments.GetString("orderBy", ""); orderBy != "" {
+
+	orderBy := arguments.GetString("orderBy", "")
+	if orderBy != "" {
 		v.Set("orderBy", orderBy)
 	}
-	if orderDirection := arguments.GetString("orderDirection", ""); orderDirection != "" {
+
+	orderDirection := arguments.GetString("orderDirection", "")
+	if orderDirection != "" {
 		v.Set("orderMode", orderDirection)
 	}
-	if fields := strings.Join(arguments.GetStringSlice("fields", nil), ","); fields != "" {
+
+	fields := strings.Join(arguments.GetStringSlice("fields", nil), ",")
+	if fields != "" {
 		v.Set("fields", fields)
 	}
 }

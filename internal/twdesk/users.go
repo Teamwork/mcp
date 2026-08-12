@@ -2,7 +2,6 @@ package twdesk
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 	"net/url"
 
@@ -56,7 +55,7 @@ func UserGet(httpClient *http.Client) toolsets.ToolWrapper {
 
 			user, err := client.Users.Get(ctx, arguments.GetInt("id", 0), getParams(arguments))
 			if err != nil {
-				return nil, fmt.Errorf("failed to get user: %w", err)
+				return helpers.HandleAPIError(err, "failed to get user")
 			}
 			return helpers.NewToolResultJSON(user)
 		},
@@ -159,7 +158,7 @@ func UserList(httpClient *http.Client) toolsets.ToolWrapper {
 
 			users, err := client.Users.List(ctx, params)
 			if err != nil {
-				return nil, fmt.Errorf("failed to list users: %w", err)
+				return helpers.HandleAPIError(err, "failed to list users")
 			}
 			return helpers.NewToolResultJSON(users)
 		},

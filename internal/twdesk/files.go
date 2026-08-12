@@ -3,7 +3,6 @@ package twdesk
 import (
 	"context"
 	"encoding/base64"
-	"fmt"
 	"net/http"
 
 	"github.com/google/jsonschema-go/jsonschema"
@@ -85,22 +84,24 @@ func FileCreate(httpClient *http.Client) toolsets.ToolWrapper {
 				},
 			})
 			if err != nil {
-				return nil, fmt.Errorf("failed to create file: %w", err)
+				return helpers.HandleAPIError(err, "failed to create file")
 			}
 
 			dataStr := arguments.GetString("data", "")
 			if dataStr == "" {
-				return nil, fmt.Errorf("file data (base64 encoded) is required")
+				return helpers.NewToolResultTextError("file data (base64 encoded) is required"), nil
 			}
 
+			// Not an API failure: the caller supplied malformed base64, so report it
+			// as a tool result it can correct rather than as a transport error.
 			fileData, err := base64.StdEncoding.DecodeString(dataStr)
 			if err != nil {
-				return nil, fmt.Errorf("failed to decode base64 data: %w", err)
+				return helpers.NewToolResultTextError("failed to decode base64 data: %s", err.Error()), nil
 			}
 
 			err = client.Files.Upload(ctx, file, fileData)
 			if err != nil {
-				return nil, fmt.Errorf("failed to upload file: %w", err)
+				return helpers.HandleAPIError(err, "failed to upload file")
 			}
 			return helpers.NewToolResultText("File created successfully with ID %d", file.File.ID), nil
 		},
