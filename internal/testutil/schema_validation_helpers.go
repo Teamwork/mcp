@@ -38,10 +38,12 @@ func NewSchemaValidationTestSuite() *SchemaValidationTestSuite {
 		"CustomerList":   twdesk.CustomerList(httpClient),
 
 		// Ticket tools
-		"TicketCreate": twdesk.TicketCreate(httpClient),
-		"TicketUpdate": twdesk.TicketUpdate(httpClient),
-		"TicketGet":    twdesk.TicketGet(httpClient),
-		"TicketSearch": twdesk.TicketSearch(httpClient),
+		"TicketCreate":     twdesk.TicketCreate(httpClient),
+		"TicketUpdate":     twdesk.TicketUpdate(httpClient),
+		"TicketGet":        twdesk.TicketGet(httpClient),
+		"TicketSearch":     twdesk.TicketSearch(httpClient),
+		"TicketTaskLink":   twdesk.TicketTaskLink(httpClient),
+		"TicketTaskUnlink": twdesk.TicketTaskUnlink(httpClient),
 
 		// Priority tools
 		"PriorityCreate": twdesk.PriorityCreate(httpClient),
@@ -313,6 +315,12 @@ func GetValidTestData() map[string]map[string]map[string]any {
 		"TicketGet": {
 			"valid": {"id": 123, "fields": nil},
 		},
+		"TicketTaskLink": {
+			"valid": {"ticketId": 123, "taskId": 456},
+		},
+		"TicketTaskUnlink": {
+			"valid": {"ticketId": 123, "taskId": 456},
+		},
 		"TicketSearch": {
 			"empty": {
 				"search": nil, "inboxIDs": nil, "customerIDs": nil,
@@ -485,6 +493,14 @@ func GetInvalidTestData() map[string]map[string]map[string]any {
 		},
 		"TicketGet": {
 			"missing_required_id": {},
+		},
+		"TicketTaskLink": {
+			"missing_required_task_id": {"ticketId": 123},
+			"wrong_type_ticket_id":     {"ticketId": "123", "taskId": 456},
+		},
+		"TicketTaskUnlink": {
+			"missing_required_ticket_id": {"taskId": 456},
+			"wrong_type_task_id":         {"ticketId": 123, "taskId": "456"},
 		},
 		"PriorityCreate": {
 			"missing_required_name": {},

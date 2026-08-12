@@ -9,6 +9,7 @@ import (
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/teamwork/mcp/internal/testutil"
+	"github.com/teamwork/mcp/internal/toolsets"
 	"github.com/teamwork/mcp/internal/twdesk"
 )
 
@@ -315,4 +316,122 @@ func TestTicketSearchRejectsInvalidCreatedDate(t *testing.T) {
 			t.Errorf("error should name the offending parameter, got %q", textContent.Text)
 		}
 	}))
+}
+
+func TestTicketTaskLink(t *testing.T) {
+	mcpServer, cleanup := mcpServerMock(t, http.StatusOK, nil)
+	defer cleanup()
+
+	testutil.ExecuteToolRequest(t, mcpServer, twdesk.MethodTicketTaskLink.String(), map[string]any{
+		"ticketId": float64(123),
+		"taskId":   float64(456),
+	})
+}
+
+func TestTicketTaskUnlink(t *testing.T) {
+	mcpServer, cleanup := mcpServerMock(t, http.StatusNoContent, nil)
+	defer cleanup()
+
+	testutil.ExecuteToolRequest(t, mcpServer, twdesk.MethodTicketTaskUnlink.String(), map[string]any{
+		"ticketId": float64(123),
+		"taskId":   float64(456),
+	})
+}
+
+// TestTicketTaskLinkRequests pins the method and path each tool sends. The two
+// tools address the same endpoint and differ only in POST versus DELETE, so a
+// check on the URL alone would pass with the two swapped.
+func TestTicketTaskLinkRequests(t *testing.T) {
+	tests := []struct {
+		name       string
+		method     toolsets.Method
+		wantMethod string
+	}{
+		{name: "link", method: twdesk.MethodTicketTaskLink, wantMethod: http.MethodPost},
+		{name: "unlink", method: twdesk.MethodTicketTaskUnlink, wantMethod: http.MethodDelete},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mcpServer, lastRequest, cleanup := testutil.DeskMCPServerMockWithRequest(t, http.StatusOK, nil)
+			defer cleanup()
+
+			testutil.ExecuteToolRequest(t, mcpServer, tt.method.String(), map[string]any{
+				"ticketId": float64(123),
+				"taskId":   float64(456),
+			})
+
+			method, requestURL := lastRequest()
+			if method != tt.wantMethod {
+				t.Errorf("unexpected request method: got %q, want %q", method, tt.wantMethod)
+			}
+			if got, want := requestURL.Path, "/desk/api/v2/tickets/123/tasks/456.json"; got != want {
+				t.Errorf("unexpected request path: got %q, want %q", got, want)
+			}
+		})
+	}
+}
+
+// TestTicketTaskLinkRejectsNonPositiveIDs keeps bad caller input a tool result.
+// The SDK rejects a non-positive ID with a bare Go error carrying no status,
+// which HandleAPIError can only hand back as a protocol-level failure.
+func TestTicketTaskLinkRejectsNonPositiveIDs(t *testing.T) {
+	tests := []struct {
+		name     string
+		method   toolsets.Method
+		args     map[string]any
+		wantText string
+	}{
+		{
+			name:     "link/ticket",
+			method:   twdesk.MethodTicketTaskLink,
+			args:     map[string]any{"ticketId": float64(0), "taskId": float64(456)},
+			wantText: "ticketId",
+		},
+		{
+			name:     "link/task",
+			method:   twdesk.MethodTicketTaskLink,
+			args:     map[string]any{"ticketId": float64(123), "taskId": float64(-1)},
+			wantText: "taskId",
+		},
+		{
+			name:     "unlink/ticket",
+			method:   twdesk.MethodTicketTaskUnlink,
+			args:     map[string]any{"ticketId": float64(-1), "taskId": float64(456)},
+			wantText: "ticketId",
+		},
+		{
+			name:     "unlink/task",
+			method:   twdesk.MethodTicketTaskUnlink,
+			args:     map[string]any{"ticketId": float64(123), "taskId": float64(0)},
+			wantText: "taskId",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mcpServer, cleanup := mcpServerMock(t, http.StatusOK, nil)
+			defer cleanup()
+
+			testutil.ExecuteToolRequest(t, mcpServer, tt.method.String(), tt.args,
+				testutil.ExecuteToolRequestWithCheckMessage(func(t *testing.T, result mcp.Result) {
+					t.Helper()
+
+					toolResult, ok := result.(*mcp.CallToolResult)
+					if !ok {
+						t.Fatalf("unexpected result type: %T", result)
+					}
+					if !toolResult.IsError {
+						t.Fatal("a non-positive ID should be an error tool result")
+					}
+					textContent, ok := toolResult.Content[0].(*mcp.TextContent)
+					if !ok {
+						t.Fatalf("unexpected content type: %T", toolResult.Content[0])
+					}
+					if !strings.Contains(textContent.Text, tt.wantText) {
+						t.Errorf("error should name the offending parameter, got %q", textContent.Text)
+					}
+				}))
+		})
+	}
 }

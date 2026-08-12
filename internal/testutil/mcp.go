@@ -394,15 +394,37 @@ func DeskMCPServerMockWithRequestURL(
 ) (*mcp.Server, func() url.URL, func()) {
 	t.Helper()
 
+	mcpServer, lastRequest, cleanup := DeskMCPServerMockWithRequest(t, status, response)
+	return mcpServer, func() url.URL {
+		_, requestURL := lastRequest()
+		return requestURL
+	}, cleanup
+}
+
+// DeskMCPServerMockWithRequest is like DeskMCPServerMockWithRequestURL but also
+// reports the HTTP method of the most recent request.
+//
+// The method is what separates some tools from each other: the ticket task link
+// and unlink tools address the same path and differ only in POST versus DELETE,
+// so a test that checks the URL alone passes when the two are swapped.
+func DeskMCPServerMockWithRequest(
+	t *testing.T,
+	status int,
+	response []byte,
+) (*mcp.Server, func() (string, url.URL), func()) {
+	t.Helper()
+
 	mcpServer := mcp.NewServer(&mcp.Implementation{
 		Name:    "test-server",
 		Version: "1.0.0",
 	}, &mcp.ServerOptions{})
 
 	var mu sync.Mutex
+	var lastMethod string
 	var lastURL url.URL
 	testServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		mu.Lock()
+		lastMethod = r.Method
 		lastURL = *r.URL
 		mu.Unlock()
 
@@ -415,10 +437,10 @@ func DeskMCPServerMockWithRequestURL(
 	cleanup := func() {
 		testServer.Close()
 	}
-	lastRequestURL := func() url.URL {
+	lastRequest := func() (string, url.URL) {
 		mu.Lock()
 		defer mu.Unlock()
-		return lastURL
+		return lastMethod, lastURL
 	}
 
 	httpClient := testServer.Client()
@@ -437,7 +459,7 @@ func DeskMCPServerMockWithRequestURL(
 		}
 	})
 
-	return mcpServer, lastRequestURL, cleanup
+	return mcpServer, lastRequest, cleanup
 }
 
 // ToolRequest represents a tool request for testing
