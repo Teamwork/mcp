@@ -128,7 +128,7 @@ Tickets, messages, files, and inboxes in Teamwork Desk.
 | Ticket | ✓ | ✓ | — | ✓ |
 | File | ✓ | — | — | — |
 
-**Other actions:** `reply_ticket`, `search_tickets`
+**Other actions:** `link_task_to_ticket`, `reply_ticket`, `search_tickets`, `unlink_task_from_ticket`
 
 ## Spaces
 

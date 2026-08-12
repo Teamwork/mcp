@@ -21,10 +21,12 @@ import (
 // The naming convention for methods follows a pattern described here:
 // https://github.com/github/github-mcp-server/issues/333
 const (
-	MethodTicketCreate toolsets.Method = "twdesk-create_ticket"
-	MethodTicketUpdate toolsets.Method = "twdesk-update_ticket"
-	MethodTicketGet    toolsets.Method = "twdesk-get_ticket"
-	MethodTicketSearch toolsets.Method = "twdesk-search_tickets"
+	MethodTicketCreate     toolsets.Method = "twdesk-create_ticket"
+	MethodTicketUpdate     toolsets.Method = "twdesk-update_ticket"
+	MethodTicketGet        toolsets.Method = "twdesk-get_ticket"
+	MethodTicketSearch     toolsets.Method = "twdesk-search_tickets"
+	MethodTicketTaskLink   toolsets.Method = "twdesk-link_task_to_ticket"
+	MethodTicketTaskUnlink toolsets.Method = "twdesk-unlink_task_from_ticket"
 )
 
 // TicketGet finds a ticket in Teamwork Desk.  This will find it by ID
@@ -676,6 +678,117 @@ func TicketUpdate(httpClient *http.Client) toolsets.ToolWrapper {
 				return helpers.HandleAPIError(err, "failed to update ticket")
 			}
 			return helpers.NewToolResultJSON(ticket)
+		},
+	}
+}
+
+// ticketTaskSchema is the input schema shared by the link and unlink tools:
+// both address a single ticket/task pair and take nothing else.
+func ticketTaskSchema() *jsonschema.Schema {
+	return &jsonschema.Schema{
+		Type:                 "object",
+		AdditionalProperties: falseSchema(),
+		Properties: map[string]*jsonschema.Schema{
+			"ticketId": {
+				Type:        "integer",
+				Description: "The ID of the Desk ticket. Use twdesk-search_tickets to discover.",
+			},
+			"taskId": {
+				Type: "integer",
+				Description: "The ID of the Teamwork Projects task. " +
+					"Use twprojects-list_tasks or twprojects-search to discover.",
+			},
+		},
+		Required: []string{"ticketId", "taskId"},
+	}
+}
+
+// ticketTaskIDs reads and checks the ticket/task pair both link tools take.
+//
+// The SDK rejects a non-positive ID itself, but as a bare Go error with no
+// status behind it, which HandleAPIError can only hand back as a Go error and
+// therefore a protocol-level failure. Checking here keeps bad caller input a
+// tool result the model can read, the same as every other local fault.
+func ticketTaskIDs(arguments helpers.ToolArguments) (ticketID, taskID int, errResult *mcp.CallToolResult) {
+	ticketID = arguments.GetInt("ticketId", 0)
+	taskID = arguments.GetInt("taskId", 0)
+	if ticketID <= 0 {
+		return 0, 0, helpers.NewToolResultTextError("ticketId must be greater than 0")
+	}
+	if taskID <= 0 {
+		return 0, 0, helpers.NewToolResultTextError("taskId must be greater than 0")
+	}
+	return ticketID, taskID, nil
+}
+
+// TicketTaskLink links a Teamwork Projects task to a Teamwork Desk ticket.
+func TicketTaskLink(httpClient *http.Client) toolsets.ToolWrapper {
+	return toolsets.ToolWrapper{
+		Tool: &mcp.Tool{
+			Name: string(MethodTicketTaskLink),
+			Annotations: &mcp.ToolAnnotations{
+				Title: "Link Task to Ticket",
+				// Adding a link neither removes anything nor reaches outside the
+				// customer's Teamwork account.
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
+			},
+			Description: "Link a Teamwork Projects task to a Desk ticket, so the ticket shows the work tracked by that task.",
+			InputSchema: ticketTaskSchema(),
+		},
+		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+			client := ClientFromContext(ctx, httpClient)
+			arguments, err := helpers.NewToolArguments(request)
+			if err != nil {
+				return helpers.NewToolResultTextError("%v", err), nil
+			}
+
+			ticketID, taskID, errResult := ticketTaskIDs(arguments)
+			if errResult != nil {
+				return errResult, nil
+			}
+
+			if err := client.Tickets.LinkTask(ctx, ticketID, taskID); err != nil {
+				return helpers.HandleAPIError(err, "failed to link task to ticket")
+			}
+			return helpers.NewToolResultText("Task %d linked to ticket %d successfully", taskID, ticketID), nil
+		},
+	}
+}
+
+// TicketTaskUnlink removes the link between a Teamwork Projects task and a
+// Teamwork Desk ticket.
+func TicketTaskUnlink(httpClient *http.Client) toolsets.ToolWrapper {
+	return toolsets.ToolWrapper{
+		Tool: &mcp.Tool{
+			Name: string(MethodTicketTaskUnlink),
+			Annotations: &mcp.ToolAnnotations{
+				Title: "Unlink Task from Ticket",
+				// Removing the link is a destructive update rather than an additive
+				// one, even though neither the ticket nor the task is touched and the
+				// link can be recreated with twdesk-link_task_to_ticket.
+				DestructiveHint: new(true),
+				OpenWorldHint:   new(false),
+			},
+			Description: "Unlink a Teamwork Projects task from a Desk ticket. The task and the ticket themselves are kept.",
+			InputSchema: ticketTaskSchema(),
+		},
+		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+			client := ClientFromContext(ctx, httpClient)
+			arguments, err := helpers.NewToolArguments(request)
+			if err != nil {
+				return helpers.NewToolResultTextError("%v", err), nil
+			}
+
+			ticketID, taskID, errResult := ticketTaskIDs(arguments)
+			if errResult != nil {
+				return errResult, nil
+			}
+
+			if err := client.Tickets.UnlinkTask(ctx, ticketID, taskID); err != nil {
+				return helpers.HandleAPIError(err, "failed to unlink task from ticket")
+			}
+			return helpers.NewToolResultText("Task %d unlinked from ticket %d successfully", taskID, ticketID), nil
 		},
 	}
 }

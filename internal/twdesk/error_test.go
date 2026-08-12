@@ -46,6 +46,16 @@ func TestAPIFailuresAreToolResults(t *testing.T) {
 			},
 		},
 		{
+			name:   "link_task_to_ticket",
+			method: twdesk.MethodTicketTaskLink,
+			args:   map[string]any{"ticketId": float64(123), "taskId": float64(456)},
+		},
+		{
+			name:   "unlink_task_from_ticket",
+			method: twdesk.MethodTicketTaskUnlink,
+			args:   map[string]any{"ticketId": float64(123), "taskId": float64(456)},
+		},
+		{
 			name:   "get_inbox",
 			method: twdesk.MethodInboxGet,
 			args:   map[string]any{"id": float64(123), "fields": nil},

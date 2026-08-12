@@ -44,6 +44,8 @@ func DefaultToolsetGroup(readOnly bool, httpClient *http.Client) *toolsets.Tools
 			MessageCreate(httpClient),
 			TicketCreate(httpClient),
 			TicketUpdate(httpClient),
+			TicketTaskLink(httpClient),
+			TicketTaskUnlink(httpClient),
 		).
 		AddReadTools(
 			InboxGet(httpClient),
