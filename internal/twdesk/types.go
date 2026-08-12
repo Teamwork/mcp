@@ -2,7 +2,6 @@ package twdesk
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 	"net/url"
 
@@ -59,7 +58,7 @@ func TypeGet(httpClient *http.Client) toolsets.ToolWrapper {
 
 			t, err := client.TicketTypes.Get(ctx, arguments.GetInt("id", 0), getParams(arguments))
 			if err != nil {
-				return nil, fmt.Errorf("failed to get type: %w", err)
+				return helpers.HandleAPIError(err, "failed to get type")
 			}
 			return helpers.NewToolResultJSON(t)
 		},
@@ -128,7 +127,7 @@ func TypeList(httpClient *http.Client) toolsets.ToolWrapper {
 
 			types, err := client.TicketTypes.List(ctx, params)
 			if err != nil {
-				return nil, fmt.Errorf("failed to list types: %w", err)
+				return helpers.HandleAPIError(err, "failed to list types")
 			}
 			return helpers.NewToolResultJSON(types)
 		},
@@ -189,7 +188,7 @@ func TypeCreate(httpClient *http.Client) toolsets.ToolWrapper {
 				},
 			})
 			if err != nil {
-				return nil, fmt.Errorf("failed to create type: %w", err)
+				return helpers.HandleAPIError(err, "failed to create type")
 			}
 			return helpers.NewToolResultText("Ticket type created successfully with ID %d", t.TicketType.ID), nil
 		},
@@ -256,7 +255,7 @@ func TypeUpdate(httpClient *http.Client) toolsets.ToolWrapper {
 				},
 			})
 			if err != nil {
-				return nil, fmt.Errorf("failed to update ticket type: %w", err)
+				return helpers.HandleAPIError(err, "failed to update ticket type")
 			}
 
 			return helpers.NewToolResultText("Ticket type updated successfully"), nil

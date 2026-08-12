@@ -2,7 +2,6 @@ package twdesk
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 	"net/url"
 
@@ -56,7 +55,7 @@ func HelpDocSiteGet(httpClient *http.Client) toolsets.ToolWrapper {
 
 			site, err := client.HelpDocSites.Get(ctx, arguments.GetInt("id", 0), getParams(arguments))
 			if err != nil {
-				return nil, fmt.Errorf("failed to get help doc site: %w", err)
+				return helpers.HandleAPIError(err, "failed to get help doc site")
 			}
 			return helpers.NewToolResultJSON(site)
 		},
@@ -127,7 +126,7 @@ func HelpDocSiteList(httpClient *http.Client) toolsets.ToolWrapper {
 
 			sites, err := client.HelpDocSites.List(ctx, params)
 			if err != nil {
-				return nil, fmt.Errorf("failed to list help doc sites: %w", err)
+				return helpers.HandleAPIError(err, "failed to list help doc sites")
 			}
 			return helpers.NewToolResultJSON(sites)
 		},

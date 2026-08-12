@@ -2,7 +2,6 @@ package twdesk
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 	"net/url"
 
@@ -59,7 +58,7 @@ func StatusGet(httpClient *http.Client) toolsets.ToolWrapper {
 
 			status, err := client.TicketStatuses.Get(ctx, arguments.GetInt("id", 0), getParams(arguments))
 			if err != nil {
-				return nil, fmt.Errorf("failed to get status: %w", err)
+				return helpers.HandleAPIError(err, "failed to get status")
 			}
 
 			return helpers.NewToolResultJSON(status)
@@ -140,7 +139,7 @@ func StatusList(httpClient *http.Client) toolsets.ToolWrapper {
 
 			statuses, err := client.TicketStatuses.List(ctx, params)
 			if err != nil {
-				return nil, fmt.Errorf("failed to list statuses: %w", err)
+				return helpers.HandleAPIError(err, "failed to list statuses")
 			}
 			return helpers.NewToolResultJSON(statuses)
 		},
@@ -200,7 +199,7 @@ func StatusCreate(httpClient *http.Client) toolsets.ToolWrapper {
 				},
 			})
 			if err != nil {
-				return nil, fmt.Errorf("failed to create status: %w", err)
+				return helpers.HandleAPIError(err, "failed to create status")
 			}
 			return helpers.NewToolResultText("Status created successfully with ID %d", status.TicketStatus.ID), nil
 		},
@@ -266,7 +265,7 @@ func StatusUpdate(httpClient *http.Client) toolsets.ToolWrapper {
 				},
 			})
 			if err != nil {
-				return nil, fmt.Errorf("failed to update status: %w", err)
+				return helpers.HandleAPIError(err, "failed to update status")
 			}
 
 			return helpers.NewToolResultText("Status updated successfully"), nil

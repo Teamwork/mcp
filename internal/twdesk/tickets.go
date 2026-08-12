@@ -3,7 +3,6 @@ package twdesk
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"net/url"
 	"time"
@@ -62,12 +61,12 @@ func TicketGet(httpClient *http.Client) toolsets.ToolWrapper {
 
 			ticket, err := client.Tickets.Get(ctx, arguments.GetInt("id", 0), getParams(arguments))
 			if err != nil {
-				return nil, fmt.Errorf("failed to get ticket: %w", err)
+				return helpers.HandleAPIError(err, "failed to get ticket")
 			}
 
 			encoded, err := json.Marshal(ticket)
 			if err != nil {
-				return nil, err
+				return helpers.NewToolResultTextError("failed to encode ticket: %s", err.Error()), nil
 			}
 
 			return &mcp.CallToolResult{
@@ -233,10 +232,11 @@ func TicketSearch(httpClient *http.Client) toolsets.ToolWrapper {
 			// filter.StartDate/EndDate so that the value the endpoint receives is
 			// not the RFC 3339 one qs renders a time.Time as. See below.
 			var createdAfter, createdBefore *time.Time
-			if err := helpers.ParamGroup(arguments,
+			err = helpers.ParamGroup(arguments,
 				helpers.OptionalTimePointerParam(&createdAfter, "createdAfter"),
 				helpers.OptionalTimePointerParam(&createdBefore, "createdBefore"),
-			); err != nil {
+			)
+			if err != nil {
 				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
 			}
 
@@ -245,7 +245,7 @@ func TicketSearch(httpClient *http.Client) toolsets.ToolWrapper {
 			// carry. See ticketSearchService.
 			params, err := qs.NewEncoder().Values(filter)
 			if err != nil {
-				return nil, fmt.Errorf("failed to encode ticket search filter: %w", err)
+				return helpers.NewToolResultTextError("failed to encode ticket search filter: %s", err.Error()), nil
 			}
 			setSearchPagination(&params, arguments)
 
@@ -258,7 +258,7 @@ func TicketSearch(httpClient *http.Client) toolsets.ToolWrapper {
 
 			tickets, err := ticketSearchService(client).List(ctx, params)
 			if err != nil {
-				return nil, fmt.Errorf("failed to search tickets: %w", err)
+				return helpers.HandleAPIError(err, "failed to search tickets")
 			}
 			return helpers.NewToolResultJSON(tickets)
 		},
@@ -404,7 +404,8 @@ func TicketCreate(httpClient *http.Client) toolsets.ToolWrapper {
 				}
 			}
 
-			if email := arguments.GetString("customerEmail", ""); email != "" {
+			email := arguments.GetString("customerEmail", "")
+			if email != "" {
 				filter := deskclient.NewFilter()
 				filter = filter.Eq("contacts.value", email)
 
@@ -414,7 +415,7 @@ func TicketCreate(httpClient *http.Client) toolsets.ToolWrapper {
 
 				customers, err := client.Customers.List(ctx, params)
 				if err != nil {
-					return nil, fmt.Errorf("failed to list customers: %w", err)
+					return helpers.HandleAPIError(err, "failed to list customers")
 				}
 
 				if len(customers.Customers) > 0 {
@@ -429,7 +430,7 @@ func TicketCreate(httpClient *http.Client) toolsets.ToolWrapper {
 						},
 					})
 					if err != nil {
-						return nil, fmt.Errorf("failed to create customer: %w", err)
+						return helpers.HandleAPIError(err, "failed to create customer")
 					}
 					data.Customer = &deskmodels.EntityRef{
 						ID: customer.Customer.ID,
@@ -491,7 +492,7 @@ func TicketCreate(httpClient *http.Client) toolsets.ToolWrapper {
 				Ticket: data,
 			})
 			if err != nil {
-				return nil, fmt.Errorf("failed to create ticket: %w", err)
+				return helpers.HandleAPIError(err, "failed to create ticket")
 			}
 			return helpers.NewToolResultJSON(ticket)
 		},
@@ -610,17 +611,20 @@ func TicketUpdate(httpClient *http.Client) toolsets.ToolWrapper {
 
 			data := deskmodels.Ticket{}
 
-			if subject := arguments.GetString("subject", ""); subject != "" {
+			subject := arguments.GetString("subject", "")
+			if subject != "" {
 				data.Subject = &subject
 			}
 
-			if inboxId := arguments.GetInt("inboxId", 0); inboxId > 0 {
+			inboxID := arguments.GetInt("inboxId", 0)
+			if inboxID > 0 {
 				data.Inbox = &deskmodels.EntityRef{
-					ID: inboxId,
+					ID: inboxID,
 				}
 			}
 
-			if body := arguments.GetString("body", ""); body != "" {
+			body := arguments.GetString("body", "")
+			if body != "" {
 				data.Body = &body
 			}
 
@@ -650,23 +654,26 @@ func TicketUpdate(httpClient *http.Client) toolsets.ToolWrapper {
 				data.CC = arguments.GetStringSlice("cc", []string{})
 			}
 
-			if statusId := arguments.GetInt("statusId", 0); statusId > 0 {
-				data.Status = &deskmodels.EntityRef{ID: statusId}
+			statusID := arguments.GetInt("statusId", 0)
+			if statusID > 0 {
+				data.Status = &deskmodels.EntityRef{ID: statusID}
 			}
 
-			if typeId := arguments.GetInt("typeId", 0); typeId > 0 {
-				data.Type = &deskmodels.EntityRef{ID: typeId}
+			typeID := arguments.GetInt("typeId", 0)
+			if typeID > 0 {
+				data.Type = &deskmodels.EntityRef{ID: typeID}
 			}
 
-			if agentId := arguments.GetInt("agentId", 0); agentId > 0 {
-				data.Agent = &deskmodels.EntityRef{ID: agentId}
+			agentID := arguments.GetInt("agentId", 0)
+			if agentID > 0 {
+				data.Agent = &deskmodels.EntityRef{ID: agentID}
 			}
 
 			ticket, err := client.Tickets.Update(ctx, arguments.GetInt("id", 0), &deskmodels.TicketResponse{
 				Ticket: data,
 			})
 			if err != nil {
-				return nil, fmt.Errorf("failed to update ticket: %w", err)
+				return helpers.HandleAPIError(err, "failed to update ticket")
 			}
 			return helpers.NewToolResultJSON(ticket)
 		},

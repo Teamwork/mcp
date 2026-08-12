@@ -18,9 +18,9 @@ func ClientFromContext(ctx context.Context, httpClient *http.Client) *deskclient
 	baseURL := "https://api.teamwork.com/desk/api/v2"
 
 	// Override with customer URL if present in context
-	if customerURL, ok := config.CustomerURLFromContext(ctx); ok {
-		customerURL = strings.TrimSuffix(customerURL, "/")
-		baseURL = customerURL + "/desk/api/v2"
+	customerURL, ok := config.CustomerURLFromContext(ctx)
+	if ok {
+		baseURL = strings.TrimSuffix(customerURL, "/") + "/desk/api/v2"
 	}
 
 	options := []deskclient.Option{
@@ -28,12 +28,14 @@ func ClientFromContext(ctx context.Context, httpClient *http.Client) *deskclient
 	}
 
 	// Pass the bearer token from context if available
-	if bearerToken, ok := config.BearerTokenFromContext(ctx); ok {
+	bearerToken, ok := config.BearerTokenFromContext(ctx)
+	if ok {
 		options = append(options, deskclient.WithAPIKey(bearerToken))
 	}
 
 	// Pass the logger from context if available
-	if logger := slog.Default(); logger != nil {
+	logger := slog.Default()
+	if logger != nil {
 		options = append(options, deskclient.WithLogger(logger))
 	}
 

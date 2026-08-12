@@ -2,7 +2,6 @@ package twdesk
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 	"net/url"
 
@@ -59,7 +58,7 @@ func CompanyGet(httpClient *http.Client) toolsets.ToolWrapper {
 
 			company, err := client.Companies.Get(ctx, arguments.GetInt("id", 0), getParams(arguments))
 			if err != nil {
-				return nil, fmt.Errorf("failed to get company: %w", err)
+				return helpers.HandleAPIError(err, "failed to get company")
 			}
 
 			return helpers.NewToolResultJSON(company)
@@ -142,7 +141,7 @@ func CompanyList(httpClient *http.Client) toolsets.ToolWrapper {
 
 			companies, err := client.Companies.List(ctx, params)
 			if err != nil {
-				return nil, fmt.Errorf("failed to list companies: %w", err)
+				return helpers.HandleAPIError(err, "failed to list companies")
 			}
 			return helpers.NewToolResultJSON(companies)
 		},
@@ -264,7 +263,7 @@ func CompanyCreate(httpClient *http.Client) toolsets.ToolWrapper {
 				},
 			})
 			if err != nil {
-				return nil, fmt.Errorf("failed to create company: %w", err)
+				return helpers.HandleAPIError(err, "failed to create company")
 			}
 			return helpers.NewToolResultText("Company created successfully with ID %d", company.Company.ID), nil
 		},
@@ -391,7 +390,7 @@ func CompanyUpdate(httpClient *http.Client) toolsets.ToolWrapper {
 				},
 			})
 			if err != nil {
-				return nil, fmt.Errorf("failed to update company: %w", err)
+				return helpers.HandleAPIError(err, "failed to update company")
 			}
 
 			return helpers.NewToolResultText("Company updated successfully"), nil

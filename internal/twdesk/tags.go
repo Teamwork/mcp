@@ -2,7 +2,6 @@ package twdesk
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 	"net/url"
 
@@ -59,7 +58,7 @@ func TagGet(httpClient *http.Client) toolsets.ToolWrapper {
 
 			tag, err := client.Tags.Get(ctx, arguments.GetInt("id", 0), getParams(arguments))
 			if err != nil {
-				return nil, fmt.Errorf("failed to get tag: %w", err)
+				return helpers.HandleAPIError(err, "failed to get tag")
 			}
 			return helpers.NewToolResultJSON(tag)
 		},
@@ -139,7 +138,7 @@ func TagList(httpClient *http.Client) toolsets.ToolWrapper {
 
 			tags, err := client.Tags.List(ctx, params)
 			if err != nil {
-				return nil, fmt.Errorf("failed to list tags: %w", err)
+				return helpers.HandleAPIError(err, "failed to list tags")
 			}
 			return helpers.NewToolResultJSON(tags)
 		},
@@ -191,7 +190,7 @@ func TagCreate(httpClient *http.Client) toolsets.ToolWrapper {
 				},
 			})
 			if err != nil {
-				return nil, fmt.Errorf("failed to create tag: %w", err)
+				return helpers.HandleAPIError(err, "failed to create tag")
 			}
 			return helpers.NewToolResultText("Tag created successfully with ID %d", tag.Tag.ID), nil
 		},
@@ -249,7 +248,7 @@ func TagUpdate(httpClient *http.Client) toolsets.ToolWrapper {
 				},
 			})
 			if err != nil {
-				return nil, fmt.Errorf("failed to update tag: %w", err)
+				return helpers.HandleAPIError(err, "failed to update tag")
 			}
 
 			return helpers.NewToolResultText("Tag updated successfully"), nil

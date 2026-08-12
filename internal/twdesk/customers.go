@@ -2,7 +2,6 @@ package twdesk
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 	"net/url"
 
@@ -59,7 +58,7 @@ func CustomerGet(httpClient *http.Client) toolsets.ToolWrapper {
 
 			customer, err := client.Customers.Get(ctx, arguments.GetInt("id", 0), getParams(arguments))
 			if err != nil {
-				return nil, fmt.Errorf("failed to get customer: %w", err)
+				return helpers.HandleAPIError(err, "failed to get customer")
 			}
 
 			return helpers.NewToolResultJSON(customer)
@@ -142,7 +141,7 @@ func CustomerList(httpClient *http.Client) toolsets.ToolWrapper {
 
 			customers, err := client.Customers.List(ctx, params)
 			if err != nil {
-				return nil, fmt.Errorf("failed to list customers: %w", err)
+				return helpers.HandleAPIError(err, "failed to list customers")
 			}
 
 			return helpers.NewToolResultJSON(customers)
@@ -290,7 +289,7 @@ func CustomerCreate(httpClient *http.Client) toolsets.ToolWrapper {
 				},
 			})
 			if err != nil {
-				return nil, fmt.Errorf("failed to create customer: %w", err)
+				return helpers.HandleAPIError(err, "failed to create customer")
 			}
 			return helpers.NewToolResultText("Customer created successfully with ID %d", customer.Customer.ID), nil
 		},
@@ -441,7 +440,7 @@ func CustomerUpdate(httpClient *http.Client) toolsets.ToolWrapper {
 				},
 			})
 			if err != nil {
-				return nil, fmt.Errorf("failed to update customer: %w", err)
+				return helpers.HandleAPIError(err, "failed to update customer")
 			}
 
 			return helpers.NewToolResultText("Customer updated successfully"), nil
