@@ -1,4 +1,3 @@
-//nolint:lll
 package twdesk_test
 
 import (
