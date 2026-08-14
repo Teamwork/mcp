@@ -7,14 +7,22 @@ import (
 	twapi "github.com/teamwork/twapi-go-sdk"
 )
 
-// WithDateTypeSchema registers a JSON-schema override for the twapi.Date type
-// on the given generation options. twapi.Date is defined as `type Date
-// time.Time`, so the reflection-based generator would otherwise emit a useless
-// object schema for time.Time's unexported fields. This override forces it to a
-// nullable, date-only string.
+// WithDateTypeSchema registers JSON-schema overrides for the SDK's date types
+// on the given generation options. Both twapi.Date and twapi.OptionalDateTime
+// are defined over time.Time (`type Date time.Time`), so the reflection-based
+// generator would otherwise emit a useless object schema for time.Time's
+// unexported fields — while their MarshalJSON methods emit a string. Every
+// response carrying one then fails output-schema validation on every call. The
+// overrides force them to nullable strings matching what the marshaller
+// actually writes.
+//
+// The types are covered here rather than at each call site because a response
+// picks them up transitively: projects.Team is the only model with an
+// OptionalDateTime field, but SearchResponse sideloads Team, so the search
+// schema needs the same override.
 //
 // Use it whenever generating an output schema from a response type that carries
-// (or sideloads) twapi.Date fields:
+// (or sideloads) those fields:
 //
 //	schema, err = jsonschema.For[Response](helpers.WithDateTypeSchema(&jsonschema.ForOptions{}))
 //
@@ -32,6 +40,11 @@ func WithDateTypeSchema(opts *jsonschema.ForOptions) *jsonschema.ForOptions {
 		Types:       []string{"null", "string"},
 		Format:      "date",
 		Description: "Null or date-only date string",
+	}
+	opts.TypeSchemas[reflect.TypeFor[twapi.OptionalDateTime]()] = &jsonschema.Schema{
+		Types:       []string{"null", "string"},
+		Format:      "date-time",
+		Description: "Null or RFC3339 date-time string. Null when the value is unset.",
 	}
 	return opts
 }
