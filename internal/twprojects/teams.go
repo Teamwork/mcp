@@ -37,26 +37,26 @@ func init() {
 	var err error
 
 	// generate the output schemas only once
-	teamGetOutputSchema, err = jsonschema.For[projects.TeamGetResponse](&jsonschema.ForOptions{
+	teamGetOutputSchema, err = jsonschema.For[projects.TeamGetResponse](helpers.WithDateTypeSchema(&jsonschema.ForOptions{
 		TypeSchemas: map[reflect.Type]*jsonschema.Schema{
 			reflect.TypeFor[projects.LegacyNumber](): {
 				Type:        "string",
 				Description: "A numeric value that is returned as a string.",
 			},
 		},
-	})
+	}))
 	if err != nil {
 		panic(fmt.Sprintf("failed to generate JSON schema for TeamGetResponse: %v", err))
 	}
 	helpers.WithMetaWebLinkSchema(teamGetOutputSchema)
-	teamListOutputSchema, err = jsonschema.For[projects.TeamListResponse](&jsonschema.ForOptions{
+	teamListOutputSchema, err = jsonschema.For[projects.TeamListResponse](helpers.WithDateTypeSchema(&jsonschema.ForOptions{
 		TypeSchemas: map[reflect.Type]*jsonschema.Schema{
 			reflect.TypeFor[projects.LegacyNumber](): {
 				Type:        "string",
 				Description: "A numeric value that is returned as a string.",
 			},
 		},
-	})
+	}))
 	if err != nil {
 		panic(fmt.Sprintf("failed to generate JSON schema for TeamListResponse: %v", err))
 	}
