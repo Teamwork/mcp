@@ -155,11 +155,16 @@ func CommentCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 				helpers.RequiredParam(&commentCreateRequest.Body, "body"),
 				helpers.OptionalPointerParam(&commentCreateRequest.ContentType, "content_type"),
 				helpers.OptionalPointerParam(&commentCreateRequest.NotifyCurrentUser, "notify_current_user"),
-				helpers.OptionalListParam(&commentCreateRequest.PendingFileAttachments, "attachment_refs"),
 			)
 			if err != nil {
 				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
 			}
+
+			refs, toolResult := parseAttachmentRefs(arguments)
+			if toolResult != nil {
+				return toolResult, nil
+			}
+			commentCreateRequest.PendingFileAttachments = refs
 
 			notifyChosen, notifiers, toolResult := parseNotify(arguments, true)
 			if toolResult != nil {

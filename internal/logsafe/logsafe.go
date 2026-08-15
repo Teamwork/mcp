@@ -23,29 +23,47 @@ const MaxLoggedBytes = 64 << 10
 
 const truncatedSuffix = "...[truncated]"
 
-// contentValue matches a long JSON string value under one of the keys that
-// carry file content.
-//
-// The alternation is anchored on the key and the value character class is the
-// base64 alphabet plus whitespace, so there is no nested quantifier and the
-// expression stays linear over a multi-megabyte body. The 256 character floor
-// keeps genuinely short values readable, and matching on the key means a search
-// term that happens to be the word "data" is left alone.
-var contentValue = regexp.MustCompile(`"(data|content|fileData|file_data)"\s*:\s*"[A-Za-z0-9+/=_\-\s]{256,}"`)
+// contentKeys are the JSON keys whose value is uploaded file content. They are
+// upload-specific: "content" is deliberately excluded, since page and comment
+// bodies use it for text worth keeping in the log.
+var contentKeys = [][]byte{[]byte(`"data"`), []byte(`"fileData"`), []byte(`"file_data"`)}
+
+// contentValue matches the JSON string value under one of contentKeys. The
+// value class is "anything but a quote", so it catches a file of any size,
+// including a small one, and is not broken by JSON escaping such as "\/". The
+// key anchor means an unrelated field whose value happens to be one of these
+// words is untouched. There is no nested quantifier, so the match stays linear
+// over a multi-megabyte body.
+var contentValue = regexp.MustCompile(`"(data|fileData|file_data)"\s*:\s*"[^"]*"`)
 
 // Bytes returns b with file content replaced and the result capped.
 func Bytes(b []byte) []byte {
 	if len(b) == 0 {
 		return b
 	}
-	scrubbed := contentValue.ReplaceAllFunc(b, func(match []byte) []byte {
-		key := match[:bytes.IndexByte(match, ':')]
-		return fmt.Appendf(nil, `%s:"<redacted %d bytes>"`, key, len(match))
-	})
+	scrubbed := b
+	if containsContentKey(b) {
+		scrubbed = contentValue.ReplaceAllFunc(b, func(match []byte) []byte {
+			key := match[:bytes.IndexByte(match, ':')]
+			return fmt.Appendf(nil, `%s:"<redacted %d bytes>"`, key, len(match))
+		})
+	}
 	if len(scrubbed) > MaxLoggedBytes {
 		return append(bytes.Clone(scrubbed[:MaxLoggedBytes]), truncatedSuffix...)
 	}
 	return scrubbed
+}
+
+// containsContentKey reports whether b mentions any upload key, so the regex
+// scan and its allocation are skipped for the payloads that carry no file,
+// which is almost all of them.
+func containsContentKey(b []byte) bool {
+	for _, key := range contentKeys {
+		if bytes.Contains(b, key) {
+			return true
+		}
+	}
+	return false
 }
 
 // String is Bytes over a string.
