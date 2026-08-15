@@ -138,7 +138,8 @@ func CommentCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 							{Type: "null"},
 						},
 					},
-					"notify": helpers.NotifySchema("Who to notify of the new comment.", true),
+					"notify":          helpers.NotifySchema("Who to notify of the new comment.", true),
+					"attachment_refs": attachmentRefsSchema("comment"),
 				},
 				Required: []string{"object", "body"},
 			},
@@ -154,6 +155,7 @@ func CommentCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 				helpers.RequiredParam(&commentCreateRequest.Body, "body"),
 				helpers.OptionalPointerParam(&commentCreateRequest.ContentType, "content_type"),
 				helpers.OptionalPointerParam(&commentCreateRequest.NotifyCurrentUser, "notify_current_user"),
+				helpers.OptionalListParam(&commentCreateRequest.PendingFileAttachments, "attachment_refs"),
 			)
 			if err != nil {
 				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil

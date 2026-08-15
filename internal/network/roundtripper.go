@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/teamwork/mcp/internal/logsafe"
 	"github.com/teamwork/mcp/internal/request"
 )
 
@@ -29,14 +30,19 @@ func NewLoggingRoundTripper(logger *slog.Logger, base http.RoundTripper) *Loggin
 func (lrt *LoggingRoundTripper) RoundTrip(r *http.Request) (*http.Response, error) {
 	start := time.Now()
 
-	var reqBody []byte
-	if r.Body != nil {
-		var err error
-		reqBody, err = io.ReadAll(r.Body)
+	// A body that is not text is not worth capturing: a pending file upload
+	// sends the file itself, so reading it here would copy the customer's file
+	// into the log and hold a second copy in memory until the request finishes.
+	var loggedRequestBody string
+	if r.Body != nil && !logsafe.IsTextualContentType(r.Header.Get("Content-Type")) {
+		loggedRequestBody = logsafe.ElidedBody(r.ContentLength, r.Header.Get("Content-Type"))
+	} else if r.Body != nil {
+		reqBody, err := io.ReadAll(r.Body)
 		if err != nil {
 			lrt.Log.Error("failed to read request body", slog.String("error", err.Error()))
 		}
 		r.Body = io.NopCloser(bytes.NewBuffer(reqBody))
+		loggedRequestBody = logsafe.String(string(reqBody))
 	}
 
 	headers := r.Header.Clone()
@@ -59,14 +65,16 @@ func (lrt *LoggingRoundTripper) RoundTrip(r *http.Request) (*http.Response, erro
 		return resp, err
 	}
 
-	var respBody []byte
-	if resp.Body != nil {
-		respBody, err = io.ReadAll(resp.Body)
+	var loggedResponseBody string
+	if resp.Body != nil && !logsafe.IsTextualContentType(resp.Header.Get("Content-Type")) {
+		loggedResponseBody = logsafe.ElidedBody(resp.ContentLength, resp.Header.Get("Content-Type"))
+	} else if resp.Body != nil {
+		respBody, err := io.ReadAll(resp.Body)
 		if err != nil {
 			lrt.Log.Error("failed to read response body", "error", err)
 		}
-
 		resp.Body = io.NopCloser(bytes.NewBuffer(respBody))
+		loggedResponseBody = logsafe.String(string(respBody))
 	}
 
 	info, _ := request.InfoFromContext(r.Context())
@@ -75,10 +83,10 @@ func (lrt *LoggingRoundTripper) RoundTrip(r *http.Request) (*http.Response, erro
 		slog.String("request_url", r.URL.String()),
 		slog.String("request_method", r.Method),
 		slog.Any("request_headers", headers),
-		slog.String("request_body", string(reqBody)),
+		slog.String("request_body", loggedRequestBody),
 		slog.Int("response_status", resp.StatusCode),
 		slog.Any("response_headers", resp.Header),
-		slog.String("response_body", string(respBody)),
+		slog.String("response_body", loggedResponseBody),
 		slog.String("duration", time.Since(start).String()),
 		slog.Int64("installation.id", info.InstallationID()),
 		slog.String("installation.url", info.InstallationURL()),

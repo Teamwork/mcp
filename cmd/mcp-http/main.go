@@ -24,6 +24,7 @@ import (
 	"github.com/teamwork/mcp/internal/auth"
 	"github.com/teamwork/mcp/internal/cli"
 	"github.com/teamwork/mcp/internal/config"
+	"github.com/teamwork/mcp/internal/logsafe"
 	"github.com/teamwork/mcp/internal/request"
 	"github.com/teamwork/mcp/internal/toolsets"
 	"github.com/teamwork/mcp/internal/twchat"
@@ -321,7 +322,7 @@ func logMiddleware(logger *slog.Logger, next http.Handler) http.Handler {
 			slog.String("request_url", r.URL.String()),
 			slog.String("request_method", r.Method),
 			slog.Any("request_headers", headers),
-			slog.String("request_body", string(reqBody)),
+			slog.String("request_body", logsafe.String(string(reqBody))),
 			slog.Int("response_status", rw.StatusCode()),
 			slog.Any("response_headers", rw.Header()),
 			slog.String("response_body", string(rw.Body())),
@@ -388,7 +389,7 @@ func sseLogMiddleware(logger *slog.Logger, next http.Handler) http.Handler {
 			slog.String("request_url", r.URL.String()),
 			slog.String("request_method", r.Method),
 			slog.Any("request_headers", headers),
-			slog.String("request_body", string(reqBody)),
+			slog.String("request_body", logsafe.String(string(reqBody))),
 			slog.Int("response_status", rw.StatusCode()),
 			slog.Any("response_headers", rw.Header()),
 			slog.String("response_body", string(rw.Body())),
