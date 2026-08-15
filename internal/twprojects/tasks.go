@@ -152,8 +152,9 @@ func TaskCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 							{Type: "null"},
 						},
 					},
-					"assignees": helpers.UserGroupsSchema("Assignees for the task.", false),
-					"tag_ids":   helpers.TagIDsAssociateSchema("task"),
+					"assignees":       helpers.UserGroupsSchema("Assignees for the task.", false),
+					"tag_ids":         helpers.TagIDsAssociateSchema("task"),
+					"attachment_refs": attachmentRefsSchema("task"),
 					"predecessors": {
 						Description: "Task dependencies that must be completed before this task can start.",
 						AnyOf: []*jsonschema.Schema{
@@ -220,6 +221,15 @@ func TaskCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 				return toolResult, nil
 			} else if assignees != nil {
 				taskCreateRequest.Assignees = assignees
+			}
+
+			// Only set attachments when the caller named one: the field is a
+			// sibling of the task in the request body, so an empty one would be a
+			// payload change for every caller that attaches nothing.
+			if attachments, toolResult := parseTaskAttachments(arguments); toolResult != nil {
+				return toolResult, nil
+			} else if attachments != nil {
+				taskCreateRequest.Attachments = *attachments
 			}
 
 			if predecessors, ok := arguments["predecessors"]; ok {
@@ -383,7 +393,8 @@ func TaskUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 							{Type: "null"},
 						},
 					},
-					"tag_ids": helpers.TagIDsAssociateSchema("task"),
+					"tag_ids":         helpers.TagIDsAssociateSchema("task"),
+					"attachment_refs": attachmentRefsSchema("task"),
 					"predecessors": {
 						Description: "Task dependencies that must be completed before this task can start.",
 						AnyOf: []*jsonschema.Schema{
@@ -488,6 +499,14 @@ func TaskUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 					), nil
 				}
 				taskUpdateRequest.Assignees = assignees
+			}
+
+			// Only set attachments when the caller named one. Attaching is additive
+			// server side, so this never disturbs the files the task already has.
+			if attachments, toolResult := parseTaskAttachments(arguments); toolResult != nil {
+				return toolResult, nil
+			} else if attachments != nil {
+				taskUpdateRequest.Attachments = *attachments
 			}
 
 			if clearAssignees {

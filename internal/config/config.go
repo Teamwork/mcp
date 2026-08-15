@@ -21,6 +21,7 @@ import (
 	"github.com/getsentry/sentry-go"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	desksdk "github.com/teamwork/desksdkgo/client"
+	"github.com/teamwork/mcp/internal/logsafe"
 	"github.com/teamwork/mcp/internal/network"
 	"github.com/teamwork/mcp/internal/request"
 	"github.com/teamwork/mcp/internal/toolsets"
@@ -234,7 +235,7 @@ func NewMCPServer(resources Resources, groups ...*toolsets.ToolsetGroup) *mcp.Se
 					span.SetTag("mcp.method", method)
 					if callToolParams, ok := req.GetParams().(*mcp.CallToolParamsRaw); ok {
 						span.SetTag("mcp.tool.name", callToolParams.Name)
-						span.SetTag("mcp.tool.arguments", string(callToolParams.Arguments))
+						span.SetTag("mcp.tool.arguments", logsafe.String(string(callToolParams.Arguments)))
 					}
 					if callToolResult, ok := result.(*mcp.CallToolResult); ok {
 						if callToolResult.IsError {
@@ -359,7 +360,7 @@ func mcpLoggingMiddleware(resources Resources) mcp.Middleware {
 			if params, ok := req.GetParams().(*mcp.CallToolParamsRaw); ok {
 				attrs = append(attrs,
 					slog.String("mcp.tool.name", params.Name),
-					slog.String("mcp.tool.arguments", string(params.Arguments)),
+					slog.String("mcp.tool.arguments", logsafe.String(string(params.Arguments))),
 				)
 			}
 
