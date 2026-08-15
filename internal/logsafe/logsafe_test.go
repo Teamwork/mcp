@@ -30,10 +30,26 @@ func TestBytesRedactsFileContent(t *testing.T) {
 	}
 }
 
-func TestBytesLeavesShortValuesAlone(t *testing.T) {
-	// A short value under one of the content keys is readable and worth keeping,
-	// and a search term that happens to be the word "data" is not a key at all.
-	payload := `{"arguments":{"data":"plan","search_term":"data"}}`
+func TestBytesRedactsSmallFile(t *testing.T) {
+	// A file is redacted whatever its size: a short secret must not survive just
+	// because its base64 is short.
+	content := base64.StdEncoding.EncodeToString([]byte("a short secret"))
+	payload := `{"arguments":{"name":"secret.txt","data":"` + content + `"}}`
+
+	got := logsafe.String(payload)
+
+	if strings.Contains(got, content) {
+		t.Errorf("expected the file content to be redacted, got %q", got)
+	}
+	if !strings.Contains(got, `"name":"secret.txt"`) {
+		t.Errorf("expected the other parameters to survive, got %q", got)
+	}
+}
+
+func TestBytesLeavesUnrelatedFieldsAlone(t *testing.T) {
+	// The key is what's matched, so a field whose value is the word "data", and a
+	// "content" field (page and comment bodies use it), are both left alone.
+	payload := `{"arguments":{"search_term":"data","content":"the page body worth keeping"}}`
 
 	if got := logsafe.String(payload); got != payload {
 		t.Errorf("expected the payload unchanged, got %q", got)

@@ -33,16 +33,21 @@ func (lrt *LoggingRoundTripper) RoundTrip(r *http.Request) (*http.Response, erro
 	// A body that is not text is not worth capturing: a pending file upload
 	// sends the file itself, so reading it here would copy the customer's file
 	// into the log and hold a second copy in memory until the request finishes.
+	// This content-type gate is what keeps file bytes out of the log; the JSON
+	// bodies that do reach this point carry no inline file content, so they are
+	// logged as-is.
 	var loggedRequestBody string
-	if r.Body != nil && !logsafe.IsTextualContentType(r.Header.Get("Content-Type")) {
-		loggedRequestBody = logsafe.ElidedBody(r.ContentLength, r.Header.Get("Content-Type"))
-	} else if r.Body != nil {
-		reqBody, err := io.ReadAll(r.Body)
-		if err != nil {
-			lrt.Log.Error("failed to read request body", slog.String("error", err.Error()))
+	if r.Body != nil {
+		if contentType := r.Header.Get("Content-Type"); !logsafe.IsTextualContentType(contentType) {
+			loggedRequestBody = logsafe.ElidedBody(r.ContentLength, contentType)
+		} else {
+			reqBody, err := io.ReadAll(r.Body)
+			if err != nil {
+				lrt.Log.Error("failed to read request body", slog.String("error", err.Error()))
+			}
+			r.Body = io.NopCloser(bytes.NewBuffer(reqBody))
+			loggedRequestBody = string(reqBody)
 		}
-		r.Body = io.NopCloser(bytes.NewBuffer(reqBody))
-		loggedRequestBody = logsafe.String(string(reqBody))
 	}
 
 	headers := r.Header.Clone()
@@ -66,15 +71,17 @@ func (lrt *LoggingRoundTripper) RoundTrip(r *http.Request) (*http.Response, erro
 	}
 
 	var loggedResponseBody string
-	if resp.Body != nil && !logsafe.IsTextualContentType(resp.Header.Get("Content-Type")) {
-		loggedResponseBody = logsafe.ElidedBody(resp.ContentLength, resp.Header.Get("Content-Type"))
-	} else if resp.Body != nil {
-		respBody, err := io.ReadAll(resp.Body)
-		if err != nil {
-			lrt.Log.Error("failed to read response body", "error", err)
+	if resp.Body != nil {
+		if contentType := resp.Header.Get("Content-Type"); !logsafe.IsTextualContentType(contentType) {
+			loggedResponseBody = logsafe.ElidedBody(resp.ContentLength, contentType)
+		} else {
+			respBody, err := io.ReadAll(resp.Body)
+			if err != nil {
+				lrt.Log.Error("failed to read response body", "error", err)
+			}
+			resp.Body = io.NopCloser(bytes.NewBuffer(respBody))
+			loggedResponseBody = string(respBody)
 		}
-		resp.Body = io.NopCloser(bytes.NewBuffer(respBody))
-		loggedResponseBody = logsafe.String(string(respBody))
 	}
 
 	info, _ := request.InfoFromContext(r.Context())

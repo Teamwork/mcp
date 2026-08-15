@@ -110,11 +110,16 @@ func MessageCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 				helpers.RequiredParam(&messageCreateRequest.Title, "title"),
 				helpers.RequiredParam(&messageCreateRequest.Body, "body"),
 				helpers.OptionalPointerParam(&messageCreateRequest.NotifyCurrentUser, "notify_current_user"),
-				helpers.OptionalListParam(&messageCreateRequest.PendingFileAttachments, "attachment_refs"),
 			)
 			if err != nil {
 				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
 			}
+
+			refs, toolResult := parseAttachmentRefs(arguments)
+			if toolResult != nil {
+				return toolResult, nil
+			}
+			messageCreateRequest.PendingFileAttachments = refs
 
 			notifyChosen, notifiers, toolResult := parseNotify(arguments, false)
 			if toolResult != nil {

@@ -53,6 +53,7 @@ Project, category, template, member, custom field, and custom item (user-defined
 | Custom Item | ✓ | ✓ | ✓ | ✓ |
 | Custom Item Field | ✓ | ✓ | ✓ | ✓ |
 | Custom Item Record | ✓ | ✓ | ✓ | ✓ |
+| File | ✓ | — | — | — |
 
 **Other actions:** `add_project_member`, `clone_project`
 
@@ -66,7 +67,6 @@ Task, tasklist, and workflow management in Teamwork.com.
 | Tasklist | ✓ | ✓ | ✓ | ✓ |
 | Workflow | ✓ | ✓ | ✓ | ✓ |
 | Workflow Stage | ✓ | ✓ | ✓ | ✓ |
-| File | ✓ | — | — | — |
 
 **Other actions:** `complete_task`, `link_project_to_workflow`, `move_task_to_workflow_stage`, `move_tasks`
 

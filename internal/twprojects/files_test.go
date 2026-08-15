@@ -3,8 +3,6 @@ package twprojects_test
 import (
 	"encoding/base64"
 	"encoding/json"
-	"mime"
-	"mime/multipart"
 	"net/http"
 	"strings"
 	"testing"
@@ -76,12 +74,11 @@ func TestFileCreateSanitizesFileName(t *testing.T) {
 				"data": base64.StdEncoding.EncodeToString([]byte("contents")),
 			})
 
-			filename, err := multipartFileName(*requestBody)
-			if err != nil {
-				t.Fatalf("failed to read the uploaded file name: %v", err)
-			}
-			if filename != tt.want {
-				t.Errorf("expected file name %q, got %q", tt.want, filename)
+			// The leading filename=" anchors the check to the multipart part's
+			// name, so an un-sanitized path could not match by appearing elsewhere.
+			want := `filename="` + tt.want + `"`
+			if !strings.Contains(string(*requestBody), want) {
+				t.Errorf("expected the body to carry %s, got %q", want, string(*requestBody))
 			}
 		})
 	}
@@ -292,30 +289,3 @@ func TestMessageCreateSendsAttachments(t *testing.T) {
 		t.Errorf("unexpected references in body %q", string(*requestBody))
 	}
 }
-
-// multipartFileName reads the uploaded part's file name out of a multipart body.
-func multipartFileName(body []byte) (string, error) {
-	// The boundary is generated per request, so it has to be read back off the
-	// body's first line rather than assumed.
-	firstLine, _, found := strings.Cut(string(body), "\r\n")
-	if !found {
-		return "", errNotMultipart
-	}
-	boundary := strings.TrimPrefix(firstLine, "--")
-	reader := multipart.NewReader(strings.NewReader(string(body)), boundary)
-	part, err := reader.NextPart()
-	if err != nil {
-		return "", err
-	}
-	_, params, err := mime.ParseMediaType(part.Header.Get("Content-Disposition"))
-	if err != nil {
-		return "", err
-	}
-	return params["filename"], nil
-}
-
-var errNotMultipart = errString("request body is not multipart")
-
-type errString string
-
-func (e errString) Error() string { return string(e) }
