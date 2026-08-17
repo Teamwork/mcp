@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"slices"
 	"strings"
 	"sync"
 	"testing"
@@ -84,10 +85,10 @@ func TestTaskSkillsAndRolesPromptUsesTasklistProjectHint(t *testing.T) {
 
 	// The hint says project 5; the tasklist says 999. Trusting the hint means the
 	// project fetch no longer waits on the tasklist response.
-	if !containsPath(*paths, "/projects/api/v3/projects/5.json") {
+	if !slices.Contains(*paths, "/projects/api/v3/projects/5.json") {
 		t.Errorf("expected the project to be loaded from the tasklist hint, got paths %v", *paths)
 	}
-	if containsPath(*paths, "/projects/api/v3/projects/999.json") {
+	if slices.Contains(*paths, "/projects/api/v3/projects/999.json") {
 		t.Errorf("expected the tasklist project not to be used, got paths %v", *paths)
 	}
 	assertPromptMentions(t, result, "Project Name: Apollo", "Tasklist Name: Sprint 1")
@@ -98,19 +99,10 @@ func TestTaskSkillsAndRolesPromptFallsBackWithoutHint(t *testing.T) {
 	result := runTaskSkillsAndRolesPrompt(t, engine)
 
 	// Without the hint the prompt has to resolve the project through the tasklist.
-	if !containsPath(*paths, "/projects/api/v3/projects/999.json") {
+	if !slices.Contains(*paths, "/projects/api/v3/projects/999.json") {
 		t.Errorf("expected the project to be resolved through the tasklist, got paths %v", *paths)
 	}
 	assertPromptMentions(t, result, "Tasklist Name: Sprint 1")
-}
-
-func containsPath(paths []string, want string) bool {
-	for _, path := range paths {
-		if path == want {
-			return true
-		}
-	}
-	return false
 }
 
 func assertPromptMentions(t *testing.T, result *mcp.GetPromptResult, wants ...string) {

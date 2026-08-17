@@ -634,7 +634,7 @@ func taskMoveCarriedTasks(
 
 	for _, root := range roots {
 		id := root
-		for depth := 0; depth < taskMoveMaxDepth; depth++ {
+		for range taskMoveMaxDepth {
 			task, err := resolve(id)
 			if err != nil {
 				return nil, err
