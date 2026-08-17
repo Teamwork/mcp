@@ -23,6 +23,7 @@ import (
 	desksdk "github.com/teamwork/desksdkgo/client"
 	"github.com/teamwork/mcp/internal/logsafe"
 	"github.com/teamwork/mcp/internal/network"
+	"github.com/teamwork/mcp/internal/presigned"
 	"github.com/teamwork/mcp/internal/request"
 	"github.com/teamwork/mcp/internal/toolsets"
 	twapi "github.com/teamwork/twapi-go-sdk"
@@ -57,10 +58,13 @@ func Load(logOutput io.Writer, profiles ...string) (Resources, func()) {
 
 		} else {
 			// disable TLS verification when using HAProxy, as the certificate won't
-			// match the internal address
-			resources.teamworkHTTPClient.Transport = &http.Transport{
-				TLSClientConfig: &tls.Config{
-					InsecureSkipVerify: true,
+			// match the internal address. Pre-signed storage uploads keep it: they
+			// are not rerouted, so their certificate does match.
+			resources.teamworkHTTPClient.Transport = &network.PresignedSplitTransport{
+				Base: &http.Transport{
+					TLSClientConfig: &tls.Config{
+						InsecureSkipVerify: true,
+					},
 				},
 			}
 
@@ -118,7 +122,10 @@ func Load(logOutput io.Writer, profiles ...string) (Resources, func()) {
 		}),
 		twapi.WithMiddleware(func(next twapi.HTTPClient) twapi.HTTPClient {
 			return twapi.HTTPClientFunc(func(req *http.Request) (*http.Response, error) {
-				if haProxyURL != nil && !isCrossRegion(req.Context()) {
+				// A pre-signed URL addresses storage, not the API, and its signature
+				// covers the host, so rerouting it sends the file to the wrong server
+				// with a signature that cannot match.
+				if haProxyURL != nil && !isCrossRegion(req.Context()) && !presigned.IsURL(req.URL) {
 					// use internal HAProxy address to avoid extra hops
 					req.Header.Set("Host", req.URL.Host)
 					req.URL.Host = haProxyURL.Host

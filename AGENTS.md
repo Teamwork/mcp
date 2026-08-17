@@ -120,6 +120,7 @@ Common variables (subset; see command READMEs for complete lists):
 - Prefer running the STDIO server with `-read-only` by default during development.
 - For HTTP deployments, ensure TLS, least-privilege tokens, and sensible log levels.
 - Be careful with delete operations; keep them gated behind `allowDelete`.
+- `twprojects-create_file` uploads in two steps: the API reserves space, then the SDK PUTs the bytes to a pre-signed storage URL via `Engine.Do`. That second request rides the same client, so every middleware sees it, and it must be left alone. `presigned.IsURL` gates the HAProxy rewrite (the signature covers the host), the TLS split in `network.PresignedSplitTransport` (storage's certificate is genuine, unlike HAProxy's), and body logging in `LoggingRoundTripper` (the body is the customer's file, and its content type is the file's own, so `text/markdown` looks loggable). The URL is itself a credential, so `presigned.RedactSignatures` — which `logsafe` composes into its own scrubbing — strips the signature params wherever they appear, including the JSON body that carried the URL.
 
 ## PR/commit guidance
 - Before commit: `gofmt -s -w .` (or run your editor’s Go format), `go vet ./...`, `go test ./...`.

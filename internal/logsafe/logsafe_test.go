@@ -117,3 +117,29 @@ func TestBytesStaysLinear(t *testing.T) {
 		t.Errorf("expected the payload capped, got %d bytes", len(got))
 	}
 }
+
+func TestBytesRedactsPresignedCredentials(t *testing.T) {
+	// Scrubbing a body has to cover the upload URL a reservation answers with,
+	// not only inline file content.
+	payload := `{"ref":"tf_1a2b","url":"https://storage.example.com/tf_1a2b.md?` +
+		`X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIAEXAMPLE%2F20260817%2Feu-west-1&` +
+		`X-Amz-SignedHeaders=host&X-Amz-Signature=deadbeefcafe"}`
+
+	got := logsafe.String(payload)
+
+	for _, secret := range []string{"deadbeefcafe", "AKIAEXAMPLE"} {
+		if strings.Contains(got, secret) {
+			t.Errorf("expected %s to be redacted, got %q", secret, got)
+		}
+	}
+	// What identifies the upload has to survive, or the log cannot be followed.
+	if !strings.Contains(got, "storage.example.com/tf_1a2b.md") {
+		t.Errorf("expected the URL itself to survive, got %q", got)
+	}
+	if !strings.Contains(got, `"ref":"tf_1a2b"`) {
+		t.Errorf("expected the reference to survive, got %q", got)
+	}
+	if !strings.Contains(got, "X-Amz-SignedHeaders=host") {
+		t.Errorf("expected the unsigned parameters to survive, got %q", got)
+	}
+}

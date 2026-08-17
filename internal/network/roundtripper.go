@@ -9,8 +9,32 @@ import (
 	"time"
 
 	"github.com/teamwork/mcp/internal/logsafe"
+	"github.com/teamwork/mcp/internal/presigned"
 	"github.com/teamwork/mcp/internal/request"
 )
+
+// PresignedSplitTransport sends pre-signed storage requests through Presigned
+// and everything else through Base.
+//
+// It exists because the HAProxy setup relaxes TLS verification: the internal
+// address does not match the certificate. That concession is for the API, not
+// for a request leaving to storage, whose host is genuine.
+type PresignedSplitTransport struct {
+	Base      http.RoundTripper
+	Presigned http.RoundTripper
+}
+
+// RoundTrip implements the RoundTripper interface.
+func (t *PresignedSplitTransport) RoundTrip(r *http.Request) (*http.Response, error) {
+	transport := t.Base
+	if presigned.IsURL(r.URL) {
+		transport = t.Presigned
+	}
+	if transport == nil {
+		transport = http.DefaultTransport
+	}
+	return transport.RoundTrip(r)
+}
 
 // LoggingRoundTripper is an http.RoundTripper that logs requests and responses
 type LoggingRoundTripper struct {
@@ -30,15 +54,15 @@ func NewLoggingRoundTripper(logger *slog.Logger, base http.RoundTripper) *Loggin
 func (lrt *LoggingRoundTripper) RoundTrip(r *http.Request) (*http.Response, error) {
 	start := time.Now()
 
-	// A body that is not text is not worth capturing: a pending file upload
-	// sends the file itself, so reading it here would copy the customer's file
-	// into the log and hold a second copy in memory until the request finishes.
-	// This content-type gate is what keeps file bytes out of the log; the JSON
-	// bodies that do reach this point carry no inline file content, so they are
-	// logged as-is.
+	// The pre-signed upload is the one request whose body is the customer's file.
+	// Its content type is the file's own, so text/markdown and text/csv look
+	// loggable; the signature in the URL is what identifies it.
+	toStorage := presigned.IsURL(r.URL)
+
 	var loggedRequestBody string
 	if r.Body != nil {
-		if contentType := r.Header.Get("Content-Type"); !logsafe.IsTextualContentType(contentType) {
+		contentType := r.Header.Get("Content-Type")
+		if toStorage || !logsafe.IsTextualContentType(contentType) {
 			loggedRequestBody = logsafe.ElidedBody(r.ContentLength, contentType)
 		} else {
 			reqBody, err := io.ReadAll(r.Body)
@@ -46,7 +70,7 @@ func (lrt *LoggingRoundTripper) RoundTrip(r *http.Request) (*http.Response, erro
 				lrt.Log.Error("failed to read request body", slog.String("error", err.Error()))
 			}
 			r.Body = io.NopCloser(bytes.NewBuffer(reqBody))
-			loggedRequestBody = string(reqBody)
+			loggedRequestBody = logsafe.String(string(reqBody))
 		}
 	}
 
@@ -80,14 +104,16 @@ func (lrt *LoggingRoundTripper) RoundTrip(r *http.Request) (*http.Response, erro
 				lrt.Log.Error("failed to read response body", "error", err)
 			}
 			resp.Body = io.NopCloser(bytes.NewBuffer(respBody))
-			loggedResponseBody = string(respBody)
+			// The presigned-URL step answers with the upload URL, credentials and
+			// all, so the response body needs scrubbing too.
+			loggedResponseBody = logsafe.String(string(respBody))
 		}
 	}
 
 	info, _ := request.InfoFromContext(r.Context())
 	lrt.Log.Info("internal request",
 		slog.String("trace_id", info.TraceID()),
-		slog.String("request_url", r.URL.String()),
+		slog.String("request_url", logsafe.String(r.URL.String())),
 		slog.String("request_method", r.Method),
 		slog.Any("request_headers", headers),
 		slog.String("request_body", loggedRequestBody),

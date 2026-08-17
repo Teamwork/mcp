@@ -279,8 +279,12 @@ func ProjectsMCPServerRoutedMockWithRequestBody(
 // ProjectsMCPServerRecordingMock.
 type ProjectsRecordedRequest struct {
 	Method string
-	Path   string
-	Body   []byte
+	// URL is the whole request URL, not only its path: a tool that reaches an
+	// endpoint outside the API, as the pre-signed file upload does, is only
+	// identifiable by its host, and a step that carries its parameters in the
+	// query string has nothing in its body to assert on.
+	URL  url.URL
+	Body []byte
 }
 
 // ProjectsMCPServerRecordingMock is like ProjectsMCPServerRoutedMock but
@@ -299,7 +303,7 @@ func ProjectsMCPServerRecordingMock(
 	var recorded []ProjectsRecordedRequest
 	engine := twapi.NewEngine(ProjectsSessionMock{}, twapi.WithMiddleware(func(twapi.HTTPClient) twapi.HTTPClient {
 		return twapi.HTTPClientFunc(func(req *http.Request) (*http.Response, error) {
-			entry := ProjectsRecordedRequest{Method: req.Method, Path: req.URL.Path}
+			entry := ProjectsRecordedRequest{Method: req.Method, URL: *req.URL}
 			if req.Body != nil {
 				body, err := io.ReadAll(req.Body)
 				if err != nil {

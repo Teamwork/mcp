@@ -1,8 +1,8 @@
-﻿// mcptest walks through the Custom Items MCP tool handlers against a real
+// mcptest walks through the Custom Items MCP tool handlers against a real
 // Teamwork.com site. It bypasses the MCP server transport and invokes each
 // tool's Handler directly with the same JSON payload an LLM would send, so
-// you can see end-to-end behaviour â€” including field-name resolution, value
-// coercion, twIdâ†”name translation and the schema cache â€” without standing
+// you can see end-to-end behaviour — including field-name resolution, value
+// coercion, twId↔name translation and the schema cache — without standing
 // up an MCP server or LLM client.
 //
 // Configuration is read from .env (or the path given by -config). The auth
@@ -121,11 +121,11 @@ func (r *runner) run() error {
 		{"CREATE custom item via MCP", r.stepCreateCustomItem},
 		{`CREATE field "Notes" (text-short) via MCP`, r.stepCreateNotesField},
 		{`CREATE field "Status" (dropdown) via MCP`, r.stepCreateStatusField},
-		{"LIST fields via MCP â€” verify twIds", r.stepListFields},
+		{"LIST fields via MCP — verify twIds", r.stepListFields},
 		{"CREATE record by FIELD NAME (Notes + Status)", r.stepCreateRecordByName},
-		{"GET record via MCP â€” verify twIdâ†’name translation", r.stepGetRecord},
+		{"GET record via MCP — verify twId→name translation", r.stepGetRecord},
 		{"UPDATE record by field name (clear section, change Status by label)", r.stepUpdateRecord},
-		{"LIST records via MCP â€” verify translation across a page", r.stepListRecords},
+		{"LIST records via MCP — verify translation across a page", r.stepListRecords},
 		{"CREATE 2 extra records for bulk delete", r.stepCreateExtraRecords},
 		{"NEGATIVE: unknown field name should error clearly", r.stepNegativeUnknownField},
 	}
@@ -226,7 +226,7 @@ func (r *runner) stepCreateCustomItem() error {
 	if err != nil {
 		return fmt.Errorf("extract custom item id: %w", err)
 	}
-	fmt.Printf("  â†’ captured customItemID=%d\n", r.customItemID)
+	fmt.Printf("  → captured customItemID=%d\n", r.customItemID)
 	return nil
 }
 
@@ -243,7 +243,7 @@ func (r *runner) stepCreateNotesField() error {
 	if err != nil {
 		return fmt.Errorf("extract field id: %w", err)
 	}
-	fmt.Printf("  â†’ captured notesFieldID=%d\n", r.notesID)
+	fmt.Printf("  → captured notesFieldID=%d\n", r.notesID)
 	return nil
 }
 
@@ -266,7 +266,7 @@ func (r *runner) stepCreateStatusField() error {
 	if err != nil {
 		return fmt.Errorf("extract field id: %w", err)
 	}
-	fmt.Printf("  â†’ captured statusFieldID=%d\n", r.statusID)
+	fmt.Printf("  → captured statusFieldID=%d\n", r.statusID)
 	return nil
 }
 
@@ -291,7 +291,7 @@ func (r *runner) stepListFields() error {
 		for _, field := range listResp.CustomItemFields {
 			if field.DisplayName == "Notes" {
 				r.notesTwID = field.TwID
-				fmt.Printf("  â†’ captured notesTwID=%q\n", r.notesTwID)
+				fmt.Printf("  → captured notesTwID=%q\n", r.notesTwID)
 			}
 		}
 	}
@@ -305,7 +305,7 @@ func (r *runner) stepCreateRecordByName() error {
 			"name":           "Acme Inc",
 			"field_values": []map[string]any{
 				{"field_name": "Notes", "value": "initial contact"},
-				// Pass the option by LABEL â€” the handler should resolve it
+				// Pass the option by LABEL — the handler should resolve it
 				// to the option twId before sending.
 				{"field_name": "Status", "value": "Active"},
 			},
@@ -318,7 +318,7 @@ func (r *runner) stepCreateRecordByName() error {
 		return fmt.Errorf("extract record id: %w", err)
 	}
 	r.recordIDs = append(r.recordIDs, r.recordID)
-	fmt.Printf("  â†’ captured recordID=%d\n", r.recordID)
+	fmt.Printf("  → captured recordID=%d\n", r.recordID)
 	return nil
 }
 
@@ -333,12 +333,12 @@ func (r *runner) stepGetRecord() error {
 	}
 	// Sanity: confirm field values came back keyed by name, not twId.
 	if strings.Contains(text, `"Notes"`) {
-		fmt.Println("  âœ“ field values keyed by name (Notes)")
+		fmt.Println("  ✓ field values keyed by name (Notes)")
 	} else {
 		fmt.Println("  ! WARNING: Notes not present in response by display name")
 	}
 	if strings.Contains(text, `"Active"`) {
-		fmt.Println("  âœ“ Status value translated back to label (Active)")
+		fmt.Println("  ✓ Status value translated back to label (Active)")
 	} else {
 		fmt.Println("  ! WARNING: Status label not present in response")
 	}
@@ -372,7 +372,7 @@ func (r *runner) stepListRecords() error {
 		return err
 	}
 	if strings.Contains(text, `"Notes"`) && strings.Contains(text, `"Status"`) {
-		fmt.Println("  âœ“ list response uses display names for field keys")
+		fmt.Println("  ✓ list response uses display names for field keys")
 	}
 	return nil
 }
@@ -411,7 +411,7 @@ func (r *runner) stepNegativeUnknownField() error {
 	if !isError {
 		return fmt.Errorf("expected an error result for unknown field, got success: %s", text)
 	}
-	fmt.Printf("  âœ“ unknown-field error surfaced: %s\n", strings.TrimSpace(text))
+	fmt.Printf("  ✓ unknown-field error surfaced: %s\n", strings.TrimSpace(text))
 	return nil
 }
 
@@ -530,7 +530,9 @@ func loadEnvFile(path string) error {
 		}
 		return err
 	}
-	defer f.Close()
+	defer func() {
+		_ = f.Close()
+	}()
 
 	scanner := bufio.NewScanner(f)
 	lineNo := 0
