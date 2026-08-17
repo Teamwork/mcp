@@ -497,6 +497,44 @@ func TestSparseFieldsVerboseFalseKeepsSelection(t *testing.T) {
 	}
 }
 
+// TestSparseFieldsPredecessorsCarryRelatedTasks guards the one attribute a
+// selection cannot obtain on its own. The API leaves `predecessors` empty unless
+// the request also sets includeRelatedTasks, and it reports nothing about the
+// omission — so selecting it without the filter returns `"predecessors": []` on
+// every row, which reads exactly like a task nothing blocks. That is how a
+// dependency question gets answered "nothing is blocking".
+//
+// It has to be asserted on the query: the mock replies with the same canned body
+// whether the filter is sent or not.
+func TestSparseFieldsPredecessorsCarryRelatedTasks(t *testing.T) {
+	for _, testCase := range []struct {
+		method string
+		args   map[string]any
+	}{
+		{method: twprojects.MethodTaskList.String()},
+		{method: twprojects.MethodTaskGet.String(), args: map[string]any{"id": float64(7)}},
+	} {
+		t.Run(testCase.method, func(t *testing.T) {
+			mcpServer, lastURL := testutil.ProjectsMCPServerMockWithRequestURL(t, http.StatusOK, []byte(`{}`))
+			testutil.ExecuteToolRequest(t, mcpServer, testCase.method,
+				argsWithFields(testCase.args, "predecessors"))
+			if got := lastURL.Query().Get("includeRelatedTasks"); got != "true" {
+				t.Errorf("expected includeRelatedTasks=true alongside a predecessors selection but got %q "+
+					"(raw query: %s)", got, lastURL.RawQuery)
+			}
+
+			// Control: the filter rides on the selection naming predecessors, not on
+			// every selection, so an unrelated one must not carry it.
+			mcpServer, lastURL = testutil.ProjectsMCPServerMockWithRequestURL(t, http.StatusOK, []byte(`{}`))
+			testutil.ExecuteToolRequest(t, mcpServer, testCase.method,
+				argsWithFields(testCase.args, "name"))
+			if got := lastURL.Query().Get("includeRelatedTasks"); got != "" {
+				t.Errorf("expected no includeRelatedTasks without a predecessors selection but got %q", got)
+			}
+		})
+	}
+}
+
 // TestSparseFieldsRejectUnknownValue guards the validation that turns a guessed
 // attribute name into a correctable error. The API ignores attributes it does
 // not recognise, so passing one through would come back as a response quietly
