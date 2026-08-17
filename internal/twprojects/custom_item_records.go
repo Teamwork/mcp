@@ -31,6 +31,14 @@ var (
 	customItemRecordListOutputSchema *jsonschema.Schema
 )
 
+// customItemRecordOrdering is the order-by vocabulary of the custom item records list endpoint.
+var customItemRecordOrdering = newOrdering("custom item records",
+	projects.CustomItemRecordOrderByDisplayOrder,
+	projects.CustomItemRecordOrderByName,
+	projects.CustomItemRecordOrderByCustomItemField,
+	projects.CustomItemRecordOrderByID,
+)
+
 func init() {
 	var err error
 	customItemRecordGetOutputSchema, err = jsonschema.For[projects.CustomItemRecordGetResponse](&jsonschema.ForOptions{})
@@ -508,16 +516,11 @@ func CustomItemRecordList(engine *twapi.Engine) toolsets.ToolWrapper {
 							{Type: "null"},
 						},
 					},
-					"order_by": {
-						Description: "Field to sort by.",
-						AnyOf: []*jsonschema.Schema{
-							{Type: "string", Enum: []any{"name", "displayorder", "customitemfield"}},
-							{Type: "null"},
-						},
-					},
-					"order_mode": helpers.OrderDirectionSchema(),
-					"page":       helpers.PageSchema(),
-					"page_size":  helpers.PageSizeSchema(),
+					"order_by":          customItemRecordOrdering.orderBySchema(),
+					"order_mode":        orderModeSchema(),
+					"order_by_field_id": orderByFieldIDSchema("records", "customitemfield"),
+					"page":              helpers.PageSchema(),
+					"page_size":         helpers.PageSizeSchema(),
 				},
 				Required: []string{"custom_item_id"},
 			},
@@ -536,16 +539,8 @@ func CustomItemRecordList(engine *twapi.Engine) toolsets.ToolWrapper {
 				helpers.OptionalNumericListParam(&req.Filters.IDs, "ids"),
 				helpers.OptionalNumericListParam(&req.Filters.SectionIDs, "section_ids"),
 				helpers.OptionalPointerParam(&req.Filters.ShowDeleted, "show_deleted"),
-				helpers.OptionalParam(&req.Filters.OrderBy, "order_by",
-					helpers.RestrictValues(
-						projects.CustomItemRecordOrderByName,
-						projects.CustomItemRecordOrderByDisplayOrder,
-						projects.CustomItemRecordOrderByCustomItemField,
-					),
-				),
-				helpers.OptionalParam(&req.Filters.OrderMode, "order_mode",
-					helpers.RestrictValues(twapi.OrderModeAscending, twapi.OrderModeDescending),
-				),
+				customItemRecordOrdering.param(&req.Filters.OrderBy, &req.Filters.OrderMode),
+				helpers.OptionalNumericParam(&req.Filters.OrderByFieldID, "order_by_field_id"),
 				helpers.OptionalNumericParam(&req.Filters.Page, "page"),
 				helpers.OptionalNumericParam(&req.Filters.PageSize, "page_size"),
 			)

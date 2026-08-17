@@ -32,6 +32,18 @@ var (
 	milestoneListOutputSchema *jsonschema.Schema
 )
 
+// milestoneOrdering is the order-by vocabulary of the milestones list endpoint.
+var milestoneOrdering = newOrdering("milestones",
+	projects.MilestoneOrderByDate,
+	projects.MilestoneOrderByDateOnly,
+	projects.MilestoneOrderByName,
+	projects.MilestoneOrderByProject,
+	projects.MilestoneOrderByUser,
+	projects.MilestoneOrderByDateCreated,
+	projects.MilestoneOrderByDateUpdated,
+	projects.MilestoneOrderByID,
+)
+
 func init() {
 	var err error
 
@@ -384,6 +396,8 @@ func MilestoneList(engine *twapi.Engine) toolsets.ToolWrapper {
 					},
 					"tag_ids":        helpers.TagIDsFilterSchema("milestones"),
 					"match_all_tags": helpers.MatchAllTagsSchema(),
+					"order_by":       milestoneOrdering.orderBySchema(),
+					"order_mode":     orderModeSchema(),
 					"page":           helpers.PageSchema(),
 					"page_size":      helpers.PageSizeSchema(),
 					"verbose":        helpers.VerboseSchema(),
@@ -406,6 +420,7 @@ func MilestoneList(engine *twapi.Engine) toolsets.ToolWrapper {
 				helpers.OptionalParam(&milestoneListRequest.Filters.SearchTerm, "search_term"),
 				helpers.OptionalNumericListParam(&milestoneListRequest.Filters.TagIDs, "tag_ids"),
 				helpers.OptionalPointerParam(&milestoneListRequest.Filters.MatchAllTags, "match_all_tags"),
+				milestoneOrdering.param(&milestoneListRequest.Filters.OrderBy, &milestoneListRequest.Filters.OrderMode),
 				helpers.OptionalNumericParam(&milestoneListRequest.Filters.Page, "page"),
 				helpers.OptionalNumericParam(&milestoneListRequest.Filters.PageSize, "page_size"),
 				helpers.OptionalParam(&verbose, "verbose"),

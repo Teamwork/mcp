@@ -32,6 +32,17 @@ var (
 	tagListOutputSchema *jsonschema.Schema
 )
 
+// tagOrdering is the order-by vocabulary of the tags list endpoint.
+var tagOrdering = newOrdering("tags",
+	projects.TagOrderByName,
+	projects.TagOrderByCount,
+	projects.TagOrderByProject,
+	projects.TagOrderByColor,
+	projects.TagOrderByDateLastUpdated,
+	projects.TagOrderByProjectDateLastUsed,
+	projects.TagOrderByID,
+)
+
 func init() {
 	var err error
 
@@ -321,10 +332,12 @@ func TagList(engine *twapi.Engine) toolsets.ToolWrapper {
 							{Type: "null"},
 						},
 					},
-					"page":      helpers.PageSchema(),
-					"page_size": helpers.PageSizeSchema(),
-					"verbose":   helpers.VerboseSchema(),
-					"fields":    helpers.FieldsSchema[projects.Tag]("tag"),
+					"order_by":   tagOrdering.orderBySchema(),
+					"order_mode": orderModeSchema(),
+					"page":       helpers.PageSchema(),
+					"page_size":  helpers.PageSizeSchema(),
+					"verbose":    helpers.VerboseSchema(),
+					"fields":     helpers.FieldsSchema[projects.Tag]("tag"),
 				},
 				Required: []string{},
 			},
@@ -355,6 +368,7 @@ func TagList(engine *twapi.Engine) toolsets.ToolWrapper {
 					),
 				),
 				helpers.OptionalNumericListParam(&tagListRequest.Filters.ProjectIDs, "project_ids"),
+				tagOrdering.param(&tagListRequest.Filters.OrderBy, &tagListRequest.Filters.OrderMode),
 				helpers.OptionalNumericParam(&tagListRequest.Filters.Page, "page"),
 				helpers.OptionalNumericParam(&tagListRequest.Filters.PageSize, "page_size"),
 				helpers.OptionalParam(&verbose, "verbose"),

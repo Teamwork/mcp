@@ -27,6 +27,15 @@ var (
 	activityListOutputSchema *jsonschema.Schema
 )
 
+// activityOrdering is the order-by vocabulary of the activities list endpoint.
+var activityOrdering = newOrdering("activities",
+	projects.ActivityOrderByDate,
+	projects.ActivityOrderByProjectID,
+	projects.ActivityOrderByUserID,
+	projects.ActivityOrderByActivityTypes,
+	projects.ActivityOrderByID,
+)
+
 func init() {
 	var err error
 
@@ -98,10 +107,12 @@ func ActivityList(engine *twapi.Engine) toolsets.ToolWrapper {
 							{Type: "null"},
 						},
 					},
-					"page":      helpers.PageSchema(),
-					"page_size": helpers.PageSizeSchema(),
-					"verbose":   helpers.VerboseSchema(),
-					"fields":    helpers.FieldsSchema[projects.Activity]("activity"),
+					"order_by":   activityOrdering.orderBySchema(),
+					"order_mode": orderModeSchema(),
+					"page":       helpers.PageSchema(),
+					"page_size":  helpers.PageSizeSchema(),
+					"verbose":    helpers.VerboseSchema(),
+					"fields":     helpers.FieldsSchema[projects.Activity]("activity"),
 				},
 				Required: []string{},
 			},
@@ -120,6 +131,7 @@ func ActivityList(engine *twapi.Engine) toolsets.ToolWrapper {
 				helpers.OptionalTimeParam(&activityListRequest.Filters.StartDate, "start_date"),
 				helpers.OptionalTimeParam(&activityListRequest.Filters.EndDate, "end_date", helpers.EndOfDay()),
 				helpers.OptionalListParam(&activityListRequest.Filters.LogItemTypes, "log_item_types"),
+				activityOrdering.param(&activityListRequest.Filters.OrderBy, &activityListRequest.Filters.OrderMode),
 				helpers.OptionalNumericParam(&activityListRequest.Filters.Page, "page"),
 				helpers.OptionalNumericParam(&activityListRequest.Filters.PageSize, "page_size"),
 				helpers.OptionalParam(&verbose, "verbose"),

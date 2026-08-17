@@ -32,6 +32,17 @@ var (
 	tasklistListOutputSchema *jsonschema.Schema
 )
 
+// tasklistOrdering is the order-by vocabulary of the task lists list endpoint.
+var tasklistOrdering = newOrdering("task lists",
+	projects.TasklistOrderByDisplayOrder,
+	projects.TasklistOrderByName,
+	projects.TasklistOrderByStatus,
+	projects.TasklistOrderByCreatedAt,
+	projects.TasklistOrderByUpdatedAt,
+	projects.TasklistOrderByProject,
+	projects.TasklistOrderByID,
+)
+
 func init() {
 	var err error
 
@@ -331,10 +342,12 @@ func TasklistList(engine *twapi.Engine) toolsets.ToolWrapper {
 						},
 						Default: []byte(`false`),
 					},
-					"page":      helpers.PageSchema(),
-					"page_size": helpers.PageSizeSchema(),
-					"verbose":   helpers.VerboseSchema(),
-					"fields":    helpers.FieldsSchema[projects.Tasklist]("tasklist"),
+					"order_by":   tasklistOrdering.orderBySchema(),
+					"order_mode": orderModeSchema(),
+					"page":       helpers.PageSchema(),
+					"page_size":  helpers.PageSizeSchema(),
+					"verbose":    helpers.VerboseSchema(),
+					"fields":     helpers.FieldsSchema[projects.Tasklist]("tasklist"),
 				},
 				Required: []string{},
 			},
@@ -352,6 +365,7 @@ func TasklistList(engine *twapi.Engine) toolsets.ToolWrapper {
 				helpers.OptionalNumericParam(&tasklistListRequest.Path.ProjectID, "project_id"),
 				helpers.OptionalParam(&tasklistListRequest.Filters.SearchTerm, "search_term"),
 				helpers.OptionalPointerParam(&tasklistListRequest.Filters.ShowCompleted, "show_completed"),
+				tasklistOrdering.param(&tasklistListRequest.Filters.OrderBy, &tasklistListRequest.Filters.OrderMode),
 				helpers.OptionalNumericParam(&tasklistListRequest.Filters.Page, "page"),
 				helpers.OptionalNumericParam(&tasklistListRequest.Filters.PageSize, "page_size"),
 				helpers.OptionalParam(&verbose, "verbose"),

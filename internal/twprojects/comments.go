@@ -58,6 +58,16 @@ var commentListFields = slices.DeleteFunc(
 	},
 )
 
+// commentOrdering is the order-by vocabulary of the comments list endpoint.
+var commentOrdering = newOrdering("comments",
+	projects.CommentOrderByAll,
+	projects.CommentOrderByDate,
+	projects.CommentOrderByProject,
+	projects.CommentOrderByUser,
+	projects.CommentOrderByType,
+	projects.CommentOrderByID,
+)
+
 func init() {
 	var err error
 
@@ -466,10 +476,12 @@ func CommentList(engine *twapi.Engine) toolsets.ToolWrapper {
 					"updated_after": helpers.DateTimeFilterSchema(
 						"Filter comments updated after. Defaults to the last 3 months.",
 					),
-					"page":      helpers.PageSchema(),
-					"page_size": helpers.PageSizeSchema(),
-					"verbose":   helpers.VerboseSchema(),
-					"fields":    helpers.FieldsSchema[projects.Comment]("comment"),
+					"order_by":   commentOrdering.orderBySchema(),
+					"order_mode": orderModeSchema(),
+					"page":       helpers.PageSchema(),
+					"page_size":  helpers.PageSizeSchema(),
+					"verbose":    helpers.VerboseSchema(),
+					"fields":     helpers.FieldsSchema[projects.Comment]("comment"),
 				},
 				Required: []string{},
 			},
@@ -492,6 +504,7 @@ func CommentList(engine *twapi.Engine) toolsets.ToolWrapper {
 				helpers.OptionalNumericListParam(&commentListRequest.Filters.UserIDs, "user_ids"),
 				helpers.OptionalParam(&commentListRequest.Filters.SearchTerm, "search_term"),
 				helpers.OptionalTimeParam(&commentListRequest.Filters.UpdatedAfter, "updated_after"),
+				commentOrdering.param(&commentListRequest.Filters.OrderBy, &commentListRequest.Filters.OrderMode),
 				helpers.OptionalNumericParam(&commentListRequest.Filters.Page, "page"),
 				helpers.OptionalNumericParam(&commentListRequest.Filters.PageSize, "page_size"),
 				helpers.OptionalParam(&verbose, "verbose"),

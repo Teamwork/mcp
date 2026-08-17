@@ -48,6 +48,13 @@ var projectBudgetSparseFields = []projects.ProjectBudgetField{
 	projects.ProjectBudgetFieldEndDateTime,
 }
 
+// tasklistBudgetOrdering is the order-by vocabulary of the task list budgets list endpoint.
+var tasklistBudgetOrdering = newOrdering("task list budgets",
+	projects.TasklistBudgetOrderByDateCreated,
+	projects.TasklistBudgetOrderByDisplayOrder,
+	projects.TasklistBudgetOrderByID,
+)
+
 func init() {
 	var err error
 
@@ -207,10 +214,12 @@ func TasklistBudgetList(engine *twapi.Engine) toolsets.ToolWrapper {
 						Type:        "integer",
 						Description: "The ID of the project budget to list tasklist budgets for.",
 					},
-					"page":      helpers.PageSchema(),
-					"page_size": helpers.PageSizeSchema(),
-					"verbose":   helpers.VerboseSchema(),
-					"fields":    helpers.FieldsSchema[projects.TasklistBudget]("tasklist budget"),
+					"page":       helpers.PageSchema(),
+					"page_size":  helpers.PageSizeSchema(),
+					"verbose":    helpers.VerboseSchema(),
+					"order_by":   tasklistBudgetOrdering.orderBySchema(),
+					"order_mode": orderModeSchema(),
+					"fields":     helpers.FieldsSchema[projects.TasklistBudget]("tasklist budget"),
 				},
 				Required: []string{"project_budget_id"},
 			},
@@ -233,6 +242,10 @@ func TasklistBudgetList(engine *twapi.Engine) toolsets.ToolWrapper {
 			tasklistBudgetListRequest := projects.NewTasklistBudgetListRequest(projectBudgetID)
 			verbose := true
 			err = helpers.ParamGroup(arguments,
+				tasklistBudgetOrdering.param(
+					&tasklistBudgetListRequest.Filters.OrderBy,
+					&tasklistBudgetListRequest.Filters.OrderMode,
+				),
 				helpers.OptionalNumericParam(&tasklistBudgetListRequest.Filters.Page, "page"),
 				helpers.OptionalNumericParam(&tasklistBudgetListRequest.Filters.PageSize, "page_size"),
 				helpers.OptionalParam(&verbose, "verbose"),

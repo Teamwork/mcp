@@ -32,6 +32,22 @@ var (
 	timelogListOutputSchema *jsonschema.Schema
 )
 
+// timelogOrdering is the order-by vocabulary of the timelogs list endpoint.
+var timelogOrdering = newOrdering("timelogs",
+	projects.TimelogOrderByCompany,
+	projects.TimelogOrderByDate,
+	projects.TimelogOrderByDateUpdated,
+	projects.TimelogOrderByProject,
+	projects.TimelogOrderByTask,
+	projects.TimelogOrderByTasklist,
+	projects.TimelogOrderByUser,
+	projects.TimelogOrderByDescription,
+	projects.TimelogOrderByBilled,
+	projects.TimelogOrderByBillable,
+	projects.TimelogOrderByTimeSpent,
+	projects.TimelogOrderByID,
+)
+
 func init() {
 	var err error
 
@@ -450,10 +466,12 @@ func TimelogList(engine *twapi.Engine) toolsets.ToolWrapper {
 							{Type: "null"},
 						},
 					},
-					"page":      helpers.PageSchema(),
-					"page_size": helpers.PageSizeSchema(),
-					"verbose":   helpers.VerboseSchema(),
-					"fields":    helpers.FieldsSchema[projects.Timelog]("timelog"),
+					"order_by":   timelogOrdering.orderBySchema(),
+					"order_mode": orderModeSchema(),
+					"page":       helpers.PageSchema(),
+					"page_size":  helpers.PageSizeSchema(),
+					"verbose":    helpers.VerboseSchema(),
+					"fields":     helpers.FieldsSchema[projects.Timelog]("timelog"),
 				},
 				Required: []string{},
 			},
@@ -478,6 +496,7 @@ func TimelogList(engine *twapi.Engine) toolsets.ToolWrapper {
 				helpers.OptionalNumericListParam(&timelogListRequest.Filters.AssignedToCompanyIDs, "assigned_company_ids"),
 				helpers.OptionalNumericListParam(&timelogListRequest.Filters.AssignedToTeamIDs, "assigned_team_ids"),
 				helpers.OptionalNumericListParam(&timelogListRequest.Filters.DeskTicketIDs, "ticketIds"),
+				timelogOrdering.param(&timelogListRequest.Filters.OrderBy, &timelogListRequest.Filters.OrderMode),
 				helpers.OptionalNumericParam(&timelogListRequest.Filters.Page, "page"),
 				helpers.OptionalNumericParam(&timelogListRequest.Filters.PageSize, "page_size"),
 				helpers.OptionalParam(&verbose, "verbose"),

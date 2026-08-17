@@ -25,6 +25,13 @@ const (
 
 var calendarEventListOutputSchema *jsonschema.Schema
 
+// calendarEventOrdering is the order-by vocabulary of the calendar events list endpoint.
+var calendarEventOrdering = newOrdering("calendar events",
+	projects.CalendarEventOrderByStartTime,
+	projects.CalendarEventOrderByUpdated,
+	projects.CalendarEventOrderByID,
+)
+
 func init() {
 	var err error
 
@@ -88,8 +95,10 @@ func CalendarEventList(engine *twapi.Engine) toolsets.ToolWrapper {
 							{Type: "null"},
 						},
 					},
-					"verbose": helpers.VerboseSchema(),
-					"fields":  helpers.FieldsSchema[projects.CalendarEvent]("calendar event"),
+					"order_by":   calendarEventOrdering.orderBySchema(),
+					"order_mode": orderModeSchema(),
+					"verbose":    helpers.VerboseSchema(),
+					"fields":     helpers.FieldsSchema[projects.CalendarEvent]("calendar event"),
 				},
 				Required: []string{"calendar_id"},
 			},
@@ -107,6 +116,7 @@ func CalendarEventList(engine *twapi.Engine) toolsets.ToolWrapper {
 				helpers.RequiredNumericParam(&calendarEventListRequest.Path.CalendarID, "calendar_id"),
 				helpers.OptionalDateParam(&calendarEventListRequest.Filters.StartedAfterDate, "started_after_date"),
 				helpers.OptionalDateParam(&calendarEventListRequest.Filters.EndedBeforeDate, "ended_before_date"),
+				calendarEventOrdering.param(&calendarEventListRequest.Filters.OrderBy, &calendarEventListRequest.Filters.OrderMode),
 				helpers.OptionalNumericParam(&calendarEventListRequest.Filters.Limit, "limit"),
 				helpers.OptionalParam(&calendarEventListRequest.Filters.Cursor, "cursor"),
 				helpers.OptionalParam(&verbose, "verbose"),

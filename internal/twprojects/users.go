@@ -34,6 +34,14 @@ var (
 	userListOutputSchema  *jsonschema.Schema
 )
 
+// userOrdering is the order-by vocabulary of the users list endpoint.
+var userOrdering = newOrdering("users",
+	projects.UserOrderByName,
+	projects.UserOrderByNameCaseInsensitive,
+	projects.UserOrderByCompany,
+	projects.UserOrderByID,
+)
+
 func init() {
 	var err error
 
@@ -446,10 +454,12 @@ func UserList(engine *twapi.Engine) toolsets.ToolWrapper {
 							{Type: "null"},
 						},
 					},
-					"page":      helpers.PageSchema(),
-					"page_size": helpers.PageSizeSchema(),
-					"verbose":   helpers.VerboseSchema(),
-					"fields":    helpers.FieldsSchema[projects.User]("user"),
+					"order_by":   userOrdering.orderBySchema(),
+					"order_mode": orderModeSchema(),
+					"page":       helpers.PageSchema(),
+					"page_size":  helpers.PageSizeSchema(),
+					"verbose":    helpers.VerboseSchema(),
+					"fields":     helpers.FieldsSchema[projects.User]("user"),
 				},
 				Required: []string{},
 			},
@@ -473,6 +483,7 @@ func UserList(engine *twapi.Engine) toolsets.ToolWrapper {
 						projects.UserTypeContact,
 					),
 				),
+				userOrdering.param(&userListRequest.Filters.OrderBy, &userListRequest.Filters.OrderMode),
 				helpers.OptionalNumericParam(&userListRequest.Filters.Page, "page"),
 				helpers.OptionalNumericParam(&userListRequest.Filters.PageSize, "page_size"),
 				helpers.OptionalParam(&verbose, "verbose"),

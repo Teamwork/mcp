@@ -32,6 +32,17 @@ var (
 	messageListOutputSchema *jsonschema.Schema
 )
 
+// messageOrdering is the order-by vocabulary of the messages list endpoint.
+var messageOrdering = newOrdering("messages",
+	projects.MessageOrderByCreatedAt,
+	projects.MessageOrderByUpdatedAt,
+	projects.MessageOrderByCategory,
+	projects.MessageOrderByProject,
+	projects.MessageOrderByCreatedBy,
+	projects.MessageOrderByUnread,
+	projects.MessageOrderByID,
+)
+
 func init() {
 	var err error
 
@@ -365,6 +376,8 @@ func MessageList(engine *twapi.Engine) toolsets.ToolWrapper {
 					},
 					"tag_ids":        helpers.TagIDsFilterSchema("messages"),
 					"match_all_tags": helpers.MatchAllTagsSchema(),
+					"order_by":       messageOrdering.orderBySchema(),
+					"order_mode":     orderModeSchema(),
 					"page":           helpers.PageSchema(),
 					"page_size":      helpers.PageSizeSchema(),
 					"verbose":        helpers.VerboseSchema(),
@@ -387,6 +400,7 @@ func MessageList(engine *twapi.Engine) toolsets.ToolWrapper {
 				helpers.OptionalNumericListParam(&messageListRequest.Filters.ProjectIDs, "project_ids"),
 				helpers.OptionalNumericListParam(&messageListRequest.Filters.TagIDs, "tag_ids"),
 				helpers.OptionalPointerParam(&messageListRequest.Filters.MatchAllTags, "match_all_tags"),
+				messageOrdering.param(&messageListRequest.Filters.OrderBy, &messageListRequest.Filters.OrderMode),
 				helpers.OptionalNumericParam(&messageListRequest.Filters.Page, "page"),
 				helpers.OptionalNumericParam(&messageListRequest.Filters.PageSize, "page_size"),
 				helpers.OptionalParam(&verbose, "verbose"),

@@ -33,6 +33,13 @@ var (
 	workflowStageListOutputSchema *jsonschema.Schema
 )
 
+// workflowStageOrdering is the order-by vocabulary of the workflow stages list endpoint.
+var workflowStageOrdering = newOrdering("workflow stages",
+	projects.WorkflowStageOrderByID,
+	projects.WorkflowStageOrderByName,
+	projects.WorkflowStageOrderByDisplayOrder,
+)
+
 func init() {
 	var err error
 
@@ -389,10 +396,12 @@ func WorkflowStageList(engine *twapi.Engine) toolsets.ToolWrapper {
 						Type:        "integer",
 						Description: "The ID of the workflow whose stages to list.",
 					},
-					"page":      helpers.PageSchema(),
-					"page_size": helpers.PageSizeSchema(),
-					"verbose":   helpers.VerboseSchema(),
-					"fields":    helpers.FieldsSchema[projects.WorkflowStage]("workflow stage"),
+					"order_by":   workflowStageOrdering.orderBySchema(),
+					"order_mode": orderModeSchema(),
+					"page":       helpers.PageSchema(),
+					"page_size":  helpers.PageSizeSchema(),
+					"verbose":    helpers.VerboseSchema(),
+					"fields":     helpers.FieldsSchema[projects.WorkflowStage]("workflow stage"),
 				},
 				Required: []string{"workflow_id"},
 			},
@@ -408,6 +417,7 @@ func WorkflowStageList(engine *twapi.Engine) toolsets.ToolWrapper {
 			verbose := true
 			err := helpers.ParamGroup(arguments,
 				helpers.RequiredNumericParam(&workflowStageListRequest.Path.WorkflowID, "workflow_id"),
+				workflowStageOrdering.param(&workflowStageListRequest.Filters.OrderBy, &workflowStageListRequest.Filters.OrderMode),
 				helpers.OptionalNumericParam(&workflowStageListRequest.Filters.Page, "page"),
 				helpers.OptionalNumericParam(&workflowStageListRequest.Filters.PageSize, "page_size"),
 				helpers.OptionalParam(&verbose, "verbose"),

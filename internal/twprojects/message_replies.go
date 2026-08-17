@@ -32,6 +32,12 @@ var (
 	messageReplyListOutputSchema *jsonschema.Schema
 )
 
+// messageReplyOrdering is the order-by vocabulary of the message replies list endpoint.
+var messageReplyOrdering = newOrdering("message replies",
+	projects.MessageReplyOrderByCreatedAt,
+	projects.MessageReplyOrderByID,
+)
+
 func init() {
 	var err error
 
@@ -344,10 +350,12 @@ func MessageReplyList(engine *twapi.Engine) toolsets.ToolWrapper {
 							{Type: "null"},
 						},
 					},
-					"page":      helpers.PageSchema(),
-					"page_size": helpers.PageSizeSchema(),
-					"verbose":   helpers.VerboseSchema(),
-					"fields":    helpers.FieldsSchema[projects.MessageReply]("message reply"),
+					"order_by":   messageReplyOrdering.orderBySchema(),
+					"order_mode": orderModeSchema(),
+					"page":       helpers.PageSchema(),
+					"page_size":  helpers.PageSizeSchema(),
+					"verbose":    helpers.VerboseSchema(),
+					"fields":     helpers.FieldsSchema[projects.MessageReply]("message reply"),
 				},
 				Required: []string{},
 			},
@@ -365,6 +373,7 @@ func MessageReplyList(engine *twapi.Engine) toolsets.ToolWrapper {
 				helpers.OptionalParam(&messageReplyListRequest.Filters.SearchTerm, "search_term"),
 				helpers.OptionalNumericListParam(&messageReplyListRequest.Filters.MessageIDs, "message_ids"),
 				helpers.OptionalNumericListParam(&messageReplyListRequest.Filters.ProjectIDs, "project_ids"),
+				messageReplyOrdering.param(&messageReplyListRequest.Filters.OrderBy, &messageReplyListRequest.Filters.OrderMode),
 				helpers.OptionalNumericParam(&messageReplyListRequest.Filters.Page, "page"),
 				helpers.OptionalNumericParam(&messageReplyListRequest.Filters.PageSize, "page_size"),
 				helpers.OptionalParam(&verbose, "verbose"),
