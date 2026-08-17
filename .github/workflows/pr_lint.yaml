@@ -4,8 +4,11 @@ on:
   pull_request:
     types: [opened, reopened, edited, synchronize]
 
+env:
+  GO_VERSION: "1.26.x"
+
 permissions:
-  pull-requests: read
+  contents: read
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -16,37 +19,25 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # The prefix picks the version bump at release time (cmd/next-version
-      # reads it off the pull-request title), so an unprefixed title is not a
-      # style problem: it costs the release its minor bump. v1.27.4, v1.28.1
-      # and v1.28.3 each shipped a feature under a patch tag, and every one of
-      # them had an unprefixed title.
-      #
-      # Keep this list in step with bumpByPrefix in cmd/next-version/main.go.
-      # TestLintedTypesAreUnderstood fails when they drift.
-      - uses: amannn/action-semantic-pull-request@v6
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - uses: actions/checkout@v7
         with:
-          # Each entry is a regex anchored as ^entry$ and matched
-          # case-sensitively, so both spellings are listed explicitly.
-          types: |
-            (Feature|feature|feat)
-            (Fix|fix)
-            (Enhancement|enhancement)
-            (Chore|chore)
-            (Docs|docs)
-            (Test|test)
-            (Refactor|refactor)
-            (Perf|perf)
-            (Build|build)
-            (CI|ci)
-            (Style|style)
-            (Revert|revert)
+          persist-credentials: false
 
-          # Mirrors prefixPattern in cmd/next-version/main.go: an optional
-          # (scope), and an optional ! marking a breaking change. The ! sits
-          # outside the type group so the type stays clean and "Feature!: …"
-          # still resolves to Feature.
-          headerPattern: '^([A-Za-z]+)(?:\(([^)]+)\))?!?: (.+)$'
-          headerPatternCorrespondence: type, scope, subject
+      - name: Set up Go
+        uses: actions/setup-go@v7
+        with:
+          go-version: ${{ env.GO_VERSION }}
+
+      # The prefix picks the version bump at release time, so the check runs the
+      # release's own vocabulary — bumpByPrefix in cmd/next-version/main.go —
+      # rather than a second copy of it in this file. An unprefixed title is not
+      # a style problem: it costs the release its minor bump, which is how
+      # v1.27.4, v1.28.1 and v1.28.3 each shipped a feature under a patch tag.
+      #
+      # The title goes through the environment, never interpolated into the
+      # script: it is attacker-controlled text on a fork's pull request, and
+      # ${{ }} would splice it into the shell.
+      - name: Check the title
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+        run: go run ./cmd/next-version -check-title="$PR_TITLE"

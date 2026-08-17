@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 	"regexp"
-	"slices"
 	"strings"
 	"testing"
 )
@@ -95,8 +94,8 @@ func TestClassify(t *testing.T) {
 
 // TestEveryContributingPrefixIsMapped keeps the prefix table and the prefixes
 // CONTRIBUTING.md asks contributors to use from drifting apart: a documented
-// prefix the tool does not know would be reported as unclassified on every
-// release that used it.
+// prefix the tool does not know would be rejected by the PR lint that tells
+// authors to read that very list.
 func TestEveryContributingPrefixIsMapped(t *testing.T) {
 	doc, err := os.ReadFile("../../CONTRIBUTING.md")
 	if err != nil {
@@ -113,71 +112,70 @@ func TestEveryContributingPrefixIsMapped(t *testing.T) {
 		if _, ok := bumpByPrefix[prefix]; !ok {
 			t.Errorf("CONTRIBUTING.md documents %q but bumpByPrefix does not map it", prefix)
 		}
-	}
-}
-
-// TestLintedTypesAreUnderstood pins the PR title lint to this tool. A type the
-// lint accepts but bumpByPrefix does not know would sail through review and
-// then be reported as unclassified at release time, which is the failure the
-// lint exists to remove.
-func TestLintedTypesAreUnderstood(t *testing.T) {
-	types := lintedTypes(t)
-
-	// A guard on the parsing itself: an empty or tiny list means the types
-	// block moved, not that the lint accepts nothing.
-	if len(types) < 10 {
-		t.Fatalf("parsed only %v from the workflow's types block; has it moved?", types)
-	}
-	for _, want := range []string{"feature", "fix", "enhancement", "chore"} {
-		if !slices.Contains(types, want) {
-			t.Errorf("pr_lint.yaml should accept %q, parsed %v", want, types)
-		}
-	}
-
-	for _, prefix := range types {
-		if _, ok := bumpByPrefix[prefix]; !ok {
-			t.Errorf("pr_lint.yaml accepts %q but bumpByPrefix does not map it", prefix)
+		// The PR lint has to accept what the docs tell authors to write.
+		if _, err := checkTitle(match[1] + ": a subject"); err != nil {
+			t.Errorf("CONTRIBUTING.md documents %q but the title check refuses it: %v", prefix, err)
 		}
 	}
 }
 
-// lintedTypes reads the words out of the `types:` block in the PR lint
-// workflow. The entries are regexes ("(Feature|feature|feat)"), so every
-// alphabetic run in them is a type the lint accepts.
-func lintedTypes(t *testing.T) []string {
-	t.Helper()
-
-	data, err := os.ReadFile("../../.github/workflows/pr_lint.yaml")
-	if err != nil {
-		t.Fatalf("read pr_lint.yaml: %v", err)
+// TestCheckTitle covers what the PR lint workflow enforces. The vocabulary is
+// bumpByPrefix itself, so the check and the release can never disagree; what is
+// worth pinning is the shapes accepted and refused at the door.
+func TestCheckTitle(t *testing.T) {
+	accepted := map[string]bumpLevel{
+		"Feature: File attachments":                bumpMinor,
+		"feat: add a thing":                        bumpMinor,
+		"Fix: team tools fail schema validation":   bumpPatch,
+		"Enhancement: Exact counts":                bumpPatch,
+		"Chore(deps): Bump github.com/sonh/qs":     bumpPatch,
+		"Chore(deps-dev): Bump hono":               bumpPatch,
+		"Feature!: drop the v1 tool names":         bumpMajor,
+		"Fix(tasks)!: rename parent_task_id":       bumpMajor,
+		"Refactor: extract the ordering vocabuary": bumpPatch,
 	}
-
-	var (
-		types  []string
-		word   = regexp.MustCompile(`[A-Za-z]+`)
-		indent = -1
-	)
-	for line := range strings.Lines(string(data)) {
-		line = strings.TrimRight(line, "\r\n")
-		trimmed := strings.TrimSpace(line)
-		depth := len(line) - len(strings.TrimLeft(line, " "))
-
-		switch {
-		case indent < 0:
-			if trimmed == "types: |" {
-				indent = depth
-			}
-		case trimmed == "":
+	for title, want := range accepted {
+		got, err := checkTitle(title)
+		if err != nil {
+			t.Errorf("%q: want accepted, got %v", title, err)
 			continue
-		case depth <= indent:
-			return types
-		default:
-			for _, w := range word.FindAllString(trimmed, -1) {
-				types = append(types, strings.ToLower(w))
-			}
+		}
+		if got != want {
+			t.Errorf("%q: want a %s bump, got %s", title, want, got)
 		}
 	}
-	return types
+
+	refused := []string{
+		// Real titles from the history; two of them were features.
+		"Ordering for the projects list tools",
+		"Adds support for linking tasks to desks.",
+		"Support for tag colors in the Teamwork API",
+
+		"Note: an unknown prefix",
+		// A breaking marker must not smuggle an unknown prefix past the
+		// vocabulary, even though classify() would read it as a major.
+		"Whatever!: sneaking in",
+		"Fix:",
+		"Fix:   ",
+		"",
+	}
+	for _, title := range refused {
+		if _, err := checkTitle(title); err == nil {
+			t.Errorf("%q: want refused, got accepted", title)
+		}
+	}
+}
+
+// TestAcceptedPrefixesHelpIsComplete checks the rejection message names every
+// prefix that would have been accepted: it is the only guidance the author gets
+// on a failed check.
+func TestAcceptedPrefixesHelpIsComplete(t *testing.T) {
+	help := acceptedPrefixes()
+	for prefix := range bumpByPrefix {
+		if !strings.Contains(help, prefix) {
+			t.Errorf("the help does not mention the accepted prefix %q:\n%s", prefix, help)
+		}
+	}
 }
 
 // TestHistoricalRangesComputeTheRightBump replays real ranges from the history,

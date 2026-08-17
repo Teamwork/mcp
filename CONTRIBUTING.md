@@ -209,7 +209,11 @@ We follow Go best practices and conventions:
 
    Get it right on the title, not just the commits: a rebase-merged branch is
    classified by its pull-request title, so `Fix comment` and friends inside it
-   do not count on their own.
+   do not count on their own. To check one before you open the pull request:
+
+   ```bash
+   go run ./cmd/next-version -check-title="Feature: File attachments"
+   ```
 
 2. **Description**: Include:
    - What changes were made and why
