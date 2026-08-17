@@ -256,7 +256,11 @@ func ProjectsMCPServerRoutedMockWithRequestBody(
 type ProjectsRecordedRequest struct {
 	Method string
 	Path   string
-	Body   []byte
+	// URL is the full request URL, so tests can assert the query string of a
+	// specific call in a fan-out. The last-URL mocks cannot: a tool that follows
+	// its own request with a second one overwrites what they captured.
+	URL  url.URL
+	Body []byte
 }
 
 // ProjectsMCPServerRecordingMock is like ProjectsMCPServerRoutedMock but
@@ -275,7 +279,7 @@ func ProjectsMCPServerRecordingMock(
 	var recorded []ProjectsRecordedRequest
 	engine := twapi.NewEngine(ProjectsSessionMock{}, twapi.WithMiddleware(func(twapi.HTTPClient) twapi.HTTPClient {
 		return twapi.HTTPClientFunc(func(req *http.Request) (*http.Response, error) {
-			entry := ProjectsRecordedRequest{Method: req.Method, Path: req.URL.Path}
+			entry := ProjectsRecordedRequest{Method: req.Method, Path: req.URL.Path, URL: *req.URL}
 			if req.Body != nil {
 				body, err := io.ReadAll(req.Body)
 				if err != nil {

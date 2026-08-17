@@ -1006,7 +1006,7 @@ func TaskList(engine *twapi.Engine) toolsets.ToolWrapper {
 				},
 				Required: []string{},
 			},
-			OutputSchema: helpers.WithOptionalFields(taskListOutputSchema),
+			OutputSchema: helpers.WithOptionalFields(withSuggestionsSchema(taskListOutputSchema)),
 		},
 		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 			var taskListRequest projects.TaskListRequest
@@ -1094,6 +1094,7 @@ func TaskList(engine *twapi.Engine) toolsets.ToolWrapper {
 			}
 
 			linked := helpers.WebLinker(ctx, body, helpers.WebLinkerWithIDPathBuilder("/app/tasks"))
+			linked = withNearMissSuggestions(ctx, engine, linked, "tasks", taskListRequest.Filters.SearchTerm)
 			result := &mcp.CallToolResult{
 				Content: []mcp.Content{
 					&mcp.TextContent{

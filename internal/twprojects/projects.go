@@ -575,7 +575,7 @@ func ProjectList(engine *twapi.Engine) toolsets.ToolWrapper {
 				},
 				Required: []string{},
 			},
-			OutputSchema: helpers.WithOptionalFields(projectListOutputSchema),
+			OutputSchema: helpers.WithOptionalFields(withSuggestionsSchema(projectListOutputSchema)),
 		},
 		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 			var projectListRequest projects.ProjectListRequest
@@ -640,6 +640,7 @@ func ProjectList(engine *twapi.Engine) toolsets.ToolWrapper {
 			}
 
 			linked := helpers.WebLinker(ctx, body, helpers.WebLinkerWithIDPathBuilder("/app/projects"))
+			linked = withNearMissSuggestions(ctx, engine, linked, "projects", projectListRequest.Filters.SearchTerm)
 			result := &mcp.CallToolResult{
 				Content: []mcp.Content{
 					&mcp.TextContent{Text: string(linked)},
