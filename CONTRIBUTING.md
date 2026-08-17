@@ -68,7 +68,10 @@ mcp/
 ├── cmd/                    # Command-line applications
 │   ├── mcp-http/          # HTTP server for MCP protocol
 │   ├── mcp-http-cli/      # HTTP client CLI tool
-│   └── mcp-stdio/         # STDIO server for MCP protocol
+│   ├── mcp-stdio/         # STDIO server for MCP protocol
+│   ├── mcp-test/          # Walks tool handlers against a real site
+│   ├── mcp-tokens/        # Token-cost report for the tool surface
+│   └── docs-gen/          # Generates docs/tool-reference.md
 ├── internal/              # Internal packages
 │   ├── auth/              # Authentication and authorization
 │   ├── config/            # Configuration management

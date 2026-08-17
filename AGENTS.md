@@ -31,6 +31,10 @@ A concise guide for AI coding agents working on this repository. It complements 
 - HTTP CLI (for quick tests against HTTP server):
   - List tools: `go run cmd/mcp-http-cli/main.go -mcp-url=<url> -mcp-token=<token> list-tools`
   - Call tool: `go run cmd/mcp-http-cli/main.go -mcp-url=<url> -mcp-token=<token> call-tool <toolName> '{"k":"v"}'`
+- Handler walkthrough against a live site (creates and deletes real data):
+  - Env: `TWAPI_SERVER`, `TWAPI_TOKEN`, `PROJECT_ID` (same vars as `go test`), each overridable by a flag
+  - Run: `go run ./cmd/mcp-test [-suite=all] [-step] [-keep]`
+  - Suites live one per file and register in `suiteRegistry`; see `cmd/mcp-test/README.md`.
 - Docker (optional, for image builds):
   - Requires Docker Buildx. Local load: `make build` or `make build-stdio`
   - Multi-arch push (maintainers): `make push` or `make push-stdio`
@@ -133,6 +137,8 @@ Common variables (subset; see command READMEs for complete lists):
 - `cmd/mcp-stdio/README.md` — STDIO server flags and envs
 - `cmd/mcp-http/README.md` — HTTP server envs and endpoints
 - `cmd/mcp-http-cli/README.md` — CLI usage
+- `cmd/mcp-test/README.md` — live-site handler walkthrough, and how to add a suite
+- `cmd/mcp-tokens/README.md` — tool-surface token costs, and diffing them against a ref
 - `internal/twprojects/tools.go` — tool registration hub
 
 ---
