@@ -497,14 +497,15 @@ func CustomFieldValueList(engine *twapi.Engine) toolsets.ToolWrapper {
 							{Type: "null"},
 						},
 					},
-					"page":      helpers.PageSchema(),
-					"page_size": helpers.PageSizeSchema(),
-					"verbose":   helpers.VerboseSchema(),
-					"fields":    helpers.FieldsSchema[projects.CustomFieldValue]("custom field value"),
+					"page":       helpers.PageSchema(),
+					"page_size":  helpers.PageSizeSchema(),
+					"verbose":    helpers.VerboseSchema(),
+					"count_only": helpers.CountOnlySchema("custom field values"),
+					"fields":     helpers.FieldsSchema[projects.CustomFieldValue]("custom field value"),
 				},
 				Required: []string{"entity", "entity_id"},
 			},
-			OutputSchema: helpers.WithOptionalFields(customFieldValueListOutputSchema),
+			OutputSchema: helpers.WithCountOnlySchema(helpers.WithOptionalFields(customFieldValueListOutputSchema)),
 		},
 		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 			var arguments map[string]any
@@ -518,6 +519,7 @@ func CustomFieldValueList(engine *twapi.Engine) toolsets.ToolWrapper {
 			var page, pageSize int64
 			var fields []projects.CustomFieldValueField
 			verbose := true
+			var countOnly bool
 			err := helpers.ParamGroup(arguments,
 				helpers.RequiredParam(&entity, "entity",
 					helpers.RestrictValues(
@@ -531,6 +533,7 @@ func CustomFieldValueList(engine *twapi.Engine) toolsets.ToolWrapper {
 				helpers.OptionalNumericParam(&page, "page"),
 				helpers.OptionalNumericParam(&pageSize, "page_size"),
 				helpers.OptionalParam(&verbose, "verbose"),
+				helpers.OptionalParam(&countOnly, "count_only"),
 				helpers.OptionalFieldsParam[projects.CustomFieldValue](&fields, "fields"),
 			)
 			if err != nil {
@@ -562,6 +565,10 @@ func CustomFieldValueList(engine *twapi.Engine) toolsets.ToolWrapper {
 					projects.CustomFieldValueFieldValue,
 					projects.CustomFieldValueFieldCustomField,
 				}
+			}
+
+			if countOnly {
+				return helpers.NewCountToolResult(ctx, engine, customFieldValueListRequest, "failed to count custom field values")
 			}
 
 			resp, err := twapi.ExecuteRaw(ctx, engine, customFieldValueListRequest)

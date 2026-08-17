@@ -337,11 +337,12 @@ func TagList(engine *twapi.Engine) toolsets.ToolWrapper {
 					"page":       helpers.PageSchema(),
 					"page_size":  helpers.PageSizeSchema(),
 					"verbose":    helpers.VerboseSchema(),
+					"count_only": helpers.CountOnlySchema("tags"),
 					"fields":     helpers.FieldsSchema[projects.Tag]("tag"),
 				},
 				Required: []string{},
 			},
-			OutputSchema: helpers.WithOptionalFields(tagListOutputSchema),
+			OutputSchema: helpers.WithCountOnlySchema(helpers.WithOptionalFields(tagListOutputSchema)),
 		},
 		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 			var tagListRequest projects.TagListRequest
@@ -351,6 +352,7 @@ func TagList(engine *twapi.Engine) toolsets.ToolWrapper {
 				return helpers.NewToolResultTextError("failed to decode request: %s", err.Error()), nil
 			}
 			verbose := true
+			var countOnly bool
 			err := helpers.ParamGroup(arguments,
 				helpers.OptionalParam(&tagListRequest.Filters.SearchTerm, "search_term"),
 				helpers.OptionalParam(&tagListRequest.Filters.ItemType, "item_type",
@@ -372,6 +374,7 @@ func TagList(engine *twapi.Engine) toolsets.ToolWrapper {
 				helpers.OptionalNumericParam(&tagListRequest.Filters.Page, "page"),
 				helpers.OptionalNumericParam(&tagListRequest.Filters.PageSize, "page_size"),
 				helpers.OptionalParam(&verbose, "verbose"),
+				helpers.OptionalParam(&countOnly, "count_only"),
 				helpers.OptionalFieldsParam[projects.Tag](&tagListRequest.Filters.Fields.Tags, "fields"),
 			)
 			if err != nil {
@@ -383,6 +386,10 @@ func TagList(engine *twapi.Engine) toolsets.ToolWrapper {
 					projects.TagFieldID,
 					projects.TagFieldName,
 				}
+			}
+
+			if countOnly {
+				return helpers.NewCountToolResult(ctx, engine, tagListRequest, "failed to count tags")
 			}
 
 			resp, err := twapi.ExecuteRaw(ctx, engine, tagListRequest)

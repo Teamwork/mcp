@@ -79,6 +79,7 @@ func DefaultToolsetGroup(readOnly, allowDelete bool, engine *twapi.Engine) *tool
 	projectsToolset := toolsets.NewToolset(ToolsetProjects, projectsDescription).
 		AddWriteTools(projectsWriteTools...).
 		AddReadTools(
+			ProjectCount(engine),
 			ProjectCategoryGet(engine),
 			ProjectCategoryList(engine),
 			ProjectGet(engine),
@@ -123,6 +124,7 @@ func DefaultToolsetGroup(readOnly, allowDelete bool, engine *twapi.Engine) *tool
 	tasksToolset := toolsets.NewToolset(ToolsetTasks, tasksDescription).
 		AddWriteTools(tasksWriteTools...).
 		AddReadTools(
+			TaskCount(engine),
 			TaskGet(engine),
 			TaskList(engine),
 			TasklistGet(engine),
@@ -195,6 +197,7 @@ func DefaultToolsetGroup(readOnly, allowDelete bool, engine *twapi.Engine) *tool
 	timeToolset := toolsets.NewToolset(ToolsetTime, timeDescription).
 		AddWriteTools(timeWriteTools...).
 		AddReadTools(
+			TimelogCount(engine),
 			CalendarEventList(engine),
 			CalendarList(engine),
 			ProjectBudgetList(engine),
@@ -241,6 +244,7 @@ func DefaultToolsetGroup(readOnly, allowDelete bool, engine *twapi.Engine) *tool
 	contentToolset := toolsets.NewToolset(ToolsetContent, contentDescription).
 		AddWriteTools(contentWriteTools...).
 		AddReadTools(
+			MilestoneCount(engine),
 			ActivityList(engine),
 			CommentGet(engine),
 			CommentList(engine),

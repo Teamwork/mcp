@@ -112,11 +112,12 @@ func ActivityList(engine *twapi.Engine) toolsets.ToolWrapper {
 					"page":       helpers.PageSchema(),
 					"page_size":  helpers.PageSizeSchema(),
 					"verbose":    helpers.VerboseSchema(),
+					"count_only": helpers.CountOnlySchema("activities"),
 					"fields":     helpers.FieldsSchema[projects.Activity]("activity"),
 				},
 				Required: []string{},
 			},
-			OutputSchema: helpers.WithOptionalFields(activityListOutputSchema),
+			OutputSchema: helpers.WithCountOnlySchema(helpers.WithOptionalFields(activityListOutputSchema)),
 		},
 		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 			var activityListRequest projects.ActivityListRequest
@@ -126,6 +127,7 @@ func ActivityList(engine *twapi.Engine) toolsets.ToolWrapper {
 				return helpers.NewToolResultTextError("failed to decode request: %s", err.Error()), nil
 			}
 			verbose := true
+			var countOnly bool
 			err := helpers.ParamGroup(arguments,
 				helpers.OptionalNumericParam(&activityListRequest.Path.ProjectID, "project_id"),
 				helpers.OptionalTimeParam(&activityListRequest.Filters.StartDate, "start_date"),
@@ -135,6 +137,7 @@ func ActivityList(engine *twapi.Engine) toolsets.ToolWrapper {
 				helpers.OptionalNumericParam(&activityListRequest.Filters.Page, "page"),
 				helpers.OptionalNumericParam(&activityListRequest.Filters.PageSize, "page_size"),
 				helpers.OptionalParam(&verbose, "verbose"),
+				helpers.OptionalParam(&countOnly, "count_only"),
 				helpers.OptionalFieldsParam[projects.Activity](&activityListRequest.Filters.Fields.Activities, "fields"),
 			)
 			if err != nil {
@@ -146,6 +149,10 @@ func ActivityList(engine *twapi.Engine) toolsets.ToolWrapper {
 					projects.ActivityFieldID,
 					projects.ActivityFieldDescription,
 				}
+			}
+
+			if countOnly {
+				return helpers.NewCountToolResult(ctx, engine, activityListRequest, "failed to count activities")
 			}
 
 			resp, err := twapi.ExecuteRaw(ctx, engine, activityListRequest)

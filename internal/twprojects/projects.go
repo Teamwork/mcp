@@ -600,11 +600,12 @@ func ProjectList(engine *twapi.Engine) toolsets.ToolWrapper {
 					"page":                     helpers.PageSchema(),
 					"page_size":                helpers.PageSizeSchema(),
 					"verbose":                  helpers.VerboseSchema(),
+					"count_only":               helpers.CountOnlySchema("projects"),
 					"fields":                   helpers.FieldsSchema[projects.Project]("project"),
 				},
 				Required: []string{},
 			},
-			OutputSchema: helpers.WithOptionalFields(projectListOutputSchema),
+			OutputSchema: helpers.WithCountOnlySchema(helpers.WithOptionalFields(projectListOutputSchema)),
 		},
 		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 			var projectListRequest projects.ProjectListRequest
@@ -614,6 +615,7 @@ func ProjectList(engine *twapi.Engine) toolsets.ToolWrapper {
 				return helpers.NewToolResultTextError("failed to decode request: %s", err.Error()), nil
 			}
 			verbose := true
+			var countOnly bool
 			err := helpers.ParamGroup(arguments,
 				helpers.OptionalNumericListParam(&projectListRequest.Filters.ProjectCategoryIDs, "project_category_ids"),
 				helpers.OptionalParam(&projectListRequest.Filters.SearchTerm, "search_term"),
@@ -624,6 +626,7 @@ func ProjectList(engine *twapi.Engine) toolsets.ToolWrapper {
 				helpers.OptionalNumericParam(&projectListRequest.Filters.Page, "page"),
 				helpers.OptionalNumericParam(&projectListRequest.Filters.PageSize, "page_size"),
 				helpers.OptionalParam(&verbose, "verbose"),
+				helpers.OptionalParam(&countOnly, "count_only"),
 				helpers.OptionalFieldsParam[projects.Project](&projectListRequest.Filters.Fields.Projects, "fields"),
 			)
 			if err != nil {
@@ -653,6 +656,10 @@ func ProjectList(engine *twapi.Engine) toolsets.ToolWrapper {
 					projects.ProjectFieldID,
 					projects.ProjectFieldName,
 				}
+			}
+
+			if countOnly {
+				return helpers.NewCountToolResult(ctx, engine, projectListRequest, "failed to count projects")
 			}
 
 			resp, err := twapi.ExecuteRaw(ctx, engine, projectListRequest)

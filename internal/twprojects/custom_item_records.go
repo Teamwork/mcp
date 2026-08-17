@@ -521,10 +521,11 @@ func CustomItemRecordList(engine *twapi.Engine) toolsets.ToolWrapper {
 					"order_by_field_id": orderByFieldIDSchema("records", "customitemfield"),
 					"page":              helpers.PageSchema(),
 					"page_size":         helpers.PageSizeSchema(),
+					"count_only":        helpers.CountOnlySchema("custom item records"),
 				},
 				Required: []string{"custom_item_id"},
 			},
-			OutputSchema: helpers.WithOptionalFields(customItemRecordListOutputSchema),
+			OutputSchema: helpers.WithCountOnlySchema(helpers.WithOptionalFields(customItemRecordListOutputSchema)),
 		},
 		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 			var arguments map[string]any
@@ -533,6 +534,7 @@ func CustomItemRecordList(engine *twapi.Engine) toolsets.ToolWrapper {
 			}
 
 			req := projects.NewCustomItemRecordListRequest(0)
+			var countOnly bool
 			err := helpers.ParamGroup(arguments,
 				helpers.RequiredNumericParam(&req.Path.CustomItemID, "custom_item_id"),
 				helpers.OptionalParam(&req.Filters.SearchTerm, "search_term"),
@@ -543,6 +545,7 @@ func CustomItemRecordList(engine *twapi.Engine) toolsets.ToolWrapper {
 				helpers.OptionalNumericParam(&req.Filters.OrderByFieldID, "order_by_field_id"),
 				helpers.OptionalNumericParam(&req.Filters.Page, "page"),
 				helpers.OptionalNumericParam(&req.Filters.PageSize, "page_size"),
+				helpers.OptionalParam(&countOnly, "count_only"),
 			)
 			if err != nil {
 				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
@@ -554,6 +557,10 @@ func CustomItemRecordList(engine *twapi.Engine) toolsets.ToolWrapper {
 				req.Filters.PageSize = 25
 			} else if req.Filters.PageSize > 100 {
 				req.Filters.PageSize = 100
+			}
+
+			if countOnly {
+				return helpers.NewCountToolResult(ctx, engine, req, "failed to count custom item records")
 			}
 
 			resp, err := projects.CustomItemRecordList(ctx, engine, req)

@@ -368,10 +368,11 @@ func CustomItemList(engine *twapi.Engine) toolsets.ToolWrapper {
 					"order_mode": orderModeSchema(),
 					"page":       helpers.PageSchema(),
 					"page_size":  helpers.PageSizeSchema(),
+					"count_only": helpers.CountOnlySchema("custom items"),
 				},
 				Required: []string{"project_id"},
 			},
-			OutputSchema: helpers.WithOptionalFields(customItemListOutputSchema),
+			OutputSchema: helpers.WithCountOnlySchema(helpers.WithOptionalFields(customItemListOutputSchema)),
 		},
 		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 			var arguments map[string]any
@@ -380,6 +381,7 @@ func CustomItemList(engine *twapi.Engine) toolsets.ToolWrapper {
 			}
 
 			customItemListRequest := projects.NewCustomItemListRequest(0)
+			var countOnly bool
 			err := helpers.ParamGroup(arguments,
 				helpers.RequiredNumericParam(&customItemListRequest.Path.ProjectID, "project_id"),
 				helpers.OptionalParam(&customItemListRequest.Filters.SearchTerm, "search_term"),
@@ -391,6 +393,7 @@ func CustomItemList(engine *twapi.Engine) toolsets.ToolWrapper {
 				),
 				helpers.OptionalNumericParam(&customItemListRequest.Filters.Page, "page"),
 				helpers.OptionalNumericParam(&customItemListRequest.Filters.PageSize, "page_size"),
+				helpers.OptionalParam(&countOnly, "count_only"),
 			)
 			if err != nil {
 				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
@@ -401,6 +404,10 @@ func CustomItemList(engine *twapi.Engine) toolsets.ToolWrapper {
 				customItemListRequest.Filters.PageSize = 50
 			} else if customItemListRequest.Filters.PageSize > 100 {
 				customItemListRequest.Filters.PageSize = 100
+			}
+
+			if countOnly {
+				return helpers.NewCountToolResult(ctx, engine, customItemListRequest, "failed to count custom items")
 			}
 
 			customItems, err := projects.CustomItemList(ctx, engine, customItemListRequest)

@@ -1067,11 +1067,12 @@ func TaskList(engine *twapi.Engine) toolsets.ToolWrapper {
 					"page":                     helpers.PageSchema(),
 					"page_size":                helpers.PageSizeSchema(),
 					"verbose":                  helpers.VerboseSchema(),
+					"count_only":               helpers.CountOnlySchema("tasks"),
 					"fields":                   helpers.FieldsSchema[projects.Task]("task"),
 				},
 				Required: []string{},
 			},
-			OutputSchema: helpers.WithOptionalFields(taskListOutputSchema),
+			OutputSchema: helpers.WithCountOnlySchema(helpers.WithOptionalFields(taskListOutputSchema)),
 		},
 		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 			var taskListRequest projects.TaskListRequest
@@ -1081,6 +1082,7 @@ func TaskList(engine *twapi.Engine) toolsets.ToolWrapper {
 				return helpers.NewToolResultTextError("failed to decode request: %s", err.Error()), nil
 			}
 			verbose := true
+			var countOnly bool
 			var showCompleted *bool
 			err := helpers.ParamGroup(arguments,
 				helpers.OptionalNumericParam(&taskListRequest.Path.TasklistID, "tasklist_id"),
@@ -1109,6 +1111,7 @@ func TaskList(engine *twapi.Engine) toolsets.ToolWrapper {
 				helpers.OptionalPointerParam(&taskListRequest.Filters.OnlyUnassigned, "only_unassigned"),
 				helpers.OptionalPointerParam(&taskListRequest.Filters.OnlyUnplanned, "only_unplanned"),
 				helpers.OptionalParam(&verbose, "verbose"),
+				helpers.OptionalParam(&countOnly, "count_only"),
 				helpers.OptionalFieldsParam[projects.Task](&taskListRequest.Filters.Fields.Tasks, "fields"),
 			)
 			if err != nil {
@@ -1120,6 +1123,10 @@ func TaskList(engine *twapi.Engine) toolsets.ToolWrapper {
 				// asking to see completed work expect both.
 				taskListRequest.Filters.IncludeCompletedTasks = showCompleted
 				taskListRequest.Filters.IncludeTasksFromCompletedTasklists = showCompleted
+			}
+			if countOnly {
+				// Ahead of the row wiring below: the count returns no rows.
+				return helpers.NewCountToolResult(ctx, engine, taskListRequest, "failed to count tasks")
 			}
 			switch {
 			case len(taskListRequest.Filters.Fields.Tasks) > 0:
