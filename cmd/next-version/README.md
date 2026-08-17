@@ -8,6 +8,8 @@ go run ./cmd/next-version                 # report the next version
 go run ./cmd/next-version -bump=minor     # force a bump level
 go run ./cmd/next-version -from=v1.28.0   # diff from an explicit tag
 go run ./cmd/next-version -no-pr-lookup   # classify commit subjects only
+
+go run ./cmd/next-version -check-title="Feature: File attachments"
 ```
 
 ## How a change is classified
@@ -43,6 +45,21 @@ unclassified list before releasing** — if one of them is a feature, re-run wit
 Commits the release process lands on `main` itself (the Homebrew formula
 update, which merges after the tag it belongs to) are skipped, so they never
 show up as unclassified.
+
+## Checking a title
+
+`-check-title` validates one title against the table above and prints the bump
+it earns, exiting non-zero with the accepted prefixes if it has none. The `PR
+lint` workflow runs exactly that, so the check and the release read a title the
+same way — there is no second list of prefixes anywhere.
+
+```console
+$ go run ./cmd/next-version -check-title="Feature: File attachments"
+Title accepted; this pull request earns a minor bump.
+```
+
+Use it locally before opening a pull request, or to see why the check failed on
+one.
 
 ## Where it runs
 

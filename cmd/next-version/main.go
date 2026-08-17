@@ -8,6 +8,11 @@
 //	go run ./cmd/next-version -bump=minor     # force a bump level
 //	go run ./cmd/next-version -from=v1.28.0   # diff from an explicit tag
 //	go run ./cmd/next-version -no-pr-lookup   # classify commit subjects only
+//	go run ./cmd/next-version -check-title=…  # validate one title and exit
+//
+// The PR lint workflow runs -check-title, so a title is validated against the
+// same vocabulary the release reads it with, and a prefix is only ever defined
+// once.
 //
 // Each change is classified by the prefix of its pull-request title, falling
 // back to the commit subject when a commit has no pull request (rebase-merged
@@ -36,6 +41,7 @@ import (
 	"os"
 	"os/exec"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -49,7 +55,17 @@ func main() {
 	noPRLookup := flag.Bool("no-pr-lookup", false, "classify commit subjects only, without resolving pull requests")
 	outputPath := flag.String("output", os.Getenv("GITHUB_OUTPUT"), "file to append key=value outputs to")
 	summaryPath := flag.String("summary", os.Getenv("GITHUB_STEP_SUMMARY"), "file to append a markdown summary to")
+	title := flag.String("check-title", "", "validate this pull-request title and exit")
 	flag.Parse()
+
+	// An empty title is itself a failure, so ask the flag package whether it
+	// was passed rather than testing the value.
+	var checking bool
+	flag.Visit(func(f *flag.Flag) { checking = checking || f.Name == "check-title" })
+	if checking {
+		reportTitle(*title)
+		return
+	}
 
 	forced, err := parseBump(*bumpFlag)
 	if err != nil {
@@ -249,6 +265,65 @@ func classify(title, body string) (prefix string, level bumpLevel, ok bool) {
 		return prefix, bumpPatch, false
 	}
 	return prefix, level, true
+}
+
+// checkTitle validates a pull-request title against the prefixes this tool
+// understands, and returns the bump it will earn.
+//
+// The vocabulary is checked directly against bumpByPrefix rather than through
+// classify, which reports a major for any prefix carrying a "!" so that a
+// breaking change is never under-versioned. That leniency is right when reading
+// history and wrong when guarding the door: "Whatever!: …" must not pass.
+func checkTitle(title string) (bumpLevel, error) {
+	trimmed := strings.TrimSpace(title)
+
+	match := prefixPattern.FindStringSubmatch(title)
+	if match == nil {
+		return bumpNone, fmt.Errorf("%q has no prefix", trimmed)
+	}
+	prefix := strings.ToLower(match[1])
+	if _, ok := bumpByPrefix[prefix]; !ok {
+		return bumpNone, fmt.Errorf("%q in %q is not a known prefix", match[1], trimmed)
+	}
+	if strings.TrimSpace(title[len(match[0]):]) == "" {
+		return bumpNone, fmt.Errorf("%q has a prefix but no subject", trimmed)
+	}
+
+	_, level, _ := classify(title, "")
+	return level, nil
+}
+
+// reportTitle runs checkTitle for the PR lint workflow: it prints what the
+// title earns, or why it was rejected, and exits non-zero on rejection.
+func reportTitle(title string) {
+	level, err := checkTitle(title)
+	if err != nil {
+		fmt.Printf("::error title=Pull-request title::%v\n", err)
+		fmt.Fprintf(os.Stderr, "%v\n\n%s", err, acceptedPrefixes())
+		os.Exit(1)
+	}
+	fmt.Printf("Title accepted; this pull request earns a %s bump.\n", level)
+}
+
+// acceptedPrefixes is the help shown on a rejection, built from bumpByPrefix so
+// it cannot drift from what is accepted.
+func acceptedPrefixes() string {
+	byLevel := map[bumpLevel][]string{}
+	for prefix, level := range bumpByPrefix {
+		byLevel[level] = append(byLevel[level], prefix)
+	}
+
+	var b strings.Builder
+	b.WriteString("A pull-request title needs one of these prefixes:\n")
+	for _, level := range []bumpLevel{bumpMinor, bumpPatch} {
+		prefixes := byLevel[level]
+		slices.Sort(prefixes)
+		fmt.Fprintf(&b, "  %-5s  %s\n", level, strings.Join(prefixes, ", "))
+	}
+	b.WriteString("\nPrefixes are case-insensitive and may carry a scope: \"Chore(deps): …\".\n")
+	b.WriteString("Mark a breaking change with \"!\" (\"Feature!: …\") to earn a major bump.\n")
+	b.WriteString("\nFor example: \"Feature: File attachments\"\n")
+	return b.String()
 }
 
 // change is one releasable unit: a merged pull request, or a commit that has
