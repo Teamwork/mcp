@@ -235,7 +235,10 @@ func TasklistBudgetList(engine *twapi.Engine) toolsets.ToolWrapper {
 			tasklistBudgetListRequest := projects.NewTasklistBudgetListRequest(projectBudgetID)
 			verbose := true
 			err = helpers.ParamGroup(arguments,
-				tasklistBudgetOrdering.param(&tasklistBudgetListRequest.Filters.OrderBy, &tasklistBudgetListRequest.Filters.OrderMode),
+				tasklistBudgetOrdering.param(
+					&tasklistBudgetListRequest.Filters.OrderBy,
+					&tasklistBudgetListRequest.Filters.OrderMode,
+				),
 				helpers.OptionalNumericParam(&tasklistBudgetListRequest.Filters.Page, "page"),
 				helpers.OptionalNumericParam(&tasklistBudgetListRequest.Filters.PageSize, "page_size"),
 				helpers.OptionalParam(&verbose, "verbose"),
