@@ -32,6 +32,17 @@ var (
 	tasklistListOutputSchema *jsonschema.Schema
 )
 
+// tasklistOrdering is the order-by vocabulary of the task lists list endpoint.
+var tasklistOrdering = newOrdering("task lists",
+	projects.TasklistOrderByDisplayOrder,
+	projects.TasklistOrderByName,
+	projects.TasklistOrderByStatus,
+	projects.TasklistOrderByCreatedAt,
+	projects.TasklistOrderByUpdatedAt,
+	projects.TasklistOrderByProject,
+	projects.TasklistOrderByID,
+)
+
 func init() {
 	var err error
 

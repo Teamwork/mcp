@@ -48,6 +48,13 @@ var projectBudgetSparseFields = []projects.ProjectBudgetField{
 	projects.ProjectBudgetFieldEndDateTime,
 }
 
+// tasklistBudgetOrdering is the order-by vocabulary of the task list budgets list endpoint.
+var tasklistBudgetOrdering = newOrdering("task list budgets",
+	projects.TasklistBudgetOrderByDateCreated,
+	projects.TasklistBudgetOrderByDisplayOrder,
+	projects.TasklistBudgetOrderByID,
+)
+
 func init() {
 	var err error
 

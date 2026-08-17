@@ -32,6 +32,17 @@ var (
 	tagListOutputSchema *jsonschema.Schema
 )
 
+// tagOrdering is the order-by vocabulary of the tags list endpoint.
+var tagOrdering = newOrdering("tags",
+	projects.TagOrderByName,
+	projects.TagOrderByCount,
+	projects.TagOrderByProject,
+	projects.TagOrderByColor,
+	projects.TagOrderByDateLastUpdated,
+	projects.TagOrderByProjectDateLastUsed,
+	projects.TagOrderByID,
+)
+
 func init() {
 	var err error
 

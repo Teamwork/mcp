@@ -33,6 +33,32 @@ var (
 	projectListOutputSchema *jsonschema.Schema
 )
 
+// projectOrdering is the order-by vocabulary of the projects list endpoint.
+var projectOrdering = newOrdering("projects",
+	projects.ProjectOrderByBudgetUsed,
+	projects.ProjectOrderByCategoryName,
+	projects.ProjectOrderByCompanyName,
+	projects.ProjectOrderByCreatorName,
+	projects.ProjectOrderByCustomField,
+	projects.ProjectOrderByDateCreated,
+	projects.ProjectOrderByDueDate,
+	projects.ProjectOrderByHealth,
+	projects.ProjectOrderByLastActivity,
+	projects.ProjectOrderByLastWorkedOn,
+	projects.ProjectOrderByMobileSpecial,
+	projects.ProjectOrderByName,
+	projects.ProjectOrderByNameCaseInsensitive,
+	projects.ProjectOrderByOwnerCompany,
+	projects.ProjectOrderByOwnerName,
+	projects.ProjectOrderByStarred,
+	projects.ProjectOrderByStarredCompanyName,
+	projects.ProjectOrderByStarredFirst,
+	projects.ProjectOrderByStartDate,
+	projects.ProjectOrderByStatus,
+	projects.ProjectOrderByTaskCompletion,
+	projects.ProjectOrderByID,
+)
+
 func init() {
 	var err error
 

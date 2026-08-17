@@ -32,6 +32,16 @@ var (
 	notebookListOutputSchema *jsonschema.Schema
 )
 
+// notebookOrdering is the order-by vocabulary of the notebooks list endpoint.
+var notebookOrdering = newOrdering("notebooks",
+	projects.NotebookOrderByName,
+	projects.NotebookOrderByProject,
+	projects.NotebookOrderByDateCreated,
+	projects.NotebookOrderByDateUpdated,
+	projects.NotebookOrderByCategory,
+	projects.NotebookOrderByID,
+)
+
 func init() {
 	var err error
 

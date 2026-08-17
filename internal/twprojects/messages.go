@@ -32,6 +32,17 @@ var (
 	messageListOutputSchema *jsonschema.Schema
 )
 
+// messageOrdering is the order-by vocabulary of the messages list endpoint.
+var messageOrdering = newOrdering("messages",
+	projects.MessageOrderByCreatedAt,
+	projects.MessageOrderByUpdatedAt,
+	projects.MessageOrderByCategory,
+	projects.MessageOrderByProject,
+	projects.MessageOrderByCreatedBy,
+	projects.MessageOrderByUnread,
+	projects.MessageOrderByID,
+)
+
 func init() {
 	var err error
 

@@ -34,6 +34,14 @@ var (
 	userListOutputSchema  *jsonschema.Schema
 )
 
+// userOrdering is the order-by vocabulary of the users list endpoint.
+var userOrdering = newOrdering("users",
+	projects.UserOrderByName,
+	projects.UserOrderByNameCaseInsensitive,
+	projects.UserOrderByCompany,
+	projects.UserOrderByID,
+)
+
 func init() {
 	var err error
 

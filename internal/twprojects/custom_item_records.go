@@ -31,6 +31,14 @@ var (
 	customItemRecordListOutputSchema *jsonschema.Schema
 )
 
+// customItemRecordOrdering is the order-by vocabulary of the custom item records list endpoint.
+var customItemRecordOrdering = newOrdering("custom item records",
+	projects.CustomItemRecordOrderByDisplayOrder,
+	projects.CustomItemRecordOrderByName,
+	projects.CustomItemRecordOrderByCustomItemField,
+	projects.CustomItemRecordOrderByID,
+)
+
 func init() {
 	var err error
 	customItemRecordGetOutputSchema, err = jsonschema.For[projects.CustomItemRecordGetResponse](&jsonschema.ForOptions{})

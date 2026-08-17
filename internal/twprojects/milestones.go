@@ -32,6 +32,18 @@ var (
 	milestoneListOutputSchema *jsonschema.Schema
 )
 
+// milestoneOrdering is the order-by vocabulary of the milestones list endpoint.
+var milestoneOrdering = newOrdering("milestones",
+	projects.MilestoneOrderByDate,
+	projects.MilestoneOrderByDateOnly,
+	projects.MilestoneOrderByName,
+	projects.MilestoneOrderByProject,
+	projects.MilestoneOrderByUser,
+	projects.MilestoneOrderByDateCreated,
+	projects.MilestoneOrderByDateUpdated,
+	projects.MilestoneOrderByID,
+)
+
 func init() {
 	var err error
 

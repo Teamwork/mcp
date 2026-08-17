@@ -33,6 +33,13 @@ var (
 	teamListOutputSchema *jsonschema.Schema
 )
 
+// teamOrdering is the order-by vocabulary of the teams list endpoint.
+var teamOrdering = newOrdering("teams",
+	projects.TeamOrderByName,
+	projects.TeamOrderByPicker,
+	projects.TeamOrderByDateAdded,
+)
+
 func init() {
 	var err error
 

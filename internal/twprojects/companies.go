@@ -32,6 +32,30 @@ var (
 	companyListOutputSchema *jsonschema.Schema
 )
 
+// companyOrdering is the order-by vocabulary of the companies list endpoint.
+var companyOrdering = newOrdering("companies",
+	projects.CompanyOrderByName,
+	projects.CompanyOrderByAccounts,
+	projects.CompanyOrderByClients,
+	projects.CompanyOrderByCollaborators,
+	projects.CompanyOrderByContacts,
+	projects.CompanyOrderByProjects,
+	projects.CompanyOrderByTasks,
+	projects.CompanyOrderByCountry,
+	projects.CompanyOrderByHealth,
+	projects.CompanyOrderByWebsite,
+	projects.CompanyOrderByEmail,
+	projects.CompanyOrderByPhone,
+	projects.CompanyOrderByFax,
+	projects.CompanyOrderByIndustry,
+	projects.CompanyOrderByDateAdded,
+	projects.CompanyOrderByOwnerCompany,
+	projects.CompanyOrderByOwnerName,
+	projects.CompanyOrderByTasksCompletion,
+	projects.CompanyOrderByCustomField,
+	projects.CompanyOrderByID,
+)
+
 func init() {
 	var err error
 

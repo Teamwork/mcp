@@ -58,6 +58,16 @@ var commentListFields = slices.DeleteFunc(
 	},
 )
 
+// commentOrdering is the order-by vocabulary of the comments list endpoint.
+var commentOrdering = newOrdering("comments",
+	projects.CommentOrderByAll,
+	projects.CommentOrderByDate,
+	projects.CommentOrderByProject,
+	projects.CommentOrderByUser,
+	projects.CommentOrderByType,
+	projects.CommentOrderByID,
+)
+
 func init() {
 	var err error
 

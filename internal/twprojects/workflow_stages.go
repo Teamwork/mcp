@@ -33,6 +33,13 @@ var (
 	workflowStageListOutputSchema *jsonschema.Schema
 )
 
+// workflowStageOrdering is the order-by vocabulary of the workflow stages list endpoint.
+var workflowStageOrdering = newOrdering("workflow stages",
+	projects.WorkflowStageOrderByID,
+	projects.WorkflowStageOrderByName,
+	projects.WorkflowStageOrderByDisplayOrder,
+)
+
 func init() {
 	var err error
 

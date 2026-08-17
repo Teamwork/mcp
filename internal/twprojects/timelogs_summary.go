@@ -122,6 +122,17 @@ func minutesToHours(minutes int64) float64 {
 
 var timelogSummaryOutputSchema *jsonschema.Schema
 
+// timeReportOrdering is the order-by vocabulary of the time report endpoint
+// behind twprojects-summarize_timelogs.
+var timeReportOrdering = newOrdering("summary rows",
+	projects.TimeReportOrderByName,
+	projects.TimeReportOrderByLoggedTime,
+	projects.TimeReportOrderByBillableTime,
+	projects.TimeReportOrderByNonBillableTime,
+	projects.TimeReportOrderByBilledTime,
+	projects.TimeReportOrderByBudget,
+)
+
 func init() {
 	var err error
 

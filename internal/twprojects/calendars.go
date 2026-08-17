@@ -25,6 +25,12 @@ const (
 
 var calendarListOutputSchema *jsonschema.Schema
 
+// calendarOrdering is the order-by vocabulary of the calendars list endpoint.
+var calendarOrdering = newOrdering("calendars",
+	projects.CalendarOrderByName,
+	projects.CalendarOrderByID,
+)
+
 func init() {
 	var err error
 

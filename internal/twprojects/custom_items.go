@@ -42,6 +42,12 @@ var (
 	customItemListOutputSchema *jsonschema.Schema
 )
 
+// customItemOrdering is the order-by vocabulary of the custom items list endpoint.
+var customItemOrdering = newOrdering("custom items",
+	projects.CustomItemOrderByName,
+	projects.CustomItemOrderByID,
+)
+
 func init() {
 	var err error
 

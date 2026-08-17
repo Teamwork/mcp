@@ -32,6 +32,22 @@ var (
 	timelogListOutputSchema *jsonschema.Schema
 )
 
+// timelogOrdering is the order-by vocabulary of the timelogs list endpoint.
+var timelogOrdering = newOrdering("timelogs",
+	projects.TimelogOrderByCompany,
+	projects.TimelogOrderByDate,
+	projects.TimelogOrderByDateUpdated,
+	projects.TimelogOrderByProject,
+	projects.TimelogOrderByTask,
+	projects.TimelogOrderByTasklist,
+	projects.TimelogOrderByUser,
+	projects.TimelogOrderByDescription,
+	projects.TimelogOrderByBilled,
+	projects.TimelogOrderByBillable,
+	projects.TimelogOrderByTimeSpent,
+	projects.TimelogOrderByID,
+)
+
 func init() {
 	var err error
 

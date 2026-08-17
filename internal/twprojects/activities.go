@@ -27,6 +27,15 @@ var (
 	activityListOutputSchema *jsonschema.Schema
 )
 
+// activityOrdering is the order-by vocabulary of the activities list endpoint.
+var activityOrdering = newOrdering("activities",
+	projects.ActivityOrderByDate,
+	projects.ActivityOrderByProjectID,
+	projects.ActivityOrderByUserID,
+	projects.ActivityOrderByActivityTypes,
+	projects.ActivityOrderByID,
+)
+
 func init() {
 	var err error
 

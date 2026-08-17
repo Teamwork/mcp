@@ -32,6 +32,12 @@ var (
 	messageReplyListOutputSchema *jsonschema.Schema
 )
 
+// messageReplyOrdering is the order-by vocabulary of the message replies list endpoint.
+var messageReplyOrdering = newOrdering("message replies",
+	projects.MessageReplyOrderByCreatedAt,
+	projects.MessageReplyOrderByID,
+)
+
 func init() {
 	var err error
 

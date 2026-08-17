@@ -37,6 +37,44 @@ var (
 	taskListOutputSchema *jsonschema.Schema
 )
 
+// taskOrdering is the order-by vocabulary of the tasks list endpoint.
+var taskOrdering = newOrdering("tasks",
+	projects.TaskOrderByID,
+	projects.TaskOrderByStartDate,
+	projects.TaskOrderByCreatedAt,
+	projects.TaskOrderByPriority,
+	projects.TaskOrderByProject,
+	projects.TaskOrderByFlattenedTasklist,
+	projects.TaskOrderByCompany,
+	projects.TaskOrderByManual,
+	projects.TaskOrderByActive,
+	projects.TaskOrderByCompletedAt,
+	projects.TaskOrderByDueStartDate,
+	projects.TaskOrderByAllDates,
+	projects.TaskOrderByTasklistName,
+	projects.TaskOrderByTasklistDisplayOrder,
+	projects.TaskOrderByTasklistID,
+	projects.TaskOrderByDueDate,
+	projects.TaskOrderByUpdatedAt,
+	projects.TaskOrderByTaskName,
+	projects.TaskOrderByCreatedBy,
+	projects.TaskOrderByCompletedBy,
+	projects.TaskOrderByAssignedTo,
+	projects.TaskOrderByTaskStatus,
+	projects.TaskOrderByTaskDueDate,
+	projects.TaskOrderByCustomField,
+	projects.TaskOrderByEstimatedTime,
+	projects.TaskOrderByBoardColumn,
+	projects.TaskOrderByTaskGroupID,
+	projects.TaskOrderByTaskGroupName,
+	projects.TaskOrderByTaskGroup,
+	projects.TaskOrderByDisplayOrder,
+	projects.TaskOrderByProjectManual,
+	projects.TaskOrderByStageDisplayOrder,
+	projects.TaskOrderByStage,
+	projects.TaskOrderByParentTask,
+)
+
 func init() {
 	var err error
 

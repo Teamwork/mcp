@@ -34,6 +34,15 @@ var (
 	customFieldListOutputSchema *jsonschema.Schema
 )
 
+// customFieldOrdering is the order-by vocabulary of the custom fields list endpoint.
+var customFieldOrdering = newOrdering("custom fields",
+	projects.CustomFieldOrderByName,
+	projects.CustomFieldOrderByProject,
+	projects.CustomFieldOrderByDateCreated,
+	projects.CustomFieldOrderByDateUpdated,
+	projects.CustomFieldOrderByID,
+)
+
 func init() {
 	var err error
 
