@@ -1,12 +1,21 @@
 version: 2
 updates:
+  # Dependabot otherwise infers the prefix from recent history. Pinning it
+  # keeps its titles passing the PR title lint, which the release version is
+  # computed from.
   - package-ecosystem: "gomod"
     directory: "/"
     registries: "*"
     schedule:
       interval: "weekly"
+    commit-message:
+      prefix: "Chore"
+      include: "scope"
   - package-ecosystem: "github-actions"
     directory: "/"
     registries: "*"
     schedule:
       interval: "weekly"
+    commit-message:
+      prefix: "Chore"
+      include: "scope"
