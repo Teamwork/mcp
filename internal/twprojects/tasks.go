@@ -874,8 +874,13 @@ func TaskGet(engine *twapi.Engine) toolsets.ToolWrapper {
 
 			if len(taskGetRequest.Fields.Task) > 0 {
 				// Drop the sideloads: they are not what the selection named, and
-				// they would return the bulk it exists to avoid.
-				taskGetRequest.Filters = projects.TaskRequestFilters{}
+				// they would return the bulk it exists to avoid. IncludeRelatedTasks
+				// is not one of them — it adds no entity to the response, it is what
+				// makes `predecessors` non-empty at all — so put it back when the
+				// selection names that attribute.
+				taskGetRequest.Filters = projects.TaskRequestFilters{
+					IncludeRelatedTasks: slices.Contains(taskGetRequest.Fields.Task, projects.TaskFieldPredecessors),
+				}
 				return helpers.NewRawToolResult(ctx, engine, taskGetRequest, "failed to get task",
 					helpers.WebLinkerWithIDPathBuilder("/app/tasks"),
 				)
@@ -1059,6 +1064,15 @@ func TaskList(engine *twapi.Engine) toolsets.ToolWrapper {
 				// An explicit field selection overrides both defaults below: the
 				// caller has already said what it wants, and sideloading custom
 				// fields would smuggle back the bulk the selection exists to avoid.
+				//
+				// `predecessors` is the exception: the API only populates it when the
+				// request also asks for related tasks, so selecting it without the
+				// filter returns an empty array on every row — indistinguishable from
+				// a task nothing blocks, which is how a dependency question ends up
+				// answered "nothing is blocking". The filter is not a sideload; it
+				// adds no other entity to the response.
+				taskListRequest.Filters.IncludeRelatedTasks = slices.Contains(taskListRequest.Filters.Fields.Tasks,
+					projects.TaskFieldPredecessors)
 
 			case verbose:
 				// Include custom fields and values in task list response for richer
