@@ -108,7 +108,10 @@ NODE_EXTRA_CA_CERTS=letsencrypt-stg-root-x1.pem npx @modelcontextprotocol/inspec
 ├── cmd/
 │   ├── mcp-http/          # HTTP server implementation
 │   ├── mcp-stdio/         # STDIO server implementation
-│   └── mcp-http-cli/      # CLI tool for testing via HTTP
+│   ├── mcp-http-cli/      # CLI tool for testing via HTTP
+│   ├── mcp-test/          # Walks tool handlers against a real site
+│   ├── mcp-tokens/        # Token-cost report for the tool surface
+│   └── docs-gen/          # Generates docs/tool-reference.md
 ├── internal/
 │   ├── auth/              # Authentication helpers (bearer & OAuth2 token handling)
 │   ├── config/            # Configuration management (env, flags)
