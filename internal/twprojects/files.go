@@ -164,11 +164,11 @@ func FileCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 			}
 
 			return helpers.NewToolResultJSON(fileCreateResult{
-				Reference: string(pendingFile.PendingFile.Ref),
+				Reference: string(pendingFile.Ref),
 				Name:      name,
 				Size:      int64(len(content)),
 				Usage: fmt.Sprintf("Pass %q in attachment_refs on %s, %s, %s or %s.",
-					pendingFile.PendingFile.Ref, MethodTaskCreate, MethodTaskUpdate,
+					pendingFile.Ref, MethodTaskCreate, MethodTaskUpdate,
 					MethodCommentCreate, MethodMessageCreate),
 			})
 		},

@@ -1,13 +1,11 @@
 // Package logsafe scrubs request payloads before they reach a log sink or a
 // trace tag.
 //
-// Two things have to happen and the order matters. File content is replaced
-// first, so an attachment does not leave part of a customer's document in the
-// log; whatever survives is then capped, so an oversized payload of any shape
-// cannot fill it. Truncation on its own is not enough, because base64 usually
-// leads the arguments object: the retained head would be the readable start of
-// the file, and the useful part of the record, the tool name and the other
-// parameters, would be what got cut.
+// Three things happen and the order matters: file content is replaced, then the
+// credentials a pre-signed storage URL carries, then what survives is capped.
+// Truncation alone is not enough, because base64 usually leads the arguments
+// object: the retained head would be the readable start of the file, and the
+// tool name and other parameters would be what got cut.
 package logsafe
 
 import (
@@ -15,6 +13,8 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
+
+	"github.com/teamwork/mcp/internal/presigned"
 )
 
 // MaxLoggedBytes caps a scrubbed payload. It matches the cap the response
@@ -36,7 +36,8 @@ var contentKeys = [][]byte{[]byte(`"data"`), []byte(`"fileData"`), []byte(`"file
 // over a multi-megabyte body.
 var contentValue = regexp.MustCompile(`"(data|fileData|file_data)"\s*:\s*"[^"]*"`)
 
-// Bytes returns b with file content replaced and the result capped.
+// Bytes returns b with file content and pre-signed URL credentials replaced,
+// and the result capped.
 func Bytes(b []byte) []byte {
 	if len(b) == 0 {
 		return b
@@ -48,6 +49,7 @@ func Bytes(b []byte) []byte {
 			return fmt.Appendf(nil, `%s:"<redacted %d bytes>"`, key, len(match))
 		})
 	}
+	scrubbed = presigned.RedactSignatures(scrubbed)
 	if len(scrubbed) > MaxLoggedBytes {
 		return append(bytes.Clone(scrubbed[:MaxLoggedBytes]), truncatedSuffix...)
 	}

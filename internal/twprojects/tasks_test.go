@@ -273,7 +273,7 @@ func TestTaskMoveUpdatesEachTaskOnce(t *testing.T) {
 	}
 
 	for i, want := range []string{"/projects/api/v3/tasks/2.json", "/projects/api/v3/tasks/5.json"} {
-		if got := writes[i].Path; got != want {
+		if got := writes[i].URL.Path; got != want {
 			t.Errorf("request %d: expected path %s, got %s", i, want, got)
 		}
 	}
@@ -315,8 +315,8 @@ func TestTaskMoveSkipsDescendantListedFirst(t *testing.T) {
 	if len(writes) != 1 {
 		t.Fatalf("expected only the ancestor to be written, got %d writes", len(writes))
 	}
-	if want := "/projects/api/v3/tasks/2.json"; writes[0].Path != want {
-		t.Errorf("expected the write to target %s, got %s", want, writes[0].Path)
+	if want := "/projects/api/v3/tasks/2.json"; writes[0].URL.Path != want {
+		t.Errorf("expected the write to target %s, got %s", want, writes[0].URL.Path)
 	}
 }
 

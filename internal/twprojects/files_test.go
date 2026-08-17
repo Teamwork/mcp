@@ -12,29 +12,59 @@ import (
 	"github.com/teamwork/mcp/internal/twprojects"
 )
 
+// presignedUploadURL is the URL the reservation step hands back. It carries the
+// AWS signature parameters a real one does, so the requests the upload makes are
+// indistinguishable from production to everything downstream.
+const presignedUploadURL = "https://storage.example.com/tf_1a2b.md?" +
+	"X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIAEXAMPLE&" +
+	"X-Amz-SignedHeaders=host&X-Amz-Signature=deadbeef"
+
+// fileCreateMock wires the two steps of an upload: the reservation, which
+// answers with a reference and the URL to send the contents to, and the upload
+// itself, which any other request falls through to.
+func fileCreateMock(t *testing.T) (*mcp.Server, *[]testutil.ProjectsRecordedRequest) {
+	t.Helper()
+
+	return mcpServerRecordingMock(t, []testutil.ProjectsMockRoute{{
+		Match:  "pendingfiles/presignedurl",
+		Method: http.MethodGet,
+		Status: http.StatusOK,
+		Body:   []byte(`{"ref":"tf_1a2b","url":"` + presignedUploadURL + `"}`),
+	}}, http.StatusOK, nil)
+}
+
 func TestFileCreate(t *testing.T) {
-	mcpServer, requestBody := mcpServerMockWithRequestBody(t, http.StatusCreated,
-		[]byte(`{"pendingFile":{"ref":"tf_1a2b"}}`))
+	mcpServer, recorded := fileCreateMock(t)
 	testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodFileCreate.String(), map[string]any{
 		"name": "plan.md",
 		"data": base64.StdEncoding.EncodeToString([]byte("# Plan\n")),
 	})
 
-	// The upload is multipart rather than JSON, so the assertion is on the part
-	// itself: the file has to arrive under the name the API expects, carrying the
-	// decoded bytes rather than the base64 the caller sent.
-	body := string(*requestBody)
-	if !strings.Contains(body, `name="file"`) {
-		t.Errorf("expected a form part named file, got %q", body)
+	// Reserve first, then upload. The file never travels to the API itself, so
+	// the second request going anywhere but the pre-signed URL is a failure.
+	if len(*recorded) != 2 {
+		t.Fatalf("expected a reservation and an upload, got %d requests", len(*recorded))
 	}
-	if !strings.Contains(body, `filename="plan.md"`) {
-		t.Errorf("expected the file name in the body, got %q", body)
+
+	reserve, upload := (*recorded)[0], (*recorded)[1]
+	if reserve.Method != http.MethodGet {
+		t.Errorf("expected the reservation to be a GET, got %s", reserve.Method)
 	}
-	if !strings.Contains(body, "# Plan") {
-		t.Errorf("expected the decoded contents in the body, got %q", body)
+	if got := reserve.URL.Query().Get("fileName"); got != "plan.md" {
+		t.Errorf("expected the reservation to name plan.md, got %q", got)
 	}
-	if strings.Contains(body, base64.StdEncoding.EncodeToString([]byte("# Plan\n"))) {
-		t.Errorf("expected the contents to be decoded before upload, got %q", body)
+	if got := reserve.URL.Query().Get("fileSize"); got != "7" {
+		t.Errorf("expected the reservation to declare 7 bytes, got %q", got)
+	}
+
+	if upload.Method != http.MethodPut {
+		t.Errorf("expected the upload to be a PUT, got %s", upload.Method)
+	}
+	if got := upload.URL.String(); got != presignedUploadURL {
+		t.Errorf("expected the upload to go to the pre-signed URL, got %q", got)
+	}
+	if got := string(upload.Body); got != "# Plan\n" {
+		t.Errorf("expected the decoded contents in the upload, got %q", got)
 	}
 }
 
@@ -67,18 +97,19 @@ func TestFileCreateSanitizesFileName(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			mcpServer, requestBody := mcpServerMockWithRequestBody(t, http.StatusCreated,
-				[]byte(`{"pendingFile":{"ref":"tf_1a2b"}}`))
+			mcpServer, recorded := fileCreateMock(t)
 			testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodFileCreate.String(), map[string]any{
 				"name": tt.input,
 				"data": base64.StdEncoding.EncodeToString([]byte("contents")),
 			})
 
-			// The leading filename=" anchors the check to the multipart part's
-			// name, so an un-sanitized path could not match by appearing elsewhere.
-			want := `filename="` + tt.want + `"`
-			if !strings.Contains(string(*requestBody), want) {
-				t.Errorf("expected the body to carry %s, got %q", want, string(*requestBody))
+			// The name reaches the API in the reservation's query string; the
+			// upload only ever sees the reference.
+			if len(*recorded) == 0 {
+				t.Fatal("expected the reservation to be sent")
+			}
+			if got := (*recorded)[0].URL.Query().Get("fileName"); got != tt.want {
+				t.Errorf("expected fileName %q, got %q", tt.want, got)
 			}
 		})
 	}
@@ -107,8 +138,57 @@ func TestFileCreateRejectsBadInput(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			// A caller mistake has to come back as a tool result it can correct,
 			// not as a transport error.
-			mcpServer := mcpServerMock(t, http.StatusCreated, []byte(`{"pendingFile":{"ref":"tf_1a2b"}}`))
+			mcpServer, _ := fileCreateMock(t)
 			testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodFileCreate.String(), tt.arguments,
+				testutil.ExecuteToolRequestWithCheckMessage(func(t *testing.T, result mcp.Result) {
+					t.Helper()
+					assertErrorResultContains(t, result, tt.wantIn)
+				}),
+			)
+		})
+	}
+}
+
+func TestFileCreateReportsUploadFailureAsToolResult(t *testing.T) {
+	// The upload is a second request, to a service that answers for itself. A
+	// rejection there has to reach the caller as a readable tool result, the same
+	// as one from the API.
+	for _, tt := range []struct {
+		name string
+		// wantIn also says which step failed, so a message that stops at "403"
+		// without naming the step does not pass.
+		wantIn string
+		routes []testutil.ProjectsMockRoute
+	}{{
+		name:   "reservation rejected",
+		wantIn: "failed to reserve pending file",
+		routes: []testutil.ProjectsMockRoute{{
+			Match:  "pendingfiles/presignedurl",
+			Method: http.MethodGet,
+			Status: http.StatusForbidden,
+			Body:   []byte(`{"error":"forbidden"}`),
+		}},
+	}, {
+		name:   "storage rejected",
+		wantIn: "failed to upload pending file",
+		routes: []testutil.ProjectsMockRoute{{
+			Match:  "pendingfiles/presignedurl",
+			Method: http.MethodGet,
+			Status: http.StatusOK,
+			Body:   []byte(`{"ref":"tf_1a2b","url":"` + presignedUploadURL + `"}`),
+		}, {
+			Match:  "tf_1a2b",
+			Method: http.MethodPut,
+			Status: http.StatusForbidden,
+			Body:   []byte(`<Error><Code>AccessDenied</Code></Error>`),
+		}},
+	}} {
+		t.Run(tt.name, func(t *testing.T) {
+			mcpServer := testutil.ProjectsMCPServerRoutedMock(t, tt.routes, http.StatusOK, nil)
+			testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodFileCreate.String(), map[string]any{
+				"name": "plan.md",
+				"data": base64.StdEncoding.EncodeToString([]byte("# Plan\n")),
+			},
 				testutil.ExecuteToolRequestWithCheckMessage(func(t *testing.T, result mcp.Result) {
 					t.Helper()
 					assertErrorResultContains(t, result, tt.wantIn)
@@ -120,9 +200,8 @@ func TestFileCreateRejectsBadInput(t *testing.T) {
 
 func TestFileCreateRejectsOversizeBeforeUploading(t *testing.T) {
 	// The size check has to run before the upload, so an oversize payload never
-	// reaches the API.
-	mcpServer, requestBody := mcpServerMockWithRequestBody(t, http.StatusCreated,
-		[]byte(`{"pendingFile":{"ref":"tf_1a2b"}}`))
+	// reaches the API. Reserving space for it would already be too late.
+	mcpServer, recorded := fileCreateMock(t)
 
 	oversize := base64.StdEncoding.EncodeToString(make([]byte, (5<<20)+1))
 	testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodFileCreate.String(), map[string]any{
@@ -135,8 +214,8 @@ func TestFileCreateRejectsOversizeBeforeUploading(t *testing.T) {
 		}),
 	)
 
-	if len(*requestBody) != 0 {
-		t.Errorf("expected no request to be sent, got a body of %d bytes", len(*requestBody))
+	if len(*recorded) != 0 {
+		t.Errorf("expected no request to be sent, got %d", len(*recorded))
 	}
 }
 
