@@ -21,7 +21,7 @@ func TestClientFromContext_DefaultBaseURL(t *testing.T) {
 
 func TestClientFromContext_WithCustomerURL(t *testing.T) {
 	ctx := context.Background()
-	ctx = config.WithCustomerURL(ctx, "https://digitalcrew.teamwork.com")
+	ctx = config.WithCustomerURL(ctx, "https://test.teamwork.com")
 	httpClient := &http.Client{}
 
 	client := ClientFromContext(ctx, httpClient)
@@ -33,7 +33,7 @@ func TestClientFromContext_WithCustomerURL(t *testing.T) {
 
 func TestClientFromContext_WithCustomerURLTrailingSlash(t *testing.T) {
 	ctx := context.Background()
-	ctx = config.WithCustomerURL(ctx, "https://digitalcrew.teamwork.com/")
+	ctx = config.WithCustomerURL(ctx, "https://test.teamwork.com/")
 	httpClient := &http.Client{}
 
 	client := ClientFromContext(ctx, httpClient)
