@@ -311,11 +311,12 @@ func ProjectCategoryList(engine *twapi.Engine) toolsets.ToolWrapper {
 					"page":        helpers.PageSchema(),
 					"page_size":   helpers.PageSizeSchema(),
 					"verbose":     helpers.VerboseSchema(),
+					"count_only":  helpers.CountOnlySchema("project categories"),
 					"fields":      helpers.FieldsSchema[projects.ProjectCategory]("project category"),
 				},
 				Required: []string{},
 			},
-			OutputSchema: helpers.WithOptionalFields(projectCategoryListOutputSchema),
+			OutputSchema: helpers.WithCountOnlySchema(helpers.WithOptionalFields(projectCategoryListOutputSchema)),
 		},
 		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 			var projectCategoryListRequest projects.ProjectCategoryListRequest
@@ -325,11 +326,13 @@ func ProjectCategoryList(engine *twapi.Engine) toolsets.ToolWrapper {
 				return helpers.NewToolResultTextError("failed to decode request: %s", err.Error()), nil
 			}
 			verbose := true
+			var countOnly bool
 			err := helpers.ParamGroup(arguments,
 				helpers.OptionalParam(&projectCategoryListRequest.Filters.SearchTerm, "search_term"),
 				helpers.OptionalNumericParam(&projectCategoryListRequest.Filters.Page, "page"),
 				helpers.OptionalNumericParam(&projectCategoryListRequest.Filters.PageSize, "page_size"),
 				helpers.OptionalParam(&verbose, "verbose"),
+				helpers.OptionalParam(&countOnly, "count_only"),
 				helpers.OptionalFieldsParam[projects.ProjectCategory](
 					&projectCategoryListRequest.Filters.Fields.ProjectCategories, "fields",
 				),
@@ -343,6 +346,10 @@ func ProjectCategoryList(engine *twapi.Engine) toolsets.ToolWrapper {
 					projects.ProjectCategoryFieldID,
 					projects.ProjectCategoryFieldName,
 				}
+			}
+
+			if countOnly {
+				return helpers.NewCountToolResult(ctx, engine, projectCategoryListRequest, "failed to count project categories")
 			}
 
 			resp, err := twapi.ExecuteRaw(ctx, engine, projectCategoryListRequest)

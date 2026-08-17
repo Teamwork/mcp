@@ -645,11 +645,12 @@ func CustomFieldList(engine *twapi.Engine) toolsets.ToolWrapper {
 					"page":       helpers.PageSchema(),
 					"page_size":  helpers.PageSizeSchema(),
 					"verbose":    helpers.VerboseSchema(),
+					"count_only": helpers.CountOnlySchema("custom fields"),
 					"fields":     helpers.FieldsSchema[projects.CustomField]("custom field"),
 				},
 				Required: []string{},
 			},
-			OutputSchema: helpers.WithOptionalFields(customFieldListOutputSchema),
+			OutputSchema: helpers.WithCountOnlySchema(helpers.WithOptionalFields(customFieldListOutputSchema)),
 		},
 		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 			var customFieldListRequest projects.CustomFieldListRequest
@@ -660,6 +661,7 @@ func CustomFieldList(engine *twapi.Engine) toolsets.ToolWrapper {
 			}
 
 			verbose := true
+			var countOnly bool
 			err := helpers.ParamGroup(arguments,
 				helpers.OptionalParam(&customFieldListRequest.Filters.SearchTerm, "search_term"),
 				helpers.OptionalNumericListParam(&customFieldListRequest.Filters.IDs, "ids"),
@@ -682,6 +684,7 @@ func CustomFieldList(engine *twapi.Engine) toolsets.ToolWrapper {
 				helpers.OptionalNumericParam(&customFieldListRequest.Filters.Page, "page"),
 				helpers.OptionalNumericParam(&customFieldListRequest.Filters.PageSize, "page_size"),
 				helpers.OptionalParam(&verbose, "verbose"),
+				helpers.OptionalParam(&countOnly, "count_only"),
 				helpers.OptionalFieldsParam[projects.CustomField](&customFieldListRequest.Filters.Fields.CustomFields, "fields"),
 			)
 			if err != nil {
@@ -693,6 +696,10 @@ func CustomFieldList(engine *twapi.Engine) toolsets.ToolWrapper {
 					projects.CustomFieldFieldID,
 					projects.CustomFieldFieldName,
 				}
+			}
+
+			if countOnly {
+				return helpers.NewCountToolResult(ctx, engine, customFieldListRequest, "failed to count custom fields")
 			}
 
 			resp, err := twapi.ExecuteRaw(ctx, engine, customFieldListRequest)

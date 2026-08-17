@@ -572,11 +572,12 @@ func CompanyList(engine *twapi.Engine) toolsets.ToolWrapper {
 					"page":                     helpers.PageSchema(),
 					"page_size":                helpers.PageSizeSchema(),
 					"verbose":                  helpers.VerboseSchema(),
+					"count_only":               helpers.CountOnlySchema("companies"),
 					"fields":                   helpers.FieldsSchema[projects.Company]("company"),
 				},
 				Required: []string{},
 			},
-			OutputSchema: helpers.WithOptionalFields(companyListOutputSchema),
+			OutputSchema: helpers.WithCountOnlySchema(helpers.WithOptionalFields(companyListOutputSchema)),
 		},
 		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 			var companyListRequest projects.CompanyListRequest
@@ -586,6 +587,7 @@ func CompanyList(engine *twapi.Engine) toolsets.ToolWrapper {
 				return helpers.NewToolResultTextError("failed to decode request: %s", err.Error()), nil
 			}
 			verbose := true
+			var countOnly bool
 			err := helpers.ParamGroup(arguments,
 				helpers.OptionalParam(&companyListRequest.Filters.SearchTerm, "search_term"),
 				helpers.OptionalNumericListParam(&companyListRequest.Filters.TagIDs, "tag_ids"),
@@ -595,6 +597,7 @@ func CompanyList(engine *twapi.Engine) toolsets.ToolWrapper {
 				helpers.OptionalNumericParam(&companyListRequest.Filters.Page, "page"),
 				helpers.OptionalNumericParam(&companyListRequest.Filters.PageSize, "page_size"),
 				helpers.OptionalParam(&verbose, "verbose"),
+				helpers.OptionalParam(&countOnly, "count_only"),
 				helpers.OptionalFieldsParam[projects.Company](&companyListRequest.Filters.Fields.Companies, "fields"),
 			)
 			if err != nil {
@@ -621,6 +624,10 @@ func CompanyList(engine *twapi.Engine) toolsets.ToolWrapper {
 					projects.CompanyFieldID,
 					projects.CompanyFieldName,
 				}
+			}
+
+			if countOnly {
+				return helpers.NewCountToolResult(ctx, engine, companyListRequest, "failed to count companies")
 			}
 
 			resp, err := twapi.ExecuteRaw(ctx, engine, companyListRequest)

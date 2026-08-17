@@ -528,14 +528,15 @@ func TimerList(engine *twapi.Engine) toolsets.ToolWrapper {
 						},
 						Default: []byte("false"),
 					},
-					"page":      helpers.PageSchema(),
-					"page_size": helpers.PageSizeSchema(),
-					"verbose":   helpers.VerboseSchema(),
-					"fields":    helpers.FieldsSchema[projects.Timer]("timer"),
+					"page":       helpers.PageSchema(),
+					"page_size":  helpers.PageSizeSchema(),
+					"verbose":    helpers.VerboseSchema(),
+					"count_only": helpers.CountOnlySchema("timers"),
+					"fields":     helpers.FieldsSchema[projects.Timer]("timer"),
 				},
 				Required: []string{},
 			},
-			OutputSchema: helpers.WithOptionalFields(timerListOutputSchema),
+			OutputSchema: helpers.WithCountOnlySchema(helpers.WithOptionalFields(timerListOutputSchema)),
 		},
 		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 			var timerListRequest projects.TimerListRequest
@@ -545,6 +546,7 @@ func TimerList(engine *twapi.Engine) toolsets.ToolWrapper {
 				return helpers.NewToolResultTextError("failed to decode request: %s", err.Error()), nil
 			}
 			verbose := true
+			var countOnly bool
 			err := helpers.ParamGroup(arguments,
 				helpers.OptionalNumericParam(&timerListRequest.Filters.UserID, "user_id"),
 				helpers.OptionalNumericParam(&timerListRequest.Filters.TaskID, "task_id"),
@@ -553,6 +555,7 @@ func TimerList(engine *twapi.Engine) toolsets.ToolWrapper {
 				helpers.OptionalNumericParam(&timerListRequest.Filters.Page, "page"),
 				helpers.OptionalNumericParam(&timerListRequest.Filters.PageSize, "page_size"),
 				helpers.OptionalParam(&verbose, "verbose"),
+				helpers.OptionalParam(&countOnly, "count_only"),
 				helpers.OptionalFieldsParam[projects.Timer](&timerListRequest.Filters.Fields.Timers, "fields"),
 			)
 			if err != nil {
@@ -564,6 +567,10 @@ func TimerList(engine *twapi.Engine) toolsets.ToolWrapper {
 					projects.TimerFieldID,
 					projects.TimerFieldDescription,
 				}
+			}
+
+			if countOnly {
+				return helpers.NewCountToolResult(ctx, engine, timerListRequest, "failed to count timers")
 			}
 
 			resp, err := twapi.ExecuteRaw(ctx, engine, timerListRequest)

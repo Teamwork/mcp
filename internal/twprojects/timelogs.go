@@ -471,11 +471,12 @@ func TimelogList(engine *twapi.Engine) toolsets.ToolWrapper {
 					"page":       helpers.PageSchema(),
 					"page_size":  helpers.PageSizeSchema(),
 					"verbose":    helpers.VerboseSchema(),
+					"count_only": helpers.CountOnlySchema("timelogs"),
 					"fields":     helpers.FieldsSchema[projects.Timelog]("timelog"),
 				},
 				Required: []string{},
 			},
-			OutputSchema: helpers.WithOptionalFields(timelogListOutputSchema),
+			OutputSchema: helpers.WithCountOnlySchema(helpers.WithOptionalFields(timelogListOutputSchema)),
 		},
 		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 			var timelogListRequest projects.TimelogListRequest
@@ -485,6 +486,7 @@ func TimelogList(engine *twapi.Engine) toolsets.ToolWrapper {
 				return helpers.NewToolResultTextError("failed to decode request: %s", err.Error()), nil
 			}
 			verbose := true
+			var countOnly bool
 			err := helpers.ParamGroup(arguments,
 				helpers.OptionalNumericParam(&timelogListRequest.Path.ProjectID, "project_id"),
 				helpers.OptionalNumericParam(&timelogListRequest.Path.TaskID, "task_id"),
@@ -500,6 +502,7 @@ func TimelogList(engine *twapi.Engine) toolsets.ToolWrapper {
 				helpers.OptionalNumericParam(&timelogListRequest.Filters.Page, "page"),
 				helpers.OptionalNumericParam(&timelogListRequest.Filters.PageSize, "page_size"),
 				helpers.OptionalParam(&verbose, "verbose"),
+				helpers.OptionalParam(&countOnly, "count_only"),
 				helpers.OptionalFieldsParam[projects.Timelog](&timelogListRequest.Filters.Fields.Timelogs, "fields"),
 			)
 			if err != nil {
@@ -511,6 +514,10 @@ func TimelogList(engine *twapi.Engine) toolsets.ToolWrapper {
 					projects.TimelogFieldID,
 					projects.TimelogFieldDescription,
 				}
+			}
+
+			if countOnly {
+				return helpers.NewCountToolResult(ctx, engine, timelogListRequest, "failed to count timelogs")
 			}
 
 			resp, err := twapi.ExecuteRaw(ctx, engine, timelogListRequest)

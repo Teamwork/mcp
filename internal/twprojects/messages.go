@@ -388,11 +388,12 @@ func MessageList(engine *twapi.Engine) toolsets.ToolWrapper {
 					"page":           helpers.PageSchema(),
 					"page_size":      helpers.PageSizeSchema(),
 					"verbose":        helpers.VerboseSchema(),
+					"count_only":     helpers.CountOnlySchema("messages"),
 					"fields":         helpers.FieldsSchema[projects.Message]("message"),
 				},
 				Required: []string{},
 			},
-			OutputSchema: helpers.WithOptionalFields(messageListOutputSchema),
+			OutputSchema: helpers.WithCountOnlySchema(helpers.WithOptionalFields(messageListOutputSchema)),
 		},
 		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 			var messageListRequest projects.MessageListRequest
@@ -402,6 +403,7 @@ func MessageList(engine *twapi.Engine) toolsets.ToolWrapper {
 				return helpers.NewToolResultTextError("failed to decode request: %s", err.Error()), nil
 			}
 			verbose := true
+			var countOnly bool
 			err := helpers.ParamGroup(arguments,
 				helpers.OptionalParam(&messageListRequest.Filters.SearchTerm, "search_term"),
 				helpers.OptionalNumericListParam(&messageListRequest.Filters.ProjectIDs, "project_ids"),
@@ -411,6 +413,7 @@ func MessageList(engine *twapi.Engine) toolsets.ToolWrapper {
 				helpers.OptionalNumericParam(&messageListRequest.Filters.Page, "page"),
 				helpers.OptionalNumericParam(&messageListRequest.Filters.PageSize, "page_size"),
 				helpers.OptionalParam(&verbose, "verbose"),
+				helpers.OptionalParam(&countOnly, "count_only"),
 				helpers.OptionalFieldsParam[projects.Message](&messageListRequest.Filters.Fields.Messages, "fields"),
 			)
 			if err != nil {
@@ -422,6 +425,10 @@ func MessageList(engine *twapi.Engine) toolsets.ToolWrapper {
 					projects.MessageFieldID,
 					projects.MessageFieldTitle,
 				}
+			}
+
+			if countOnly {
+				return helpers.NewCountToolResult(ctx, engine, messageListRequest, "failed to count messages")
 			}
 
 			resp, err := twapi.ExecuteRaw(ctx, engine, messageListRequest)

@@ -488,11 +488,12 @@ func CommentList(engine *twapi.Engine) toolsets.ToolWrapper {
 					"page":       helpers.PageSchema(),
 					"page_size":  helpers.PageSizeSchema(),
 					"verbose":    helpers.VerboseSchema(),
+					"count_only": helpers.CountOnlySchema("comments"),
 					"fields":     helpers.FieldsSchema[projects.Comment]("comment"),
 				},
 				Required: []string{},
 			},
-			OutputSchema: helpers.WithOptionalFields(commentListOutputSchema),
+			OutputSchema: helpers.WithCountOnlySchema(helpers.WithOptionalFields(commentListOutputSchema)),
 		},
 		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 			var commentListRequest projects.CommentListRequest
@@ -502,6 +503,7 @@ func CommentList(engine *twapi.Engine) toolsets.ToolWrapper {
 				return helpers.NewToolResultTextError("failed to decode request: %s", err.Error()), nil
 			}
 			verbose := true
+			var countOnly bool
 			err := helpers.ParamGroup(arguments,
 				helpers.OptionalNumericParam(&commentListRequest.Path.TaskID, "task_id"),
 				helpers.OptionalNumericParam(&commentListRequest.Path.MilestoneID, "milestone_id"),
@@ -515,6 +517,7 @@ func CommentList(engine *twapi.Engine) toolsets.ToolWrapper {
 				helpers.OptionalNumericParam(&commentListRequest.Filters.Page, "page"),
 				helpers.OptionalNumericParam(&commentListRequest.Filters.PageSize, "page_size"),
 				helpers.OptionalParam(&verbose, "verbose"),
+				helpers.OptionalParam(&countOnly, "count_only"),
 				helpers.OptionalFieldsParam[projects.Comment](&commentListRequest.Filters.Fields.Comments, "fields"),
 			)
 			if err != nil {
@@ -535,6 +538,10 @@ func CommentList(engine *twapi.Engine) toolsets.ToolWrapper {
 				}
 			default:
 				commentListRequest.Filters.Fields.Comments = commentListFields
+			}
+
+			if countOnly {
+				return helpers.NewCountToolResult(ctx, engine, commentListRequest, "failed to count comments")
 			}
 
 			resp, err := twapi.ExecuteRaw(ctx, engine, commentListRequest)

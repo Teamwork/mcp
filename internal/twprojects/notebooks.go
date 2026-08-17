@@ -380,11 +380,12 @@ func NotebookList(engine *twapi.Engine) toolsets.ToolWrapper {
 					"page":       helpers.PageSchema(),
 					"page_size":  helpers.PageSizeSchema(),
 					"verbose":    helpers.VerboseSchema(),
+					"count_only": helpers.CountOnlySchema("notebooks"),
 					"fields":     helpers.FieldsSchema[projects.Notebook]("notebook"),
 				},
 				Required: []string{},
 			},
-			OutputSchema: helpers.WithOptionalFields(notebookListOutputSchema),
+			OutputSchema: helpers.WithCountOnlySchema(helpers.WithOptionalFields(notebookListOutputSchema)),
 		},
 		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 			var notebookListRequest projects.NotebookListRequest
@@ -394,6 +395,7 @@ func NotebookList(engine *twapi.Engine) toolsets.ToolWrapper {
 				return helpers.NewToolResultTextError("failed to decode request: %s", err.Error()), nil
 			}
 			verbose := true
+			var countOnly bool
 			err := helpers.ParamGroup(arguments,
 				helpers.OptionalNumericListParam(&notebookListRequest.Filters.ProjectIDs, "project_ids"),
 				helpers.OptionalParam(&notebookListRequest.Filters.SearchTerm, "search_term"),
@@ -404,6 +406,7 @@ func NotebookList(engine *twapi.Engine) toolsets.ToolWrapper {
 				helpers.OptionalNumericParam(&notebookListRequest.Filters.Page, "page"),
 				helpers.OptionalNumericParam(&notebookListRequest.Filters.PageSize, "page_size"),
 				helpers.OptionalParam(&verbose, "verbose"),
+				helpers.OptionalParam(&countOnly, "count_only"),
 				helpers.OptionalFieldsParam[projects.Notebook](&notebookListRequest.Filters.Fields.Notebooks, "fields"),
 			)
 			if err != nil {
@@ -415,6 +418,10 @@ func NotebookList(engine *twapi.Engine) toolsets.ToolWrapper {
 					projects.NotebookFieldID,
 					projects.NotebookFieldName,
 				}
+			}
+
+			if countOnly {
+				return helpers.NewCountToolResult(ctx, engine, notebookListRequest, "failed to count notebooks")
 			}
 
 			resp, err := twapi.ExecuteRaw(ctx, engine, notebookListRequest)

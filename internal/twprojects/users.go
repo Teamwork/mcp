@@ -459,11 +459,12 @@ func UserList(engine *twapi.Engine) toolsets.ToolWrapper {
 					"page":       helpers.PageSchema(),
 					"page_size":  helpers.PageSizeSchema(),
 					"verbose":    helpers.VerboseSchema(),
+					"count_only": helpers.CountOnlySchema("users"),
 					"fields":     helpers.FieldsSchema[projects.User]("user"),
 				},
 				Required: []string{},
 			},
-			OutputSchema: helpers.WithOptionalFields(userListOutputSchema),
+			OutputSchema: helpers.WithCountOnlySchema(helpers.WithOptionalFields(userListOutputSchema)),
 		},
 		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 			var userListRequest projects.UserListRequest
@@ -473,6 +474,7 @@ func UserList(engine *twapi.Engine) toolsets.ToolWrapper {
 				return helpers.NewToolResultTextError("failed to decode request: %s", err.Error()), nil
 			}
 			verbose := true
+			var countOnly bool
 			err := helpers.ParamGroup(arguments,
 				helpers.OptionalNumericParam(&userListRequest.Path.ProjectID, "project_id"),
 				helpers.OptionalParam(&userListRequest.Filters.SearchTerm, "search_term"),
@@ -487,6 +489,7 @@ func UserList(engine *twapi.Engine) toolsets.ToolWrapper {
 				helpers.OptionalNumericParam(&userListRequest.Filters.Page, "page"),
 				helpers.OptionalNumericParam(&userListRequest.Filters.PageSize, "page_size"),
 				helpers.OptionalParam(&verbose, "verbose"),
+				helpers.OptionalParam(&countOnly, "count_only"),
 				helpers.OptionalFieldsParam[projects.User](&userListRequest.Filters.Fields.Users, "fields"),
 			)
 			if err != nil {
@@ -499,6 +502,10 @@ func UserList(engine *twapi.Engine) toolsets.ToolWrapper {
 					projects.UserFieldFirstName,
 					projects.UserFieldLastName,
 				}
+			}
+
+			if countOnly {
+				return helpers.NewCountToolResult(ctx, engine, userListRequest, "failed to count users")
 			}
 
 			resp, err := twapi.ExecuteRaw(ctx, engine, userListRequest)

@@ -401,11 +401,12 @@ func MilestoneList(engine *twapi.Engine) toolsets.ToolWrapper {
 					"page":           helpers.PageSchema(),
 					"page_size":      helpers.PageSizeSchema(),
 					"verbose":        helpers.VerboseSchema(),
+					"count_only":     helpers.CountOnlySchema("milestones"),
 					"fields":         helpers.FieldsSchema[projects.Milestone]("milestone"),
 				},
 				Required: []string{},
 			},
-			OutputSchema: helpers.WithOptionalFields(milestoneListOutputSchema),
+			OutputSchema: helpers.WithCountOnlySchema(helpers.WithOptionalFields(milestoneListOutputSchema)),
 		},
 		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 			var milestoneListRequest projects.MilestoneListRequest
@@ -415,6 +416,7 @@ func MilestoneList(engine *twapi.Engine) toolsets.ToolWrapper {
 				return helpers.NewToolResultTextError("failed to decode request: %s", err.Error()), nil
 			}
 			verbose := true
+			var countOnly bool
 			err := helpers.ParamGroup(arguments,
 				helpers.OptionalNumericParam(&milestoneListRequest.Path.ProjectID, "project_id"),
 				helpers.OptionalParam(&milestoneListRequest.Filters.SearchTerm, "search_term"),
@@ -424,6 +426,7 @@ func MilestoneList(engine *twapi.Engine) toolsets.ToolWrapper {
 				helpers.OptionalNumericParam(&milestoneListRequest.Filters.Page, "page"),
 				helpers.OptionalNumericParam(&milestoneListRequest.Filters.PageSize, "page_size"),
 				helpers.OptionalParam(&verbose, "verbose"),
+				helpers.OptionalParam(&countOnly, "count_only"),
 				helpers.OptionalFieldsParam[projects.Milestone](&milestoneListRequest.Filters.Fields.Milestones, "fields"),
 			)
 			if err != nil {
@@ -435,6 +438,10 @@ func MilestoneList(engine *twapi.Engine) toolsets.ToolWrapper {
 					projects.MilestoneFieldID,
 					projects.MilestoneFieldName,
 				}
+			}
+
+			if countOnly {
+				return helpers.NewCountToolResult(ctx, engine, milestoneListRequest, "failed to count milestones")
 			}
 
 			resp, err := twapi.ExecuteRaw(ctx, engine, milestoneListRequest)

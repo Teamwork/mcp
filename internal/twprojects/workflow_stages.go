@@ -401,11 +401,12 @@ func WorkflowStageList(engine *twapi.Engine) toolsets.ToolWrapper {
 					"page":       helpers.PageSchema(),
 					"page_size":  helpers.PageSizeSchema(),
 					"verbose":    helpers.VerboseSchema(),
+					"count_only": helpers.CountOnlySchema("workflow stages"),
 					"fields":     helpers.FieldsSchema[projects.WorkflowStage]("workflow stage"),
 				},
 				Required: []string{"workflow_id"},
 			},
-			OutputSchema: helpers.WithOptionalFields(workflowStageListOutputSchema),
+			OutputSchema: helpers.WithCountOnlySchema(helpers.WithOptionalFields(workflowStageListOutputSchema)),
 		},
 		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 			var workflowStageListRequest projects.WorkflowStageListRequest
@@ -415,12 +416,14 @@ func WorkflowStageList(engine *twapi.Engine) toolsets.ToolWrapper {
 				return helpers.NewToolResultTextError("failed to decode request: %s", err.Error()), nil
 			}
 			verbose := true
+			var countOnly bool
 			err := helpers.ParamGroup(arguments,
 				helpers.RequiredNumericParam(&workflowStageListRequest.Path.WorkflowID, "workflow_id"),
 				workflowStageOrdering.param(&workflowStageListRequest.Filters.OrderBy, &workflowStageListRequest.Filters.OrderMode),
 				helpers.OptionalNumericParam(&workflowStageListRequest.Filters.Page, "page"),
 				helpers.OptionalNumericParam(&workflowStageListRequest.Filters.PageSize, "page_size"),
 				helpers.OptionalParam(&verbose, "verbose"),
+				helpers.OptionalParam(&countOnly, "count_only"),
 				helpers.OptionalFieldsParam[projects.WorkflowStage](&workflowStageListRequest.Filters.Fields.Stages, "fields"),
 			)
 			if err != nil {
@@ -432,6 +435,10 @@ func WorkflowStageList(engine *twapi.Engine) toolsets.ToolWrapper {
 					projects.WorkflowStageFieldID,
 					projects.WorkflowStageFieldName,
 				}
+			}
+
+			if countOnly {
+				return helpers.NewCountToolResult(ctx, engine, workflowStageListRequest, "failed to count workflow stages")
 			}
 
 			resp, err := twapi.ExecuteRaw(ctx, engine, workflowStageListRequest)

@@ -284,11 +284,12 @@ func JobRoleList(engine *twapi.Engine) toolsets.ToolWrapper {
 					"page":       helpers.PageSchema(),
 					"page_size":  helpers.PageSizeSchema(),
 					"verbose":    helpers.VerboseSchema(),
+					"count_only": helpers.CountOnlySchema("job roles"),
 					"fields":     helpers.FieldsSchema[projects.JobRole]("job role"),
 				},
 				Required: []string{},
 			},
-			OutputSchema: helpers.WithOptionalFields(jobRoleListOutputSchema),
+			OutputSchema: helpers.WithCountOnlySchema(helpers.WithOptionalFields(jobRoleListOutputSchema)),
 		},
 		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 			var jobRoleListRequest projects.JobRoleListRequest
@@ -298,12 +299,14 @@ func JobRoleList(engine *twapi.Engine) toolsets.ToolWrapper {
 				return helpers.NewToolResultTextError("failed to decode request: %s", err.Error()), nil
 			}
 			verbose := true
+			var countOnly bool
 			err := helpers.ParamGroup(arguments,
 				helpers.OptionalParam(&jobRoleListRequest.Filters.SearchTerm, "search_term"),
 				orderModeParam(&jobRoleListRequest.Filters.OrderMode),
 				helpers.OptionalNumericParam(&jobRoleListRequest.Filters.Page, "page"),
 				helpers.OptionalNumericParam(&jobRoleListRequest.Filters.PageSize, "page_size"),
 				helpers.OptionalParam(&verbose, "verbose"),
+				helpers.OptionalParam(&countOnly, "count_only"),
 				helpers.OptionalFieldsParam[projects.JobRole](&jobRoleListRequest.Filters.Fields.JobRoles, "fields"),
 			)
 			if err != nil {
@@ -315,6 +318,10 @@ func JobRoleList(engine *twapi.Engine) toolsets.ToolWrapper {
 					projects.JobRoleFieldID,
 					projects.JobRoleFieldName,
 				}
+			}
+
+			if countOnly {
+				return helpers.NewCountToolResult(ctx, engine, jobRoleListRequest, "failed to count job roles")
 			}
 
 			resp, err := twapi.ExecuteRaw(ctx, engine, jobRoleListRequest)
