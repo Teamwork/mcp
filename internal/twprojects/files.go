@@ -86,8 +86,9 @@ func FileCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 				MethodTaskCreate, MethodTaskUpdate, MethodCommentCreate, MethodMessageCreate),
 			Annotations: &mcp.ToolAnnotations{
 				Title: "Create File",
-				// The upload goes to storage Teamwork.com manages and the file lands
-				// in the caller's own account, so nothing here reaches outside it.
+				// The contents go straight to storage rather than through the API,
+				// but that storage is Teamwork.com's and the file lands in the
+				// caller's own account, so the world here is still closed.
 				DestructiveHint: new(false),
 				OpenWorldHint:   new(false),
 			},
