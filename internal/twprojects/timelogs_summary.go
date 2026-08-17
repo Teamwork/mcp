@@ -203,6 +203,14 @@ func SummarizeTimelogs(engine *twapi.Engine) toolsets.ToolWrapper {
 						},
 						Default: []byte(`false`),
 					},
+					// Ordering reaches the report request, not the fold below.
+					// The handler walks every page and errors rather than
+					// truncating, so the vocabulary cannot change which groups
+					// are returned — only the order they are returned in, which
+					// the fold preserves by first sighting. That is what makes
+					// "the five users who logged the most" a single call.
+					"order_by":   timeReportOrdering.orderBySchema(),
+					"order_mode": orderModeSchema(),
 				},
 				Required: []string{"start_date", "end_date"},
 			},
@@ -226,6 +234,8 @@ func SummarizeTimelogs(engine *twapi.Engine) toolsets.ToolWrapper {
 				teamIDs         []int64
 				timelogTagIDs   []int64
 				includeArchived bool
+				orderBy         projects.TimeReportOrderBy
+				orderMode       twapi.OrderMode
 			)
 
 			err := helpers.ParamGroup(arguments,
@@ -239,6 +249,7 @@ func SummarizeTimelogs(engine *twapi.Engine) toolsets.ToolWrapper {
 				helpers.OptionalNumericListParam(&companyIDs, "company_ids"),
 				helpers.OptionalNumericListParam(&teamIDs, "team_ids"),
 				helpers.OptionalNumericListParam(&timelogTagIDs, "timelog_tag_ids"),
+				timeReportOrdering.param(&orderBy, &orderMode),
 				helpers.OptionalParam(&includeArchived, "include_archived_projects"),
 			)
 			if err != nil {
@@ -283,6 +294,8 @@ func SummarizeTimelogs(engine *twapi.Engine) toolsets.ToolWrapper {
 			timeReportRequest.Filters.TimelogTagIDs = timelogTagIDs
 			timeReportRequest.Filters.IncludeArchivedProjects = &includeArchived
 			timeReportRequest.Filters.Include = []projects.TimeReportSideload{sideload}
+			timeReportRequest.Filters.OrderBy = orderBy
+			timeReportRequest.Filters.OrderMode = orderMode
 			timeReportRequest.Filters.Page = 1
 			timeReportRequest.Filters.PageSize = timelogSummaryPageSize
 			// Only the fields needed to join group names are requested.

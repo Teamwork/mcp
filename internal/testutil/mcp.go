@@ -122,6 +122,30 @@ func ProjectsMCPServerMockWithRequestURL(t *testing.T, status int, response []by
 	return projectsMCPServer(t, engine), &lastURL
 }
 
+// ProjectsMCPServerMockWithRequestURLs is like ProjectsMCPServerMockWithRequestURL
+// but captures every request the engine sends rather than only the last one.
+//
+// Use it when the tool under test makes more than one call, because the last
+// URL is then the follow-up rather than the one being asserted on:
+// list_custom_item_records resolves the custom item's field schema after
+// listing, so its list query string is already gone by the time the tool
+// returns, and a test reading lastURL reports the ordering missing from a
+// request that never carried it.
+func ProjectsMCPServerMockWithRequestURLs(t *testing.T, status int, response []byte) (*mcp.Server, *[]url.URL) {
+	t.Helper()
+
+	var urls []url.URL
+	engine := twapi.NewEngine(ProjectsSessionMock{}, twapi.WithMiddleware(func(twapi.HTTPClient) twapi.HTTPClient {
+		return twapi.HTTPClientFunc(func(req *http.Request) (*http.Response, error) {
+			if req.URL != nil {
+				urls = append(urls, *req.URL)
+			}
+			return newProjectsMockHTTPResponse(status, response), nil
+		})
+	}))
+	return projectsMCPServer(t, engine), &urls
+}
+
 // projectsMCPServer wires a twprojects toolset group backed by the given engine
 // into a fresh in-memory MCP server.
 func projectsMCPServer(t *testing.T, engine *twapi.Engine) *mcp.Server {

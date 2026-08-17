@@ -51,10 +51,12 @@ func CalendarList(engine *twapi.Engine) toolsets.ToolWrapper {
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
 				Properties: map[string]*jsonschema.Schema{
-					"page":      helpers.PageSchema(),
-					"page_size": helpers.PageSizeSchema(),
-					"verbose":   helpers.VerboseSchema(),
-					"fields":    helpers.FieldsSchema[projects.Calendar]("calendar"),
+					"order_by":   calendarOrdering.orderBySchema(),
+					"order_mode": orderModeSchema(),
+					"page":       helpers.PageSchema(),
+					"page_size":  helpers.PageSizeSchema(),
+					"verbose":    helpers.VerboseSchema(),
+					"fields":     helpers.FieldsSchema[projects.Calendar]("calendar"),
 				},
 				Required: []string{},
 			},
@@ -69,6 +71,7 @@ func CalendarList(engine *twapi.Engine) toolsets.ToolWrapper {
 			}
 			verbose := true
 			err := helpers.ParamGroup(arguments,
+				calendarOrdering.param(&calendarListRequest.Filters.OrderBy, &calendarListRequest.Filters.OrderMode),
 				helpers.OptionalNumericParam(&calendarListRequest.Filters.Page, "page"),
 				helpers.OptionalNumericParam(&calendarListRequest.Filters.PageSize, "page_size"),
 				helpers.OptionalParam(&verbose, "verbose"),
