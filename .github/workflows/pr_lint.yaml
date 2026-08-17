@@ -1,0 +1,52 @@
+name: PR lint
+
+on:
+  pull_request:
+    types: [opened, reopened, edited, synchronize]
+
+permissions:
+  pull-requests: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  title:
+    runs-on: ubuntu-latest
+
+    steps:
+      # The prefix picks the version bump at release time (cmd/next-version
+      # reads it off the pull-request title), so an unprefixed title is not a
+      # style problem: it costs the release its minor bump. v1.27.4, v1.28.1
+      # and v1.28.3 each shipped a feature under a patch tag, and every one of
+      # them had an unprefixed title.
+      #
+      # Keep this list in step with bumpByPrefix in cmd/next-version/main.go.
+      # TestLintedTypesAreUnderstood fails when they drift.
+      - uses: amannn/action-semantic-pull-request@v6
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          # Each entry is a regex anchored as ^entry$ and matched
+          # case-sensitively, so both spellings are listed explicitly.
+          types: |
+            (Feature|feature|feat)
+            (Fix|fix)
+            (Enhancement|enhancement)
+            (Chore|chore)
+            (Docs|docs)
+            (Test|test)
+            (Refactor|refactor)
+            (Perf|perf)
+            (Build|build)
+            (CI|ci)
+            (Style|style)
+            (Revert|revert)
+
+          # Mirrors prefixPattern in cmd/next-version/main.go: an optional
+          # (scope), and an optional ! marking a breaking change. The ! sits
+          # outside the type group so the type stays clean and "Feature!: …"
+          # still resolves to Feature.
+          headerPattern: '^([A-Za-z]+)(?:\(([^)]+)\))?!?: (.+)$'
+          headerPatternCorrespondence: type, scope, subject

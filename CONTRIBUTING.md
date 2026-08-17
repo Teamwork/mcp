@@ -71,6 +71,7 @@ mcp/
 │   ├── mcp-stdio/         # STDIO server for MCP protocol
 │   ├── mcp-test/          # Walks tool handlers against a real site
 │   ├── mcp-tokens/        # Token-cost report for the tool surface
+│   ├── next-version/      # Computes the next release version from the changes
 │   └── docs-gen/          # Generates docs/tool-reference.md
 ├── internal/              # Internal packages
 │   ├── auth/              # Authentication and authorization
@@ -200,6 +201,16 @@ We follow Go best practices and conventions:
    - `Enhancement:` for improvements
    - `Chore:` for maintenance tasks
 
+   The prefix is enforced by the `PR lint` check and it picks the release
+   version: `Feature:` earns a minor bump, everything else a patch. Mark a
+   breaking change with `Feature!:` or a `BREAKING CHANGE:` line in the
+   description to earn a major. A scope is allowed (`Chore(deps):`), and the
+   lowercase conventional-commits spellings work too (`feat:`, `fix:`).
+
+   Get it right on the title, not just the commits: a rebase-merged branch is
+   classified by its pull-request title, so `Fix comment` and friends inside it
+   do not count on their own.
+
 2. **Description**: Include:
    - What changes were made and why
    - Any breaking changes
@@ -219,6 +230,32 @@ We follow Go best practices and conventions:
 - Be responsive to feedback and questions
 - Make requested changes promptly
 - Keep discussions constructive and professional
+
+## Releases
+
+Releases are cut by maintainers from the `Release` workflow's **Run workflow**
+button on `main`. It computes the version from the pull requests merged since
+the last tag, creates the tag, and publishes the image, binaries, GitHub release
+and Homebrew formula.
+
+- `bump: auto` derives the version from the prefixes. Set it to
+  `patch`/`minor`/`major` to override.
+- `dry_run: true` reports the version and the per-change table in the run
+  summary without tagging anything.
+- The summary flags any change whose title carries no known prefix. Those count
+  as a patch, so read the list: if one is a feature, the release is
+  under-versioned.
+
+Pushing a `v*.*.*` tag by hand still works and skips the computation.
+
+To preview a version locally:
+
+```bash
+GH_TOKEN=$(gh auth token) go run ./cmd/next-version
+```
+
+See [`cmd/next-version/README.md`](cmd/next-version/README.md) for the full
+prefix table.
 
 ## Reporting Issues
 

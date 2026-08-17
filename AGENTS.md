@@ -35,6 +35,10 @@ A concise guide for AI coding agents working on this repository. It complements 
   - Env: `TWAPI_SERVER`, `TWAPI_TOKEN`, `PROJECT_ID` (same vars as `go test`), each overridable by a flag
   - Run: `go run ./cmd/mcp-test [-suite=all] [-step] [-keep]`
   - Suites live one per file and register in `suiteRegistry`; see `cmd/mcp-test/README.md`.
+- Next release version (what the `Release` workflow computes on a dispatch):
+  - Run: `GH_TOKEN=$(gh auth token) go run ./cmd/next-version`
+  - Flags: `-bump=auto|patch|minor|major`, `-from=<tag>`, `-to=<rev>`, `-no-pr-lookup` (subject-only, no API calls)
+  - Without a token it falls back to commit subjects and says so; see `cmd/next-version/README.md`.
 - Docker (optional, for image builds):
   - Requires Docker Buildx. Local load: `make build` or `make build-stdio`
   - Multi-arch push (maintainers): `make push` or `make push-stdio`
@@ -134,6 +138,10 @@ Common variables (subset; see command READMEs for complete lists):
 - Before commit: `gofmt -s -w .` (or run your editor’s Go format), `go vet ./...`, `go test ./...`.
 - Include or update tests for any tool behavior changes.
 - Keep `README.md` end-user focused; put agent-oriented details here.
+- A pull-request title needs one of the prefixes CONTRIBUTING.md lists, and it is load-bearing twice over: the `PR lint` workflow rejects a title without one, and `cmd/next-version` reads it to pick the release bump (`Feature:` → minor, everything else → patch, `Feature!:` or a `BREAKING CHANGE:` body → major). The *title* is what counts, not the commits: `cmd/next-version` resolves each commit to its merged pull request and folds a rebase-merged branch into one change, so an unprefixed `Fix comment` inside a `Feature:` pull request is harmless while an unprefixed title silently costs the release its minor bump — which is how v1.27.4, v1.28.1 and v1.28.3 each shipped a feature under a patch tag.
+- Three lists have to agree, and two tests hold them together: `bumpByPrefix` in `cmd/next-version/main.go`, the prefixes CONTRIBUTING.md documents (`TestEveryContributingPrefixIsMapped`, which parses the `` - `Xxx:` for `` list — keep that shape) and the `types:` block in `.github/workflows/pr_lint.yaml` (`TestLintedTypesAreUnderstood`, which parses the block by indentation). The lint is deliberately the narrower list: a title it accepts must be one the version tool understands, not the reverse. Its `headerPattern` mirrors `prefixPattern`, and `amannn/action-semantic-pull-request` matches each `types` entry as `^entry$` **case-sensitively**, which is why both spellings are listed rather than relying on a case-insensitivity option the action does not have. `.github/dependabot.yml` pins `commit-message.prefix` so its titles keep passing; without it Dependabot infers the prefix from recent history.
+- Releasing is `workflow_dispatch` on `.github/workflows/release.yaml` with `bump` (auto/patch/minor/major) and `dry_run` inputs; pushing a `v*.*.*` tag by hand still works and skips the computation. The two entry points meet in the `version` job, whose outputs (`version`, `previous_tag`, `sha`, `release`) every other job reads — do not reintroduce `GITHUB_REF`-derived versions downstream, and check out `needs.version.outputs.sha` rather than `github.ref`, which on a dispatch is a branch. The dispatch path cannot create the tag and let the push path take over: a tag created with `GITHUB_TOKEN` does not trigger `on: push: tags`, so it would tag and release nothing. `dry_run` works by setting `release=false`, which every downstream `if` reads.
+- `cmd/next-version` skips the commits the release process itself lands on `main` (`tw-mcp vX.Y.Z`, the Homebrew formula update) via `releaseChorePatterns`. That formula pull request merges *after* the tag it belongs to, so it always falls inside the next release's range; without the skip every release would report an unclassified change. It also refuses to compute a version that is already tagged, and errors rather than reporting a release with no changes.
 
 ## Useful references (in-repo)
 - `README.md` — overview and quick-starts (HTTP, STDIO, CLI)
@@ -143,6 +151,7 @@ Common variables (subset; see command READMEs for complete lists):
 - `cmd/mcp-http-cli/README.md` — CLI usage
 - `cmd/mcp-test/README.md` — live-site handler walkthrough, and how to add a suite
 - `cmd/mcp-tokens/README.md` — tool-surface token costs, and diffing them against a ref
+- `cmd/next-version/README.md` — how a title's prefix becomes the release bump
 - `internal/twprojects/tools.go` — tool registration hub
 
 ---
