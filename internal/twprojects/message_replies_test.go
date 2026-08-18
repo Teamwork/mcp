@@ -72,7 +72,7 @@ func TestMessageReplyCreateNotifyShapes(t *testing.T) {
 }
 
 // Shapes outside the contract are rejected by SDK schema validation before
-// reaching the API; the handler's fallback error is pinned in notify_test.go.
+// reaching the API; the handler's fallback error is pinned in helpers_notify_test.go.
 func TestMessageReplyCreateNotifyRejectsUnknownShapes(t *testing.T) {
 	for _, notify := range []any{"everyone", float64(7), []any{"bob"}, []any{}} {
 		mcpServer := mcpServerMock(t, http.StatusCreated, []byte(`{"postId":"123"}`))
