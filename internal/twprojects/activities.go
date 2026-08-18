@@ -107,6 +107,15 @@ func ActivityList(engine *twapi.Engine) toolsets.ToolWrapper {
 							{Type: "null"},
 						},
 					},
+					"item_ids": {
+						Description: "Filter activities by the IDs of the items they refer to, such as task, milestone or " +
+							"message IDs. Item IDs are only unique within an item type, so combine this with log_item_types " +
+							"to avoid matching activities of other types that happen to share an ID.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "array", Items: &jsonschema.Schema{Type: "integer"}},
+							{Type: "null"},
+						},
+					},
 					"order_by":   activityOrdering.orderBySchema(),
 					"order_mode": orderModeSchema(),
 					"page":       helpers.PageSchema(),
@@ -133,6 +142,7 @@ func ActivityList(engine *twapi.Engine) toolsets.ToolWrapper {
 				helpers.OptionalTimeParam(&activityListRequest.Filters.StartDate, "start_date"),
 				helpers.OptionalTimeParam(&activityListRequest.Filters.EndDate, "end_date", helpers.EndOfDay()),
 				helpers.OptionalListParam(&activityListRequest.Filters.LogItemTypes, "log_item_types"),
+				helpers.OptionalNumericListParam(&activityListRequest.Filters.ItemIDs, "item_ids"),
 				activityOrdering.param(&activityListRequest.Filters.OrderBy, &activityListRequest.Filters.OrderMode),
 				helpers.OptionalNumericParam(&activityListRequest.Filters.Page, "page"),
 				helpers.OptionalNumericParam(&activityListRequest.Filters.PageSize, "page_size"),
