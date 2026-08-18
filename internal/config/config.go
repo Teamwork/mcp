@@ -19,6 +19,7 @@ import (
 	"github.com/DataDog/dd-trace-go/v2/ddtrace/tracer"
 	"github.com/DataDog/dd-trace-go/v2/instrumentation/httptrace"
 	"github.com/getsentry/sentry-go"
+	"github.com/modelcontextprotocol/go-sdk/jsonrpc"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	desksdk "github.com/teamwork/desksdkgo/client"
 	"github.com/teamwork/mcp/internal/logsafe"
@@ -38,6 +39,17 @@ const (
 	// requesting user's client, never by a shared intermediary. See SEP-2549 and
 	// the mcp.Cacheable type, whose CacheScope field this fills in.
 	cacheScopePrivate = "private"
+
+	// keepaliveInterval is how often an idle peer is pinged, and
+	// keepaliveFailureThreshold how many consecutive misses close the session.
+	// The SDK closes on the first miss, which turns a single dropped ping into a
+	// dead session; the spec expects multiple failures before that.
+	keepaliveInterval         = 30 * time.Second
+	keepaliveFailureThreshold = 3
+
+	// protocolVersionWithoutPing is the first protocol version that removed the
+	// "ping" method (SEP-2577). See keepalivePingGate.
+	protocolVersionWithoutPing = "2026-07-28"
 )
 
 // Load loads the configuration for the MCP service.
@@ -211,7 +223,8 @@ func NewMCPServer(resources Resources, groups ...*toolsets.ToolsetGroup) *mcp.Se
 			},
 		},
 		// https://github.com/modelcontextprotocol/go-sdk/blob/v1.5.0/design/design.md#ping--keepalive
-		KeepAlive: 30 * time.Second,
+		KeepAlive:                 keepaliveInterval,
+		KeepAliveFailureThreshold: keepaliveFailureThreshold,
 	}
 	if hasTools {
 		serverOptions.Capabilities.Tools = &mcp.ToolCapabilities{}
@@ -294,12 +307,47 @@ func NewMCPServer(resources Resources, groups ...*toolsets.ToolsetGroup) *mcp.Se
 		}
 	})
 
+	mcpServer.AddSendingMiddleware(keepalivePingGate())
+
 	// Register all toolset groups
 	for _, group := range groups {
 		group.RegisterAll(mcpServer)
 	}
 
 	return mcpServer
+}
+
+// keepalivePingGate stops the keepalive from sending "ping" to a peer whose
+// negotiated protocol version no longer has the method. The SDK starts the
+// keepalive at connect time, before any version is known, and never revisits
+// that decision, so the gate has to sit on the sending path.
+//
+// MethodNotFound is what the keepalive loop reads as "peer does not support
+// ping": it stops pinging and leaves the session open. That is the same outcome
+// as a compliant peer rejecting the request, minus the round trip and the error
+// it leaves in the client's log.
+func keepalivePingGate() mcp.Middleware {
+	return func(next mcp.MethodHandler) mcp.MethodHandler {
+		return func(ctx context.Context, method string, req mcp.Request) (mcp.Result, error) {
+			if method != "ping" {
+				return next(ctx, method, req)
+			}
+			session, ok := req.GetSession().(*mcp.ServerSession)
+			if !ok {
+				return next(ctx, method, req)
+			}
+			// Before the handshake there is no version to read, and the spec allows a
+			// ping there, so let it through.
+			params := session.InitializeParams()
+			if params == nil || params.ProtocolVersion < protocolVersionWithoutPing {
+				return next(ctx, method, req)
+			}
+			return nil, &jsonrpc.Error{
+				Code:    jsonrpc.CodeMethodNotFound,
+				Message: fmt.Sprintf("ping was removed in protocol version %s", protocolVersionWithoutPing),
+			}
+		}
+	}
 }
 
 // orderTools sorts tools in place so that those registered via
