@@ -110,3 +110,31 @@ func TestNewResourcesProfilesAppendToTheURL(t *testing.T) {
 		})
 	}
 }
+
+// TestNewResourcesDefaultMCPURL pins that a server can set its own resource
+// identifier. It is the "resource" in the RFC 9728 metadata and the
+// resource_metadata pointer in every 401 challenge, so a second server left on
+// the default would tell clients to authorise against the first one.
+func TestNewResourcesDefaultMCPURL(t *testing.T) {
+	t.Run("defaults to this server", func(t *testing.T) {
+		resources := newResources(newOptions())
+		if got := resources.Info.MCPURL; got != defaultMCPURL {
+			t.Errorf("MCPURL = %q, want %q", got, defaultMCPURL)
+		}
+	})
+
+	t.Run("overridden by option", func(t *testing.T) {
+		resources := newResources(newOptions(WithDefaultMCPURL("https://pro.example.com")))
+		if got := resources.Info.MCPURL; got != "https://pro.example.com" {
+			t.Errorf("MCPURL = %q, want %q", got, "https://pro.example.com")
+		}
+	})
+
+	t.Run("environment wins over the option", func(t *testing.T) {
+		t.Setenv("TW_MCP_URL", "https://from-the-environment.example.com/")
+		resources := newResources(newOptions(WithDefaultMCPURL("https://pro.example.com")))
+		if got := resources.Info.MCPURL; got != "https://from-the-environment.example.com" {
+			t.Errorf("MCPURL = %q, want the environment value with its slash trimmed", got)
+		}
+	})
+}
