@@ -9,8 +9,8 @@ import (
 	"testing"
 
 	"github.com/google/jsonschema-go/jsonschema"
-	"github.com/teamwork/mcp/internal/toolsets"
 	"github.com/teamwork/mcp/internal/twdesk"
+	"github.com/teamwork/mcp/pkg/toolsets"
 )
 
 // SchemaValidationTestSuite provides a comprehensive test suite for validating MCP tool JSON schemas

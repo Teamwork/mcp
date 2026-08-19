@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"github.com/google/jsonschema-go/jsonschema"
-	"github.com/teamwork/mcp/internal/helpers"
+	"github.com/teamwork/mcp/pkg/helpers"
 )
 
 // strPtr returns a pointer to s, or nil if s is empty.

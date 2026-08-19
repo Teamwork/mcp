@@ -73,13 +73,21 @@ mcp/
 │   ├── mcp-tokens/        # Token-cost report for the tool surface
 │   ├── next-version/      # Computes the next release version from the changes
 │   └── docs-gen/          # Generates docs/tool-reference.md
-├── internal/              # Internal packages
+├── pkg/                   # Shared packages, importable by other MCP servers
 │   ├── auth/              # Authentication and authorization
-│   ├── config/            # Configuration management
+│   ├── cli/               # Command-line flag parsing
+│   ├── config/            # Configuration management, MCP server setup
 │   ├── helpers/           # Utility functions
 │   ├── request/           # HTTP request utilities
+│   ├── testutil/          # Product-neutral test mocks
 │   ├── toolsets/          # MCP toolset management
-│   └── twprojects/        # Teamwork Projects MCP tools
+│   └── twctx/             # Per-request bearer-token values
+├── internal/              # Internal packages, this repo only
+│   ├── testutil/          # Test mocks wired to this repo's toolset groups
+│   ├── twprojects/        # Teamwork Projects MCP tools
+│   ├── twdesk/            # Teamwork Desk MCP tools
+│   ├── twspaces/          # Teamwork Spaces MCP tools
+│   └── twchat/            # Teamwork Chat MCP tools
 ├── examples/              # Usage examples
 │   ├── nodejs-langchain/  # Node.js LangChain integration
 │   └── python-langchain/  # Python LangChain integration

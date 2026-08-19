@@ -1,7 +1,7 @@
 package twprojects
 
 import (
-	"github.com/teamwork/mcp/internal/toolsets"
+	"github.com/teamwork/mcp/pkg/toolsets"
 	twapi "github.com/teamwork/twapi-go-sdk"
 )
 
@@ -41,7 +41,7 @@ func init() {
 
 // DefaultToolsetGroup creates a default ToolsetGroup for Teamwork Projects.
 func DefaultToolsetGroup(readOnly, allowDelete bool, engine *twapi.Engine) *toolsets.ToolsetGroup {
-	group := toolsets.NewToolsetGroup(readOnly)
+	group := toolsets.NewToolsetGroup(readOnly).SetNamespace("twprojects", "projects")
 
 	// --- projects sub-toolset ---
 	projectsWriteTools := []toolsets.ToolWrapper{

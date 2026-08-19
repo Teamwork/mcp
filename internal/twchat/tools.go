@@ -5,7 +5,7 @@
 package twchat
 
 import (
-	"github.com/teamwork/mcp/internal/toolsets"
+	"github.com/teamwork/mcp/pkg/toolsets"
 	twapi "github.com/teamwork/twapi-go-sdk"
 )
 
@@ -47,7 +47,7 @@ func init() {
 // readOnly is true. get_or_create_dm is a write tool because it creates the 1:1
 // conversation when one does not already exist.
 func DefaultToolsetGroup(readOnly bool, engine *twapi.Engine) *toolsets.ToolsetGroup {
-	group := toolsets.NewToolsetGroup(readOnly)
+	group := toolsets.NewToolsetGroup(readOnly).SetNamespace("twchat", "chat")
 
 	group.AddToolset(toolsets.NewToolset(ToolsetChat, chatDescription).
 		AddWriteTools(

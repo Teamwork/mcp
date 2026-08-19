@@ -1,0 +1,140 @@
+package network
+
+import (
+	"bytes"
+	"io"
+	"log/slog"
+	"net/http"
+	"strings"
+	"time"
+
+	"github.com/teamwork/mcp/pkg/logsafe"
+	"github.com/teamwork/mcp/pkg/presigned"
+	"github.com/teamwork/mcp/pkg/request"
+)
+
+// PresignedSplitTransport sends pre-signed storage requests through Presigned
+// and everything else through Base.
+//
+// It exists because the HAProxy setup relaxes TLS verification: the internal
+// address does not match the certificate. That concession is for the API, not
+// for a request leaving to storage, whose host is genuine.
+type PresignedSplitTransport struct {
+	Base      http.RoundTripper
+	Presigned http.RoundTripper
+}
+
+// RoundTrip implements the RoundTripper interface.
+func (t *PresignedSplitTransport) RoundTrip(r *http.Request) (*http.Response, error) {
+	transport := t.Base
+	if presigned.IsURL(r.URL) {
+		transport = t.Presigned
+	}
+	if transport == nil {
+		transport = http.DefaultTransport
+	}
+	return transport.RoundTrip(r)
+}
+
+// LoggingRoundTripper is an http.RoundTripper that logs requests and responses
+type LoggingRoundTripper struct {
+	Base http.RoundTripper
+	Log  *slog.Logger
+}
+
+// NewLoggingRoundTripper creates a new LoggingRoundTripper with the given logger
+func NewLoggingRoundTripper(logger *slog.Logger, base http.RoundTripper) *LoggingRoundTripper {
+	return &LoggingRoundTripper{
+		Log:  logger,
+		Base: base,
+	}
+}
+
+// RoundTrip implements the RoundTripper interface
+func (lrt *LoggingRoundTripper) RoundTrip(r *http.Request) (*http.Response, error) {
+	start := time.Now()
+
+	// The pre-signed upload is the one request whose body is the customer's file.
+	// Its content type is the file's own, so text/markdown and text/csv look
+	// loggable; the signature in the URL is what identifies it.
+	toStorage := presigned.IsURL(r.URL)
+
+	var loggedRequestBody string
+	if r.Body != nil {
+		contentType := r.Header.Get("Content-Type")
+		if toStorage || !logsafe.IsTextualContentType(contentType) {
+			loggedRequestBody = logsafe.ElidedBody(r.ContentLength, contentType)
+		} else {
+			reqBody, err := io.ReadAll(r.Body)
+			if err != nil {
+				lrt.Log.Error("failed to read request body", slog.String("error", err.Error()))
+			}
+			r.Body = io.NopCloser(bytes.NewBuffer(reqBody))
+			loggedRequestBody = logsafe.String(string(reqBody))
+		}
+	}
+
+	headers := r.Header.Clone()
+	if auth := headers.Get("Authorization"); auth != "" {
+		if authParts := strings.SplitN(auth, " ", 2); len(authParts) == 2 {
+			headers.Set("Authorization", authParts[0]+" REDACTED")
+		} else {
+			headers.Set("Authorization", "REDACTED")
+		}
+	}
+
+	transport := lrt.Base
+	if transport == nil {
+		transport = http.DefaultTransport
+	}
+
+	resp, err := transport.RoundTrip(r)
+	if err != nil {
+		lrt.Log.Error("HTTP request failed", "error", err)
+		return resp, err
+	}
+
+	var loggedResponseBody string
+	if resp.Body != nil {
+		if contentType := resp.Header.Get("Content-Type"); !logsafe.IsTextualContentType(contentType) {
+			loggedResponseBody = logsafe.ElidedBody(resp.ContentLength, contentType)
+		} else {
+			respBody, err := io.ReadAll(resp.Body)
+			if err != nil {
+				lrt.Log.Error("failed to read response body", "error", err)
+			}
+			resp.Body = io.NopCloser(bytes.NewBuffer(respBody))
+			// The presigned-URL step answers with the upload URL, credentials and
+			// all, so the response body needs scrubbing too.
+			loggedResponseBody = logsafe.String(string(respBody))
+		}
+	}
+
+	info, _ := request.InfoFromContext(r.Context())
+	lrt.Log.Info("internal request",
+		slog.String("trace_id", info.TraceID()),
+		slog.String("request_url", logsafe.String(r.URL.String())),
+		slog.String("request_method", r.Method),
+		slog.Any("request_headers", headers),
+		slog.String("request_body", loggedRequestBody),
+		slog.Int("response_status", resp.StatusCode),
+		slog.Any("response_headers", resp.Header),
+		slog.String("response_body", loggedResponseBody),
+		slog.String("duration", time.Since(start).String()),
+		slog.Int64("installation.id", info.InstallationID()),
+		slog.String("installation.url", info.InstallationURL()),
+		slog.Int64("user.id", info.UserID()),
+		// Access-signature headers, logged inbound (as received) vs forwarded
+		// (as sent to the backend) to debug header propagation. These values
+		// are message authentication codes, not secrets, so they are safe to
+		// log; no shared secret is ever logged.
+		slog.String("mcp_access.inbound_signature", info.RemoteHeader("Tw-Mcp-Access-Signature")),
+		slog.String("mcp_access.forwarded_signature", r.Header.Get("Tw-Mcp-Access-Signature")),
+		slog.String("mcp_access.service", r.Header.Get("Tw-Mcp-Access-Service")),
+		slog.String("mcp_access.installation_id", r.Header.Get("Tw-Mcp-Access-Installation-Id")),
+		slog.String("mcp_access.date", r.Header.Get("Tw-Mcp-Access-Date")),
+		slog.String("mcp_access.ttl", r.Header.Get("Tw-Mcp-Access-TTL")),
+	)
+
+	return resp, nil
+}
