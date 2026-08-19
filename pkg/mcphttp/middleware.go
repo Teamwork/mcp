@@ -9,11 +9,11 @@ import (
 	"strings"
 	"time"
 
-	ddhttp "github.com/DataDog/dd-trace-go/contrib/net/http/v2"
 	"github.com/getsentry/sentry-go"
 	"github.com/teamwork/mcp/pkg/config"
 	"github.com/teamwork/mcp/pkg/logsafe"
 	"github.com/teamwork/mcp/pkg/request"
+	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 )
 
 // DefaultMaxBodySize is the request body limit LimitBody applies unless a server
@@ -206,25 +206,26 @@ func Sentry(resources config.Resources, next http.Handler) http.Handler {
 	})
 }
 
-// Tracer wraps the handler in Datadog APM tracing, naming each span by method
-// and path. Returns next unchanged when APM is disabled.
+// Tracer wraps the handler in OpenTelemetry tracing, naming each span by method
+// and path. Returns next unchanged when tracing is disabled.
 //
 // skipPaths drops the endpoints not worth a trace: health checks are constant
 // noise, and a long-lived SSE stream does not fit a request span. Every
 // /.well-known path is skipped too.
 func Tracer(resources config.Resources, skipPaths map[string]struct{}, next http.Handler) http.Handler {
-	if !resources.Info.DatadogAPM.Enabled {
+	if !resources.Info.OTel.Enabled {
 		return next
 	}
-	return ddhttp.WrapHandler(next, resources.Info.DatadogAPM.Service, "http.request",
-		ddhttp.WithResourceNamer(func(req *http.Request) string {
+	return otelhttp.NewHandler(next, "http.request",
+		otelhttp.WithSpanNameFormatter(func(_ string, req *http.Request) string {
 			return fmt.Sprintf("%s_%s", req.Method, req.URL.Path)
 		}),
-		ddhttp.WithIgnoreRequest(func(req *http.Request) bool {
+		// WithFilter keeps what it returns true for, the inverse of the paths above.
+		otelhttp.WithFilter(func(req *http.Request) bool {
 			if _, skip := skipPaths[req.URL.Path]; skip {
-				return true
+				return false
 			}
-			return strings.HasPrefix(req.URL.Path, "/.well-known")
+			return !strings.HasPrefix(req.URL.Path, "/.well-known")
 		}),
 	)
 }

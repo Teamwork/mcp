@@ -116,7 +116,7 @@ This MCP server has minimal dependencies to reduce the attack surface:
 
 - **github.com/mark3labs/mcp-go**: Model Context Protocol implementation
 - **github.com/teamwork/twapi-go-sdk**: Teamwork API integration
-- **github.com/DataDog/dd-trace-go**: Observability and tracing (optional)
+- **go.opentelemetry.io/otel**: Observability and tracing (optional)
 - **github.com/getsentry/sentry-go**: Error monitoring (optional)
 
 We regularly monitor our dependencies for known vulnerabilities and update them

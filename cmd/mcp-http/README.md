@@ -25,7 +25,7 @@ This HTTP server is designed for:
 - **HTTP Transport**: POST-based API implementing the MCP specification
 - **SSE Transport**: GET-based Server-Sent Events for streaming MCP communication
 - **Health Checks**: Built-in health endpoint
-- **Observability**: Comprehensive logging, metrics, and Datadog APM integration
+- **Observability**: Comprehensive logging, metrics, and OpenTelemetry tracing
 - **Production Ready**: Designed for cloud deployment with proper error handling
 - **Stateless**: No server-side session management for horizontal scaling
 
@@ -114,16 +114,14 @@ The server can be configured using the following environment variables:
 | `TW_MCP_LOG_LEVEL` | Logging level | `info` | `debug`, `warn`, `error`, `fatal` |
 | `TW_MCP_SENTRY_DSN` | Sentry DSN for error reporting | _(empty)_ | `https://xxx@sentry.io/xxx` |
 
-### Datadog APM Configuration
+### OpenTelemetry Configuration
 | Variable | Description | Default | Example |
 |----------|-------------|---------|---------|
-| `DD_APM_TRACING_ENABLED` | Enable Datadog APM tracing | `false` | `true` |
-| `DD_SERVICE` | Service name for Datadog APM | `mcp-server` | `teamwork-mcp` |
-| `DD_AGENT_HOST` | Datadog Agent host | `localhost` | `datadog-agent` |
-| `DD_TRACE_AGENT_PORT` | Datadog trace agent port | `8126` | `8126` |
-| `DD_DOGSTATSD_PORT` | DogStatsD agent port | `8125` | `8125` |
-| `DD_ENV` | Environment for Datadog APM | _(uses TW_MCP_ENV)_ | `staging`, `production` |
-| `DD_VERSION` | Version for Datadog APM | _(uses TW_MCP_VERSION)_ | `v1.0.0` |
+| `OTEL_TRACING_ENABLED` | Enable OpenTelemetry tracing | `false` | `true` |
+| `OTEL_EXPORTER_OTLP_ENDPOINT` | OTLP HTTP endpoint traces are sent to | `http://localhost:4318` | `http://otel-collector:4318` |
+| `OTEL_SERVICE_NAME` | Service name reported on every span | `mcp-server` | `teamwork-mcp` |
+| `OTEL_ENV` | Deployment environment | _(uses TW_MCP_ENV)_ | `staging`, `production` |
+| `OTEL_VERSION` | Service version | _(uses TW_MCP_VERSION)_ | `v1.0.0` |
 
 ## 🔄 Protocol Compatibility
 
@@ -196,5 +194,5 @@ The HTTP server provides comprehensive monitoring capabilities:
 
 - **Health Checks**: `/health` and `/ready` endpoints for load balancer integration
 - **Structured Logging**: JSON or text format with configurable log levels
-- **Datadog APM**: Distributed tracing and performance monitoring
+- **OpenTelemetry**: Distributed tracing and performance monitoring
 - **Metrics**: Built-in metrics for request rates, latencies, and errors

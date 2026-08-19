@@ -96,10 +96,10 @@ package-wide suite into its own `main_{suffix}_test.go`.
 Common variables (subset; see command READMEs for complete lists):
 - Auth: `TW_MCP_BEARER_TOKEN` (Teamwork API bearer token; required for both transports)
 - API base: `TW_MCP_API_URL` (defaults to `https://teamwork.com`; set to your site domain like `https://<site>.teamwork.com` when needed)
-- HTTP server: `TW_MCP_SERVER_ADDRESS` (bind address, default `:8080`), `TW_MCP_URL`, `TW_MCP_ENV`, logging and Datadog vars
+- HTTP server: `TW_MCP_SERVER_ADDRESS` (bind address, default `:8080`), `TW_MCP_URL`, `TW_MCP_ENV`, logging and OpenTelemetry vars
 - Logging: `TW_MCP_LOG_FORMAT` (`text`|`json`), `TW_MCP_LOG_LEVEL` (`info`|`debug`|...)
 - Identity: `TW_MCP_NAME`, `TW_MCP_TITLE` (what the server reports in the initialize handshake)
-- The `TW_MCP_` prefix is the default, not a constant: a server built on `pkg/config` passes `config.WithEnvPrefix("...")` and reads the same names under its own prefix. Only the `DD_*` variables stay bare.
+- The `TW_MCP_` prefix is the default, not a constant: a server built on `pkg/config` passes `config.WithEnvPrefix("...")` and reads the same names under its own prefix. Only the `OTEL_*` variables stay bare.
 - Inspector note: when using OAuth with Let’s Encrypt staging, set `NODE_EXTRA_CA_CERTS=letsencrypt-stg-root-x1.pem` for the MCP Inspector.
 
 ## `pkg/` is a published API; `internal/` is not
@@ -113,7 +113,7 @@ Rules that follow from this:
 
 - **Nothing in `pkg/` may import `internal/`,** tests included. It compiles inside this module and breaks every other consumer, so `depguard` in `.golangci.yml` rejects it — verify a change to that rule still fires by adding a violating import, since a rule matching nothing also reports zero issues. When a shared helper's own test needs product wiring, the wiring is on the wrong side of the line.
 - **Nothing in `pkg/` may name a product.** A `twprojects`-shaped parameter or a hardcoded `"twdesk"` prefix is a product decision; pass it in. `pkg/helpers` referencing `projects.LegacyNumber` as a *type constraint* is fine — that is the public SDK, not this repo's tool packages.
-- **A behaviour that varies per server is a parameter, not a constant.** `config.Load` takes `Option`s for this: `WithEnvPrefix` (defaults to `TW_MCP_`), `WithServerIdentity` (the name and title in the initialize handshake), `WithProfiles`. Adding a new setting means adding it to `newResources` under `env(...)`, never `getEnv(...)` — the bare form exists only for the `DD_*` variables, whose names the Datadog agent owns. `TestNewResourcesEnvPrefix` and `TestNewResourcesDatadogEnvIsNotPrefixed` pin both halves.
+- **A behaviour that varies per server is a parameter, not a constant.** `config.Load` takes `Option`s for this: `WithEnvPrefix` (defaults to `TW_MCP_`), `WithServerIdentity` (the name and title in the initialize handshake), `WithProfiles`. Adding a new setting means adding it to `newResources` under `env(...)`, never `getEnv(...)` — the bare form exists only for the `OTEL_*` variables, whose names the OpenTelemetry specification owns. `TestNewResourcesEnvPrefix` and `TestNewResourcesOTelEnvIsNotPrefixed` pin both halves.
 - **Renaming or moving anything under `pkg/` is a breaking change** for the servers built on it, and `cmd/next-version` reads the PR title to pick the bump. Treat it as `Feature!:` or carry a `BREAKING CHANGE:` body.
 - Changing `pkg/config.Version`'s import path breaks the release: it is set by `-ldflags` in `Dockerfile` and `.github/workflows/release.yaml`, and a stale path fails silently, leaving every binary reporting `dev`.
 

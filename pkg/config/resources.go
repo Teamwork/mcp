@@ -74,22 +74,17 @@ type Resources struct {
 			// SentryDSN is the Sentry DSN to be used for error reporting.
 			SentryDSN string
 		}
-		// DatadogAPM contains the configuration for Datadog APM. This is useful for
-		// the MCP server in HTTP mode.
-		DatadogAPM struct {
-			// Enabled indicates if Datadog APM is enabled.
+		// OTel contains the configuration for OpenTelemetry tracing.
+		OTel struct {
+			// Enabled indicates if OpenTelemetry tracing is enabled.
 			Enabled bool
-			// Service is the name of the service to be used in Datadog APM.
+			// Endpoint is the OTLP HTTP endpoint to send traces to (e.g. "http://localhost:4318").
+			Endpoint string
+			// Service is the name of the service.
 			Service string
-			// AgentHost is the host of the Datadog Agent.
-			AgentHost string
-			// AgentPort is the port of the Datadog Agent.
-			AgentPort string
-			// StatsdPort is the port of the DogStatsD Agent.
-			StatsdPort string
-			// Environment is the environment to be used in Datadog APM.
+			// Environment is the deployment environment (e.g. "production", "staging").
 			Environment string
-			// Version is the version of the service to be used in Datadog APM.
+			// Version is the version of the service.
 			Version string
 		}
 	}
@@ -156,9 +151,9 @@ func newOptions(opts ...Option) options {
 }
 
 func newResources(opts options) Resources {
-	// env reads this server's own configuration, under its prefix. The Datadog
+	// env reads this server's own configuration, under its prefix. The OTel
 	// variables below deliberately use the bare getEnv: those names come from the
-	// Datadog agent's conventions, not from this server.
+	// OpenTelemetry specification, not from this server.
 	env := func(key, fallback string) string {
 		return getEnvWithPrefix(opts.envPrefix, key, fallback)
 	}
@@ -180,14 +175,12 @@ func newResources(opts options) Resources {
 	resources.Info.Log.Level = strings.ToLower(env("LOG_LEVEL", "info"))
 	resources.Info.Log.SentryDSN = env("SENTRY_DSN", "")
 
-	// https://docs.datadoghq.com/containers/docker/apm/?tab=linux#docker-apm-agent-environment-variables
-	resources.Info.DatadogAPM.Enabled = strings.EqualFold(getEnv("DD_APM_TRACING_ENABLED", "false"), "true")
-	resources.Info.DatadogAPM.Service = getEnv("DD_SERVICE", "mcp-server")
-	resources.Info.DatadogAPM.AgentHost = getEnv("DD_AGENT_HOST", "localhost")
-	resources.Info.DatadogAPM.AgentPort = getEnv("DD_TRACE_AGENT_PORT", "8126")
-	resources.Info.DatadogAPM.StatsdPort = getEnv("DD_DOGSTATSD_PORT", "8125")
-	resources.Info.DatadogAPM.Environment = getEnv("DD_ENV", resources.Info.Environment)
-	resources.Info.DatadogAPM.Version = getEnv("DD_VERSION", resources.Info.Version)
+	// https://opentelemetry.io/docs/specs/otel/configuration/sdk-environment-variables/
+	resources.Info.OTel.Enabled = strings.EqualFold(getEnv("OTEL_TRACING_ENABLED", "false"), "true")
+	resources.Info.OTel.Endpoint = getEnv("OTEL_EXPORTER_OTLP_ENDPOINT", "http://localhost:4318")
+	resources.Info.OTel.Service = getEnv("OTEL_SERVICE_NAME", "mcp-server")
+	resources.Info.OTel.Environment = getEnv("OTEL_ENV", resources.Info.Environment)
+	resources.Info.OTel.Version = getEnv("OTEL_VERSION", resources.Info.Version)
 
 	// only append the profile to the MCP URL if there is exactly one profile, to
 	// avoid confusion with multiple profiles
@@ -239,8 +232,8 @@ func getEnvWithPrefix(prefix, key, fallback string) string {
 	return fallback
 }
 
-// getEnv reads an unprefixed variable. Only the Datadog variables use it: those
-// names are set by the Datadog agent's own conventions, not by this server.
+// getEnv reads an unprefixed variable. Only the OTel variables use it: those
+// names are set by the OpenTelemetry specification, not by this server.
 func getEnv(key, fallback string) string {
 	return getEnvWithPrefix("", key, fallback)
 }
