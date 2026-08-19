@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"flag"
 	"fmt"
@@ -21,16 +22,17 @@ import (
 	"github.com/DataDog/dd-trace-go/v2/ddtrace/tracer"
 	"github.com/getsentry/sentry-go"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
-	"github.com/teamwork/mcp/internal/auth"
 	"github.com/teamwork/mcp/internal/cli"
-	"github.com/teamwork/mcp/internal/config"
-	"github.com/teamwork/mcp/internal/logsafe"
-	"github.com/teamwork/mcp/internal/request"
-	"github.com/teamwork/mcp/internal/toolsets"
 	"github.com/teamwork/mcp/internal/twchat"
 	"github.com/teamwork/mcp/internal/twdesk"
 	"github.com/teamwork/mcp/internal/twprojects"
 	"github.com/teamwork/mcp/internal/twspaces"
+	"github.com/teamwork/mcp/pkg/auth"
+	"github.com/teamwork/mcp/pkg/config"
+	"github.com/teamwork/mcp/pkg/logsafe"
+	"github.com/teamwork/mcp/pkg/request"
+	"github.com/teamwork/mcp/pkg/toolsets"
+	"github.com/teamwork/mcp/pkg/twctx"
 	"github.com/teamwork/twapi-go-sdk/session"
 )
 
@@ -54,19 +56,20 @@ func main() {
 	flag.Var(methods, "toolsets", "Comma-separated list of toolsets to enable")
 	flag.Parse()
 
-	resources, teardown := config.Load(os.Stdout, methods.Profiles()...)
+	resources, teardown := config.Load(os.Stdout, config.WithProfiles(methods.Profiles()...))
 	defer teardown()
 
 	done := make(chan os.Signal, 1)
 	signal.Notify(done, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
 
-	mcpServer, err := newMCPServer(resources)
+	groups, err := newToolsetGroups(resources)
 	if err != nil {
 		resources.Logger().Error("failed to create MCP server",
 			slog.String("error", err.Error()),
 		)
 		exit(exitCodeSetupFailure)
 	}
+	mcpServer := config.NewMCPServer(resources, groups...)
 	mcpHTTPServer := mcp.NewStreamableHTTPHandler(func(*http.Request) *mcp.Server {
 		return mcpServer
 	}, &mcp.StreamableHTTPOptions{
@@ -81,7 +84,7 @@ func main() {
 		return mcpServer
 	}, &mcp.SSEOptions{})
 
-	mux := newRouter(resources)
+	mux := newRouter(resources, toolsets.Scopes(groups))
 	mux.Handle("/sse", sseLogMiddleware(resources.Logger(), mcpSSEServer))
 	mux.Handle("/", mcpHTTPServer)
 
@@ -122,7 +125,10 @@ func main() {
 	resources.Logger().Info("server stopped")
 }
 
-func newMCPServer(resources config.Resources) (*mcp.Server, error) {
+// newToolsetGroups builds one ToolsetGroup per product. Each group declares its
+// own tool prefix and OAuth scope, which is what both the tools/list scope
+// filter and the advertised "scopes_supported" are derived from.
+func newToolsetGroups(resources config.Resources) ([]*toolsets.ToolsetGroup, error) {
 	projectsGroup := twprojects.DefaultToolsetGroup(false, false, resources.TeamworkEngine())
 	if err := projectsGroup.EnableToolsets(methods.Toolsets()...); err != nil {
 		return nil, fmt.Errorf("failed to enable toolsets: %w", err)
@@ -143,15 +149,27 @@ func newMCPServer(resources config.Resources) (*mcp.Server, error) {
 		return nil, fmt.Errorf("failed to enable chat toolsets: %w", err)
 	}
 
-	return config.NewMCPServer(resources,
+	return []*toolsets.ToolsetGroup{
 		projectsGroup,
 		deskGroup,
 		spacesGroup,
 		chatGroup,
-	), nil
+	}, nil
 }
 
-func newRouter(resources config.Resources) *http.ServeMux {
+func newRouter(resources config.Resources, scopes []string) *http.ServeMux {
+	// Advertised verbatim from what the registered groups declare, so the scopes
+	// a client may ask for always have a group behind them.
+	scopesSupported, err := json.Marshal(scopes)
+	if err != nil {
+		// Marshalling a []string cannot fail, but advertising no scope beats
+		// serving malformed metadata if it ever does.
+		resources.Logger().Error("failed to encode supported scopes",
+			slog.String("error", err.Error()),
+		)
+		scopesSupported = []byte("[]")
+	}
+
 	mux := http.NewServeMux()
 	mux.Handle("/favicon.ico", http.RedirectHandler("https://teamwork.com/favicon.ico", http.StatusPermanentRedirect))
 	mux.HandleFunc("/api/health", func(w http.ResponseWriter, r *http.Request) {
@@ -184,7 +202,7 @@ func newRouter(resources config.Resources) *http.ServeMux {
   "authorization_servers": ["` + resources.Info.APIURL + `"],
   "bearer_methods_supported": ["header"],
   "resource_documentation": "https://apidocs.teamwork.com/guides/teamwork/app-login-flow",
-  "scopes_supported": [ "projects", "desk", "spaces", "chat" ]
+  "scopes_supported": ` + string(scopesSupported) + `
 }`))
 	})
 	mux.HandleFunc("/.well-known/openai-apps-challenge", func(w http.ResponseWriter, r *http.Request) {
@@ -451,6 +469,8 @@ func authMiddleware(resources config.Resources, next http.Handler) http.Handler 
 		"/.well-known": {"GET", "OPTIONS"},
 	}
 
+	validator := auth.NewValidator(resources.TeamworkHTTPClient(), resources.Info.APIURL, resources.Logger())
+
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		requestLogger := resources.Logger().With(
 			slog.String("method", r.Method),
@@ -505,7 +525,7 @@ func authMiddleware(resources config.Resources, next http.Handler) http.Handler 
 		}
 		bearerToken := matches[1]
 
-		info, err := auth.GetBearerInfo(r.Context(), resources, bearerToken)
+		info, err := validator.GetBearerInfo(r.Context(), bearerToken)
 		switch {
 		case errors.Is(err, auth.ErrBearerInfoUnauthorized):
 			// The token was positively rejected, so challenge the client to
@@ -555,13 +575,13 @@ func authMiddleware(resources config.Resources, next http.Handler) http.Handler 
 
 		ctx := r.Context()
 		// detect cross-region requests
-		ctx = config.WithCrossRegion(ctx, !strings.EqualFold(resources.Info.AWSRegion, info.Region))
+		ctx = twctx.WithCrossRegion(ctx, !strings.EqualFold(resources.Info.AWSRegion, info.Region))
 		// inject customer URL
-		ctx = config.WithCustomerURL(ctx, info.URL)
+		ctx = twctx.WithCustomerURL(ctx, info.URL)
 		// inject bearer token
-		ctx = config.WithBearerToken(ctx, bearerToken)
+		ctx = twctx.WithBearerToken(ctx, bearerToken)
 		// inject scopes
-		ctx = config.WithScopes(ctx, info.Meta.Scopes)
+		ctx = twctx.WithScopes(ctx, info.Meta.Scopes)
 		// inject session
 		ctx = session.WithBearerTokenContext(ctx, session.NewBearerToken(bearerToken, info.URL))
 

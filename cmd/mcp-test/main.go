@@ -22,8 +22,8 @@ import (
 	"time"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
-	"github.com/teamwork/mcp/internal/config"
-	"github.com/teamwork/mcp/internal/toolsets"
+	"github.com/teamwork/mcp/pkg/toolsets"
+	"github.com/teamwork/mcp/pkg/twctx"
 	twapi "github.com/teamwork/twapi-go-sdk"
 	"github.com/teamwork/twapi-go-sdk/session"
 )
@@ -71,7 +71,7 @@ func main() {
 	// Handlers read the customer URL from the context to attach meta.webLink,
 	// the way the servers inject it after detecting the installation. Without it
 	// helpers.WebLinker silently returns the payload untouched.
-	ctx = config.WithCustomerURL(ctx, *server)
+	ctx = twctx.WithCustomerURL(ctx, *server)
 
 	r := &runner{
 		engine:    twapi.NewEngine(sess),

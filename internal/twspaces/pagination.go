@@ -5,7 +5,7 @@ import (
 	"net/url"
 
 	"github.com/google/jsonschema-go/jsonschema"
-	"github.com/teamwork/mcp/internal/helpers"
+	"github.com/teamwork/mcp/pkg/helpers"
 )
 
 func paginationOptions(properties map[string]*jsonschema.Schema) map[string]*jsonschema.Schema {

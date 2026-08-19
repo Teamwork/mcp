@@ -3,7 +3,7 @@ package twdesk
 import (
 	"net/http"
 
-	"github.com/teamwork/mcp/internal/toolsets"
+	"github.com/teamwork/mcp/pkg/toolsets"
 )
 
 const (
@@ -35,7 +35,7 @@ func init() {
 
 // DefaultToolsetGroup creates a default ToolsetGroup for Teamwork Desk.
 func DefaultToolsetGroup(readOnly bool, httpClient *http.Client) *toolsets.ToolsetGroup {
-	group := toolsets.NewToolsetGroup(readOnly)
+	group := toolsets.NewToolsetGroup(readOnly).SetNamespace("twdesk", "desk")
 
 	// --- tickets sub-toolset ---
 	group.AddToolset(toolsets.NewToolset(ToolsetTickets, deskTicketsDescription).

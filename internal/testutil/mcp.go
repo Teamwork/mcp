@@ -1,75 +1,81 @@
-// Package testutil provides shared testing utilities for MCP server tests.
+// Package testutil wires this server's product toolset groups onto the
+// product-neutral mocks in pkg/testutil, so a product's tests get a ready MCP
+// server from a status code and a canned body.
+//
+// Everything reusable lives in pkg/testutil. Only the group wiring belongs
+// here — a server built on this repo writes its own equivalent of this file for
+// its own groups, and shares the rest.
 package testutil
 
 import (
-	"context"
-	"io"
-	"log/slog"
-	"net/http"
 	"net/http/httptest"
 	"net/url"
-	"strings"
-	"sync"
 	"testing"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
-	deskclient "github.com/teamwork/desksdkgo/client"
-	"github.com/teamwork/mcp/internal/config"
-	"github.com/teamwork/mcp/internal/toolsets"
 	"github.com/teamwork/mcp/internal/twchat"
 	"github.com/teamwork/mcp/internal/twdesk"
 	"github.com/teamwork/mcp/internal/twprojects"
 	"github.com/teamwork/mcp/internal/twspaces"
-	"github.com/teamwork/twapi-go-sdk"
+	pkgtestutil "github.com/teamwork/mcp/pkg/testutil"
+	twapi "github.com/teamwork/twapi-go-sdk"
 )
 
-// ProjectsSessionMock implements a mock session for twprojects testing
-type ProjectsSessionMock struct{}
+// Re-exported from pkg/testutil so a product's tests need only this package.
+type (
+	// ProjectsSessionMock implements a mock session for twprojects testing.
+	ProjectsSessionMock = pkgtestutil.SessionMock
 
-// Authenticate implements the Authenticate method for ProjectsSessionMock
-func (s ProjectsSessionMock) Authenticate(context.Context, *http.Request) error {
-	return nil
+	// ProjectsMockRoute pairs a substring match against the request URL path with
+	// the status and body to return when it matches.
+	ProjectsMockRoute = pkgtestutil.MockRoute
+
+	// ProjectsRecordedRequest is one HTTP request captured by
+	// ProjectsMCPServerRecordingMock.
+	ProjectsRecordedRequest = pkgtestutil.RecordedRequest
+
+	// ToolRequest represents a tool request for testing.
+	ToolRequest = pkgtestutil.ToolRequest
+
+	// ExecuteToolRequestOptions represents options for ExecuteToolRequest.
+	ExecuteToolRequestOptions = pkgtestutil.ExecuteToolRequestOptions
+
+	// ExecuteToolRequestOption is a function that modifies
+	// ExecuteToolRequestOptions.
+	ExecuteToolRequestOption = pkgtestutil.ExecuteToolRequestOption
+)
+
+// Re-exported from pkg/testutil so a product's tests need only this package.
+var (
+	// ProjectsEngineMock creates a mock twapi.Engine with the given HTTP response.
+	ProjectsEngineMock = pkgtestutil.EngineMock
+
+	// DeskClientMock creates a mock desk client with a test server.
+	DeskClientMock = pkgtestutil.DeskClientMock
+
+	// CheckMessage validates that a message represents a successful tool
+	// execution.
+	CheckMessage = pkgtestutil.CheckMessage
+
+	// ExecuteToolRequest executes a tool request and validates the response.
+	ExecuteToolRequest = pkgtestutil.ExecuteToolRequest
+
+	// ExecuteToolRequestWithCheckMessage executes a tool request and validates the
+	// response with a custom check function.
+	ExecuteToolRequestWithCheckMessage = pkgtestutil.ExecuteToolRequestWithCheckMessage
+)
+
+// projectsMCPServer wires a twprojects toolset group backed by the given engine
+// into a fresh in-memory MCP server.
+func projectsMCPServer(t *testing.T, engine *twapi.Engine) *mcp.Server {
+	t.Helper()
+	return pkgtestutil.MCPServer(t, twprojects.DefaultToolsetGroup(false, true, engine))
 }
 
-// Server implements the Server method for ProjectsSessionMock
-func (s ProjectsSessionMock) Server() string {
-	return "https://example.com"
-}
-
-// ProjectsEngineMock creates a mock twapi.Engine with the given HTTP response
-func ProjectsEngineMock(status int, response []byte) *twapi.Engine {
-	return twapi.NewEngine(ProjectsSessionMock{}, twapi.WithMiddleware(func(twapi.HTTPClient) twapi.HTTPClient {
-		return twapi.HTTPClientFunc(func(*http.Request) (*http.Response, error) {
-			return &http.Response{
-				StatusCode: status,
-				Status:     http.StatusText(status),
-				Proto:      "HTTP/1.1",
-				ProtoMajor: 1,
-				ProtoMinor: 1,
-				Header:     make(http.Header),
-				Body:       io.NopCloser(strings.NewReader(string(response))),
-			}, nil
-		})
-	}))
-}
-
-// DeskClientMock creates a mock desk client with a test server
-func DeskClientMock(status int, response []byte) (*deskclient.Client, *httptest.Server) {
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-		w.WriteHeader(status)
-		_, err := w.Write(response)
-		if err != nil {
-			slog.Error("failed to write response", "error", err.Error())
-		}
-	}))
-
-	client := deskclient.NewClient(server.URL, deskclient.WithAPIKey("test-token"))
-	return client, server
-}
-
-// ProjectsMCPServerMock creates a mock MCP server for twprojects testing
+// ProjectsMCPServerMock creates a mock MCP server for twprojects testing.
 func ProjectsMCPServerMock(t *testing.T, status int, response []byte) *mcp.Server {
-	return projectsMCPServer(t, ProjectsEngineMock(status, response))
+	t.Helper()
+	return projectsMCPServer(t, pkgtestutil.EngineMock(status, response))
 }
 
 // ProjectsMCPServerMockWithRequestBody is like ProjectsMCPServerMock but also
@@ -77,49 +83,22 @@ func ProjectsMCPServerMock(t *testing.T, status int, response []byte) *mcp.Serve
 // can assert on the serialized request payload. The returned pointer is
 // populated after a tool invokes the engine.
 func ProjectsMCPServerMockWithRequestBody(t *testing.T, status int, response []byte) (*mcp.Server, *[]byte) {
-	var lastBody []byte
-	engine := twapi.NewEngine(ProjectsSessionMock{}, twapi.WithMiddleware(func(twapi.HTTPClient) twapi.HTTPClient {
-		return twapi.HTTPClientFunc(func(req *http.Request) (*http.Response, error) {
-			if req.Body != nil {
-				body, err := io.ReadAll(req.Body)
-				if err != nil {
-					return nil, err
-				}
-				lastBody = body
-			}
-			return &http.Response{
-				StatusCode: status,
-				Status:     http.StatusText(status),
-				Proto:      "HTTP/1.1",
-				ProtoMajor: 1,
-				ProtoMinor: 1,
-				Header:     make(http.Header),
-				Body:       io.NopCloser(strings.NewReader(string(response))),
-			}, nil
-		})
-	}))
-	return projectsMCPServer(t, engine), &lastBody
+	t.Helper()
+	engine, lastBody := pkgtestutil.EngineMockWithRequestBody(status, response)
+	return projectsMCPServer(t, engine), lastBody
 }
 
 // ProjectsMCPServerMockWithRequestURL is like ProjectsMCPServerMock but also
 // captures the URL of the most recent HTTP request the engine sent, so tests
-// can assert on the query string a tool actually builds. The returned pointer
-// is populated after a tool invokes the engine.
+// can assert on the query string a tool actually builds.
 //
 // Asserting the response alone cannot catch a filter or pagination parameter
 // that is never sent: the mock replies with the same canned body regardless,
 // so a dropped parameter looks identical to a working one.
 func ProjectsMCPServerMockWithRequestURL(t *testing.T, status int, response []byte) (*mcp.Server, *url.URL) {
-	var lastURL url.URL
-	engine := twapi.NewEngine(ProjectsSessionMock{}, twapi.WithMiddleware(func(twapi.HTTPClient) twapi.HTTPClient {
-		return twapi.HTTPClientFunc(func(req *http.Request) (*http.Response, error) {
-			if req.URL != nil {
-				lastURL = *req.URL
-			}
-			return newProjectsMockHTTPResponse(status, response), nil
-		})
-	}))
-	return projectsMCPServer(t, engine), &lastURL
+	t.Helper()
+	engine, lastURL := pkgtestutil.EngineMockWithRequestURL(status, response)
+	return projectsMCPServer(t, engine), lastURL
 }
 
 // ProjectsMCPServerMockWithRequestURLs is like ProjectsMCPServerMockWithRequestURL
@@ -133,64 +112,8 @@ func ProjectsMCPServerMockWithRequestURL(t *testing.T, status int, response []by
 // request that never carried it.
 func ProjectsMCPServerMockWithRequestURLs(t *testing.T, status int, response []byte) (*mcp.Server, *[]url.URL) {
 	t.Helper()
-
-	var urls []url.URL
-	engine := twapi.NewEngine(ProjectsSessionMock{}, twapi.WithMiddleware(func(twapi.HTTPClient) twapi.HTTPClient {
-		return twapi.HTTPClientFunc(func(req *http.Request) (*http.Response, error) {
-			if req.URL != nil {
-				urls = append(urls, *req.URL)
-			}
-			return newProjectsMockHTTPResponse(status, response), nil
-		})
-	}))
-	return projectsMCPServer(t, engine), &urls
-}
-
-// projectsMCPServer wires a twprojects toolset group backed by the given engine
-// into a fresh in-memory MCP server.
-func projectsMCPServer(t *testing.T, engine *twapi.Engine) *mcp.Server {
-	mcpServer := mcp.NewServer(&mcp.Implementation{
-		Name:    "test-server",
-		Version: "1.0.0",
-	}, &mcp.ServerOptions{})
-
-	toolsetGroup := twprojects.DefaultToolsetGroup(false, true, engine)
-	if err := toolsetGroup.EnableToolsets(toolsets.MethodAll); err != nil {
-		t.Fatalf("failed to enable toolsets: %v", err)
-	}
-	toolsetGroup.RegisterAll(mcpServer)
-
-	return mcpServer
-}
-
-// ChatMCPServerMock creates a mock MCP server for twchat testing. The twchat
-// tools ride the shared twapi.Engine, so it reuses ProjectsEngineMock to return
-// the canned HTTP response.
-func ChatMCPServerMock(t *testing.T, status int, response []byte) *mcp.Server {
-	mcpServer := mcp.NewServer(&mcp.Implementation{
-		Name:    "test-server",
-		Version: "1.0.0",
-	}, &mcp.ServerOptions{})
-
-	toolsetGroup := twchat.DefaultToolsetGroup(false, ProjectsEngineMock(status, response))
-	if err := toolsetGroup.EnableToolsets(toolsets.MethodAll); err != nil {
-		t.Fatalf("failed to enable toolsets: %v", err)
-	}
-	toolsetGroup.RegisterAll(mcpServer)
-
-	return mcpServer
-}
-
-// ProjectsMockRoute pairs a substring match against the request URL path with
-// the status and body to return when it matches.
-type ProjectsMockRoute struct {
-	Match string
-	// Method restricts the route to a single HTTP method. An empty value matches
-	// any method, which is what path-only routing needs; set it when one path
-	// serves several verbs, as /tasks/{id}.json does for get and update.
-	Method string
-	Status int
-	Body   []byte
+	engine, urls := pkgtestutil.EngineMockWithRequestURLs(status, response)
+	return projectsMCPServer(t, engine), urls
 }
 
 // ProjectsMCPServerRoutedMock creates a mock MCP server for twprojects testing
@@ -206,34 +129,7 @@ func ProjectsMCPServerRoutedMock(
 	fallbackBody []byte,
 ) *mcp.Server {
 	t.Helper()
-
-	engine := twapi.NewEngine(ProjectsSessionMock{}, twapi.WithMiddleware(func(twapi.HTTPClient) twapi.HTTPClient {
-		return twapi.HTTPClientFunc(func(req *http.Request) (*http.Response, error) {
-			path := req.URL.Path
-			for _, route := range routes {
-				if route.Method != "" && route.Method != req.Method {
-					continue
-				}
-				if strings.Contains(path, route.Match) {
-					return newProjectsMockHTTPResponse(route.Status, route.Body), nil
-				}
-			}
-			return newProjectsMockHTTPResponse(fallbackStatus, fallbackBody), nil
-		})
-	}))
-
-	mcpServer := mcp.NewServer(&mcp.Implementation{
-		Name:    "test-server",
-		Version: "1.0.0",
-	}, &mcp.ServerOptions{})
-
-	toolsetGroup := twprojects.DefaultToolsetGroup(false, true, engine)
-	if err := toolsetGroup.EnableToolsets(toolsets.MethodAll); err != nil {
-		t.Fatalf("failed to enable toolsets: %v", err)
-	}
-	toolsetGroup.RegisterAll(mcpServer)
-
-	return mcpServer
+	return projectsMCPServer(t, pkgtestutil.RoutedEngineMock(routes, fallbackStatus, fallbackBody))
 }
 
 // ProjectsMCPServerRoutedMockWithRequestBody is like ProjectsMCPServerRoutedMock
@@ -248,43 +144,8 @@ func ProjectsMCPServerRoutedMockWithRequestBody(
 	fallbackBody []byte,
 ) (*mcp.Server, *[]byte) {
 	t.Helper()
-
-	var lastBody []byte
-	engine := twapi.NewEngine(ProjectsSessionMock{}, twapi.WithMiddleware(func(twapi.HTTPClient) twapi.HTTPClient {
-		return twapi.HTTPClientFunc(func(req *http.Request) (*http.Response, error) {
-			if req.Body != nil {
-				body, err := io.ReadAll(req.Body)
-				if err != nil {
-					return nil, err
-				}
-				lastBody = body
-			}
-			path := req.URL.Path
-			for _, route := range routes {
-				if route.Method != "" && route.Method != req.Method {
-					continue
-				}
-				if strings.Contains(path, route.Match) {
-					return newProjectsMockHTTPResponse(route.Status, route.Body), nil
-				}
-			}
-			return newProjectsMockHTTPResponse(fallbackStatus, fallbackBody), nil
-		})
-	}))
-
-	return projectsMCPServer(t, engine), &lastBody
-}
-
-// ProjectsRecordedRequest is one HTTP request captured by
-// ProjectsMCPServerRecordingMock.
-type ProjectsRecordedRequest struct {
-	Method string
-	// URL is the whole request URL, not only its path: a tool that reaches an
-	// endpoint outside the API, as the pre-signed file upload does, is only
-	// identifiable by its host, and a step that carries its parameters in the
-	// query string has nothing in its body to assert on.
-	URL  url.URL
-	Body []byte
+	engine, lastBody := pkgtestutil.RoutedEngineMockWithRequestBody(routes, fallbackStatus, fallbackBody)
+	return projectsMCPServer(t, engine), lastBody
 }
 
 // ProjectsMCPServerRecordingMock is like ProjectsMCPServerRoutedMock but
@@ -299,33 +160,8 @@ func ProjectsMCPServerRecordingMock(
 	fallbackBody []byte,
 ) (*mcp.Server, *[]ProjectsRecordedRequest) {
 	t.Helper()
-
-	var recorded []ProjectsRecordedRequest
-	engine := twapi.NewEngine(ProjectsSessionMock{}, twapi.WithMiddleware(func(twapi.HTTPClient) twapi.HTTPClient {
-		return twapi.HTTPClientFunc(func(req *http.Request) (*http.Response, error) {
-			entry := ProjectsRecordedRequest{Method: req.Method, URL: *req.URL}
-			if req.Body != nil {
-				body, err := io.ReadAll(req.Body)
-				if err != nil {
-					return nil, err
-				}
-				entry.Body = body
-			}
-			recorded = append(recorded, entry)
-
-			for _, route := range routes {
-				if route.Method != "" && route.Method != req.Method {
-					continue
-				}
-				if strings.Contains(req.URL.Path, route.Match) {
-					return newProjectsMockHTTPResponse(route.Status, route.Body), nil
-				}
-			}
-			return newProjectsMockHTTPResponse(fallbackStatus, fallbackBody), nil
-		})
-	}))
-
-	return projectsMCPServer(t, engine), &recorded
+	engine, recorded := pkgtestutil.RecordingEngineMock(routes, fallbackStatus, fallbackBody)
+	return projectsMCPServer(t, engine), recorded
 }
 
 // ProjectsMCPServerSequencedMock creates a mock MCP server for twprojects
@@ -336,73 +172,23 @@ func ProjectsMCPServerRecordingMock(
 // single always-more body. All responses share the same status code.
 func ProjectsMCPServerSequencedMock(t *testing.T, status int, responses ...[]byte) *mcp.Server {
 	t.Helper()
-
-	if len(responses) == 0 {
-		t.Fatal("ProjectsMCPServerSequencedMock requires at least one response body")
-	}
-
-	var mu sync.Mutex
-	var idx int
-	engine := twapi.NewEngine(ProjectsSessionMock{}, twapi.WithMiddleware(func(twapi.HTTPClient) twapi.HTTPClient {
-		return twapi.HTTPClientFunc(func(*http.Request) (*http.Response, error) {
-			mu.Lock()
-			body := responses[len(responses)-1]
-			if idx < len(responses) {
-				body = responses[idx]
-			}
-			idx++
-			mu.Unlock()
-			return newProjectsMockHTTPResponse(status, body), nil
-		})
-	}))
-
-	return projectsMCPServer(t, engine)
+	return projectsMCPServer(t, pkgtestutil.SequencedEngineMock(t, status, responses...))
 }
 
-func newProjectsMockHTTPResponse(status int, body []byte) *http.Response {
-	return &http.Response{
-		StatusCode: status,
-		Status:     http.StatusText(status),
-		Proto:      "HTTP/1.1",
-		ProtoMajor: 1,
-		ProtoMinor: 1,
-		Header:     make(http.Header),
-		Body:       io.NopCloser(strings.NewReader(string(body))),
-	}
+// ChatMCPServerMock creates a mock MCP server for twchat testing. The twchat
+// tools ride the shared twapi.Engine, so it reuses the engine mock to return
+// the canned HTTP response.
+func ChatMCPServerMock(t *testing.T, status int, response []byte) *mcp.Server {
+	t.Helper()
+	engine := pkgtestutil.EngineMock(status, response)
+	return pkgtestutil.MCPServer(t, twchat.DefaultToolsetGroup(false, engine))
 }
 
-// DeskMCPServerMock creates a mock MCP server for twdesk testing
-// It injects the test server URL into the request context so handlers use the correct endpoint
+// DeskMCPServerMock creates a mock MCP server for twdesk testing. It injects the
+// test server URL into the request context so handlers use the correct endpoint.
 func DeskMCPServerMock(t *testing.T, status int, response []byte) (*mcp.Server, func()) {
-	mcpServer := mcp.NewServer(&mcp.Implementation{
-		Name:    "test-server",
-		Version: "1.0.0",
-	}, &mcp.ServerOptions{})
-
-	_, testServer := DeskClientMock(status, response)
-	testServerURL := testServer.URL
-	cleanup := func() {
-		testServer.Close()
-	}
-
-	httpClient := testServer.Client()
-	toolsetGroup := twdesk.DefaultToolsetGroup(false, httpClient)
-	if err := toolsetGroup.EnableToolsets(toolsets.MethodAll); err != nil {
-		cleanup()
-		t.Fatalf("failed to enable toolsets: %v", err)
-	}
-	toolsetGroup.RegisterAll(mcpServer)
-
-	// Add middleware to inject test server URL into context so handlers route correctly
-	mcpServer.AddReceivingMiddleware(func(next mcp.MethodHandler) mcp.MethodHandler {
-		return func(ctx context.Context, method string, req mcp.Request) (result mcp.Result, err error) {
-			// Inject the test server URL as the customer URL
-			ctx = config.WithCustomerURL(ctx, testServerURL)
-			return next(ctx, method, req)
-		}
-	})
-
-	return mcpServer, cleanup
+	t.Helper()
+	return deskMCPServer(t, pkgtestutil.HTTPServerMock(status, response))
 }
 
 // DeskMCPServerMockWithRequestURL is like DeskMCPServerMock but also captures
@@ -442,181 +228,28 @@ func DeskMCPServerMockWithRequest(
 ) (*mcp.Server, func() (string, url.URL), func()) {
 	t.Helper()
 
-	mcpServer := mcp.NewServer(&mcp.Implementation{
-		Name:    "test-server",
-		Version: "1.0.0",
-	}, &mcp.ServerOptions{})
-
-	var mu sync.Mutex
-	var lastMethod string
-	var lastURL url.URL
-	testServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		mu.Lock()
-		lastMethod = r.Method
-		lastURL = *r.URL
-		mu.Unlock()
-
-		w.WriteHeader(status)
-		if _, err := w.Write(response); err != nil {
-			slog.Error("failed to write response", "error", err.Error())
-		}
-	}))
-	testServerURL := testServer.URL
-	cleanup := func() {
-		testServer.Close()
-	}
-	lastRequest := func() (string, url.URL) {
-		mu.Lock()
-		defer mu.Unlock()
-		return lastMethod, lastURL
-	}
-
-	httpClient := testServer.Client()
-	toolsetGroup := twdesk.DefaultToolsetGroup(false, httpClient)
-	if err := toolsetGroup.EnableToolsets(toolsets.MethodAll); err != nil {
-		cleanup()
-		t.Fatalf("failed to enable toolsets: %v", err)
-	}
-	toolsetGroup.RegisterAll(mcpServer)
-
-	// Add middleware to inject test server URL into context so handlers route correctly
-	mcpServer.AddReceivingMiddleware(func(next mcp.MethodHandler) mcp.MethodHandler {
-		return func(ctx context.Context, method string, req mcp.Request) (result mcp.Result, err error) {
-			ctx = config.WithCustomerURL(ctx, testServerURL)
-			return next(ctx, method, req)
-		}
-	})
-
+	testServer, lastRequest := pkgtestutil.RecordingHTTPServerMock(status, response)
+	mcpServer, cleanup := deskMCPServer(t, testServer)
 	return mcpServer, lastRequest, cleanup
 }
 
-// ToolRequest represents a tool request for testing
-type ToolRequest struct {
-	mcp.CallToolRequest
-
-	JSONRPC string `json:"jsonrpc"`
-	ID      int64  `json:"id"`
-}
-
-// CheckMessage validates that a message represents a successful tool execution
-func CheckMessage(t *testing.T, result mcp.Result) {
+// deskMCPServer wires a twdesk toolset group onto the given test server.
+func deskMCPServer(t *testing.T, testServer *httptest.Server) (*mcp.Server, func()) {
 	t.Helper()
 
-	toolResult, ok := result.(*mcp.CallToolResult)
-	if !ok {
-		t.Errorf("unexpected result type: %T", result)
-		return
-	}
-	if toolResult.IsError {
-		var msg any = toolResult.Content
-		if len(toolResult.Content) == 1 {
-			if textContent, ok := toolResult.Content[0].(*mcp.TextContent); ok {
-				msg = textContent.Text
-			}
-		}
-		t.Errorf("tool failed to execute: %v", msg)
-	}
+	group := twdesk.DefaultToolsetGroup(false, testServer.Client())
+	mcpServer := pkgtestutil.MCPServerWithCustomerURL(t, testServer.URL, group)
+	return mcpServer, testServer.Close
 }
 
-// ExecuteToolRequestOptions represents options for ExecuteToolRequest.
-type ExecuteToolRequestOptions struct {
-	checkMessage func(t *testing.T, result mcp.Result)
-}
-
-// ExecuteToolRequestOption is a function that modifies
-// ExecuteToolRequestOptions.
-type ExecuteToolRequestOption func(*ExecuteToolRequestOptions)
-
-// ExecuteToolRequestWithCheckMessage executes a tool request and validates the
-// response with a custom check function. Any nil function will be ignored.
-func ExecuteToolRequestWithCheckMessage(f func(t *testing.T, result mcp.Result)) ExecuteToolRequestOption {
-	return func(opts *ExecuteToolRequestOptions) {
-		if f != nil {
-			opts.checkMessage = f
-		}
-	}
-}
-
-// SpacesMCPServerMock creates a mock MCP server for twspaces testing.
-// It injects the test server URL into the request context so handlers use the correct endpoint.
+// SpacesMCPServerMock creates a mock MCP server for twspaces testing. It injects
+// the test server URL into the request context so handlers use the correct
+// endpoint.
 func SpacesMCPServerMock(t *testing.T, status int, response []byte) (*mcp.Server, func()) {
-	mcpServer := mcp.NewServer(&mcp.Implementation{
-		Name:    "test-server",
-		Version: "1.0.0",
-	}, &mcp.ServerOptions{})
-
-	testServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-		w.WriteHeader(status)
-		_, err := w.Write(response)
-		if err != nil {
-			slog.Error("failed to write response", "error", err.Error())
-		}
-	}))
-	testServerURL := testServer.URL
-	cleanup := func() {
-		testServer.Close()
-	}
-
-	httpClient := testServer.Client()
-	toolsetGroup := twspaces.DefaultToolsetGroup(false, true, httpClient)
-	if err := toolsetGroup.EnableToolsets(toolsets.MethodAll); err != nil {
-		cleanup()
-		t.Fatalf("failed to enable toolsets: %v", err)
-	}
-	toolsetGroup.RegisterAll(mcpServer)
-
-	// Add middleware to inject test server URL into context so handlers route correctly
-	mcpServer.AddReceivingMiddleware(func(next mcp.MethodHandler) mcp.MethodHandler {
-		return func(ctx context.Context, method string, req mcp.Request) (result mcp.Result, err error) {
-			ctx = config.WithCustomerURL(ctx, testServerURL)
-			return next(ctx, method, req)
-		}
-	})
-
-	return mcpServer, cleanup
-}
-
-// ExecuteToolRequest executes a tool request and validates the response
-func ExecuteToolRequest(
-	t *testing.T,
-	mcpServer *mcp.Server,
-	toolName string,
-	args map[string]any,
-	optFuncs ...ExecuteToolRequestOption,
-) {
 	t.Helper()
 
-	options := &ExecuteToolRequestOptions{
-		checkMessage: CheckMessage,
-	}
-	for _, fn := range optFuncs {
-		fn(options)
-	}
-
-	clientTransport, serverTransport := mcp.NewInMemoryTransports()
-	_, err := mcpServer.Connect(t.Context(), serverTransport, nil)
-	if err != nil {
-		t.Fatalf("failed to connect to server: %v", err)
-	}
-
-	client := mcp.NewClient(&mcp.Implementation{
-		Name:    "test-client",
-		Version: "1.0.0",
-	}, nil)
-
-	clientSession, err := client.Connect(t.Context(), clientTransport, nil)
-	if err != nil {
-		t.Fatalf("failed to connect to client: %v", err)
-	}
-	defer clientSession.Close() //nolint:errcheck
-
-	result, err := clientSession.CallTool(t.Context(), &mcp.CallToolParams{
-		Name:      toolName,
-		Arguments: args,
-	})
-	if err != nil {
-		t.Fatalf("failed to call tool: %v", err)
-	}
-
-	options.checkMessage(t, result)
+	testServer := pkgtestutil.HTTPServerMock(status, response)
+	group := twspaces.DefaultToolsetGroup(false, true, testServer.Client())
+	mcpServer := pkgtestutil.MCPServerWithCustomerURL(t, testServer.URL, group)
+	return mcpServer, testServer.Close
 }

@@ -10,9 +10,9 @@ import (
 
 	"github.com/google/jsonschema-go/jsonschema"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
-	"github.com/teamwork/mcp/internal/helpers"
 	"github.com/teamwork/mcp/internal/testutil"
 	"github.com/teamwork/mcp/internal/twprojects"
+	"github.com/teamwork/mcp/pkg/helpers"
 	"github.com/teamwork/twapi-go-sdk/projects"
 )
 

@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	deskclient "github.com/teamwork/desksdkgo/client"
-	"github.com/teamwork/mcp/internal/config"
+	"github.com/teamwork/mcp/pkg/twctx"
 )
 
 // ClientFromContext creates a new Desk client with the correct base URL based
@@ -18,7 +18,7 @@ func ClientFromContext(ctx context.Context, httpClient *http.Client) *deskclient
 	baseURL := "https://api.teamwork.com/desk/api/v2"
 
 	// Override with customer URL if present in context
-	customerURL, ok := config.CustomerURLFromContext(ctx)
+	customerURL, ok := twctx.CustomerURLFromContext(ctx)
 	if ok {
 		baseURL = strings.TrimSuffix(customerURL, "/") + "/desk/api/v2"
 	}
@@ -28,7 +28,7 @@ func ClientFromContext(ctx context.Context, httpClient *http.Client) *deskclient
 	}
 
 	// Pass the bearer token from context if available
-	bearerToken, ok := config.BearerTokenFromContext(ctx)
+	bearerToken, ok := twctx.BearerTokenFromContext(ctx)
 	if ok {
 		options = append(options, deskclient.WithAPIKey(bearerToken))
 	}

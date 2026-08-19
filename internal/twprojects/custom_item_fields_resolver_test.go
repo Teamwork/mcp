@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/teamwork/mcp/internal/request"
+	"github.com/teamwork/mcp/pkg/request"
 	"github.com/teamwork/twapi-go-sdk/projects"
 )
 

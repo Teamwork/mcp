@@ -42,9 +42,26 @@ linters:
     - gocyclo
     - copyloopvar
     - usestdlibvars
+    - depguard
 
   # all available settings of specific linters
   settings:
+    # https://golangci-lint.run/usage/linters/#depguard
+    depguard:
+      rules:
+        # Everything under pkg/ is imported by other repositories, so it must not
+        # reach back into internal/: Go's internal rule is path-based, and an
+        # import added here compiles fine in this module while making the package
+        # impossible to use from anywhere else. Tests count — a shared helper
+        # whose own tests need product wiring is wiring in the wrong direction.
+        shared-packages-stay-shareable:
+          list-mode: lax
+          files:
+            - "**/pkg/**"
+          deny:
+            - pkg: github.com/teamwork/mcp/internal
+              desc: pkg/ is imported by other repositories and cannot depend on internal/
+
     # https://golangci-lint.run/usage/linters/#lll
     lll:
       # max line length, lines longer will be reported. Default is 120. '\t' is
