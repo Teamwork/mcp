@@ -65,8 +65,9 @@ func TaskCount(engine *twapi.Engine) toolsets.ToolWrapper {
 func ProjectCount(engine *twapi.Engine) toolsets.ToolWrapper {
 	return countTool(ProjectList(engine), MethodProjectCount, "Count Projects",
 		"Exact project count for any filter set: one call, one number, no rows. Use for \"how many projects\" "+
-			"questions (per category, per tag, matching a term) instead of paging twprojects-list_projects to "+
-			"count rows. Use twprojects-list_projects when the rows are needed.")
+			"questions (mine, late, per category, per tag, per company, per owner, matching a term) instead of "+
+			"paging twprojects-list_projects to count rows. Use twprojects-list_projects when the rows are "+
+			"needed.")
 }
 
 // MilestoneCount counts milestones in Teamwork.com.
