@@ -62,7 +62,7 @@ body:
             "time"
             
             "github.com/mark3labs/mcp-go/server"
-            "github.com/teamwork/mcp/internal/config"
+            "github.com/teamwork/mcp/pkg/config"
             "github.com/teamwork/mcp/internal/twprojects"
             twapi "github.com/teamwork/twapi-go-sdk"
             "github.com/teamwork/twapi-go-sdk/session"

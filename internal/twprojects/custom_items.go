@@ -7,8 +7,8 @@ import (
 
 	"github.com/google/jsonschema-go/jsonschema"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
-	"github.com/teamwork/mcp/internal/helpers"
-	"github.com/teamwork/mcp/internal/toolsets"
+	"github.com/teamwork/mcp/pkg/helpers"
+	"github.com/teamwork/mcp/pkg/toolsets"
 	twapi "github.com/teamwork/twapi-go-sdk"
 	"github.com/teamwork/twapi-go-sdk/projects"
 )
@@ -40,6 +40,12 @@ const customItemRoutingHint = " Custom items are user-defined entity types — C
 var (
 	customItemGetOutputSchema  *jsonschema.Schema
 	customItemListOutputSchema *jsonschema.Schema
+)
+
+// customItemOrdering is the order-by vocabulary of the custom items list endpoint.
+var customItemOrdering = newOrdering("custom items",
+	projects.CustomItemOrderByName,
+	projects.CustomItemOrderByID,
 )
 
 func init() {
@@ -358,20 +364,15 @@ func CustomItemList(engine *twapi.Engine) toolsets.ToolWrapper {
 							{Type: "null"},
 						},
 					},
-					"order_by": {
-						Description: "Field to sort by.",
-						AnyOf: []*jsonschema.Schema{
-							{Type: "string", Enum: []any{"name"}},
-							{Type: "null"},
-						},
-					},
-					"order_mode": helpers.OrderDirectionSchema(),
+					"order_by":   customItemOrdering.orderBySchema(),
+					"order_mode": orderModeSchema(),
 					"page":       helpers.PageSchema(),
 					"page_size":  helpers.PageSizeSchema(),
+					"count_only": helpers.CountOnlySchema("custom items"),
 				},
 				Required: []string{"project_id"},
 			},
-			OutputSchema: helpers.WithOptionalFields(customItemListOutputSchema),
+			OutputSchema: helpers.WithCountOnlySchema(helpers.WithOptionalFields(customItemListOutputSchema)),
 		},
 		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 			var arguments map[string]any
@@ -380,19 +381,19 @@ func CustomItemList(engine *twapi.Engine) toolsets.ToolWrapper {
 			}
 
 			customItemListRequest := projects.NewCustomItemListRequest(0)
+			var countOnly bool
 			err := helpers.ParamGroup(arguments,
 				helpers.RequiredNumericParam(&customItemListRequest.Path.ProjectID, "project_id"),
 				helpers.OptionalParam(&customItemListRequest.Filters.SearchTerm, "search_term"),
 				helpers.OptionalNumericListParam(&customItemListRequest.Filters.IDs, "ids"),
 				helpers.OptionalPointerParam(&customItemListRequest.Filters.ShowDeleted, "show_deleted"),
-				helpers.OptionalParam(&customItemListRequest.Filters.OrderBy, "order_by",
-					helpers.RestrictValues(projects.CustomItemOrderByName),
-				),
-				helpers.OptionalParam(&customItemListRequest.Filters.OrderMode, "order_mode",
-					helpers.RestrictValues(twapi.OrderModeAscending, twapi.OrderModeDescending),
+				customItemOrdering.param(
+					&customItemListRequest.Filters.OrderBy,
+					&customItemListRequest.Filters.OrderMode,
 				),
 				helpers.OptionalNumericParam(&customItemListRequest.Filters.Page, "page"),
 				helpers.OptionalNumericParam(&customItemListRequest.Filters.PageSize, "page_size"),
+				helpers.OptionalParam(&countOnly, "count_only"),
 			)
 			if err != nil {
 				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
@@ -403,6 +404,10 @@ func CustomItemList(engine *twapi.Engine) toolsets.ToolWrapper {
 				customItemListRequest.Filters.PageSize = 50
 			} else if customItemListRequest.Filters.PageSize > 100 {
 				customItemListRequest.Filters.PageSize = 100
+			}
+
+			if countOnly {
+				return helpers.NewCountToolResult(ctx, engine, customItemListRequest, "failed to count custom items")
 			}
 
 			customItems, err := projects.CustomItemList(ctx, engine, customItemListRequest)

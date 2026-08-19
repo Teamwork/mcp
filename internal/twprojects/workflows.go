@@ -9,8 +9,8 @@ import (
 
 	"github.com/google/jsonschema-go/jsonschema"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
-	"github.com/teamwork/mcp/internal/helpers"
-	"github.com/teamwork/mcp/internal/toolsets"
+	"github.com/teamwork/mcp/pkg/helpers"
+	"github.com/teamwork/mcp/pkg/toolsets"
 	twapi "github.com/teamwork/twapi-go-sdk"
 	"github.com/teamwork/twapi-go-sdk/projects"
 )
@@ -326,11 +326,12 @@ func WorkflowList(engine *twapi.Engine) toolsets.ToolWrapper {
 					"page":        helpers.PageSchema(),
 					"page_size":   helpers.PageSizeSchema(),
 					"verbose":     helpers.VerboseSchema(),
+					"count_only":  helpers.CountOnlySchema("workflows"),
 					"fields":      helpers.FieldsSchema[projects.Workflow]("workflow"),
 				},
 				Required: []string{},
 			},
-			OutputSchema: helpers.WithOptionalFields(workflowListOutputSchema),
+			OutputSchema: helpers.WithCountOnlySchema(helpers.WithOptionalFields(workflowListOutputSchema)),
 		},
 		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 			var workflowListRequest projects.WorkflowListRequest
@@ -340,11 +341,13 @@ func WorkflowList(engine *twapi.Engine) toolsets.ToolWrapper {
 				return helpers.NewToolResultTextError("failed to decode request: %s", err.Error()), nil
 			}
 			verbose := true
+			var countOnly bool
 			err := helpers.ParamGroup(arguments,
 				helpers.OptionalParam(&workflowListRequest.Filters.SearchTerm, "search_term"),
 				helpers.OptionalNumericParam(&workflowListRequest.Filters.Page, "page"),
 				helpers.OptionalNumericParam(&workflowListRequest.Filters.PageSize, "page_size"),
 				helpers.OptionalParam(&verbose, "verbose"),
+				helpers.OptionalParam(&countOnly, "count_only"),
 				helpers.OptionalFieldsParam[projects.Workflow](&workflowListRequest.Filters.Fields.Workflows, "fields"),
 			)
 			if err != nil {
@@ -356,6 +359,10 @@ func WorkflowList(engine *twapi.Engine) toolsets.ToolWrapper {
 					projects.WorkflowFieldID,
 					projects.WorkflowFieldName,
 				}
+			}
+
+			if countOnly {
+				return helpers.NewCountToolResult(ctx, engine, workflowListRequest, "failed to count workflows")
 			}
 
 			resp, err := twapi.ExecuteRaw(ctx, engine, workflowListRequest)

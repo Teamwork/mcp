@@ -12,8 +12,8 @@ import (
 
 	"github.com/google/jsonschema-go/jsonschema"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
-	"github.com/teamwork/mcp/internal/helpers"
-	"github.com/teamwork/mcp/internal/toolsets"
+	"github.com/teamwork/mcp/pkg/helpers"
+	"github.com/teamwork/mcp/pkg/toolsets"
 	twapi "github.com/teamwork/twapi-go-sdk"
 	"github.com/teamwork/twapi-go-sdk/projects"
 )
@@ -35,6 +35,44 @@ const (
 var (
 	taskGetOutputSchema  *jsonschema.Schema
 	taskListOutputSchema *jsonschema.Schema
+)
+
+// taskOrdering is the order-by vocabulary of the tasks list endpoint.
+var taskOrdering = newOrdering("tasks",
+	projects.TaskOrderByID,
+	projects.TaskOrderByStartDate,
+	projects.TaskOrderByCreatedAt,
+	projects.TaskOrderByPriority,
+	projects.TaskOrderByProject,
+	projects.TaskOrderByFlattenedTasklist,
+	projects.TaskOrderByCompany,
+	projects.TaskOrderByManual,
+	projects.TaskOrderByActive,
+	projects.TaskOrderByCompletedAt,
+	projects.TaskOrderByDueStartDate,
+	projects.TaskOrderByAllDates,
+	projects.TaskOrderByTasklistName,
+	projects.TaskOrderByTasklistDisplayOrder,
+	projects.TaskOrderByTasklistID,
+	projects.TaskOrderByDueDate,
+	projects.TaskOrderByUpdatedAt,
+	projects.TaskOrderByTaskName,
+	projects.TaskOrderByCreatedBy,
+	projects.TaskOrderByCompletedBy,
+	projects.TaskOrderByAssignedTo,
+	projects.TaskOrderByTaskStatus,
+	projects.TaskOrderByTaskDueDate,
+	projects.TaskOrderByCustomField,
+	projects.TaskOrderByEstimatedTime,
+	projects.TaskOrderByBoardColumn,
+	projects.TaskOrderByTaskGroupID,
+	projects.TaskOrderByTaskGroupName,
+	projects.TaskOrderByTaskGroup,
+	projects.TaskOrderByDisplayOrder,
+	projects.TaskOrderByProjectManual,
+	projects.TaskOrderByStageDisplayOrder,
+	projects.TaskOrderByStage,
+	projects.TaskOrderByParentTask,
 )
 
 func init() {
@@ -114,8 +152,9 @@ func TaskCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 							{Type: "null"},
 						},
 					},
-					"assignees": helpers.UserGroupsSchema("Assignees for the task.", false),
-					"tag_ids":   helpers.TagIDsAssociateSchema("task"),
+					"assignees":       helpers.UserGroupsSchema("Assignees for the task.", false),
+					"tag_ids":         helpers.TagIDsAssociateSchema("task"),
+					"attachment_refs": attachmentRefsSchema("task"),
 					"predecessors": {
 						Description: "Task dependencies that must be completed before this task can start.",
 						AnyOf: []*jsonschema.Schema{
@@ -182,6 +221,15 @@ func TaskCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 				return toolResult, nil
 			} else if assignees != nil {
 				taskCreateRequest.Assignees = assignees
+			}
+
+			// Only set attachments when the caller named one: the field is a
+			// sibling of the task in the request body, so an empty one would be a
+			// payload change for every caller that attaches nothing.
+			if attachments, toolResult := parseTaskAttachments(arguments); toolResult != nil {
+				return toolResult, nil
+			} else if attachments != nil {
+				taskCreateRequest.Attachments = *attachments
 			}
 
 			if predecessors, ok := arguments["predecessors"]; ok {
@@ -345,7 +393,8 @@ func TaskUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 							{Type: "null"},
 						},
 					},
-					"tag_ids": helpers.TagIDsAssociateSchema("task"),
+					"tag_ids":         helpers.TagIDsAssociateSchema("task"),
+					"attachment_refs": attachmentRefsSchema("task"),
 					"predecessors": {
 						Description: "Task dependencies that must be completed before this task can start.",
 						AnyOf: []*jsonschema.Schema{
@@ -450,6 +499,14 @@ func TaskUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 					), nil
 				}
 				taskUpdateRequest.Assignees = assignees
+			}
+
+			// Only set attachments when the caller named one. Attaching is additive
+			// server side, so this never disturbs the files the task already has.
+			if attachments, toolResult := parseTaskAttachments(arguments); toolResult != nil {
+				return toolResult, nil
+			} else if attachments != nil {
+				taskUpdateRequest.Attachments = *attachments
 			}
 
 			if clearAssignees {
@@ -577,7 +634,7 @@ func taskMoveCarriedTasks(
 
 	for _, root := range roots {
 		id := root
-		for depth := 0; depth < taskMoveMaxDepth; depth++ {
+		for range taskMoveMaxDepth {
 			task, err := resolve(id)
 			if err != nil {
 				return nil, err
@@ -874,8 +931,13 @@ func TaskGet(engine *twapi.Engine) toolsets.ToolWrapper {
 
 			if len(taskGetRequest.Fields.Task) > 0 {
 				// Drop the sideloads: they are not what the selection named, and
-				// they would return the bulk it exists to avoid.
-				taskGetRequest.Filters = projects.TaskRequestFilters{}
+				// they would return the bulk it exists to avoid. IncludeRelatedTasks
+				// is not one of them — it adds no entity to the response, it is what
+				// makes `predecessors` non-empty at all — so put it back when the
+				// selection names that attribute.
+				taskGetRequest.Filters = projects.TaskRequestFilters{
+					IncludeRelatedTasks: slices.Contains(taskGetRequest.Fields.Task, projects.TaskFieldPredecessors),
+				}
 				return helpers.NewRawToolResult(ctx, engine, taskGetRequest, "failed to get task",
 					helpers.WebLinkerWithIDPathBuilder("/app/tasks"),
 				)
@@ -999,14 +1061,20 @@ func TaskList(engine *twapi.Engine) toolsets.ToolWrapper {
 							{Type: "null"},
 						},
 					},
-					"page":      helpers.PageSchema(),
-					"page_size": helpers.PageSizeSchema(),
-					"verbose":   helpers.VerboseSchema(),
-					"fields":    helpers.FieldsSchema[projects.Task]("task"),
+					"order_by":                 taskOrdering.orderBySchema(),
+					"order_mode":               orderModeSchema(),
+					"order_by_custom_field_id": orderByFieldIDSchema("tasks", "customfield"),
+					"page":                     helpers.PageSchema(),
+					"page_size":                helpers.PageSizeSchema(),
+					"verbose":                  helpers.VerboseSchema(),
+					"count_only":               helpers.CountOnlySchema("tasks"),
+					"fields":                   helpers.FieldsSchema[projects.Task]("task"),
 				},
 				Required: []string{},
 			},
-			OutputSchema: helpers.WithOptionalFields(withSuggestionsSchema(taskListOutputSchema)),
+			OutputSchema: helpers.WithCountOnlySchema(
+				helpers.WithOptionalFields(withSuggestionsSchema(taskListOutputSchema)),
+			),
 		},
 		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 			var taskListRequest projects.TaskListRequest
@@ -1016,6 +1084,7 @@ func TaskList(engine *twapi.Engine) toolsets.ToolWrapper {
 				return helpers.NewToolResultTextError("failed to decode request: %s", err.Error()), nil
 			}
 			verbose := true
+			var countOnly bool
 			var showCompleted *bool
 			err := helpers.ParamGroup(arguments,
 				helpers.OptionalNumericParam(&taskListRequest.Path.TasklistID, "tasklist_id"),
@@ -1024,6 +1093,8 @@ func TaskList(engine *twapi.Engine) toolsets.ToolWrapper {
 				helpers.OptionalNumericListParam(&taskListRequest.Filters.AssigneeUserIDs, "assignee_user_ids"),
 				helpers.OptionalNumericListParam(&taskListRequest.Filters.TagIDs, "tag_ids"),
 				helpers.OptionalPointerParam(&taskListRequest.Filters.MatchAllTags, "match_all_tags"),
+				taskOrdering.param(&taskListRequest.Filters.OrderBy, &taskListRequest.Filters.OrderMode),
+				helpers.OptionalNumericParam(&taskListRequest.Filters.OrderByCustomFieldID, "order_by_custom_field_id"),
 				helpers.OptionalNumericParam(&taskListRequest.Filters.Page, "page"),
 				helpers.OptionalNumericParam(&taskListRequest.Filters.PageSize, "page_size"),
 				helpers.OptionalTimePointerParam(&taskListRequest.Filters.CreatedAfter, "created_after"),
@@ -1042,6 +1113,7 @@ func TaskList(engine *twapi.Engine) toolsets.ToolWrapper {
 				helpers.OptionalPointerParam(&taskListRequest.Filters.OnlyUnassigned, "only_unassigned"),
 				helpers.OptionalPointerParam(&taskListRequest.Filters.OnlyUnplanned, "only_unplanned"),
 				helpers.OptionalParam(&verbose, "verbose"),
+				helpers.OptionalParam(&countOnly, "count_only"),
 				helpers.OptionalFieldsParam[projects.Task](&taskListRequest.Filters.Fields.Tasks, "fields"),
 			)
 			if err != nil {
@@ -1054,11 +1126,24 @@ func TaskList(engine *twapi.Engine) toolsets.ToolWrapper {
 				taskListRequest.Filters.IncludeCompletedTasks = showCompleted
 				taskListRequest.Filters.IncludeTasksFromCompletedTasklists = showCompleted
 			}
+			if countOnly {
+				// Ahead of the row wiring below: the count returns no rows.
+				return helpers.NewCountToolResult(ctx, engine, taskListRequest, "failed to count tasks")
+			}
 			switch {
 			case len(taskListRequest.Filters.Fields.Tasks) > 0:
 				// An explicit field selection overrides both defaults below: the
 				// caller has already said what it wants, and sideloading custom
 				// fields would smuggle back the bulk the selection exists to avoid.
+				//
+				// `predecessors` is the exception: the API only populates it when the
+				// request also asks for related tasks, so selecting it without the
+				// filter returns an empty array on every row — indistinguishable from
+				// a task nothing blocks, which is how a dependency question ends up
+				// answered "nothing is blocking". The filter is not a sideload; it
+				// adds no other entity to the response.
+				taskListRequest.Filters.IncludeRelatedTasks = slices.Contains(taskListRequest.Filters.Fields.Tasks,
+					projects.TaskFieldPredecessors)
 
 			case verbose:
 				// Include custom fields and values in task list response for richer

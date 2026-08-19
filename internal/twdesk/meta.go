@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"github.com/google/jsonschema-go/jsonschema"
-	"github.com/teamwork/mcp/internal/helpers"
+	"github.com/teamwork/mcp/pkg/helpers"
 )
 
 // strPtr returns a pointer to s, or nil if s is empty.
@@ -43,9 +43,8 @@ func paginationRequiredKeys() []string {
 // last page rather than as a cap, and nothing in the response says otherwise.
 //
 // Neither endpoint rejects an oversized page — both quietly rewrite it:
-//   - list endpoints clamp anything over 100 to 100 (deskapi
-//     RequestCommons.ApplyDefaults; its OverrideMaxPageSize escape hatch is
-//     tagged query:"-", so a client cannot lift the cap)
+//   - list endpoints clamp anything over 100 to 100, and no query parameter
+//     lifts that cap
 //   - the search endpoints reset anything over 200, or under 1, to 50 — a
 //     request for 250 comes back smaller than one for 200
 const (

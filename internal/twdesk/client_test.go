@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/teamwork/mcp/internal/config"
+	"github.com/teamwork/mcp/pkg/twctx"
 )
 
 func TestClientFromContext_DefaultBaseURL(t *testing.T) {
@@ -21,7 +21,7 @@ func TestClientFromContext_DefaultBaseURL(t *testing.T) {
 
 func TestClientFromContext_WithCustomerURL(t *testing.T) {
 	ctx := context.Background()
-	ctx = config.WithCustomerURL(ctx, "https://digitalcrew.teamwork.com")
+	ctx = twctx.WithCustomerURL(ctx, "https://test.teamwork.com")
 	httpClient := &http.Client{}
 
 	client := ClientFromContext(ctx, httpClient)
@@ -33,7 +33,7 @@ func TestClientFromContext_WithCustomerURL(t *testing.T) {
 
 func TestClientFromContext_WithCustomerURLTrailingSlash(t *testing.T) {
 	ctx := context.Background()
-	ctx = config.WithCustomerURL(ctx, "https://digitalcrew.teamwork.com/")
+	ctx = twctx.WithCustomerURL(ctx, "https://test.teamwork.com/")
 	httpClient := &http.Client{}
 
 	client := ClientFromContext(ctx, httpClient)
@@ -46,7 +46,7 @@ func TestClientFromContext_WithCustomerURLTrailingSlash(t *testing.T) {
 
 func TestClientFromContext_WithBearerToken(t *testing.T) {
 	ctx := context.Background()
-	ctx = config.WithBearerToken(ctx, "test-bearer-token")
+	ctx = twctx.WithBearerToken(ctx, "test-bearer-token")
 	httpClient := &http.Client{}
 
 	client := ClientFromContext(ctx, httpClient)
@@ -58,8 +58,8 @@ func TestClientFromContext_WithBearerToken(t *testing.T) {
 
 func TestClientFromContext_WithAllContext(t *testing.T) {
 	ctx := context.Background()
-	ctx = config.WithCustomerURL(ctx, "https://test.teamwork.com/")
-	ctx = config.WithBearerToken(ctx, "test-token")
+	ctx = twctx.WithCustomerURL(ctx, "https://test.teamwork.com/")
+	ctx = twctx.WithBearerToken(ctx, "test-token")
 	httpClient := &http.Client{}
 
 	client := ClientFromContext(ctx, httpClient)
@@ -83,7 +83,7 @@ func TestClientFromContext_WithoutContext(t *testing.T) {
 
 func TestClientFromContext_EmptyCustomerURL(t *testing.T) {
 	ctx := context.Background()
-	ctx = config.WithCustomerURL(ctx, "")
+	ctx = twctx.WithCustomerURL(ctx, "")
 	httpClient := &http.Client{}
 
 	client := ClientFromContext(ctx, httpClient)
@@ -96,7 +96,7 @@ func TestClientFromContext_EmptyCustomerURL(t *testing.T) {
 
 func TestClientFromContext_EmptyBearerToken(t *testing.T) {
 	ctx := context.Background()
-	ctx = config.WithBearerToken(ctx, "")
+	ctx = twctx.WithBearerToken(ctx, "")
 	httpClient := &http.Client{}
 
 	client := ClientFromContext(ctx, httpClient)

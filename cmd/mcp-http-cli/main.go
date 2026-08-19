@@ -10,7 +10,7 @@ import (
 	"os"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
-	"github.com/teamwork/mcp/internal/config"
+	"github.com/teamwork/mcp/pkg/config"
 )
 
 var (

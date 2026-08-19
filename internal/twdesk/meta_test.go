@@ -4,8 +4,8 @@ import (
 	"testing"
 
 	"github.com/google/jsonschema-go/jsonschema"
-	"github.com/teamwork/mcp/internal/toolsets"
 	"github.com/teamwork/mcp/internal/twdesk"
+	"github.com/teamwork/mcp/pkg/toolsets"
 )
 
 // maxDeskPageSize is the largest page any Desk endpoint honours.

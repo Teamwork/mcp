@@ -15,8 +15,8 @@ import (
 
 	"github.com/google/jsonschema-go/jsonschema"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
-	"github.com/teamwork/mcp/internal/helpers"
-	"github.com/teamwork/mcp/internal/toolsets"
+	"github.com/teamwork/mcp/pkg/helpers"
+	"github.com/teamwork/mcp/pkg/toolsets"
 	"github.com/teamwork/twapi-go-sdk"
 	"github.com/teamwork/twapi-go-sdk/projects"
 )
@@ -56,6 +56,16 @@ var commentListFields = slices.DeleteFunc(
 	func(field projects.CommentField) bool {
 		return field == projects.CommentFieldHTMLBody
 	},
+)
+
+// commentOrdering is the order-by vocabulary of the comments list endpoint.
+var commentOrdering = newOrdering("comments",
+	projects.CommentOrderByAll,
+	projects.CommentOrderByDate,
+	projects.CommentOrderByProject,
+	projects.CommentOrderByUser,
+	projects.CommentOrderByType,
+	projects.CommentOrderByID,
 )
 
 func init() {
@@ -128,7 +138,8 @@ func CommentCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 							{Type: "null"},
 						},
 					},
-					"notify": helpers.NotifySchema("Who to notify of the new comment.", true),
+					"notify":          helpers.NotifySchema("Who to notify of the new comment.", true),
+					"attachment_refs": attachmentRefsSchema("comment"),
 				},
 				Required: []string{"object", "body"},
 			},
@@ -148,6 +159,12 @@ func CommentCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 			if err != nil {
 				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
 			}
+
+			refs, toolResult := parseAttachmentRefs(arguments)
+			if toolResult != nil {
+				return toolResult, nil
+			}
+			commentCreateRequest.PendingFileAttachments = refs
 
 			notifyChosen, notifiers, toolResult := parseNotify(arguments, true)
 			if toolResult != nil {
@@ -466,14 +483,17 @@ func CommentList(engine *twapi.Engine) toolsets.ToolWrapper {
 					"updated_after": helpers.DateTimeFilterSchema(
 						"Filter comments updated after. Defaults to the last 3 months.",
 					),
-					"page":      helpers.PageSchema(),
-					"page_size": helpers.PageSizeSchema(),
-					"verbose":   helpers.VerboseSchema(),
-					"fields":    helpers.FieldsSchema[projects.Comment]("comment"),
+					"order_by":   commentOrdering.orderBySchema(),
+					"order_mode": orderModeSchema(),
+					"page":       helpers.PageSchema(),
+					"page_size":  helpers.PageSizeSchema(),
+					"verbose":    helpers.VerboseSchema(),
+					"count_only": helpers.CountOnlySchema("comments"),
+					"fields":     helpers.FieldsSchema[projects.Comment]("comment"),
 				},
 				Required: []string{},
 			},
-			OutputSchema: helpers.WithOptionalFields(commentListOutputSchema),
+			OutputSchema: helpers.WithCountOnlySchema(helpers.WithOptionalFields(commentListOutputSchema)),
 		},
 		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 			var commentListRequest projects.CommentListRequest
@@ -483,6 +503,7 @@ func CommentList(engine *twapi.Engine) toolsets.ToolWrapper {
 				return helpers.NewToolResultTextError("failed to decode request: %s", err.Error()), nil
 			}
 			verbose := true
+			var countOnly bool
 			err := helpers.ParamGroup(arguments,
 				helpers.OptionalNumericParam(&commentListRequest.Path.TaskID, "task_id"),
 				helpers.OptionalNumericParam(&commentListRequest.Path.MilestoneID, "milestone_id"),
@@ -492,9 +513,11 @@ func CommentList(engine *twapi.Engine) toolsets.ToolWrapper {
 				helpers.OptionalNumericListParam(&commentListRequest.Filters.UserIDs, "user_ids"),
 				helpers.OptionalParam(&commentListRequest.Filters.SearchTerm, "search_term"),
 				helpers.OptionalTimeParam(&commentListRequest.Filters.UpdatedAfter, "updated_after"),
+				commentOrdering.param(&commentListRequest.Filters.OrderBy, &commentListRequest.Filters.OrderMode),
 				helpers.OptionalNumericParam(&commentListRequest.Filters.Page, "page"),
 				helpers.OptionalNumericParam(&commentListRequest.Filters.PageSize, "page_size"),
 				helpers.OptionalParam(&verbose, "verbose"),
+				helpers.OptionalParam(&countOnly, "count_only"),
 				helpers.OptionalFieldsParam[projects.Comment](&commentListRequest.Filters.Fields.Comments, "fields"),
 			)
 			if err != nil {
@@ -515,6 +538,10 @@ func CommentList(engine *twapi.Engine) toolsets.ToolWrapper {
 				}
 			default:
 				commentListRequest.Filters.Fields.Comments = commentListFields
+			}
+
+			if countOnly {
+				return helpers.NewCountToolResult(ctx, engine, commentListRequest, "failed to count comments")
 			}
 
 			resp, err := twapi.ExecuteRaw(ctx, engine, commentListRequest)

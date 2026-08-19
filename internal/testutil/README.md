@@ -1,10 +1,17 @@
 # Test Utilities
 
-This package provides shared testing utilities for the MCP server tests in both `twprojects` and `twdesk` packages.
+This package wires this server's product toolset groups onto the product-neutral
+mocks in [`pkg/testutil`](../../pkg/testutil), so a product's tests get a ready
+MCP server from a status code and a canned body.
 
-## Overview
+## Which package to import
 
-The `testutil` package centralizes common test infrastructure to avoid code duplication and provide consistent testing patterns across all MCP tool implementations.
+- **`internal/testutil`** (this one) — writing tests for a product in this repo.
+  Everything below is here, plus the product wiring.
+- **`pkg/testutil`** — writing tests for a server built on this repo, whose
+  toolset groups this package knows nothing about. Assemble a server from your
+  own group with `testutil.MCPServer(t, group)` and drive it with the same
+  `ExecuteToolRequest`.
 
 ## Usage
 
@@ -39,21 +46,53 @@ func TestSomething(t *testing.T) {
 }
 ```
 
+### For a server built on this repo
+
+```go
+import (
+    "github.com/teamwork/mcp/pkg/testutil"
+    "github.com/teamwork/mcp/pkg/toolsets"
+)
+
+func TestSomething(t *testing.T) {
+    engine, lastURL := testutil.EngineMockWithRequestURL(http.StatusOK, []byte(`{"items": []}`))
+    mcpServer := testutil.MCPServer(t, mypackage.DefaultToolsetGroup(false, engine))
+
+    testutil.ExecuteToolRequest(t, mcpServer, "twpro-list_items", map[string]any{
+        "page_size": float64(50),
+    })
+
+    // Assert on the query string, not the response: the mock replies with the
+    // same canned body either way, so a dropped parameter looks identical to a
+    // working one.
+    if got := lastURL.Query().Get("pageSize"); got != "50" {
+        t.Errorf("pageSize = %q, want %q", got, "50")
+    }
+}
+```
+
 ## Components
 
-- **ProjectsMCPServerMock**: Creates a mock MCP server for testing twprojects tools
-- **DeskMCPServerMock**: Creates a mock MCP server for testing twdesk tools (with cleanup function)
-- **CheckMessage**: Validates that a tool execution was successful
-- **ExecuteToolRequest**: Helper to execute a tool request and validate the response
-- **ToolRequest**: Type alias for tool request structures
+Per-product server builders (this package):
 
-## Migration Guide
+- **ProjectsMCPServerMock** and its `WithRequestBody` / `WithRequestURL` /
+  `WithRequestURLs` / `Routed` / `Recording` / `Sequenced` variants
+- **DeskMCPServerMock**, **DeskMCPServerMockWithRequestURL**,
+  **DeskMCPServerMockWithRequest** (each returns a cleanup function)
+- **SpacesMCPServerMock** (returns a cleanup function)
+- **ChatMCPServerMock**
 
-To migrate existing tests to use the shared infrastructure:
+Re-exported from `pkg/testutil` so a product's tests need only this package:
 
-1. Replace your local `mcpServerMock` function calls with `testutil.ProjectsMCPServerMock` or `testutil.DeskMCPServerMock`
-2. Replace your local `checkMessage` function with `testutil.CheckMessage`
-3. Replace your local `toolRequest` type with `testutil.ToolRequest`
-4. Update imports to include `"github.com/teamwork/mcp/internal/testutil"`
+- **CheckMessage**: validates that a tool execution was successful
+- **ExecuteToolRequest**: executes a tool request and validates the response
+- **ToolRequest**: type alias for tool request structures
+- **ProjectsEngineMock**, **DeskClientMock**, **ProjectsMockRoute**,
+  **ProjectsRecordedRequest**
 
-This approach ensures consistency across all test suites and makes it easier to add new tool test suites in the future.
+Product-neutral, in `pkg/testutil` only:
+
+- **MCPServer** / **MCPServerWithCustomerURL**: assemble a server from any group
+- **EngineMock** and its capturing, routed, recording and sequenced variants
+- **HTTPServerMock** / **RecordingHTTPServerMock**: for tools reached through an
+  `*http.Client` rather than a `twapi.Engine`

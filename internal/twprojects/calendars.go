@@ -9,8 +9,8 @@ import (
 
 	"github.com/google/jsonschema-go/jsonschema"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
-	"github.com/teamwork/mcp/internal/helpers"
-	"github.com/teamwork/mcp/internal/toolsets"
+	"github.com/teamwork/mcp/pkg/helpers"
+	"github.com/teamwork/mcp/pkg/toolsets"
 	twapi "github.com/teamwork/twapi-go-sdk"
 	"github.com/teamwork/twapi-go-sdk/projects"
 )
@@ -24,6 +24,12 @@ const (
 )
 
 var calendarListOutputSchema *jsonschema.Schema
+
+// calendarOrdering is the order-by vocabulary of the calendars list endpoint.
+var calendarOrdering = newOrdering("calendars",
+	projects.CalendarOrderByName,
+	projects.CalendarOrderByID,
+)
 
 func init() {
 	var err error
@@ -51,14 +57,17 @@ func CalendarList(engine *twapi.Engine) toolsets.ToolWrapper {
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
 				Properties: map[string]*jsonschema.Schema{
-					"page":      helpers.PageSchema(),
-					"page_size": helpers.PageSizeSchema(),
-					"verbose":   helpers.VerboseSchema(),
-					"fields":    helpers.FieldsSchema[projects.Calendar]("calendar"),
+					"order_by":   calendarOrdering.orderBySchema(),
+					"order_mode": orderModeSchema(),
+					"page":       helpers.PageSchema(),
+					"page_size":  helpers.PageSizeSchema(),
+					"verbose":    helpers.VerboseSchema(),
+					"count_only": helpers.CountOnlySchema("calendars"),
+					"fields":     helpers.FieldsSchema[projects.Calendar]("calendar"),
 				},
 				Required: []string{},
 			},
-			OutputSchema: helpers.WithOptionalFields(calendarListOutputSchema),
+			OutputSchema: helpers.WithCountOnlySchema(helpers.WithOptionalFields(calendarListOutputSchema)),
 		},
 		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 			var calendarListRequest projects.CalendarListRequest
@@ -68,10 +77,13 @@ func CalendarList(engine *twapi.Engine) toolsets.ToolWrapper {
 				return helpers.NewToolResultTextError("failed to decode request: %s", err.Error()), nil
 			}
 			verbose := true
+			var countOnly bool
 			err := helpers.ParamGroup(arguments,
+				calendarOrdering.param(&calendarListRequest.Filters.OrderBy, &calendarListRequest.Filters.OrderMode),
 				helpers.OptionalNumericParam(&calendarListRequest.Filters.Page, "page"),
 				helpers.OptionalNumericParam(&calendarListRequest.Filters.PageSize, "page_size"),
 				helpers.OptionalParam(&verbose, "verbose"),
+				helpers.OptionalParam(&countOnly, "count_only"),
 				helpers.OptionalFieldsParam[projects.Calendar](&calendarListRequest.Filters.Fields.Calendars, "fields"),
 			)
 			if err != nil {
@@ -83,6 +95,10 @@ func CalendarList(engine *twapi.Engine) toolsets.ToolWrapper {
 					projects.CalendarFieldName,
 					projects.CalendarFieldType,
 				}
+			}
+
+			if countOnly {
+				return helpers.NewCountToolResult(ctx, engine, calendarListRequest, "failed to count calendars")
 			}
 
 			resp, err := twapi.ExecuteRaw(ctx, engine, calendarListRequest)

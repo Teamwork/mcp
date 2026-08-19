@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/teamwork/mcp/internal/toolsets"
+	"github.com/teamwork/mcp/pkg/toolsets"
 )
 
 // contentTruncationLimit caps content-bearing fields in list-shaped responses.

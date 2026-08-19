@@ -9,8 +9,8 @@ import (
 
 	"github.com/google/jsonschema-go/jsonschema"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
-	"github.com/teamwork/mcp/internal/helpers"
-	"github.com/teamwork/mcp/internal/toolsets"
+	"github.com/teamwork/mcp/pkg/helpers"
+	"github.com/teamwork/mcp/pkg/toolsets"
 	"github.com/teamwork/twapi-go-sdk"
 	"github.com/teamwork/twapi-go-sdk/projects"
 )
@@ -30,6 +30,30 @@ const (
 var (
 	companyGetOutputSchema  *jsonschema.Schema
 	companyListOutputSchema *jsonschema.Schema
+)
+
+// companyOrdering is the order-by vocabulary of the companies list endpoint.
+var companyOrdering = newOrdering("companies",
+	projects.CompanyOrderByName,
+	projects.CompanyOrderByAccounts,
+	projects.CompanyOrderByClients,
+	projects.CompanyOrderByCollaborators,
+	projects.CompanyOrderByContacts,
+	projects.CompanyOrderByProjects,
+	projects.CompanyOrderByTasks,
+	projects.CompanyOrderByCountry,
+	projects.CompanyOrderByHealth,
+	projects.CompanyOrderByWebsite,
+	projects.CompanyOrderByEmail,
+	projects.CompanyOrderByPhone,
+	projects.CompanyOrderByFax,
+	projects.CompanyOrderByIndustry,
+	projects.CompanyOrderByDateAdded,
+	projects.CompanyOrderByOwnerCompany,
+	projects.CompanyOrderByOwnerName,
+	projects.CompanyOrderByTasksCompletion,
+	projects.CompanyOrderByCustomField,
+	projects.CompanyOrderByID,
 )
 
 func init() {
@@ -540,16 +564,20 @@ func CompanyList(engine *twapi.Engine) toolsets.ToolWrapper {
 							{Type: "null"},
 						},
 					},
-					"tag_ids":        helpers.TagIDsFilterSchema("companies"),
-					"match_all_tags": helpers.MatchAllTagsSchema(),
-					"page":           helpers.PageSchema(),
-					"page_size":      helpers.PageSizeSchema(),
-					"verbose":        helpers.VerboseSchema(),
-					"fields":         helpers.FieldsSchema[projects.Company]("company"),
+					"tag_ids":                  helpers.TagIDsFilterSchema("companies"),
+					"match_all_tags":           helpers.MatchAllTagsSchema(),
+					"order_by":                 companyOrdering.orderBySchema(),
+					"order_mode":               orderModeSchema(),
+					"order_by_custom_field_id": orderByFieldIDSchema("companies", "customfield"),
+					"page":                     helpers.PageSchema(),
+					"page_size":                helpers.PageSizeSchema(),
+					"verbose":                  helpers.VerboseSchema(),
+					"count_only":               helpers.CountOnlySchema("companies"),
+					"fields":                   helpers.FieldsSchema[projects.Company]("company"),
 				},
 				Required: []string{},
 			},
-			OutputSchema: helpers.WithOptionalFields(companyListOutputSchema),
+			OutputSchema: helpers.WithCountOnlySchema(helpers.WithOptionalFields(companyListOutputSchema)),
 		},
 		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 			var companyListRequest projects.CompanyListRequest
@@ -559,13 +587,17 @@ func CompanyList(engine *twapi.Engine) toolsets.ToolWrapper {
 				return helpers.NewToolResultTextError("failed to decode request: %s", err.Error()), nil
 			}
 			verbose := true
+			var countOnly bool
 			err := helpers.ParamGroup(arguments,
 				helpers.OptionalParam(&companyListRequest.Filters.SearchTerm, "search_term"),
 				helpers.OptionalNumericListParam(&companyListRequest.Filters.TagIDs, "tag_ids"),
 				helpers.OptionalPointerParam(&companyListRequest.Filters.MatchAllTags, "match_all_tags"),
+				companyOrdering.param(&companyListRequest.Filters.OrderBy, &companyListRequest.Filters.OrderMode),
+				helpers.OptionalNumericParam(&companyListRequest.Filters.OrderByCustomFieldID, "order_by_custom_field_id"),
 				helpers.OptionalNumericParam(&companyListRequest.Filters.Page, "page"),
 				helpers.OptionalNumericParam(&companyListRequest.Filters.PageSize, "page_size"),
 				helpers.OptionalParam(&verbose, "verbose"),
+				helpers.OptionalParam(&countOnly, "count_only"),
 				helpers.OptionalFieldsParam[projects.Company](&companyListRequest.Filters.Fields.Companies, "fields"),
 			)
 			if err != nil {
@@ -592,6 +624,10 @@ func CompanyList(engine *twapi.Engine) toolsets.ToolWrapper {
 					projects.CompanyFieldID,
 					projects.CompanyFieldName,
 				}
+			}
+
+			if countOnly {
+				return helpers.NewCountToolResult(ctx, engine, companyListRequest, "failed to count companies")
 			}
 
 			resp, err := twapi.ExecuteRaw(ctx, engine, companyListRequest)

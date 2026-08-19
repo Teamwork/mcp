@@ -9,8 +9,8 @@ import (
 
 	"github.com/google/jsonschema-go/jsonschema"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
-	"github.com/teamwork/mcp/internal/helpers"
-	"github.com/teamwork/mcp/internal/toolsets"
+	"github.com/teamwork/mcp/pkg/helpers"
+	"github.com/teamwork/mcp/pkg/toolsets"
 	"github.com/teamwork/twapi-go-sdk"
 	"github.com/teamwork/twapi-go-sdk/projects"
 )
@@ -30,6 +30,17 @@ const (
 var (
 	tagGetOutputSchema  *jsonschema.Schema
 	tagListOutputSchema *jsonschema.Schema
+)
+
+// tagOrdering is the order-by vocabulary of the tags list endpoint.
+var tagOrdering = newOrdering("tags",
+	projects.TagOrderByName,
+	projects.TagOrderByCount,
+	projects.TagOrderByProject,
+	projects.TagOrderByColor,
+	projects.TagOrderByDateLastUpdated,
+	projects.TagOrderByProjectDateLastUsed,
+	projects.TagOrderByID,
 )
 
 func init() {
@@ -321,14 +332,17 @@ func TagList(engine *twapi.Engine) toolsets.ToolWrapper {
 							{Type: "null"},
 						},
 					},
-					"page":      helpers.PageSchema(),
-					"page_size": helpers.PageSizeSchema(),
-					"verbose":   helpers.VerboseSchema(),
-					"fields":    helpers.FieldsSchema[projects.Tag]("tag"),
+					"order_by":   tagOrdering.orderBySchema(),
+					"order_mode": orderModeSchema(),
+					"page":       helpers.PageSchema(),
+					"page_size":  helpers.PageSizeSchema(),
+					"verbose":    helpers.VerboseSchema(),
+					"count_only": helpers.CountOnlySchema("tags"),
+					"fields":     helpers.FieldsSchema[projects.Tag]("tag"),
 				},
 				Required: []string{},
 			},
-			OutputSchema: helpers.WithOptionalFields(tagListOutputSchema),
+			OutputSchema: helpers.WithCountOnlySchema(helpers.WithOptionalFields(tagListOutputSchema)),
 		},
 		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 			var tagListRequest projects.TagListRequest
@@ -338,6 +352,7 @@ func TagList(engine *twapi.Engine) toolsets.ToolWrapper {
 				return helpers.NewToolResultTextError("failed to decode request: %s", err.Error()), nil
 			}
 			verbose := true
+			var countOnly bool
 			err := helpers.ParamGroup(arguments,
 				helpers.OptionalParam(&tagListRequest.Filters.SearchTerm, "search_term"),
 				helpers.OptionalParam(&tagListRequest.Filters.ItemType, "item_type",
@@ -355,9 +370,11 @@ func TagList(engine *twapi.Engine) toolsets.ToolWrapper {
 					),
 				),
 				helpers.OptionalNumericListParam(&tagListRequest.Filters.ProjectIDs, "project_ids"),
+				tagOrdering.param(&tagListRequest.Filters.OrderBy, &tagListRequest.Filters.OrderMode),
 				helpers.OptionalNumericParam(&tagListRequest.Filters.Page, "page"),
 				helpers.OptionalNumericParam(&tagListRequest.Filters.PageSize, "page_size"),
 				helpers.OptionalParam(&verbose, "verbose"),
+				helpers.OptionalParam(&countOnly, "count_only"),
 				helpers.OptionalFieldsParam[projects.Tag](&tagListRequest.Filters.Fields.Tags, "fields"),
 			)
 			if err != nil {
@@ -369,6 +386,10 @@ func TagList(engine *twapi.Engine) toolsets.ToolWrapper {
 					projects.TagFieldID,
 					projects.TagFieldName,
 				}
+			}
+
+			if countOnly {
+				return helpers.NewCountToolResult(ctx, engine, tagListRequest, "failed to count tags")
 			}
 
 			resp, err := twapi.ExecuteRaw(ctx, engine, tagListRequest)

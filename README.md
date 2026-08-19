@@ -108,14 +108,24 @@ NODE_EXTRA_CA_CERTS=letsencrypt-stg-root-x1.pem npx @modelcontextprotocol/inspec
 ├── cmd/
 │   ├── mcp-http/          # HTTP server implementation
 │   ├── mcp-stdio/         # STDIO server implementation
-│   └── mcp-http-cli/      # CLI tool for testing via HTTP
-├── internal/
+│   ├── mcp-http-cli/      # CLI tool for testing via HTTP
+│   ├── mcp-test/          # Walks tool handlers against a real site
+│   ├── mcp-tokens/        # Token-cost report for the tool surface
+│   └── docs-gen/          # Generates docs/tool-reference.md
+├── pkg/                   # Importable by other MCP servers built on this one
 │   ├── auth/              # Authentication helpers (bearer & OAuth2 token handling)
-│   ├── config/            # Configuration management (env, flags)
+│   ├── cli/               # -toolsets flag parsing
+│   ├── config/            # Configuration management (env, flags), MCP server setup
 │   ├── helpers/           # Shared utility functions (errors, link helpers, tool parsing)
 │   ├── request/           # HTTP request primitives / Teamwork API wiring
+│   ├── testutil/          # Product-neutral test mocks
 │   ├── toolsets/          # Tool framework and registration logic
-│   └── twprojects/        # Teamwork project/domain tools (tasks, tags, timers, etc.)
+│   └── twctx/             # Per-request values derived from the bearer token
+├── internal/              # This server's own tools, not importable elsewhere
+│   ├── twprojects/        # Teamwork project/domain tools (tasks, tags, timers, etc.)
+│   ├── twdesk/            # Teamwork Desk tools (tickets, customers, etc.)
+│   ├── twspaces/          # Teamwork Spaces tools (spaces, pages, etc.)
+│   └── twchat/            # Teamwork Chat tools (conversations, messages)
 ├── examples/              # Usage & integration examples (LangChain Node/Python)
 ├── docs/usage/            # End-user setup & connection guide
 ├── Makefile               # Common developer tasks

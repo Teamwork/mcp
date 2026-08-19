@@ -9,8 +9,8 @@ import (
 
 	"github.com/google/jsonschema-go/jsonschema"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
-	"github.com/teamwork/mcp/internal/helpers"
-	"github.com/teamwork/mcp/internal/toolsets"
+	"github.com/teamwork/mcp/pkg/helpers"
+	"github.com/teamwork/mcp/pkg/toolsets"
 	"github.com/teamwork/twapi-go-sdk"
 	"github.com/teamwork/twapi-go-sdk/projects"
 )
@@ -25,6 +25,15 @@ const (
 
 var (
 	activityListOutputSchema *jsonschema.Schema
+)
+
+// activityOrdering is the order-by vocabulary of the activities list endpoint.
+var activityOrdering = newOrdering("activities",
+	projects.ActivityOrderByDate,
+	projects.ActivityOrderByProjectID,
+	projects.ActivityOrderByUserID,
+	projects.ActivityOrderByActivityTypes,
+	projects.ActivityOrderByID,
 )
 
 func init() {
@@ -98,14 +107,26 @@ func ActivityList(engine *twapi.Engine) toolsets.ToolWrapper {
 							{Type: "null"},
 						},
 					},
-					"page":      helpers.PageSchema(),
-					"page_size": helpers.PageSizeSchema(),
-					"verbose":   helpers.VerboseSchema(),
-					"fields":    helpers.FieldsSchema[projects.Activity]("activity"),
+					"item_ids": {
+						Description: "Filter activities by the IDs of the items they refer to, such as task, milestone or " +
+							"message IDs. Item IDs are only unique within an item type, so combine this with log_item_types " +
+							"to avoid matching activities of other types that happen to share an ID.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "array", Items: &jsonschema.Schema{Type: "integer"}},
+							{Type: "null"},
+						},
+					},
+					"order_by":   activityOrdering.orderBySchema(),
+					"order_mode": orderModeSchema(),
+					"page":       helpers.PageSchema(),
+					"page_size":  helpers.PageSizeSchema(),
+					"verbose":    helpers.VerboseSchema(),
+					"count_only": helpers.CountOnlySchema("activities"),
+					"fields":     helpers.FieldsSchema[projects.Activity]("activity"),
 				},
 				Required: []string{},
 			},
-			OutputSchema: helpers.WithOptionalFields(activityListOutputSchema),
+			OutputSchema: helpers.WithCountOnlySchema(helpers.WithOptionalFields(activityListOutputSchema)),
 		},
 		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 			var activityListRequest projects.ActivityListRequest
@@ -115,14 +136,18 @@ func ActivityList(engine *twapi.Engine) toolsets.ToolWrapper {
 				return helpers.NewToolResultTextError("failed to decode request: %s", err.Error()), nil
 			}
 			verbose := true
+			var countOnly bool
 			err := helpers.ParamGroup(arguments,
 				helpers.OptionalNumericParam(&activityListRequest.Path.ProjectID, "project_id"),
 				helpers.OptionalTimeParam(&activityListRequest.Filters.StartDate, "start_date"),
 				helpers.OptionalTimeParam(&activityListRequest.Filters.EndDate, "end_date", helpers.EndOfDay()),
 				helpers.OptionalListParam(&activityListRequest.Filters.LogItemTypes, "log_item_types"),
+				helpers.OptionalNumericListParam(&activityListRequest.Filters.ItemIDs, "item_ids"),
+				activityOrdering.param(&activityListRequest.Filters.OrderBy, &activityListRequest.Filters.OrderMode),
 				helpers.OptionalNumericParam(&activityListRequest.Filters.Page, "page"),
 				helpers.OptionalNumericParam(&activityListRequest.Filters.PageSize, "page_size"),
 				helpers.OptionalParam(&verbose, "verbose"),
+				helpers.OptionalParam(&countOnly, "count_only"),
 				helpers.OptionalFieldsParam[projects.Activity](&activityListRequest.Filters.Fields.Activities, "fields"),
 			)
 			if err != nil {
@@ -134,6 +159,10 @@ func ActivityList(engine *twapi.Engine) toolsets.ToolWrapper {
 					projects.ActivityFieldID,
 					projects.ActivityFieldDescription,
 				}
+			}
+
+			if countOnly {
+				return helpers.NewCountToolResult(ctx, engine, activityListRequest, "failed to count activities")
 			}
 
 			resp, err := twapi.ExecuteRaw(ctx, engine, activityListRequest)

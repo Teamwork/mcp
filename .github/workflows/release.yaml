@@ -5,8 +5,20 @@ on:
     tags:
       - 'v*.*.*'
   workflow_dispatch:
-env:
-  GO_VERSION: "1.26.x"
+    inputs:
+      bump:
+        description: "Version bump: auto derives it from the changes since the last tag"
+        type: choice
+        default: auto
+        options:
+          - auto
+          - patch
+          - minor
+          - major
+      dry_run:
+        description: "Report the version that would be released, without tagging or releasing"
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -18,20 +30,114 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  release-image:
+  # version resolves the tag every other job releases, from either entry point:
+  # a tag pushed by hand, or a dispatch that computes the next semantic version
+  # and creates the tag itself. The dispatch path cannot hand off to the push
+  # path — a tag created with GITHUB_TOKEN does not trigger `on: push: tags` —
+  # so the jobs below run off this job's outputs instead of the ref.
+  version:
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    outputs:
+      version: ${{ steps.tag.outputs.version || steps.compute.outputs.version }}
+      previous_tag: ${{ steps.tag.outputs.previous_tag || steps.compute.outputs.previous_tag }}
+      sha: ${{ github.sha }}
+      release: ${{ steps.tag.outputs.release || steps.compute.outputs.release }}
 
     steps:
       - uses: actions/checkout@v7
         with:
           persist-credentials: false
+          fetch-depth: 0
+          fetch-tags: true
 
-      - name: Version
-        id: version
+      - name: Guard the release ref
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
         run: |
+          if [ "${GITHUB_REF_NAME}" != "${DEFAULT_BRANCH}" ]; then
+            echo "::error::Releases are cut from ${DEFAULT_BRANCH}; this run is on ${GITHUB_REF_NAME}."
+            exit 1
+          fi
+
+      - name: Version from tag
+        id: tag
+        if: github.event_name == 'push'
+        run: |
+          set -euo pipefail
+
           version="${GITHUB_REF#refs/tags/}"
-          echo "version=$version" >> $GITHUB_OUTPUT
+          previous="$(git tag --sort=-version:refname | grep -A1 "^${version}$" | tail -n1 || echo "")"
+          if [ "$previous" = "$version" ]; then
+            previous=""
+          fi
+
+          {
+            echo "version=$version"
+            echo "previous_tag=$previous"
+            echo "release=true"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Set up Go
+        if: github.event_name == 'workflow_dispatch'
+        uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+
+      - name: Compute version
+        id: compute
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BUMP: ${{ inputs.bump }}
+          DRY_RUN: ${{ inputs.dry_run }}
+        run: |
+          set -euo pipefail
+
+          # Appends version, previous_tag, bump and unclassified to
+          # $GITHUB_OUTPUT, and a per-change table to the run summary. A change
+          # whose title carries no known prefix counts as a patch and is
+          # flagged there, so an under-versioned release is visible.
+          go run ./cmd/next-version -bump="$BUMP"
+
+          if [ "$DRY_RUN" = "true" ]; then
+            echo "release=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "release=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Create tag
+        if: github.event_name == 'workflow_dispatch' && steps.compute.outputs.release == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ steps.compute.outputs.version }}
+        run: |
+          set -euo pipefail
+
+          # Annotated, so the tag records who cut the release and when.
+          tag_sha="$(gh api "repos/${GITHUB_REPOSITORY}/git/tags" \
+            -f tag="${VERSION}" \
+            -f message="${VERSION}" \
+            -f object="${GITHUB_SHA}" \
+            -f type=commit \
+            --jq '.sha')"
+
+          gh api "repos/${GITHUB_REPOSITORY}/git/refs" \
+            -f ref="refs/tags/${VERSION}" \
+            -f sha="${tag_sha}"
+
+          echo "::notice::Tagged ${VERSION} at ${GITHUB_SHA}"
+
+  release-image:
+    runs-on: ubuntu-latest
+    needs: version
+    if: needs.version.outputs.release == 'true'
+
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          ref: ${{ needs.version.outputs.sha }}
 
       - name: Login to Docker Hub
         uses: docker/login-action@v4
@@ -48,11 +154,12 @@ jobs:
           endpoint: builders
 
       - name: Image Release
-        run: make push-stdio VERSION=${{ steps.version.outputs.version }}
+        run: make push-stdio VERSION=${{ needs.version.outputs.version }}
 
   build-binaries:
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    needs: version
+    if: needs.version.outputs.release == 'true'
 
     strategy:
       matrix:
@@ -66,23 +173,18 @@ jobs:
       - uses: actions/checkout@v7
         with:
           persist-credentials: false
-
-      - name: Version
-        id: version
-        run: |
-          version="${GITHUB_REF#refs/tags/}"
-          echo "version=$version" >> $GITHUB_OUTPUT
+          ref: ${{ needs.version.outputs.sha }}
 
       - name: Set up Go
         uses: actions/setup-go@v7
         with:
-          go-version: ${{ env.GO_VERSION }}
+          go-version-file: go.mod
 
       - name: Go Build
         run: |
           mkdir -p releases
-          version="${{ steps.version.outputs.version }}"
-          GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} go build -ldflags="-X 'github.com/teamwork/mcp/internal/config.Version=$version'" -o releases/tw-mcp-${{ matrix.goos }}-${{ matrix.goarch }} ./cmd/mcp-stdio
+          version="${{ needs.version.outputs.version }}"
+          GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} go build -ldflags="-X 'github.com/teamwork/mcp/pkg/config.Version=$version'" -o releases/tw-mcp-${{ matrix.goos }}-${{ matrix.goarch }} ./cmd/mcp-stdio
 
       - name: Upload binaries artifact
         uses: actions/upload-artifact@v7
@@ -92,16 +194,14 @@ jobs:
 
   release-binaries:
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
-    needs: ["build-binaries"]
+    needs: ["version", "build-binaries"]
+    if: needs.version.outputs.release == 'true'
 
     steps:
       - uses: actions/checkout@v7
         with:
           persist-credentials: false
-          fetch-tags: true
-          fetch-depth: 0
-          ref: ${{ github.ref }}
+          ref: ${{ needs.version.outputs.sha }}
 
       - name: Download all binaries artifacts
         uses: actions/download-artifact@v8
@@ -110,17 +210,13 @@ jobs:
           path: releases
           merge-multiple: true
 
-      - name: Version
-        id: version
-        run: |
-          version="${GITHUB_REF#refs/tags/}"
-          echo "version=$version" >> $GITHUB_OUTPUT
-
       - name: Package release archives and checksums
+        env:
+          VERSION: ${{ needs.version.outputs.version }}
         run: |
           set -euo pipefail
 
-          version="${{ steps.version.outputs.version }}"
+          version="$VERSION"
           version_no_v="${version#v}"
           dist_dir="releases/dist"
 
@@ -145,23 +241,13 @@ jobs:
 
           (cd "$dist_dir" && sha256sum tw-mcp_* > checksums.txt)
 
-      - name: Previous Tag
-        id: previous-tag
-        run: |
-          current_tag="${GITHUB_REF#refs/tags/}"
-          tag=$(git tag --sort=-version:refname | grep -A1 "^${current_tag}$" | tail -n1 || echo "")
-          if [ "$tag" = "$current_tag" ]; then
-            tag=""
-          fi
-          echo "tag=$tag" >> $GITHUB_OUTPUT
-
       - name: Create Release
         run: |
-          version="${{ steps.version.outputs.version }}"
+          version="${{ needs.version.outputs.version }}"
           gh release create $version \
             --fail-on-no-commits \
             --generate-notes \
-            ${{ steps.previous-tag.outputs.tag != '' && format('--notes-start-tag {0}', steps.previous-tag.outputs.tag) || '' }} \
+            ${{ needs.version.outputs.previous_tag != '' && format('--notes-start-tag {0}', needs.version.outputs.previous_tag) || '' }} \
             --verify-tag \
             releases/dist/*
         env:
@@ -169,17 +255,18 @@ jobs:
 
   publish-homebrew:
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
-    needs: ["release-binaries"]
+    needs: ["version", "release-binaries"]
+    if: needs.version.outputs.release == 'true'
 
     steps:
       - name: Version
         id: version
+        env:
+          VERSION: ${{ needs.version.outputs.version }}
         run: |
-          version="${GITHUB_REF#refs/tags/}"
-          version_no_v="${version#v}"
-          echo "version=$version" >> $GITHUB_OUTPUT
-          echo "version_no_v=$version_no_v" >> $GITHUB_OUTPUT
+          set -euo pipefail
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "version_no_v=${VERSION#v}" >> "$GITHUB_OUTPUT"
 
       - name: Download darwin release archives
         run: |

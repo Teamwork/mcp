@@ -21,7 +21,7 @@ Comments, notebooks, milestones, tags, and activity feeds in Teamwork.com.
 | Message Reply | ✓ | ✓ | ✓ | ✓ |
 | Link | ✓ | ✓ | ✓ | ✓ |
 
-**Other actions:** `search`
+**Other actions:** `count_milestones`, `search`
 
 ### People — `twprojects-people`
 
@@ -53,8 +53,9 @@ Project, category, template, member, custom field, and custom item (user-defined
 | Custom Item | ✓ | ✓ | ✓ | ✓ |
 | Custom Item Field | ✓ | ✓ | ✓ | ✓ |
 | Custom Item Record | ✓ | ✓ | ✓ | ✓ |
+| File | ✓ | — | — | — |
 
-**Other actions:** `add_project_member`, `clone_project`
+**Other actions:** `add_project_member`, `clone_project`, `count_projects`
 
 ### Tasks — `twprojects-tasks`
 
@@ -67,7 +68,7 @@ Task, tasklist, and workflow management in Teamwork.com.
 | Workflow | ✓ | ✓ | ✓ | ✓ |
 | Workflow Stage | ✓ | ✓ | ✓ | ✓ |
 
-**Other actions:** `complete_task`, `link_project_to_workflow`, `move_task_to_workflow_stage`, `move_tasks`
+**Other actions:** `complete_task`, `count_tasks`, `link_project_to_workflow`, `move_task_to_workflow_stage`, `move_tasks`
 
 ### Time — `twprojects-time`
 
@@ -82,7 +83,7 @@ Time tracking via timelogs, timers, calendars with time blocking, and budget rep
 | Timelog | ✓ | ✓ | ✓ | ✓ |
 | Timer | ✓ | ✓ | ✓ | ✓ |
 
-**Other actions:** `complete_timer`, `pause_timer`, `resume_timer`, `summarize_timelogs`
+**Other actions:** `complete_timer`, `count_timelogs`, `pause_timer`, `resume_timer`, `summarize_timelogs`
 
 ## Desk
 

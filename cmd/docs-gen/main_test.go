@@ -6,11 +6,11 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/teamwork/mcp/internal/toolsets"
 	"github.com/teamwork/mcp/internal/twchat"
 	"github.com/teamwork/mcp/internal/twdesk"
 	"github.com/teamwork/mcp/internal/twprojects"
 	"github.com/teamwork/mcp/internal/twspaces"
+	"github.com/teamwork/mcp/pkg/toolsets"
 )
 
 // docPath is the committed reference doc, relative to this package's directory
@@ -245,5 +245,46 @@ func TestAnnotationHintsAreExplicit(t *testing.T) {
 				}
 			}
 		}
+	}
+}
+
+// TestEveryGroupDeclaresItsNamespace guards the tools/list scope filter. That
+// filter reads the tool prefix and OAuth scope off each ToolsetGroup, and a
+// group that declares neither opts out of filtering entirely — its tools would
+// be listed to every token whatever scopes it was granted. A new product, or a
+// server built on this repo adding its own group, must not be able to forget.
+func TestEveryGroupDeclaresItsNamespace(t *testing.T) {
+	for _, p := range products() {
+		t.Run(p.label, func(t *testing.T) {
+			prefix, scope := p.group.ToolPrefix(), p.group.Scope()
+			if prefix == "" {
+				t.Fatalf("%s declares no tool prefix, so its tools bypass scope filtering", p.label)
+			}
+			if scope == "" {
+				t.Fatalf("%s declares no scope, so its tools bypass scope filtering", p.label)
+			}
+			for _, toolset := range p.group.Toolsets {
+				for _, tool := range toolset.GetAvailableTools() {
+					if !strings.HasPrefix(tool.Tool.Name, prefix+"-") {
+						t.Errorf("tool %q is not under the %q namespace its group declares, "+
+							"so the scope filter will not apply %q to it", tool.Tool.Name, prefix, scope)
+					}
+				}
+			}
+		})
+	}
+}
+
+// TestNamespacesDoNotShadowEachOther pins that no product's namespace is a
+// prefix of another's. The filter matches on the whole "<prefix>-" segment for
+// exactly this reason, but two products sharing a namespace outright would
+// still hand one product's tools out under the other's scope.
+func TestNamespacesDoNotShadowEachOther(t *testing.T) {
+	seen := make(map[string]string)
+	for _, p := range products() {
+		if other, ok := seen[p.group.ToolPrefix()]; ok {
+			t.Errorf("%s and %s share the namespace %q", p.label, other, p.group.ToolPrefix())
+		}
+		seen[p.group.ToolPrefix()] = p.label
 	}
 }

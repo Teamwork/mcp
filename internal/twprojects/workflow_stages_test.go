@@ -54,8 +54,8 @@ func TestWorkflowStageTaskMove(t *testing.T) {
 	if entry.Method != http.MethodPost {
 		t.Errorf("expected POST, got %s", entry.Method)
 	}
-	if want := "/projects/api/v3/workflows/123/stages/456/tasks.json"; entry.Path != want {
-		t.Errorf("expected path %s, got %s", want, entry.Path)
+	if want := "/projects/api/v3/workflows/123/stages/456/tasks.json"; entry.URL.Path != want {
+		t.Errorf("expected path %s, got %s", want, entry.URL.Path)
 	}
 
 	var payload struct {

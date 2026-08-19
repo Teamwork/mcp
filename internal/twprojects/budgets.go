@@ -9,8 +9,8 @@ import (
 
 	"github.com/google/jsonschema-go/jsonschema"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
-	"github.com/teamwork/mcp/internal/helpers"
-	"github.com/teamwork/mcp/internal/toolsets"
+	"github.com/teamwork/mcp/pkg/helpers"
+	"github.com/teamwork/mcp/pkg/toolsets"
 	twapi "github.com/teamwork/twapi-go-sdk"
 	"github.com/teamwork/twapi-go-sdk/projects"
 )
@@ -47,6 +47,13 @@ var projectBudgetSparseFields = []projects.ProjectBudgetField{
 	projects.ProjectBudgetFieldStartDateTime,
 	projects.ProjectBudgetFieldEndDateTime,
 }
+
+// tasklistBudgetOrdering is the order-by vocabulary of the task list budgets list endpoint.
+var tasklistBudgetOrdering = newOrdering("task list budgets",
+	projects.TasklistBudgetOrderByDateCreated,
+	projects.TasklistBudgetOrderByDisplayOrder,
+	projects.TasklistBudgetOrderByID,
+)
 
 func init() {
 	var err error
@@ -121,12 +128,13 @@ func ProjectBudgetList(engine *twapi.Engine) toolsets.ToolWrapper {
 							{Type: "null"},
 						},
 					},
-					"verbose": helpers.VerboseSchema(),
-					"fields":  helpers.FieldsSchema[projects.ProjectBudget]("project budget"),
+					"verbose":    helpers.VerboseSchema(),
+					"count_only": helpers.CountOnlySchema("project budgets"),
+					"fields":     helpers.FieldsSchema[projects.ProjectBudget]("project budget"),
 				},
 				Required: []string{},
 			},
-			OutputSchema: helpers.WithOptionalFields(projectBudgetListOutputSchema),
+			OutputSchema: helpers.WithCountOnlySchema(helpers.WithOptionalFields(projectBudgetListOutputSchema)),
 		},
 		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 			projectBudgetListRequest := projects.NewProjectBudgetListRequest()
@@ -136,6 +144,7 @@ func ProjectBudgetList(engine *twapi.Engine) toolsets.ToolWrapper {
 				return helpers.NewToolResultTextError("failed to decode request: %s", err.Error()), nil
 			}
 			verbose := true
+			var countOnly bool
 			err := helpers.ParamGroup(arguments,
 				helpers.OptionalNumericListParam(&projectBudgetListRequest.Filters.ProjectIDs, "project_ids"),
 				// No RestrictValues on status: withInputValidation already rejects
@@ -146,6 +155,7 @@ func ProjectBudgetList(engine *twapi.Engine) toolsets.ToolWrapper {
 				helpers.OptionalNumericParam(&projectBudgetListRequest.Filters.PageSize, "page_size"),
 				helpers.OptionalParam(&projectBudgetListRequest.Filters.Cursor, "cursor"),
 				helpers.OptionalParam(&verbose, "verbose"),
+				helpers.OptionalParam(&countOnly, "count_only"),
 				helpers.OptionalFieldsParam[projects.ProjectBudget](&projectBudgetListRequest.Filters.Fields.Budgets, "fields"),
 			)
 			if err != nil {
@@ -153,6 +163,10 @@ func ProjectBudgetList(engine *twapi.Engine) toolsets.ToolWrapper {
 			}
 			if !verbose && len(projectBudgetListRequest.Filters.Fields.Budgets) == 0 {
 				projectBudgetListRequest.Filters.Fields.Budgets = projectBudgetSparseFields
+			}
+
+			if countOnly {
+				return helpers.NewCountToolResult(ctx, engine, projectBudgetListRequest, "failed to count project budgets")
 			}
 
 			resp, err := twapi.ExecuteRaw(ctx, engine, projectBudgetListRequest)
@@ -207,14 +221,17 @@ func TasklistBudgetList(engine *twapi.Engine) toolsets.ToolWrapper {
 						Type:        "integer",
 						Description: "The ID of the project budget to list tasklist budgets for.",
 					},
-					"page":      helpers.PageSchema(),
-					"page_size": helpers.PageSizeSchema(),
-					"verbose":   helpers.VerboseSchema(),
-					"fields":    helpers.FieldsSchema[projects.TasklistBudget]("tasklist budget"),
+					"page":       helpers.PageSchema(),
+					"page_size":  helpers.PageSizeSchema(),
+					"verbose":    helpers.VerboseSchema(),
+					"order_by":   tasklistBudgetOrdering.orderBySchema(),
+					"order_mode": orderModeSchema(),
+					"count_only": helpers.CountOnlySchema("tasklist budgets"),
+					"fields":     helpers.FieldsSchema[projects.TasklistBudget]("tasklist budget"),
 				},
 				Required: []string{"project_budget_id"},
 			},
-			OutputSchema: helpers.WithOptionalFields(tasklistBudgetListOutputSchema),
+			OutputSchema: helpers.WithCountOnlySchema(helpers.WithOptionalFields(tasklistBudgetListOutputSchema)),
 		},
 		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 			var projectBudgetID int64
@@ -232,10 +249,16 @@ func TasklistBudgetList(engine *twapi.Engine) toolsets.ToolWrapper {
 
 			tasklistBudgetListRequest := projects.NewTasklistBudgetListRequest(projectBudgetID)
 			verbose := true
+			var countOnly bool
 			err = helpers.ParamGroup(arguments,
+				tasklistBudgetOrdering.param(
+					&tasklistBudgetListRequest.Filters.OrderBy,
+					&tasklistBudgetListRequest.Filters.OrderMode,
+				),
 				helpers.OptionalNumericParam(&tasklistBudgetListRequest.Filters.Page, "page"),
 				helpers.OptionalNumericParam(&tasklistBudgetListRequest.Filters.PageSize, "page_size"),
 				helpers.OptionalParam(&verbose, "verbose"),
+				helpers.OptionalParam(&countOnly, "count_only"),
 				helpers.OptionalFieldsParam[projects.TasklistBudget](
 					&tasklistBudgetListRequest.Filters.Fields.TasklistBudgets, "fields",
 				),
@@ -248,6 +271,11 @@ func TasklistBudgetList(engine *twapi.Engine) toolsets.ToolWrapper {
 					projects.TasklistBudgetFieldID,
 					projects.TasklistBudgetFieldType,
 				}
+			}
+
+			if countOnly {
+				return helpers.NewCountToolResult(ctx, engine, tasklistBudgetListRequest,
+					"failed to count tasklist budgets")
 			}
 
 			resp, err := twapi.ExecuteRaw(ctx, engine, tasklistBudgetListRequest)

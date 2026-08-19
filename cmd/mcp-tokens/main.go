@@ -31,10 +31,10 @@ import (
 	"strings"
 
 	"github.com/localit-io/tiktoken-go"
-	"github.com/teamwork/mcp/internal/toolsets"
 	"github.com/teamwork/mcp/internal/twdesk"
 	"github.com/teamwork/mcp/internal/twprojects"
 	"github.com/teamwork/mcp/internal/twspaces"
+	"github.com/teamwork/mcp/pkg/toolsets"
 )
 
 type toolCount struct {

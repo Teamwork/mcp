@@ -5,7 +5,7 @@ import (
 	_ "embed"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
-	"github.com/teamwork/mcp/internal/toolsets"
+	"github.com/teamwork/mcp/pkg/toolsets"
 )
 
 const (

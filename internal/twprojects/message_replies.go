@@ -9,8 +9,8 @@ import (
 
 	"github.com/google/jsonschema-go/jsonschema"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
-	"github.com/teamwork/mcp/internal/helpers"
-	"github.com/teamwork/mcp/internal/toolsets"
+	"github.com/teamwork/mcp/pkg/helpers"
+	"github.com/teamwork/mcp/pkg/toolsets"
 	"github.com/teamwork/twapi-go-sdk"
 	"github.com/teamwork/twapi-go-sdk/projects"
 )
@@ -30,6 +30,12 @@ const (
 var (
 	messageReplyGetOutputSchema  *jsonschema.Schema
 	messageReplyListOutputSchema *jsonschema.Schema
+)
+
+// messageReplyOrdering is the order-by vocabulary of the message replies list endpoint.
+var messageReplyOrdering = newOrdering("message replies",
+	projects.MessageReplyOrderByCreatedAt,
+	projects.MessageReplyOrderByID,
 )
 
 func init() {
@@ -344,14 +350,17 @@ func MessageReplyList(engine *twapi.Engine) toolsets.ToolWrapper {
 							{Type: "null"},
 						},
 					},
-					"page":      helpers.PageSchema(),
-					"page_size": helpers.PageSizeSchema(),
-					"verbose":   helpers.VerboseSchema(),
-					"fields":    helpers.FieldsSchema[projects.MessageReply]("message reply"),
+					"order_by":   messageReplyOrdering.orderBySchema(),
+					"order_mode": orderModeSchema(),
+					"page":       helpers.PageSchema(),
+					"page_size":  helpers.PageSizeSchema(),
+					"verbose":    helpers.VerboseSchema(),
+					"count_only": helpers.CountOnlySchema("message replies"),
+					"fields":     helpers.FieldsSchema[projects.MessageReply]("message reply"),
 				},
 				Required: []string{},
 			},
-			OutputSchema: helpers.WithOptionalFields(messageReplyListOutputSchema),
+			OutputSchema: helpers.WithCountOnlySchema(helpers.WithOptionalFields(messageReplyListOutputSchema)),
 		},
 		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 			var messageReplyListRequest projects.MessageReplyListRequest
@@ -361,13 +370,16 @@ func MessageReplyList(engine *twapi.Engine) toolsets.ToolWrapper {
 				return helpers.NewToolResultTextError("failed to decode request: %s", err.Error()), nil
 			}
 			verbose := true
+			var countOnly bool
 			err := helpers.ParamGroup(arguments,
 				helpers.OptionalParam(&messageReplyListRequest.Filters.SearchTerm, "search_term"),
 				helpers.OptionalNumericListParam(&messageReplyListRequest.Filters.MessageIDs, "message_ids"),
 				helpers.OptionalNumericListParam(&messageReplyListRequest.Filters.ProjectIDs, "project_ids"),
+				messageReplyOrdering.param(&messageReplyListRequest.Filters.OrderBy, &messageReplyListRequest.Filters.OrderMode),
 				helpers.OptionalNumericParam(&messageReplyListRequest.Filters.Page, "page"),
 				helpers.OptionalNumericParam(&messageReplyListRequest.Filters.PageSize, "page_size"),
 				helpers.OptionalParam(&verbose, "verbose"),
+				helpers.OptionalParam(&countOnly, "count_only"),
 				helpers.OptionalFieldsParam[projects.MessageReply](&messageReplyListRequest.Filters.Fields.MessageReplies, "fields"),
 			)
 			if err != nil {
@@ -378,6 +390,10 @@ func MessageReplyList(engine *twapi.Engine) toolsets.ToolWrapper {
 				messageReplyListRequest.Filters.Fields.MessageReplies = []projects.MessageReplyField{
 					projects.MessageReplyFieldID,
 				}
+			}
+
+			if countOnly {
+				return helpers.NewCountToolResult(ctx, engine, messageReplyListRequest, "failed to count message replies")
 			}
 
 			resp, err := twapi.ExecuteRaw(ctx, engine, messageReplyListRequest)

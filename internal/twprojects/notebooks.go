@@ -9,8 +9,8 @@ import (
 
 	"github.com/google/jsonschema-go/jsonschema"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
-	"github.com/teamwork/mcp/internal/helpers"
-	"github.com/teamwork/mcp/internal/toolsets"
+	"github.com/teamwork/mcp/pkg/helpers"
+	"github.com/teamwork/mcp/pkg/toolsets"
 	"github.com/teamwork/twapi-go-sdk"
 	"github.com/teamwork/twapi-go-sdk/projects"
 )
@@ -30,6 +30,16 @@ const (
 var (
 	notebookGetOutputSchema  *jsonschema.Schema
 	notebookListOutputSchema *jsonschema.Schema
+)
+
+// notebookOrdering is the order-by vocabulary of the notebooks list endpoint.
+var notebookOrdering = newOrdering("notebooks",
+	projects.NotebookOrderByName,
+	projects.NotebookOrderByProject,
+	projects.NotebookOrderByDateCreated,
+	projects.NotebookOrderByDateUpdated,
+	projects.NotebookOrderByCategory,
+	projects.NotebookOrderByID,
 )
 
 func init() {
@@ -365,14 +375,17 @@ func NotebookList(engine *twapi.Engine) toolsets.ToolWrapper {
 							{Type: "null"},
 						},
 					},
-					"page":      helpers.PageSchema(),
-					"page_size": helpers.PageSizeSchema(),
-					"verbose":   helpers.VerboseSchema(),
-					"fields":    helpers.FieldsSchema[projects.Notebook]("notebook"),
+					"order_by":   notebookOrdering.orderBySchema(),
+					"order_mode": orderModeSchema(),
+					"page":       helpers.PageSchema(),
+					"page_size":  helpers.PageSizeSchema(),
+					"verbose":    helpers.VerboseSchema(),
+					"count_only": helpers.CountOnlySchema("notebooks"),
+					"fields":     helpers.FieldsSchema[projects.Notebook]("notebook"),
 				},
 				Required: []string{},
 			},
-			OutputSchema: helpers.WithOptionalFields(notebookListOutputSchema),
+			OutputSchema: helpers.WithCountOnlySchema(helpers.WithOptionalFields(notebookListOutputSchema)),
 		},
 		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 			var notebookListRequest projects.NotebookListRequest
@@ -382,15 +395,18 @@ func NotebookList(engine *twapi.Engine) toolsets.ToolWrapper {
 				return helpers.NewToolResultTextError("failed to decode request: %s", err.Error()), nil
 			}
 			verbose := true
+			var countOnly bool
 			err := helpers.ParamGroup(arguments,
 				helpers.OptionalNumericListParam(&notebookListRequest.Filters.ProjectIDs, "project_ids"),
 				helpers.OptionalParam(&notebookListRequest.Filters.SearchTerm, "search_term"),
 				helpers.OptionalNumericListParam(&notebookListRequest.Filters.TagIDs, "tag_ids"),
 				helpers.OptionalPointerParam(&notebookListRequest.Filters.MatchAllTags, "match_all_tags"),
 				helpers.OptionalPointerParam(&notebookListRequest.Filters.IncludeContents, "include_contents"),
+				notebookOrdering.param(&notebookListRequest.Filters.OrderBy, &notebookListRequest.Filters.OrderMode),
 				helpers.OptionalNumericParam(&notebookListRequest.Filters.Page, "page"),
 				helpers.OptionalNumericParam(&notebookListRequest.Filters.PageSize, "page_size"),
 				helpers.OptionalParam(&verbose, "verbose"),
+				helpers.OptionalParam(&countOnly, "count_only"),
 				helpers.OptionalFieldsParam[projects.Notebook](&notebookListRequest.Filters.Fields.Notebooks, "fields"),
 			)
 			if err != nil {
@@ -402,6 +418,10 @@ func NotebookList(engine *twapi.Engine) toolsets.ToolWrapper {
 					projects.NotebookFieldID,
 					projects.NotebookFieldName,
 				}
+			}
+
+			if countOnly {
+				return helpers.NewCountToolResult(ctx, engine, notebookListRequest, "failed to count notebooks")
 			}
 
 			resp, err := twapi.ExecuteRaw(ctx, engine, notebookListRequest)

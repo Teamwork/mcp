@@ -23,11 +23,11 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/teamwork/mcp/internal/toolsets"
 	"github.com/teamwork/mcp/internal/twchat"
 	"github.com/teamwork/mcp/internal/twdesk"
 	"github.com/teamwork/mcp/internal/twprojects"
 	"github.com/teamwork/mcp/internal/twspaces"
+	"github.com/teamwork/mcp/pkg/toolsets"
 )
 
 // product pairs a human-readable label with its registered toolset group.

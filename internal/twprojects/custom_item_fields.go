@@ -7,8 +7,8 @@ import (
 
 	"github.com/google/jsonschema-go/jsonschema"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
-	"github.com/teamwork/mcp/internal/helpers"
-	"github.com/teamwork/mcp/internal/toolsets"
+	"github.com/teamwork/mcp/pkg/helpers"
+	"github.com/teamwork/mcp/pkg/toolsets"
 	twapi "github.com/teamwork/twapi-go-sdk"
 	"github.com/teamwork/twapi-go-sdk/projects"
 )
@@ -409,13 +409,14 @@ func CustomItemFieldList(engine *twapi.Engine) toolsets.ToolWrapper {
 							{Type: "null"},
 						},
 					},
-					"order_mode": helpers.OrderDirectionSchema(),
+					"order_mode": orderModeSchema(),
 					"page":       helpers.PageSchema(),
 					"page_size":  helpers.PageSizeSchema(),
+					"count_only": helpers.CountOnlySchema("custom item fields"),
 				},
 				Required: []string{"custom_item_id"},
 			},
-			OutputSchema: helpers.WithOptionalFields(customItemFieldListOutputSchema),
+			OutputSchema: helpers.WithCountOnlySchema(helpers.WithOptionalFields(customItemFieldListOutputSchema)),
 		},
 		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 			var arguments map[string]any
@@ -424,16 +425,16 @@ func CustomItemFieldList(engine *twapi.Engine) toolsets.ToolWrapper {
 			}
 
 			req := projects.NewCustomItemFieldListRequest(0)
+			var countOnly bool
 			err := helpers.ParamGroup(arguments,
 				helpers.RequiredNumericParam(&req.Path.CustomItemID, "custom_item_id"),
 				helpers.OptionalParam(&req.Filters.SearchTerm, "search_term"),
 				helpers.OptionalNumericListParam(&req.Filters.IDs, "ids"),
 				helpers.OptionalPointerParam(&req.Filters.ShowDeleted, "show_deleted"),
-				helpers.OptionalParam(&req.Filters.OrderMode, "order_mode",
-					helpers.RestrictValues(twapi.OrderModeAscending, twapi.OrderModeDescending),
-				),
+				orderModeParam(&req.Filters.OrderMode),
 				helpers.OptionalNumericParam(&req.Filters.Page, "page"),
 				helpers.OptionalNumericParam(&req.Filters.PageSize, "page_size"),
+				helpers.OptionalParam(&countOnly, "count_only"),
 			)
 			if err != nil {
 				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
@@ -443,6 +444,10 @@ func CustomItemFieldList(engine *twapi.Engine) toolsets.ToolWrapper {
 				req.Filters.PageSize = 50
 			} else if req.Filters.PageSize > 100 {
 				req.Filters.PageSize = 100
+			}
+
+			if countOnly {
+				return helpers.NewCountToolResult(ctx, engine, req, "failed to count custom item fields")
 			}
 
 			resp, err := projects.CustomItemFieldList(ctx, engine, req)

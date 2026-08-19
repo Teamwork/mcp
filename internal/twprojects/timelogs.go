@@ -9,8 +9,8 @@ import (
 
 	"github.com/google/jsonschema-go/jsonschema"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
-	"github.com/teamwork/mcp/internal/helpers"
-	"github.com/teamwork/mcp/internal/toolsets"
+	"github.com/teamwork/mcp/pkg/helpers"
+	"github.com/teamwork/mcp/pkg/toolsets"
 	"github.com/teamwork/twapi-go-sdk"
 	"github.com/teamwork/twapi-go-sdk/projects"
 )
@@ -30,6 +30,22 @@ const (
 var (
 	timelogGetOutputSchema  *jsonschema.Schema
 	timelogListOutputSchema *jsonschema.Schema
+)
+
+// timelogOrdering is the order-by vocabulary of the timelogs list endpoint.
+var timelogOrdering = newOrdering("timelogs",
+	projects.TimelogOrderByCompany,
+	projects.TimelogOrderByDate,
+	projects.TimelogOrderByDateUpdated,
+	projects.TimelogOrderByProject,
+	projects.TimelogOrderByTask,
+	projects.TimelogOrderByTasklist,
+	projects.TimelogOrderByUser,
+	projects.TimelogOrderByDescription,
+	projects.TimelogOrderByBilled,
+	projects.TimelogOrderByBillable,
+	projects.TimelogOrderByTimeSpent,
+	projects.TimelogOrderByID,
 )
 
 func init() {
@@ -450,14 +466,17 @@ func TimelogList(engine *twapi.Engine) toolsets.ToolWrapper {
 							{Type: "null"},
 						},
 					},
-					"page":      helpers.PageSchema(),
-					"page_size": helpers.PageSizeSchema(),
-					"verbose":   helpers.VerboseSchema(),
-					"fields":    helpers.FieldsSchema[projects.Timelog]("timelog"),
+					"order_by":   timelogOrdering.orderBySchema(),
+					"order_mode": orderModeSchema(),
+					"page":       helpers.PageSchema(),
+					"page_size":  helpers.PageSizeSchema(),
+					"verbose":    helpers.VerboseSchema(),
+					"count_only": helpers.CountOnlySchema("timelogs"),
+					"fields":     helpers.FieldsSchema[projects.Timelog]("timelog"),
 				},
 				Required: []string{},
 			},
-			OutputSchema: helpers.WithOptionalFields(timelogListOutputSchema),
+			OutputSchema: helpers.WithCountOnlySchema(helpers.WithOptionalFields(timelogListOutputSchema)),
 		},
 		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 			var timelogListRequest projects.TimelogListRequest
@@ -467,6 +486,7 @@ func TimelogList(engine *twapi.Engine) toolsets.ToolWrapper {
 				return helpers.NewToolResultTextError("failed to decode request: %s", err.Error()), nil
 			}
 			verbose := true
+			var countOnly bool
 			err := helpers.ParamGroup(arguments,
 				helpers.OptionalNumericParam(&timelogListRequest.Path.ProjectID, "project_id"),
 				helpers.OptionalNumericParam(&timelogListRequest.Path.TaskID, "task_id"),
@@ -478,9 +498,11 @@ func TimelogList(engine *twapi.Engine) toolsets.ToolWrapper {
 				helpers.OptionalNumericListParam(&timelogListRequest.Filters.AssignedToCompanyIDs, "assigned_company_ids"),
 				helpers.OptionalNumericListParam(&timelogListRequest.Filters.AssignedToTeamIDs, "assigned_team_ids"),
 				helpers.OptionalNumericListParam(&timelogListRequest.Filters.DeskTicketIDs, "ticketIds"),
+				timelogOrdering.param(&timelogListRequest.Filters.OrderBy, &timelogListRequest.Filters.OrderMode),
 				helpers.OptionalNumericParam(&timelogListRequest.Filters.Page, "page"),
 				helpers.OptionalNumericParam(&timelogListRequest.Filters.PageSize, "page_size"),
 				helpers.OptionalParam(&verbose, "verbose"),
+				helpers.OptionalParam(&countOnly, "count_only"),
 				helpers.OptionalFieldsParam[projects.Timelog](&timelogListRequest.Filters.Fields.Timelogs, "fields"),
 			)
 			if err != nil {
@@ -492,6 +514,10 @@ func TimelogList(engine *twapi.Engine) toolsets.ToolWrapper {
 					projects.TimelogFieldID,
 					projects.TimelogFieldDescription,
 				}
+			}
+
+			if countOnly {
+				return helpers.NewCountToolResult(ctx, engine, timelogListRequest, "failed to count timelogs")
 			}
 
 			resp, err := twapi.ExecuteRaw(ctx, engine, timelogListRequest)

@@ -11,8 +11,8 @@ import (
 
 	"github.com/google/jsonschema-go/jsonschema"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
-	"github.com/teamwork/mcp/internal/helpers"
-	"github.com/teamwork/mcp/internal/toolsets"
+	"github.com/teamwork/mcp/pkg/helpers"
+	"github.com/teamwork/mcp/pkg/toolsets"
 	twapi "github.com/teamwork/twapi-go-sdk"
 	"github.com/teamwork/twapi-go-sdk/projects"
 )
@@ -32,6 +32,15 @@ const (
 var (
 	customFieldGetOutputSchema  *jsonschema.Schema
 	customFieldListOutputSchema *jsonschema.Schema
+)
+
+// customFieldOrdering is the order-by vocabulary of the custom fields list endpoint.
+var customFieldOrdering = newOrdering("custom fields",
+	projects.CustomFieldOrderByName,
+	projects.CustomFieldOrderByProject,
+	projects.CustomFieldOrderByDateCreated,
+	projects.CustomFieldOrderByDateUpdated,
+	projects.CustomFieldOrderByID,
 )
 
 func init() {
@@ -631,31 +640,17 @@ func CustomFieldList(engine *twapi.Engine) toolsets.ToolWrapper {
 							{Type: "null"},
 						},
 					},
-					"order_by": {
-						Description: "The field to sort the results by.",
-						AnyOf: []*jsonschema.Schema{
-							{
-								Type: "string",
-								Enum: []any{"name", "project", "datecreated", "dateupdated"},
-							},
-							{Type: "null"},
-						},
-					},
-					"order_mode": {
-						Description: "The direction to sort the results in.",
-						AnyOf: []*jsonschema.Schema{
-							{Type: "string", Enum: []any{"asc", "desc"}},
-							{Type: "null"},
-						},
-					},
-					"page":      helpers.PageSchema(),
-					"page_size": helpers.PageSizeSchema(),
-					"verbose":   helpers.VerboseSchema(),
-					"fields":    helpers.FieldsSchema[projects.CustomField]("custom field"),
+					"order_by":   customFieldOrdering.orderBySchema(),
+					"order_mode": orderModeSchema(),
+					"page":       helpers.PageSchema(),
+					"page_size":  helpers.PageSizeSchema(),
+					"verbose":    helpers.VerboseSchema(),
+					"count_only": helpers.CountOnlySchema("custom fields"),
+					"fields":     helpers.FieldsSchema[projects.CustomField]("custom field"),
 				},
 				Required: []string{},
 			},
-			OutputSchema: helpers.WithOptionalFields(customFieldListOutputSchema),
+			OutputSchema: helpers.WithCountOnlySchema(helpers.WithOptionalFields(customFieldListOutputSchema)),
 		},
 		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 			var customFieldListRequest projects.CustomFieldListRequest
@@ -666,6 +661,7 @@ func CustomFieldList(engine *twapi.Engine) toolsets.ToolWrapper {
 			}
 
 			verbose := true
+			var countOnly bool
 			err := helpers.ParamGroup(arguments,
 				helpers.OptionalParam(&customFieldListRequest.Filters.SearchTerm, "search_term"),
 				helpers.OptionalNumericListParam(&customFieldListRequest.Filters.IDs, "ids"),
@@ -681,23 +677,14 @@ func CustomFieldList(engine *twapi.Engine) toolsets.ToolWrapper {
 				helpers.OptionalPointerParam(&customFieldListRequest.Filters.OnlyProjectLevel, "only_project_level"),
 				helpers.OptionalPointerParam(&customFieldListRequest.Filters.IncludeSiteLevel, "include_site_level"),
 				helpers.OptionalPointerParam(&customFieldListRequest.Filters.ShowDeleted, "show_deleted"),
-				helpers.OptionalParam(&customFieldListRequest.Filters.OrderBy, "order_by",
-					helpers.RestrictValues(
-						projects.CustomFieldOrderByName,
-						projects.CustomFieldOrderByProject,
-						projects.CustomFieldOrderByDateCreated,
-						projects.CustomFieldOrderByDateUpdated,
-					),
-				),
-				helpers.OptionalParam(&customFieldListRequest.Filters.OrderMode, "order_mode",
-					helpers.RestrictValues(
-						twapi.OrderModeAscending,
-						twapi.OrderModeDescending,
-					),
+				customFieldOrdering.param(
+					&customFieldListRequest.Filters.OrderBy,
+					&customFieldListRequest.Filters.OrderMode,
 				),
 				helpers.OptionalNumericParam(&customFieldListRequest.Filters.Page, "page"),
 				helpers.OptionalNumericParam(&customFieldListRequest.Filters.PageSize, "page_size"),
 				helpers.OptionalParam(&verbose, "verbose"),
+				helpers.OptionalParam(&countOnly, "count_only"),
 				helpers.OptionalFieldsParam[projects.CustomField](&customFieldListRequest.Filters.Fields.CustomFields, "fields"),
 			)
 			if err != nil {
@@ -709,6 +696,10 @@ func CustomFieldList(engine *twapi.Engine) toolsets.ToolWrapper {
 					projects.CustomFieldFieldID,
 					projects.CustomFieldFieldName,
 				}
+			}
+
+			if countOnly {
+				return helpers.NewCountToolResult(ctx, engine, customFieldListRequest, "failed to count custom fields")
 			}
 
 			resp, err := twapi.ExecuteRaw(ctx, engine, customFieldListRequest)

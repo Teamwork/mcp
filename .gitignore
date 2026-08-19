@@ -11,12 +11,14 @@ cmd/mcp-stdio/mcp-stdio
 cmd/mcp-http/mcp-http
 cmd/mcp-http-cli/mcp-http-cli
 cmd/mcp-tokens/mcp-tokens
+cmd/mcp-test/mcp-test
 
 # Binaries built at the repo root by `go build ./cmd/<name>`.
 /mcp-stdio
 /mcp-http
 /mcp-http-cli
 /mcp-tokens
+/mcp-test
 
 # Test binary, built with `go test -c`
 *.test

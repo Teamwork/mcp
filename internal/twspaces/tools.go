@@ -3,7 +3,7 @@ package twspaces
 import (
 	"net/http"
 
-	"github.com/teamwork/mcp/internal/toolsets"
+	"github.com/teamwork/mcp/pkg/toolsets"
 )
 
 const (
@@ -31,7 +31,7 @@ func init() {
 
 // DefaultToolsetGroup creates a default ToolsetGroup for Teamwork Spaces.
 func DefaultToolsetGroup(readOnly, allowDelete bool, httpClient *http.Client) *toolsets.ToolsetGroup {
-	group := toolsets.NewToolsetGroup(readOnly)
+	group := toolsets.NewToolsetGroup(readOnly).SetNamespace("twspaces", "spaces")
 
 	// --- spaces sub-toolset ---
 	spacesWriteTools := []toolsets.ToolWrapper{

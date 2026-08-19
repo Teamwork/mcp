@@ -10,8 +10,8 @@ import (
 
 	"github.com/google/jsonschema-go/jsonschema"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
-	"github.com/teamwork/mcp/internal/helpers"
-	"github.com/teamwork/mcp/internal/toolsets"
+	"github.com/teamwork/mcp/pkg/helpers"
+	"github.com/teamwork/mcp/pkg/toolsets"
 	"github.com/teamwork/twapi-go-sdk"
 	"github.com/teamwork/twapi-go-sdk/projects"
 )
@@ -31,6 +31,13 @@ const (
 var (
 	teamGetOutputSchema  *jsonschema.Schema
 	teamListOutputSchema *jsonschema.Schema
+)
+
+// teamOrdering is the order-by vocabulary of the teams list endpoint.
+var teamOrdering = newOrdering("teams",
+	projects.TeamOrderByName,
+	projects.TeamOrderByPicker,
+	projects.TeamOrderByDateAdded,
 )
 
 func init() {
@@ -396,6 +403,8 @@ func TeamList(engine *twapi.Engine) toolsets.ToolWrapper {
 						},
 					},
 					"search_term": helpers.SearchTermSchema("teams", "name or handle"),
+					"order_by":    teamOrdering.orderBySchema(),
+					"order_mode":  orderModeSchema(),
 					"page":        helpers.PageSchema(),
 					"page_size":   helpers.PageSizeSchema(),
 					"verbose":     helpers.VerboseSchema(),
@@ -417,6 +426,7 @@ func TeamList(engine *twapi.Engine) toolsets.ToolWrapper {
 				helpers.OptionalNumericParam(&teamListRequest.Path.CompanyID, "company_id"),
 				helpers.OptionalNumericParam(&teamListRequest.Path.ProjectID, "project_id"),
 				helpers.OptionalParam(&teamListRequest.Filters.SearchTerm, "search_term"),
+				teamOrdering.param(&teamListRequest.Filters.OrderBy, &teamListRequest.Filters.OrderMode),
 				helpers.OptionalNumericParam(&teamListRequest.Filters.Page, "page"),
 				helpers.OptionalNumericParam(&teamListRequest.Filters.PageSize, "page_size"),
 				helpers.OptionalParam(&verbose, "verbose"),

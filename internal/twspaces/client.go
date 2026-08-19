@@ -5,7 +5,7 @@ import (
 	"log/slog"
 	"net/http"
 
-	"github.com/teamwork/mcp/internal/config"
+	"github.com/teamwork/mcp/pkg/twctx"
 	spacesclient "github.com/teamwork/spacessdkgo/client"
 )
 
@@ -18,7 +18,7 @@ func clientFromContext(ctx context.Context, httpClient *http.Client) *spacesclie
 	baseURL := "https://api.teamwork.com"
 
 	// Override with customer URL if present in context
-	if customerURL, ok := config.CustomerURLFromContext(ctx); ok {
+	if customerURL, ok := twctx.CustomerURLFromContext(ctx); ok {
 		baseURL = customerURL
 	}
 
@@ -27,7 +27,7 @@ func clientFromContext(ctx context.Context, httpClient *http.Client) *spacesclie
 	}
 
 	// Pass the bearer token from context if available
-	if bearerToken, ok := config.BearerTokenFromContext(ctx); ok {
+	if bearerToken, ok := twctx.BearerTokenFromContext(ctx); ok {
 		options = append(options, spacesclient.WithAPIKey(bearerToken))
 	}
 

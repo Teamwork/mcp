@@ -20,8 +20,8 @@ ARG BUILD_VERSION=dev
 
 RUN apk add --no-cache git
 RUN go mod download
-RUN go build -ldflags="-X 'github.com/teamwork/mcp/internal/config.Version=$BUILD_VERSION'" -o /app/tw-mcp-http ./cmd/mcp-http
-RUN go build -ldflags="-X 'github.com/teamwork/mcp/internal/config.Version=$BUILD_VERSION'" -o /app/tw-mcp-stdio ./cmd/mcp-stdio
+RUN go build -ldflags="-X 'github.com/teamwork/mcp/pkg/config.Version=$BUILD_VERSION'" -o /app/tw-mcp-http ./cmd/mcp-http
+RUN go build -ldflags="-X 'github.com/teamwork/mcp/pkg/config.Version=$BUILD_VERSION'" -o /app/tw-mcp-stdio ./cmd/mcp-stdio
 
 
 # ██▀███   █    ██  ███▄    █  ███▄    █ ▓█████  ██▀███  

@@ -9,8 +9,8 @@ import (
 
 	"github.com/google/jsonschema-go/jsonschema"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
-	"github.com/teamwork/mcp/internal/helpers"
-	"github.com/teamwork/mcp/internal/toolsets"
+	"github.com/teamwork/mcp/pkg/helpers"
+	"github.com/teamwork/mcp/pkg/toolsets"
 	"github.com/teamwork/twapi-go-sdk"
 	"github.com/teamwork/twapi-go-sdk/projects"
 )
@@ -31,6 +31,59 @@ const (
 var (
 	projectGetOutputSchema  *jsonschema.Schema
 	projectListOutputSchema *jsonschema.Schema
+)
+
+// projectOrdering is the order-by vocabulary of the projects list endpoint.
+var projectOrdering = newOrdering("projects",
+	projects.ProjectOrderByBudgetUsed,
+	projects.ProjectOrderByCategoryName,
+	projects.ProjectOrderByCompanyName,
+	projects.ProjectOrderByCreatorName,
+	projects.ProjectOrderByCustomField,
+	projects.ProjectOrderByDateCreated,
+	projects.ProjectOrderByDueDate,
+	projects.ProjectOrderByHealth,
+	projects.ProjectOrderByLastActivity,
+	projects.ProjectOrderByLastWorkedOn,
+	projects.ProjectOrderByMobileSpecial,
+	projects.ProjectOrderByName,
+	projects.ProjectOrderByNameCaseInsensitive,
+	projects.ProjectOrderByOwnerCompany,
+	projects.ProjectOrderByOwnerName,
+	projects.ProjectOrderByStarred,
+	projects.ProjectOrderByStarredCompanyName,
+	projects.ProjectOrderByStarredFirst,
+	projects.ProjectOrderByStartDate,
+	projects.ProjectOrderByStatus,
+	projects.ProjectOrderByTaskCompletion,
+	projects.ProjectOrderByID,
+)
+
+// projectStatusVocabulary is the progress-state vocabulary of the projects list
+// endpoint. It is the only way to ask which projects have slipped: a project row
+// carries no late flag of its own — its status attribute is the storage state
+// (active, archived, deleted), not the schedule — so "late" is computed by the
+// endpoint from the filter and can never be read off a response.
+var projectStatusVocabulary = newVocabulary(
+	projects.ProjectListStatusActive,
+	projects.ProjectListStatusCurrent,
+	projects.ProjectListStatusLate,
+	projects.ProjectListStatusUpcoming,
+	projects.ProjectListStatusCompleted,
+	projects.ProjectListStatusDeleted,
+)
+
+// projectHealthVocabulary is the health-rating vocabulary of the projects list
+// endpoint. The API models health as an integer whose meaning is positional, so
+// the tool publishes names and maps them here.
+var projectHealthVocabulary = newNamedVocabulary(
+	[]string{"good", "ok", "bad", "not_set"},
+	[]projects.ProjectHealth{
+		projects.ProjectHealthGood,
+		projects.ProjectHealthOK,
+		projects.ProjectHealthBad,
+		projects.ProjectHealthNotSet,
+	},
 )
 
 func init() {
@@ -547,8 +600,11 @@ func ProjectGet(engine *twapi.Engine) toolsets.ToolWrapper {
 func ProjectList(engine *twapi.Engine) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
-			Name:        string(MethodProjectList),
-			Description: "List projects.",
+			Name: string(MethodProjectList),
+			Description: "List projects with structured filters (membership, progress state, health, category, " +
+				"tag, company, owner). For \"my projects\" pass user_ids with the ID from twprojects-get_user_me, " +
+				"or only_starred. For projects that have slipped pass project_statuses=[\"late\"] — a project row " +
+				"carries no late flag, so this filter is the only way to ask.",
 			Annotations: &mcp.ToolAnnotations{
 				Title:           "List Projects",
 				ReadOnlyHint:    true,
@@ -565,17 +621,117 @@ func ProjectList(engine *twapi.Engine) toolsets.ToolWrapper {
 							{Type: "null"},
 						},
 					},
-					"search_term":    helpers.SearchTermSchema("projects", "name or description"),
-					"tag_ids":        helpers.TagIDsFilterSchema("projects"),
-					"match_all_tags": helpers.MatchAllTagsSchema(),
-					"page":           helpers.PageSchema(),
-					"page_size":      helpers.PageSizeSchema(),
-					"verbose":        helpers.VerboseSchema(),
-					"fields":         helpers.FieldsSchema[projects.Project]("project"),
+					"include_subcategories": {
+						Description: "If true, project_category_ids also matches the categories nested under the " +
+							"ones given.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "boolean"},
+							{Type: "null"},
+						},
+					},
+					"project_statuses": projectStatusVocabulary.arraySchema(
+						"Filter projects by progress state, matching any of the values given. \"late\" is past its " +
+							"end date and not yet completed, \"upcoming\" has not started yet, \"current\" is " +
+							"running now, and \"active\" is every project that is neither completed nor archived. " +
+							"Omit to keep the endpoint's own default set.",
+					),
+					"project_healths": projectHealthVocabulary.arraySchema(
+						"Filter projects by the health rating set on them, matching any of the values given. " +
+							"\"not_set\" matches the projects nobody has rated.",
+					),
+					"user_ids": {
+						Description: "Filter projects by the users holding an explicit membership of them. For " +
+							"\"my projects\", pass the ID returned by twprojects-get_user_me.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "array", Items: &jsonschema.Schema{Type: "integer"}},
+							{Type: "null"},
+						},
+					},
+					"team_ids": {
+						Description: "Filter projects by team, matching the projects any member of those teams " +
+							"belongs to.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "array", Items: &jsonschema.Schema{Type: "integer"}},
+							{Type: "null"},
+						},
+					},
+					"project_owner_ids": {
+						Description: "Filter projects by the user who owns them.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "array", Items: &jsonschema.Schema{Type: "integer"}},
+							{Type: "null"},
+						},
+					},
+					"company_ids": {
+						Description: "Filter projects by the company that owns them.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "array", Items: &jsonschema.Schema{Type: "integer"}},
+							{Type: "null"},
+						},
+					},
+					"only_starred": {
+						Description: "If true, only return the projects the calling user has starred.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "boolean"},
+							{Type: "null"},
+						},
+					},
+					"only_admin_access": {
+						Description: "If true, only return the projects the calling user administers.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "boolean"},
+							{Type: "null"},
+						},
+					},
+					"hide_observed": {
+						Description: "If true, leave out the projects the calling user only observes, keeping the " +
+							"ones they actually work on.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "boolean"},
+							{Type: "null"},
+						},
+					},
+					"include_archived": {
+						Description: "If true, return archived projects alongside the active ones; excluded by " +
+							"default.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "boolean"},
+							{Type: "null"},
+						},
+					},
+					"only_archived": {
+						Description: "If true, only return archived projects.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "boolean"},
+							{Type: "null"},
+						},
+					},
+					"include_tentative": {
+						Description: "If true, return tentative projects alongside the normal ones; excluded by " +
+							"default.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "boolean"},
+							{Type: "null"},
+						},
+					},
+					"updated_after":            helpers.DateTimeFilterSchema("Filter projects updated after."),
+					"search_term":              helpers.SearchTermSchema("projects", "name or description"),
+					"tag_ids":                  helpers.TagIDsFilterSchema("projects"),
+					"match_all_tags":           helpers.MatchAllTagsSchema(),
+					"order_by":                 projectOrdering.orderBySchema(),
+					"order_mode":               orderModeSchema(),
+					"order_by_custom_field_id": orderByFieldIDSchema("projects", "customfield"),
+					"page":                     helpers.PageSchema(),
+					"page_size":                helpers.PageSizeSchema(),
+					"verbose":                  helpers.VerboseSchema(),
+					"count_only":               helpers.CountOnlySchema("projects"),
+					"fields":                   helpers.FieldsSchema[projects.Project]("project"),
 				},
 				Required: []string{},
 			},
-			OutputSchema: helpers.WithOptionalFields(withSuggestionsSchema(projectListOutputSchema)),
+			OutputSchema: helpers.WithCountOnlySchema(
+				helpers.WithOptionalFields(withSuggestionsSchema(projectListOutputSchema)),
+			),
 		},
 		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 			var projectListRequest projects.ProjectListRequest
@@ -585,14 +741,34 @@ func ProjectList(engine *twapi.Engine) toolsets.ToolWrapper {
 				return helpers.NewToolResultTextError("failed to decode request: %s", err.Error()), nil
 			}
 			verbose := true
+			var countOnly bool
 			err := helpers.ParamGroup(arguments,
 				helpers.OptionalNumericListParam(&projectListRequest.Filters.ProjectCategoryIDs, "project_category_ids"),
+				helpers.OptionalPointerParam(&projectListRequest.Filters.IncludeSubCategories, "include_subcategories"),
+				projectStatusVocabulary.listParam(&projectListRequest.Filters.ProjectStatuses, "project_statuses"),
+				projectHealthVocabulary.listParam(&projectListRequest.Filters.ProjectHealths, "project_healths"),
+				helpers.OptionalNumericListParam(&projectListRequest.Filters.UserIDs, "user_ids"),
+				helpers.OptionalNumericListParam(&projectListRequest.Filters.TeamIDs, "team_ids"),
+				helpers.OptionalNumericListParam(&projectListRequest.Filters.ProjectOwnerIDs, "project_owner_ids"),
+				helpers.OptionalNumericListParam(&projectListRequest.Filters.ProjectCompanyIDs, "company_ids"),
+				helpers.OptionalPointerParam(&projectListRequest.Filters.OnlyStarredProjects, "only_starred"),
+				helpers.OptionalPointerParam(&projectListRequest.Filters.OnlyProjectsWithAdminAccess,
+					"only_admin_access"),
+				helpers.OptionalPointerParam(&projectListRequest.Filters.HideObservedProjects, "hide_observed"),
+				helpers.OptionalPointerParam(&projectListRequest.Filters.IncludeArchivedProjects, "include_archived"),
+				helpers.OptionalPointerParam(&projectListRequest.Filters.OnlyArchivedProjects, "only_archived"),
+				helpers.OptionalPointerParam(&projectListRequest.Filters.IncludeTentativeProjects,
+					"include_tentative"),
+				helpers.OptionalTimePointerParam(&projectListRequest.Filters.UpdatedAfter, "updated_after"),
 				helpers.OptionalParam(&projectListRequest.Filters.SearchTerm, "search_term"),
 				helpers.OptionalNumericListParam(&projectListRequest.Filters.TagIDs, "tag_ids"),
 				helpers.OptionalPointerParam(&projectListRequest.Filters.MatchAllTags, "match_all_tags"),
+				projectOrdering.param(&projectListRequest.Filters.OrderBy, &projectListRequest.Filters.OrderMode),
+				helpers.OptionalNumericParam(&projectListRequest.Filters.OrderByCustomFieldID, "order_by_custom_field_id"),
 				helpers.OptionalNumericParam(&projectListRequest.Filters.Page, "page"),
 				helpers.OptionalNumericParam(&projectListRequest.Filters.PageSize, "page_size"),
 				helpers.OptionalParam(&verbose, "verbose"),
+				helpers.OptionalParam(&countOnly, "count_only"),
 				helpers.OptionalFieldsParam[projects.Project](&projectListRequest.Filters.Fields.Projects, "fields"),
 			)
 			if err != nil {
@@ -622,6 +798,10 @@ func ProjectList(engine *twapi.Engine) toolsets.ToolWrapper {
 					projects.ProjectFieldID,
 					projects.ProjectFieldName,
 				}
+			}
+
+			if countOnly {
+				return helpers.NewCountToolResult(ctx, engine, projectListRequest, "failed to count projects")
 			}
 
 			resp, err := twapi.ExecuteRaw(ctx, engine, projectListRequest)

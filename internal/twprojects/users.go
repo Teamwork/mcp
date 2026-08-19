@@ -9,8 +9,8 @@ import (
 
 	"github.com/google/jsonschema-go/jsonschema"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
-	"github.com/teamwork/mcp/internal/helpers"
-	"github.com/teamwork/mcp/internal/toolsets"
+	"github.com/teamwork/mcp/pkg/helpers"
+	"github.com/teamwork/mcp/pkg/toolsets"
 	"github.com/teamwork/twapi-go-sdk"
 	"github.com/teamwork/twapi-go-sdk/projects"
 )
@@ -32,6 +32,14 @@ var (
 	userGetOutputSchema   *jsonschema.Schema
 	userGetMeOutputSchema *jsonschema.Schema
 	userListOutputSchema  *jsonschema.Schema
+)
+
+// userOrdering is the order-by vocabulary of the users list endpoint.
+var userOrdering = newOrdering("users",
+	projects.UserOrderByName,
+	projects.UserOrderByNameCaseInsensitive,
+	projects.UserOrderByCompany,
+	projects.UserOrderByID,
 )
 
 func init() {
@@ -446,14 +454,17 @@ func UserList(engine *twapi.Engine) toolsets.ToolWrapper {
 							{Type: "null"},
 						},
 					},
-					"page":      helpers.PageSchema(),
-					"page_size": helpers.PageSizeSchema(),
-					"verbose":   helpers.VerboseSchema(),
-					"fields":    helpers.FieldsSchema[projects.User]("user"),
+					"order_by":   userOrdering.orderBySchema(),
+					"order_mode": orderModeSchema(),
+					"page":       helpers.PageSchema(),
+					"page_size":  helpers.PageSizeSchema(),
+					"verbose":    helpers.VerboseSchema(),
+					"count_only": helpers.CountOnlySchema("users"),
+					"fields":     helpers.FieldsSchema[projects.User]("user"),
 				},
 				Required: []string{},
 			},
-			OutputSchema: helpers.WithOptionalFields(userListOutputSchema),
+			OutputSchema: helpers.WithCountOnlySchema(helpers.WithOptionalFields(userListOutputSchema)),
 		},
 		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 			var userListRequest projects.UserListRequest
@@ -463,6 +474,7 @@ func UserList(engine *twapi.Engine) toolsets.ToolWrapper {
 				return helpers.NewToolResultTextError("failed to decode request: %s", err.Error()), nil
 			}
 			verbose := true
+			var countOnly bool
 			err := helpers.ParamGroup(arguments,
 				helpers.OptionalNumericParam(&userListRequest.Path.ProjectID, "project_id"),
 				helpers.OptionalParam(&userListRequest.Filters.SearchTerm, "search_term"),
@@ -473,9 +485,11 @@ func UserList(engine *twapi.Engine) toolsets.ToolWrapper {
 						projects.UserTypeContact,
 					),
 				),
+				userOrdering.param(&userListRequest.Filters.OrderBy, &userListRequest.Filters.OrderMode),
 				helpers.OptionalNumericParam(&userListRequest.Filters.Page, "page"),
 				helpers.OptionalNumericParam(&userListRequest.Filters.PageSize, "page_size"),
 				helpers.OptionalParam(&verbose, "verbose"),
+				helpers.OptionalParam(&countOnly, "count_only"),
 				helpers.OptionalFieldsParam[projects.User](&userListRequest.Filters.Fields.Users, "fields"),
 			)
 			if err != nil {
@@ -488,6 +502,10 @@ func UserList(engine *twapi.Engine) toolsets.ToolWrapper {
 					projects.UserFieldFirstName,
 					projects.UserFieldLastName,
 				}
+			}
+
+			if countOnly {
+				return helpers.NewCountToolResult(ctx, engine, userListRequest, "failed to count users")
 			}
 
 			resp, err := twapi.ExecuteRaw(ctx, engine, userListRequest)

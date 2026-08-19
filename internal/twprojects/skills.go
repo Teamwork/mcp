@@ -9,8 +9,8 @@ import (
 
 	"github.com/google/jsonschema-go/jsonschema"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
-	"github.com/teamwork/mcp/internal/helpers"
-	"github.com/teamwork/mcp/internal/toolsets"
+	"github.com/teamwork/mcp/pkg/helpers"
+	"github.com/teamwork/mcp/pkg/toolsets"
 	"github.com/teamwork/twapi-go-sdk"
 	"github.com/teamwork/twapi-go-sdk/projects"
 )
@@ -290,14 +290,16 @@ func SkillList(engine *twapi.Engine) toolsets.ToolWrapper {
 							{Type: "null"},
 						},
 					},
-					"page":      helpers.PageSchema(),
-					"page_size": helpers.PageSizeSchema(),
-					"verbose":   helpers.VerboseSchema(),
-					"fields":    helpers.FieldsSchema[projects.Skill]("skill"),
+					"order_mode": orderModeSchema(),
+					"page":       helpers.PageSchema(),
+					"page_size":  helpers.PageSizeSchema(),
+					"verbose":    helpers.VerboseSchema(),
+					"count_only": helpers.CountOnlySchema("skills"),
+					"fields":     helpers.FieldsSchema[projects.Skill]("skill"),
 				},
 				Required: []string{},
 			},
-			OutputSchema: helpers.WithOptionalFields(skillListOutputSchema),
+			OutputSchema: helpers.WithCountOnlySchema(helpers.WithOptionalFields(skillListOutputSchema)),
 		},
 		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 			var skillListRequest projects.SkillListRequest
@@ -307,11 +309,14 @@ func SkillList(engine *twapi.Engine) toolsets.ToolWrapper {
 				return helpers.NewToolResultTextError("failed to decode request: %s", err.Error()), nil
 			}
 			verbose := true
+			var countOnly bool
 			err := helpers.ParamGroup(arguments,
 				helpers.OptionalParam(&skillListRequest.Filters.SearchTerm, "search_term"),
+				orderModeParam(&skillListRequest.Filters.OrderMode),
 				helpers.OptionalNumericParam(&skillListRequest.Filters.Page, "page"),
 				helpers.OptionalNumericParam(&skillListRequest.Filters.PageSize, "page_size"),
 				helpers.OptionalParam(&verbose, "verbose"),
+				helpers.OptionalParam(&countOnly, "count_only"),
 				helpers.OptionalFieldsParam[projects.Skill](&skillListRequest.Filters.Fields.Skills, "fields"),
 			)
 			if err != nil {
@@ -323,6 +328,10 @@ func SkillList(engine *twapi.Engine) toolsets.ToolWrapper {
 					projects.SkillFieldID,
 					projects.SkillFieldName,
 				}
+			}
+
+			if countOnly {
+				return helpers.NewCountToolResult(ctx, engine, skillListRequest, "failed to count skills")
 			}
 
 			resp, err := twapi.ExecuteRaw(ctx, engine, skillListRequest)

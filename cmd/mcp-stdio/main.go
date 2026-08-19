@@ -10,14 +10,15 @@ import (
 
 	"github.com/modelcontextprotocol/go-sdk/jsonrpc"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
-	"github.com/teamwork/mcp/internal/auth"
 	"github.com/teamwork/mcp/internal/cli"
-	"github.com/teamwork/mcp/internal/config"
-	"github.com/teamwork/mcp/internal/toolsets"
 	"github.com/teamwork/mcp/internal/twchat"
 	"github.com/teamwork/mcp/internal/twdesk"
 	"github.com/teamwork/mcp/internal/twprojects"
 	"github.com/teamwork/mcp/internal/twspaces"
+	"github.com/teamwork/mcp/pkg/auth"
+	"github.com/teamwork/mcp/pkg/config"
+	"github.com/teamwork/mcp/pkg/toolsets"
+	"github.com/teamwork/mcp/pkg/twctx"
 	"github.com/teamwork/twapi-go-sdk/session"
 )
 
@@ -54,16 +55,17 @@ func main() {
 	var authenticated bool
 	if resources.Info.BearerToken != "" {
 		// detect the installation from the bearer token
-		if info, err := auth.GetBearerInfo(ctx, resources, resources.Info.BearerToken); err != nil {
+		validator := auth.NewValidator(resources.TeamworkHTTPClient(), resources.Info.APIURL, resources.Logger())
+		if info, err := validator.GetBearerInfo(ctx, resources.Info.BearerToken); err != nil {
 			resources.Logger().Error("failed to get bearer info",
 				slog.String("error", err.Error()),
 			)
 		} else {
 			authenticated = true
 			// inject customer URL in the context
-			ctx = config.WithCustomerURL(ctx, info.URL)
+			ctx = twctx.WithCustomerURL(ctx, info.URL)
 			// inject bearer token in the context (used by Desk SDK clients)
-			ctx = config.WithBearerToken(ctx, resources.Info.BearerToken)
+			ctx = twctx.WithBearerToken(ctx, resources.Info.BearerToken)
 			// inject bearer token in the context
 			ctx = session.WithBearerTokenContext(ctx, session.NewBearerToken(resources.Info.BearerToken, info.URL))
 		}

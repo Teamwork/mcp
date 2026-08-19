@@ -9,8 +9,8 @@ import (
 
 	"github.com/google/jsonschema-go/jsonschema"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
-	"github.com/teamwork/mcp/internal/helpers"
-	"github.com/teamwork/mcp/internal/toolsets"
+	"github.com/teamwork/mcp/pkg/helpers"
+	"github.com/teamwork/mcp/pkg/toolsets"
 	twapi "github.com/teamwork/twapi-go-sdk"
 	"github.com/teamwork/twapi-go-sdk/projects"
 )
@@ -31,6 +31,13 @@ const (
 var (
 	workflowStageGetOutputSchema  *jsonschema.Schema
 	workflowStageListOutputSchema *jsonschema.Schema
+)
+
+// workflowStageOrdering is the order-by vocabulary of the workflow stages list endpoint.
+var workflowStageOrdering = newOrdering("workflow stages",
+	projects.WorkflowStageOrderByID,
+	projects.WorkflowStageOrderByName,
+	projects.WorkflowStageOrderByDisplayOrder,
 )
 
 func init() {
@@ -389,14 +396,17 @@ func WorkflowStageList(engine *twapi.Engine) toolsets.ToolWrapper {
 						Type:        "integer",
 						Description: "The ID of the workflow whose stages to list.",
 					},
-					"page":      helpers.PageSchema(),
-					"page_size": helpers.PageSizeSchema(),
-					"verbose":   helpers.VerboseSchema(),
-					"fields":    helpers.FieldsSchema[projects.WorkflowStage]("workflow stage"),
+					"order_by":   workflowStageOrdering.orderBySchema(),
+					"order_mode": orderModeSchema(),
+					"page":       helpers.PageSchema(),
+					"page_size":  helpers.PageSizeSchema(),
+					"verbose":    helpers.VerboseSchema(),
+					"count_only": helpers.CountOnlySchema("workflow stages"),
+					"fields":     helpers.FieldsSchema[projects.WorkflowStage]("workflow stage"),
 				},
 				Required: []string{"workflow_id"},
 			},
-			OutputSchema: helpers.WithOptionalFields(workflowStageListOutputSchema),
+			OutputSchema: helpers.WithCountOnlySchema(helpers.WithOptionalFields(workflowStageListOutputSchema)),
 		},
 		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 			var workflowStageListRequest projects.WorkflowStageListRequest
@@ -406,11 +416,14 @@ func WorkflowStageList(engine *twapi.Engine) toolsets.ToolWrapper {
 				return helpers.NewToolResultTextError("failed to decode request: %s", err.Error()), nil
 			}
 			verbose := true
+			var countOnly bool
 			err := helpers.ParamGroup(arguments,
 				helpers.RequiredNumericParam(&workflowStageListRequest.Path.WorkflowID, "workflow_id"),
+				workflowStageOrdering.param(&workflowStageListRequest.Filters.OrderBy, &workflowStageListRequest.Filters.OrderMode),
 				helpers.OptionalNumericParam(&workflowStageListRequest.Filters.Page, "page"),
 				helpers.OptionalNumericParam(&workflowStageListRequest.Filters.PageSize, "page_size"),
 				helpers.OptionalParam(&verbose, "verbose"),
+				helpers.OptionalParam(&countOnly, "count_only"),
 				helpers.OptionalFieldsParam[projects.WorkflowStage](&workflowStageListRequest.Filters.Fields.Stages, "fields"),
 			)
 			if err != nil {
@@ -422,6 +435,10 @@ func WorkflowStageList(engine *twapi.Engine) toolsets.ToolWrapper {
 					projects.WorkflowStageFieldID,
 					projects.WorkflowStageFieldName,
 				}
+			}
+
+			if countOnly {
+				return helpers.NewCountToolResult(ctx, engine, workflowStageListRequest, "failed to count workflow stages")
 			}
 
 			resp, err := twapi.ExecuteRaw(ctx, engine, workflowStageListRequest)

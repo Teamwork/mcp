@@ -9,8 +9,8 @@ import (
 
 	"github.com/google/jsonschema-go/jsonschema"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
-	"github.com/teamwork/mcp/internal/helpers"
-	"github.com/teamwork/mcp/internal/toolsets"
+	"github.com/teamwork/mcp/pkg/helpers"
+	"github.com/teamwork/mcp/pkg/toolsets"
 	"github.com/teamwork/twapi-go-sdk"
 	"github.com/teamwork/twapi-go-sdk/projects"
 )
@@ -30,6 +30,17 @@ const (
 var (
 	tasklistGetOutputSchema  *jsonschema.Schema
 	tasklistListOutputSchema *jsonschema.Schema
+)
+
+// tasklistOrdering is the order-by vocabulary of the task lists list endpoint.
+var tasklistOrdering = newOrdering("task lists",
+	projects.TasklistOrderByDisplayOrder,
+	projects.TasklistOrderByName,
+	projects.TasklistOrderByStatus,
+	projects.TasklistOrderByCreatedAt,
+	projects.TasklistOrderByUpdatedAt,
+	projects.TasklistOrderByProject,
+	projects.TasklistOrderByID,
 )
 
 func init() {
@@ -331,14 +342,19 @@ func TasklistList(engine *twapi.Engine) toolsets.ToolWrapper {
 						},
 						Default: []byte(`false`),
 					},
-					"page":      helpers.PageSchema(),
-					"page_size": helpers.PageSizeSchema(),
-					"verbose":   helpers.VerboseSchema(),
-					"fields":    helpers.FieldsSchema[projects.Tasklist]("tasklist"),
+					"order_by":   tasklistOrdering.orderBySchema(),
+					"order_mode": orderModeSchema(),
+					"page":       helpers.PageSchema(),
+					"page_size":  helpers.PageSizeSchema(),
+					"verbose":    helpers.VerboseSchema(),
+					"count_only": helpers.CountOnlySchema("tasklists"),
+					"fields":     helpers.FieldsSchema[projects.Tasklist]("tasklist"),
 				},
 				Required: []string{},
 			},
-			OutputSchema: helpers.WithOptionalFields(withSuggestionsSchema(tasklistListOutputSchema)),
+			OutputSchema: helpers.WithCountOnlySchema(
+				helpers.WithOptionalFields(withSuggestionsSchema(tasklistListOutputSchema)),
+			),
 		},
 		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 			var tasklistListRequest projects.TasklistListRequest
@@ -348,13 +364,16 @@ func TasklistList(engine *twapi.Engine) toolsets.ToolWrapper {
 				return helpers.NewToolResultTextError("failed to decode request: %s", err.Error()), nil
 			}
 			verbose := true
+			var countOnly bool
 			err := helpers.ParamGroup(arguments,
 				helpers.OptionalNumericParam(&tasklistListRequest.Path.ProjectID, "project_id"),
 				helpers.OptionalParam(&tasklistListRequest.Filters.SearchTerm, "search_term"),
 				helpers.OptionalPointerParam(&tasklistListRequest.Filters.ShowCompleted, "show_completed"),
+				tasklistOrdering.param(&tasklistListRequest.Filters.OrderBy, &tasklistListRequest.Filters.OrderMode),
 				helpers.OptionalNumericParam(&tasklistListRequest.Filters.Page, "page"),
 				helpers.OptionalNumericParam(&tasklistListRequest.Filters.PageSize, "page_size"),
 				helpers.OptionalParam(&verbose, "verbose"),
+				helpers.OptionalParam(&countOnly, "count_only"),
 				helpers.OptionalFieldsParam[projects.Tasklist](&tasklistListRequest.Filters.Fields.Tasklists, "fields"),
 			)
 			if err != nil {
@@ -366,6 +385,10 @@ func TasklistList(engine *twapi.Engine) toolsets.ToolWrapper {
 					projects.TasklistFieldID,
 					projects.TasklistFieldName,
 				}
+			}
+
+			if countOnly {
+				return helpers.NewCountToolResult(ctx, engine, tasklistListRequest, "failed to count tasklists")
 			}
 
 			resp, err := twapi.ExecuteRaw(ctx, engine, tasklistListRequest)

@@ -10,9 +10,9 @@ import (
 	"testing"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
-	"github.com/teamwork/mcp/internal/config"
 	"github.com/teamwork/mcp/internal/testutil"
 	"github.com/teamwork/mcp/internal/twprojects"
+	"github.com/teamwork/mcp/pkg/twctx"
 )
 
 // nearMissSearchResponse is what the search endpoint returns for a term that
@@ -416,7 +416,7 @@ const customerURL = "https://example.teamwork.com"
 func withCustomerURL(mcpServer *mcp.Server) *mcp.Server {
 	mcpServer.AddReceivingMiddleware(func(next mcp.MethodHandler) mcp.MethodHandler {
 		return func(ctx context.Context, method string, req mcp.Request) (mcp.Result, error) {
-			return next(config.WithCustomerURL(ctx, customerURL), method, req)
+			return next(twctx.WithCustomerURL(ctx, customerURL), method, req)
 		}
 	})
 	return mcpServer
@@ -444,7 +444,7 @@ func searchRequestFromRecording(t *testing.T, recorded []testutil.ProjectsRecord
 
 	var searches []testutil.ProjectsRecordedRequest
 	for _, request := range recorded {
-		if strings.Contains(request.Path, "search.json") {
+		if strings.Contains(request.URL.Path, "search.json") {
 			searches = append(searches, request)
 		}
 	}
@@ -459,7 +459,7 @@ func assertNoSuggestionSearch(t *testing.T, recorded []testutil.ProjectsRecorded
 	t.Helper()
 
 	for _, request := range recorded {
-		if strings.Contains(request.Path, "search.json") {
+		if strings.Contains(request.URL.Path, "search.json") {
 			t.Errorf("unexpected suggestion search request to %s", request.URL.String())
 		}
 	}

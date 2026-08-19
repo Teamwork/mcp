@@ -9,8 +9,8 @@ import (
 
 	"github.com/google/jsonschema-go/jsonschema"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
-	"github.com/teamwork/mcp/internal/helpers"
-	"github.com/teamwork/mcp/internal/toolsets"
+	"github.com/teamwork/mcp/pkg/helpers"
+	"github.com/teamwork/mcp/pkg/toolsets"
 	"github.com/teamwork/twapi-go-sdk"
 	"github.com/teamwork/twapi-go-sdk/projects"
 )
@@ -30,6 +30,17 @@ const (
 var (
 	messageGetOutputSchema  *jsonschema.Schema
 	messageListOutputSchema *jsonschema.Schema
+)
+
+// messageOrdering is the order-by vocabulary of the messages list endpoint.
+var messageOrdering = newOrdering("messages",
+	projects.MessageOrderByCreatedAt,
+	projects.MessageOrderByUpdatedAt,
+	projects.MessageOrderByCategory,
+	projects.MessageOrderByProject,
+	projects.MessageOrderByCreatedBy,
+	projects.MessageOrderByUnread,
+	projects.MessageOrderByID,
 )
 
 func init() {
@@ -81,7 +92,8 @@ func MessageCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 							{Type: "null"},
 						},
 					},
-					"notify": helpers.NotifySchema("Who to notify of the new message.", false),
+					"notify":          helpers.NotifySchema("Who to notify of the new message.", false),
+					"attachment_refs": attachmentRefsSchema("message"),
 				},
 				Required: []string{"title", "project_id", "body"},
 			},
@@ -102,6 +114,12 @@ func MessageCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 			if err != nil {
 				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
 			}
+
+			refs, toolResult := parseAttachmentRefs(arguments)
+			if toolResult != nil {
+				return toolResult, nil
+			}
+			messageCreateRequest.PendingFileAttachments = refs
 
 			notifyChosen, notifiers, toolResult := parseNotify(arguments, false)
 			if toolResult != nil {
@@ -365,14 +383,17 @@ func MessageList(engine *twapi.Engine) toolsets.ToolWrapper {
 					},
 					"tag_ids":        helpers.TagIDsFilterSchema("messages"),
 					"match_all_tags": helpers.MatchAllTagsSchema(),
+					"order_by":       messageOrdering.orderBySchema(),
+					"order_mode":     orderModeSchema(),
 					"page":           helpers.PageSchema(),
 					"page_size":      helpers.PageSizeSchema(),
 					"verbose":        helpers.VerboseSchema(),
+					"count_only":     helpers.CountOnlySchema("messages"),
 					"fields":         helpers.FieldsSchema[projects.Message]("message"),
 				},
 				Required: []string{},
 			},
-			OutputSchema: helpers.WithOptionalFields(messageListOutputSchema),
+			OutputSchema: helpers.WithCountOnlySchema(helpers.WithOptionalFields(messageListOutputSchema)),
 		},
 		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 			var messageListRequest projects.MessageListRequest
@@ -382,14 +403,17 @@ func MessageList(engine *twapi.Engine) toolsets.ToolWrapper {
 				return helpers.NewToolResultTextError("failed to decode request: %s", err.Error()), nil
 			}
 			verbose := true
+			var countOnly bool
 			err := helpers.ParamGroup(arguments,
 				helpers.OptionalParam(&messageListRequest.Filters.SearchTerm, "search_term"),
 				helpers.OptionalNumericListParam(&messageListRequest.Filters.ProjectIDs, "project_ids"),
 				helpers.OptionalNumericListParam(&messageListRequest.Filters.TagIDs, "tag_ids"),
 				helpers.OptionalPointerParam(&messageListRequest.Filters.MatchAllTags, "match_all_tags"),
+				messageOrdering.param(&messageListRequest.Filters.OrderBy, &messageListRequest.Filters.OrderMode),
 				helpers.OptionalNumericParam(&messageListRequest.Filters.Page, "page"),
 				helpers.OptionalNumericParam(&messageListRequest.Filters.PageSize, "page_size"),
 				helpers.OptionalParam(&verbose, "verbose"),
+				helpers.OptionalParam(&countOnly, "count_only"),
 				helpers.OptionalFieldsParam[projects.Message](&messageListRequest.Filters.Fields.Messages, "fields"),
 			)
 			if err != nil {
@@ -401,6 +425,10 @@ func MessageList(engine *twapi.Engine) toolsets.ToolWrapper {
 					projects.MessageFieldID,
 					projects.MessageFieldTitle,
 				}
+			}
+
+			if countOnly {
+				return helpers.NewCountToolResult(ctx, engine, messageListRequest, "failed to count messages")
 			}
 
 			resp, err := twapi.ExecuteRaw(ctx, engine, messageListRequest)

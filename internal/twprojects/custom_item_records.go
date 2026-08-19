@@ -11,8 +11,8 @@ import (
 
 	"github.com/google/jsonschema-go/jsonschema"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
-	"github.com/teamwork/mcp/internal/helpers"
-	"github.com/teamwork/mcp/internal/toolsets"
+	"github.com/teamwork/mcp/pkg/helpers"
+	"github.com/teamwork/mcp/pkg/toolsets"
 	twapi "github.com/teamwork/twapi-go-sdk"
 	"github.com/teamwork/twapi-go-sdk/projects"
 )
@@ -29,6 +29,14 @@ const (
 var (
 	customItemRecordGetOutputSchema  *jsonschema.Schema
 	customItemRecordListOutputSchema *jsonschema.Schema
+)
+
+// customItemRecordOrdering is the order-by vocabulary of the custom item records list endpoint.
+var customItemRecordOrdering = newOrdering("custom item records",
+	projects.CustomItemRecordOrderByDisplayOrder,
+	projects.CustomItemRecordOrderByName,
+	projects.CustomItemRecordOrderByCustomItemField,
+	projects.CustomItemRecordOrderByID,
 )
 
 func init() {
@@ -508,20 +516,16 @@ func CustomItemRecordList(engine *twapi.Engine) toolsets.ToolWrapper {
 							{Type: "null"},
 						},
 					},
-					"order_by": {
-						Description: "Field to sort by.",
-						AnyOf: []*jsonschema.Schema{
-							{Type: "string", Enum: []any{"name", "displayorder", "customitemfield"}},
-							{Type: "null"},
-						},
-					},
-					"order_mode": helpers.OrderDirectionSchema(),
-					"page":       helpers.PageSchema(),
-					"page_size":  helpers.PageSizeSchema(),
+					"order_by":          customItemRecordOrdering.orderBySchema(),
+					"order_mode":        orderModeSchema(),
+					"order_by_field_id": orderByFieldIDSchema("records", "customitemfield"),
+					"page":              helpers.PageSchema(),
+					"page_size":         helpers.PageSizeSchema(),
+					"count_only":        helpers.CountOnlySchema("custom item records"),
 				},
 				Required: []string{"custom_item_id"},
 			},
-			OutputSchema: helpers.WithOptionalFields(customItemRecordListOutputSchema),
+			OutputSchema: helpers.WithCountOnlySchema(helpers.WithOptionalFields(customItemRecordListOutputSchema)),
 		},
 		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 			var arguments map[string]any
@@ -530,24 +534,18 @@ func CustomItemRecordList(engine *twapi.Engine) toolsets.ToolWrapper {
 			}
 
 			req := projects.NewCustomItemRecordListRequest(0)
+			var countOnly bool
 			err := helpers.ParamGroup(arguments,
 				helpers.RequiredNumericParam(&req.Path.CustomItemID, "custom_item_id"),
 				helpers.OptionalParam(&req.Filters.SearchTerm, "search_term"),
 				helpers.OptionalNumericListParam(&req.Filters.IDs, "ids"),
 				helpers.OptionalNumericListParam(&req.Filters.SectionIDs, "section_ids"),
 				helpers.OptionalPointerParam(&req.Filters.ShowDeleted, "show_deleted"),
-				helpers.OptionalParam(&req.Filters.OrderBy, "order_by",
-					helpers.RestrictValues(
-						projects.CustomItemRecordOrderByName,
-						projects.CustomItemRecordOrderByDisplayOrder,
-						projects.CustomItemRecordOrderByCustomItemField,
-					),
-				),
-				helpers.OptionalParam(&req.Filters.OrderMode, "order_mode",
-					helpers.RestrictValues(twapi.OrderModeAscending, twapi.OrderModeDescending),
-				),
+				customItemRecordOrdering.param(&req.Filters.OrderBy, &req.Filters.OrderMode),
+				helpers.OptionalNumericParam(&req.Filters.OrderByFieldID, "order_by_field_id"),
 				helpers.OptionalNumericParam(&req.Filters.Page, "page"),
 				helpers.OptionalNumericParam(&req.Filters.PageSize, "page_size"),
+				helpers.OptionalParam(&countOnly, "count_only"),
 			)
 			if err != nil {
 				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
@@ -559,6 +557,10 @@ func CustomItemRecordList(engine *twapi.Engine) toolsets.ToolWrapper {
 				req.Filters.PageSize = 25
 			} else if req.Filters.PageSize > 100 {
 				req.Filters.PageSize = 100
+			}
+
+			if countOnly {
+				return helpers.NewCountToolResult(ctx, engine, req, "failed to count custom item records")
 			}
 
 			resp, err := projects.CustomItemRecordList(ctx, engine, req)
