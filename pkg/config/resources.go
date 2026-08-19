@@ -17,6 +17,7 @@ const (
 
 	defaultServerName  = "Teamwork.com"
 	defaultServerTitle = "Teamwork.com Model Context Protocol"
+	defaultMCPURL      = "https://mcp.ai.teamwork.com"
 )
 
 // Version is the current version of the MCP server. It is set at build time
@@ -103,6 +104,7 @@ type options struct {
 	envPrefix string
 	name      string
 	title     string
+	mcpURL    string
 	profiles  []string
 }
 
@@ -123,6 +125,17 @@ func WithServerIdentity(name, title string) Option {
 	}
 }
 
+// WithDefaultMCPURL sets the base URL this server reports as its own resource
+// identifier when the environment does not say. It must identify *this* server:
+// it is the "resource" in the RFC 9728 protected-resource metadata and the
+// resource_metadata pointer in every 401 challenge, so a server left on another
+// server's URL sends clients to authorise against the wrong resource.
+//
+// The environment variable still wins, so a deployment can override it.
+func WithDefaultMCPURL(url string) Option {
+	return func(o *options) { o.mcpURL = url }
+}
+
 // WithProfiles sets the named toolset profiles this server exposes as URL path
 // prefixes.
 func WithProfiles(profiles ...string) Option {
@@ -134,6 +147,7 @@ func newOptions(opts ...Option) options {
 		envPrefix: defaultEnvPrefix,
 		name:      defaultServerName,
 		title:     defaultServerTitle,
+		mcpURL:    defaultMCPURL,
 	}
 	for _, opt := range opts {
 		opt(&resolved)
@@ -157,7 +171,7 @@ func newResources(opts options) Resources {
 	resources.Info.ServerAddress = env("SERVER_ADDRESS", ":8080")
 	resources.Info.Environment = env("ENV", "dev")
 	resources.Info.AWSRegion = env("AWS_REGION", "us-east-1")
-	resources.Info.MCPURL = strings.TrimSuffix(env("URL", "https://mcp.ai.teamwork.com"), "/")
+	resources.Info.MCPURL = strings.TrimSuffix(env("URL", opts.mcpURL), "/")
 	resources.Info.MCPProfiles = profiles
 	resources.Info.APIURL = strings.TrimSuffix(env("API_URL", "https://teamwork.com"), "/")
 	resources.Info.HAProxyURL = env("HAPROXY_URL", "")
