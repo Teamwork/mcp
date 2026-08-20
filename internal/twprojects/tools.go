@@ -193,14 +193,17 @@ func DefaultToolsetGroup(readOnly, allowDelete bool, engine *twapi.Engine) *tool
 		AllocationUpdate(engine),
 		AllocationTaskLink(engine),
 		AllocationTaskUnlink(engine),
+		// Restore is not gated with delete. It undoes a deletion rather than
+		// performing one, and it acts on anything soft-deleted by any client, not
+		// just what delete_allocation removed — so a deployment without deletes
+		// still has plenty for it to recover. Gating it would also leave
+		// list_allocations able to find deleted allocations, being a read tool,
+		// with no way to act on them.
+		AllocationRestore(engine),
 	}
 	if allowDelete {
-		// Restore is gated with delete rather than shipped as a plain write: it
-		// only ever applies to a row a delete created, so a deployment without
-		// deletes has nothing for it to act on.
 		planningWriteTools = append(planningWriteTools,
 			AllocationDelete(engine),
-			AllocationRestore(engine),
 		)
 	}
 	planningToolset := toolsets.NewToolset(ToolsetPlanning, planningDescription).
