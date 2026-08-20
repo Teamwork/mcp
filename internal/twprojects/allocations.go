@@ -126,6 +126,7 @@ func allocationUpsertParams(upsert *projects.AllocationUpsert) []helpers.ParamFu
 		helpers.OptionalPointerParam(&upsert.Color, "color"),
 		helpers.OptionalPointerParam(&upsert.IsBillable, "is_billable"),
 		helpers.OptionalPointerParam(&upsert.IgnoreCollisions, "ignore_collisions"),
+		helpers.OptionalPointerParam(&upsert.InformOfOverAllocation, "inform_of_over_allocation"),
 		helpers.OptionalNumericListParam(&upsert.LinkedTaskIDs, "linked_task_ids"),
 	}
 }
@@ -204,9 +205,19 @@ func allocationUpsertProperties(required bool) map[string]*jsonschema.Schema {
 				{Type: "null"},
 			},
 		},
+		"inform_of_over_allocation": {
+			Description: "Accept a change that puts the user over their capacity and report it, rather than " +
+				"rejecting it. Defaults to true, and the result says so when it happens. Turning it off means an " +
+				"over-allocating change is refused outright.",
+			AnyOf: []*jsonschema.Schema{
+				{Type: "boolean"},
+				{Type: "null"},
+			},
+		},
 		"ignore_collisions": {
-			Description: "Place the allocation even though its range overlaps another allocation for the same user " +
-				"on the same project. Without this an overlap is rejected.",
+			Description: "Skip the capacity check altogether. Prefer inform_of_over_allocation: this one also " +
+				"lets the change through, but suppresses the over-allocation report with it, so nobody is told " +
+				"the person is over-booked. It takes precedence when both are set.",
 			AnyOf: []*jsonschema.Schema{
 				{Type: "boolean"},
 				{Type: "null"},
@@ -259,9 +270,22 @@ func AllocationCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
 			}
 
+			// Default the report on. Left off, a change that overruns the user's
+			// capacity is refused, and the caller's only other lever is
+			// ignore_collisions, which lets it through while hiding that it
+			// happened — the worst of the three outcomes for a caller acting on
+			// someone else's schedule.
+			if allocationCreateRequest.Allocation.InformOfOverAllocation == nil {
+				allocationCreateRequest.Allocation.InformOfOverAllocation = new(true)
+			}
+
 			allocation, err := projects.AllocationCreate(ctx, engine, allocationCreateRequest)
 			if err != nil {
 				return helpers.HandleAPIError(err, "failed to create allocation")
+			}
+			if allocation.Allocation.OverAllocated {
+				return helpers.NewToolResultText("Allocation created successfully with ID %d. Note that it puts "+
+					"the assigned user over their capacity for this period.", allocation.Allocation.ID), nil
 			}
 			return helpers.NewToolResultText("Allocation created successfully with ID %d",
 				allocation.Allocation.ID), nil
@@ -309,8 +333,17 @@ func AllocationUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
 			}
 
-			if _, err := projects.AllocationUpdate(ctx, engine, allocationUpdateRequest); err != nil {
+			if allocationUpdateRequest.Allocation.InformOfOverAllocation == nil {
+				allocationUpdateRequest.Allocation.InformOfOverAllocation = new(true)
+			}
+
+			allocation, err := projects.AllocationUpdate(ctx, engine, allocationUpdateRequest)
+			if err != nil {
 				return helpers.HandleAPIError(err, "failed to update allocation")
+			}
+			if allocation.Allocation.OverAllocated {
+				return helpers.NewToolResultText("Allocation updated successfully. Note that it puts the assigned " +
+					"user over their capacity for this period."), nil
 			}
 			return helpers.NewToolResultText("Allocation updated successfully"), nil
 		},

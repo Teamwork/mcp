@@ -2,7 +2,9 @@ package twprojects_test
 
 import (
 	"encoding/json"
+	"maps"
 	"net/http"
+	"strings"
 	"testing"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
@@ -54,23 +56,24 @@ func TestAllocationCreate(t *testing.T) {
 		t.Fatalf("failed to decode request body: %s", err)
 	}
 	want := map[string]any{
-		"projectId":        float64(777),
-		"assignedUserID":   float64(456),
-		"title":            "Design phase",
-		"startedAt":        "2026-09-01",
-		"endedAt":          "2026-09-30",
-		"secondsPerDay":    float64(14400),
-		"color":            "#3c8f7c",
-		"description":      "Four hours a day",
-		"isBillable":       true,
-		"ignoreCollisions": true,
+		"projectId":              float64(777),
+		"assignedUserID":         float64(456),
+		"title":                  "Design phase",
+		"startedAt":              "2026-09-01",
+		"endedAt":                "2026-09-30",
+		"secondsPerDay":          float64(14400),
+		"color":                  "#3c8f7c",
+		"description":            "Four hours a day",
+		"isBillable":             true,
+		"ignoreCollisions":       true,
+		"informOfOverAllocation": true,
 	}
 	for key, expected := range want {
 		if got := payload.Allocation[key]; got != expected {
 			t.Errorf("expected %s to be %v, got %v", key, expected, got)
 		}
 	}
-	if got := payload.Allocation["linkedTaskIds"]; len(got.([]any)) != 2 {
+	if got := payload.Allocation["linkedTaskIDs"]; len(got.([]any)) != 2 {
 		t.Errorf("expected two linked task ids, got %v", got)
 	}
 }
@@ -99,7 +102,7 @@ func TestAllocationCreateOmitsUnsetOptionals(t *testing.T) {
 		t.Fatalf("failed to decode request body: %s", err)
 	}
 	for _, key := range []string{
-		"description", "isBillable", "ignoreCollisions", "linkedTaskIds", "duration", "hoursPerDay",
+		"description", "isBillable", "ignoreCollisions", "linkedTaskIDs", "duration", "hoursPerDay",
 		"distributeType", "recurringRule",
 	} {
 		if _, ok := payload.Allocation[key]; ok {
@@ -490,4 +493,170 @@ func TestAllocationAPIFailuresAreToolResults(t *testing.T) {
 			})
 		}
 	}
+}
+
+// TestAllocationUnmodelledAttributesAreNotWritable pins the invariant behind
+// leaving distributeType and linkedTaskLoggedTime unmodelled rather than
+// stripping them from responses: neither is exposed as a parameter, so no
+// caller can set one. list_allocations streams the API's body verbatim and
+// therefore still returns both, which is accepted precisely because they are
+// read-only from here — an argument naming either is dropped by the binder and
+// never reaches the payload, whichever convention it is spelled in.
+func TestAllocationUnmodelledAttributesAreNotWritable(t *testing.T) {
+	required := map[string]any{
+		"project_id":       float64(777),
+		"assigned_user_id": float64(456),
+		"title":            "Design phase",
+		"start_date":       "2026-09-01",
+		"end_date":         "2026-09-30",
+		"seconds_per_day":  float64(14400),
+		"color":            "#3c8f7c",
+	}
+
+	for _, key := range []string{
+		"distribute_type", "distributeType",
+		"linked_task_logged_time", "linkedTaskLoggedTime",
+	} {
+		t.Run(key, func(t *testing.T) {
+			args := maps.Clone(required)
+			args[key] = "distributed"
+
+			mcpServer, body := mcpServerMockWithRequestBody(t, http.StatusCreated,
+				[]byte(`{"allocation":{"id":12345}}`))
+			testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodAllocationCreate.String(), args)
+
+			sent := string(*body)
+			for _, unwritable := range []string{"distributeType", "linkedTaskLoggedTime"} {
+				if strings.Contains(sent, unwritable) {
+					t.Errorf("argument %q put %s on the wire: %s", key, unwritable, sent)
+				}
+			}
+		})
+	}
+}
+
+// TestAllocationOverAllocationIsReportedNotHidden pins the two halves of the
+// capacity posture. informOfOverAllocation is defaulted on, so a change that
+// overruns the user's capacity goes through instead of being refused; and when
+// the API reports it, the result says so rather than reading as a clean
+// success. Without the second half the flag would be worse than useless — the
+// change would land and nobody would be told.
+func TestAllocationOverAllocationIsReportedNotHidden(t *testing.T) {
+	required := map[string]any{
+		"project_id":       float64(777),
+		"assigned_user_id": float64(456),
+		"title":            "Design phase",
+		"start_date":       "2026-09-01",
+		"end_date":         "2026-09-30",
+		"seconds_per_day":  float64(14400),
+		"color":            "#3c8f7c",
+	}
+
+	t.Run("defaulted on when unset", func(t *testing.T) {
+		mcpServer, body := mcpServerMockWithRequestBody(t, http.StatusCreated,
+			[]byte(`{"allocation":{"id":12345}}`))
+		testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodAllocationCreate.String(), required)
+
+		var payload struct {
+			Allocation map[string]any `json:"allocation"`
+		}
+		if err := json.Unmarshal(*body, &payload); err != nil {
+			t.Fatalf("failed to decode request body: %s", err)
+		}
+		if payload.Allocation["informOfOverAllocation"] != true {
+			t.Errorf("expected informOfOverAllocation to default to true, got %v",
+				payload.Allocation["informOfOverAllocation"])
+		}
+	})
+
+	t.Run("caller can turn it off", func(t *testing.T) {
+		args := maps.Clone(required)
+		args["inform_of_over_allocation"] = false
+
+		mcpServer, body := mcpServerMockWithRequestBody(t, http.StatusCreated,
+			[]byte(`{"allocation":{"id":12345}}`))
+		testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodAllocationCreate.String(), args)
+
+		var payload struct {
+			Allocation map[string]any `json:"allocation"`
+		}
+		if err := json.Unmarshal(*body, &payload); err != nil {
+			t.Fatalf("failed to decode request body: %s", err)
+		}
+		if payload.Allocation["informOfOverAllocation"] != false {
+			t.Errorf("expected an explicit false to survive, got %v",
+				payload.Allocation["informOfOverAllocation"])
+		}
+	})
+
+	for _, tc := range []struct {
+		name   string
+		method string
+		status int
+		args   map[string]any
+	}{{
+		name:   "create",
+		method: twprojects.MethodAllocationCreate.String(),
+		status: http.StatusCreated,
+		args:   required,
+	}, {
+		name:   "update",
+		method: twprojects.MethodAllocationUpdate.String(),
+		status: http.StatusOK,
+		args:   map[string]any{"id": float64(12345), "end_date": "2026-10-31"},
+	}} {
+		t.Run(tc.name+" reports it back", func(t *testing.T) {
+			mcpServer := mcpServerMock(t, tc.status,
+				[]byte(`{"allocation":{"id":12345,"overAllocated":true}}`))
+			testutil.ExecuteToolRequest(t, mcpServer, tc.method, tc.args,
+				testutil.ExecuteToolRequestWithCheckMessage(func(t *testing.T, result mcp.Result) {
+					t.Helper()
+					testutil.CheckMessage(t, result)
+
+					var text string
+					for _, content := range result.(*mcp.CallToolResult).Content {
+						if textContent, ok := content.(*mcp.TextContent); ok {
+							text += textContent.Text
+						}
+					}
+					if !strings.Contains(text, "over their capacity") {
+						t.Errorf("expected the result to report the over-allocation, got %q", text)
+					}
+				}))
+		})
+	}
+}
+
+// TestAllocationGetReturnsSideloads pins that the sideloads the tool requests
+// reach the caller. The typed response carried no Included struct at first, so
+// get_allocation asked for include=projects,assignee and then dropped both on
+// decode — the query string looked correct and the related objects never
+// arrived. The result is also validated against the published output schema,
+// since the sideloads widened it.
+func TestAllocationGetReturnsSideloads(t *testing.T) {
+	body := `{"allocation":` + allocationBody + `,"included":{
+		"projects":{"777":{"id":777,"name":"Example Project"}},
+		"users":{"456":{"id":456,"firstName":"John","lastName":"Doe"}},
+		"jobRoles":{"222":{"id":222,"name":"Creative Director"}}
+	}}`
+
+	mcpServer := mcpServerMock(t, http.StatusOK, []byte(body))
+	testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodAllocationGet.String(), map[string]any{
+		"id": float64(12345),
+	}, testutil.ExecuteToolRequestWithCheckMessage(func(t *testing.T, result mcp.Result) {
+		t.Helper()
+		checkStructuredContentMatchesOutputSchema(twprojects.MethodAllocationGet.String())(t, result)
+
+		var text string
+		for _, content := range result.(*mcp.CallToolResult).Content {
+			if textContent, ok := content.(*mcp.TextContent); ok {
+				text += textContent.Text
+			}
+		}
+		for _, want := range []string{"Example Project", "John", "Creative Director"} {
+			if !strings.Contains(text, want) {
+				t.Errorf("expected the sideloaded %q to reach the caller, got %s", want, text)
+			}
+		}
+	}))
 }
