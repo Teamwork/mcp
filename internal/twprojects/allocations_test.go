@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"maps"
 	"net/http"
+	"slices"
 	"strings"
 	"testing"
 
@@ -240,14 +241,17 @@ func TestAllocationGetSideloads(t *testing.T) {
 			}
 			testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodAllocationGet.String(), args)
 
-			got := lastURL.Query()["include"]
-			if len(got) != len(tt.want) {
-				t.Fatalf("expected includes %v, got %v", tt.want, got)
+			// One comma-separated parameter, not one parameter per sideload:
+			// the endpoint reads only the first `include` it receives and drops
+			// repeated ones, so the request would succeed carrying just the
+			// first sideload. Assert the raw query, because url.Values renders
+			// both encodings as a slice and hides the difference.
+			raw := lastURL.RawQuery
+			if got := strings.Count(raw, "include="); got != 1 {
+				t.Errorf("expected exactly one include parameter, got %d in %q", got, raw)
 			}
-			for i, want := range tt.want {
-				if got[i] != want {
-					t.Errorf("expected include %d to be %q, got %q", i, want, got[i])
-				}
+			if want := strings.Join(tt.want, ","); lastURL.Query().Get("include") != want {
+				t.Errorf("expected include=%q, got %q", want, lastURL.Query().Get("include"))
 			}
 		})
 	}
@@ -395,12 +399,12 @@ func TestAllocationListFinancialDetailsIsOptIn(t *testing.T) {
 				[]byte(`{"allocations":[]}`))
 			testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodAllocationList.String(), tt.args)
 
-			var found bool
-			for _, include := range lastURL.Query()["include"] {
-				if include == "financialDetails" {
-					found = true
-				}
-			}
+			// the sideloads travel as one comma-separated value, so this is a
+			// membership check within it rather than over separate parameters
+			found := slices.Contains(
+				strings.Split(lastURL.Query().Get("include"), ","),
+				"financialDetails",
+			)
 			if found != tt.want {
 				t.Errorf("expected financialDetails sideload %v, got %v", tt.want, found)
 			}
