@@ -1,0 +1,58 @@
+# Publishes docs/index.html — the generated tool reference — to GitHub Pages.
+#
+# The page is committed, and `go test ./cmd/docs-gen` fails when it drifts from
+# the registered toolsets, so this workflow only has to serve what is already in
+# the tree. Every action here is GitHub-owned, which the repository's Actions
+# policy allows without an allow-list entry.
+name: Pages
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - docs/index.html
+      - .github/workflows/pages.yaml
+  workflow_dispatch:
+
+# GITHUB_TOKEN needs pages:write to deploy and id-token:write for the deployment
+# to prove it came from this workflow.
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Never run two deployments at once, and let an in-flight one finish rather than
+# cancelling it half-published.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      # Only the generated page is published. docs/ also holds Markdown meant to
+      # be read on GitHub, which would otherwise be served as raw downloads.
+      - name: Assemble the site
+        run: |
+          mkdir -p _site
+          cp docs/index.html _site/index.html
+
+      - uses: actions/configure-pages@v6
+
+      - uses: actions/upload-pages-artifact@v5
+        with:
+          path: _site
+
+      - id: deploy
+        uses: actions/deploy-pages@v5
