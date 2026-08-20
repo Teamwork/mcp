@@ -1,0 +1,2223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Teamwork.com MCP Server — Tool Reference</title>
+<meta name="description" content="Every tool the Teamwork.com MCP server exposes to an AI client: 207 tools across 14 toolsets and 4 products, generated from the server's own registry.">
+<meta property="og:title" content="Teamwork.com MCP Server — Tool Reference">
+<meta property="og:description" content="207 tools across 4 Teamwork.com products, generated from the server's own toolset registry.">
+<meta property="og:type" content="website">
+<link rel="icon" href="data:image/svg+xml,image/svg&#43;xml,%3Csvg%20width=%2252%22%20height=%2250%22%20viewBox=%220%200%2052%2050%22%20fill=%22none%22%20xmlns=%22http:%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%0A%3Cellipse%20cx=%2226.2857%22%20cy=%2225%22%20rx=%2225.7143%22%20ry=%2225%22%20fill=%22%231D1C39%22%2F%3E%0A%3Cpath%20d=%22M27.7099%2020.8746C29.0831%2020.8746%2029.8737%2020.1463%2029.8737%2018.8922C29.8737%2017.7189%2029.0415%2016.9098%2027.7515%2016.9098H24.6305V14.6847C24.6305%2013.0664%2023.4237%2012.2168%2022.2586%2012.2168C21.0934%2012.2168%2019.8867%2013.0664%2019.8867%2014.6847V30.1392C19.8867%2033.8612%2021.4263%2035.52%2024.8386%2035.52C26.6695%2035.52%2027.7515%2035.0749%2028.5421%2034.5895C29.1247%2034.2658%2029.3744%2033.578%2029.3744%2033.0521C29.3744%2032.0407%2028.7086%2030.9483%2027.7099%2030.9483C27.585%2030.9483%2027.4186%2030.9888%2027.2937%2031.0292C27.2521%2031.0697%2027.1689%2031.0697%2027.1273%2031.1102C26.8776%2031.2315%2026.5031%2031.3934%2026.0037%2031.3934C25.3795%2031.3934%2024.6721%2031.1911%2024.6721%2029.5323V20.8746H27.7099Z%22%20fill=%22white%22%2F%3E%0A%3Cpath%20d=%22M37.863%2027.3887C35.5743%2027.3887%2033.7017%2029.2092%2033.7017%2031.4344C33.7017%2033.6595%2035.5743%2035.48%2037.863%2035.48C40.1517%2035.48%2042.0243%2033.6595%2042.0243%2031.4344C42.0243%2029.1688%2040.1517%2027.3887%2037.863%2027.3887Z%22%20fill=%22%23FF22B1%22%2F%3E%0A%3C%2Fsvg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Work+Sans:wght@400;500;600;700&display=swap">
+<style>
+/* Teamwork.com brand tokens. Colours and type are taken from the published
+   brand guidelines (https://www.teamwork.com/brand/) and the design tokens the
+   marketing site ships, so this page sits alongside teamwork.com rather than
+   inventing a second palette. Pink is an accent only: the guidelines forbid it
+   on large blocks of text and on buttons. */
+:root {
+  --tw-slate: #1d1c39;
+  --tw-slate-100: #0b0e1f;
+  --tw-slate-60: #373753;
+  --tw-slate-40: #494e6a;
+  --tw-slate-20: #727491;
+  --tw-slate-10: #b8b9c8;
+  --tw-violet: #1f0f4a;
+  --tw-pink: #ff22b1;
+  --tw-pink-20: #f8cae8;
+  --tw-purple: #6438e0;
+  --tw-purple-10: #f3effe;
+  --tw-indigo: #6a84ed;
+  --tw-indigo-100: #323e9c;
+  --tw-indigo-bg: #eff1fb;
+  --tw-orange: #f45721;
+  --tw-orange-10: #fff6f2;
+  --tw-orange-20: #ffcfb7;
+  --tw-ivory: #fff9f2;
+  --tw-white: #fff;
+  --tw-neutral-20: #f5f7fa;
+  --tw-neutral-30: #eef1f6;
+  --tw-neutral-40: #e7ebf1;
+  --tw-neutral-60: #d6dee7;
+  --tw-neutral-100: #a7acc5;
+
+  --radius: 8px;
+  --radius-lg: 12px;
+  --radius-pill: 32px;
+  --shadow: 0 1px 2px rgba(29, 28, 57, .05), 0 8px 24px rgba(29, 28, 57, .06);
+  --font: "Work Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, Helvetica, sans-serif;
+  --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  --wrap: 1120px;
+}
+
+* { box-sizing: border-box; }
+
+html { scroll-behavior: smooth; scroll-padding-top: 88px; }
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  * { transition: none !important; }
+}
+
+body {
+  margin: 0;
+  font-family: var(--font);
+  font-weight: 400;
+  font-size: 17px;
+  line-height: 1.6;
+  color: var(--tw-slate);
+  background: var(--tw-ivory);
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3, h4 {
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: 0;
+  text-wrap: balance;
+  margin: 0;
+}
+
+a { color: var(--tw-purple); }
+a:hover { color: var(--tw-slate); }
+
+.wrap { max-width: var(--wrap); margin: 0 auto; padding: 0 24px; }
+
+.eyebrow {
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--tw-purple);
+  margin: 0 0 16px;
+}
+
+/* ---------------------------------------------------------------- masthead */
+.masthead {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  background: rgba(255, 249, 242, .92);
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--tw-neutral-40);
+}
+
+.masthead .wrap {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  height: 64px;
+}
+
+.masthead__logo { display: flex; align-items: center; }
+.masthead__logo svg { display: block; height: 19px; width: auto; }
+
+.masthead__divider {
+  width: 1px;
+  height: 22px;
+  background: var(--tw-neutral-60);
+}
+
+.masthead__product {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--tw-slate-40);
+}
+
+.masthead__spacer { flex: 1; }
+
+.masthead__link {
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--tw-slate-40);
+  text-decoration: none;
+}
+.masthead__link:hover { color: var(--tw-slate); }
+
+/* -------------------------------------------------------------------- hero */
+.hero {
+  background:
+    radial-gradient(90% 120% at 88% -10%, rgba(100, 56, 224, .13), transparent 58%),
+    radial-gradient(70% 90% at 4% 0%, rgba(106, 132, 237, .12), transparent 55%),
+    var(--tw-ivory);
+  border-bottom: 1px solid var(--tw-neutral-40);
+  padding: 76px 0 60px;
+}
+
+.hero h1 {
+  font-size: clamp(2.4rem, 5.4vw, 3.5rem);
+  max-width: 20ch;
+  margin-bottom: 22px;
+}
+
+.hero h1 .accent { color: var(--tw-purple); }
+
+.hero__lede {
+  font-size: 1.2rem;
+  color: var(--tw-slate-40);
+  max-width: 62ch;
+  margin: 0 0 36px;
+}
+
+.stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.stat {
+  background: var(--tw-white);
+  border: 1px solid var(--tw-neutral-40);
+  border-radius: var(--radius-lg);
+  padding: 18px 20px;
+  box-shadow: var(--shadow);
+}
+
+.stat__n {
+  display: block;
+  font-size: 2rem;
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: -.01em;
+}
+
+.stat__l {
+  display: block;
+  margin-top: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--tw-slate-20);
+}
+
+/* ---------------------------------------------------------------- sections */
+section { padding: 64px 0; border-bottom: 1px solid var(--tw-neutral-40); }
+section:last-of-type { border-bottom: none; }
+
+.section-head { margin-bottom: 32px; max-width: 72ch; }
+.section-head h2 { font-size: clamp(1.6rem, 3.2vw, 2.1rem); margin-bottom: 12px; }
+.section-head p { margin: 0; color: var(--tw-slate-40); }
+
+/* ----------------------------------------------------------------- connect */
+.connect { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr); gap: 24px; align-items: start; }
+
+.panel {
+  background: var(--tw-white);
+  border: 1px solid var(--tw-neutral-40);
+  border-radius: var(--radius-lg);
+  padding: 26px;
+  box-shadow: var(--shadow);
+}
+
+.panel h3 { font-size: 1.15rem; margin-bottom: 10px; }
+.panel p { color: var(--tw-slate-40); margin: 0 0 16px; font-size: .97rem; }
+
+.endpoint {
+  font-family: var(--mono);
+  font-size: 14px;
+  background: var(--tw-slate);
+  color: var(--tw-white);
+  border-radius: var(--radius);
+  padding: 13px 16px;
+  display: block;
+  overflow-x: auto;
+  white-space: nowrap;
+}
+
+.profiles { width: 100%; border-collapse: collapse; font-size: .95rem; }
+.profiles th {
+  text-align: left;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--tw-slate-20);
+  padding: 0 12px 8px 0;
+  border-bottom: 1px solid var(--tw-neutral-40);
+}
+.profiles td { padding: 11px 12px 11px 0; border-bottom: 1px solid var(--tw-neutral-30); vertical-align: top; }
+.profiles tr:last-child td { border-bottom: none; }
+.profiles code { font-family: var(--mono); font-size: 13px; color: var(--tw-indigo-100); overflow-wrap: anywhere; }
+.profiles .profiles__sets { color: var(--tw-slate-40); font-size: .9rem; }
+
+/* -------------------------------------------------------------- controls */
+.controls {
+  position: sticky;
+  top: 64px;
+  z-index: 20;
+  background: var(--tw-ivory);
+  border-bottom: 1px solid var(--tw-neutral-40);
+  padding: 14px 0;
+  margin-bottom: 34px;
+}
+
+.controls__row { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+
+.search {
+  flex: 1 1 260px;
+  min-width: 0;
+  font-family: var(--font);
+  font-size: 15px;
+  color: var(--tw-slate);
+  background: var(--tw-white);
+  border: 1px solid var(--tw-neutral-60);
+  border-radius: var(--radius-pill);
+  padding: 11px 18px;
+}
+.search:focus { outline: 2px solid var(--tw-purple); outline-offset: 1px; border-color: transparent; }
+.search::placeholder { color: var(--tw-neutral-100); }
+
+.chips { display: flex; gap: 8px; }
+
+.chip {
+  font-family: var(--font);
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--tw-slate-40);
+  background: var(--tw-white);
+  border: 1px solid var(--tw-neutral-60);
+  border-radius: var(--radius-pill);
+  padding: 9px 16px;
+  cursor: pointer;
+}
+.chip:hover { border-color: var(--tw-slate-10); }
+.chip[aria-pressed="true"] { background: var(--tw-slate); border-color: var(--tw-slate); color: var(--tw-white); }
+.chip:focus-visible { outline: 2px solid var(--tw-purple); outline-offset: 2px; }
+
+.controls__count { font-size: 14px; color: var(--tw-slate-20); margin-left: auto; }
+
+/* --------------------------------------------------------------- products */
+.product { margin-bottom: 48px; }
+
+.product__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  padding-bottom: 14px;
+  border-bottom: 2px solid var(--tw-slate);
+  margin-bottom: 24px;
+}
+
+.product__name { font-size: 1.6rem; }
+
+.product__scope {
+  font-family: var(--mono);
+  font-size: 12.5px;
+  color: var(--tw-slate-40);
+  background: var(--tw-neutral-30);
+  border-radius: var(--radius-pill);
+  padding: 4px 12px;
+}
+
+.product__counts { margin-left: auto; font-size: 14px; color: var(--tw-slate-20); }
+
+.toolset {
+  background: var(--tw-white);
+  border: 1px solid var(--tw-neutral-40);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  margin-bottom: 16px;
+  box-shadow: var(--shadow);
+}
+
+.toolset__head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 10px; margin-bottom: 8px; }
+.toolset__title { font-size: 1.2rem; }
+.toolset__method { font-family: var(--mono); font-size: 13px; color: var(--tw-slate-20); }
+.toolset__desc { color: var(--tw-slate-40); margin: 0 0 20px; font-size: .97rem; max-width: 78ch; }
+
+.subhead {
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--tw-slate-20);
+  margin: 0 0 10px;
+}
+
+/* ------------------------------------------------------------ CRUD matrix */
+.matrix-scroll { overflow-x: auto; margin-bottom: 22px; }
+
+.matrix { border-collapse: collapse; font-size: .93rem; min-width: 420px; }
+.matrix thead th {
+  text-align: left;
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--tw-slate-20);
+  padding: 0 18px 8px 0;
+  border-bottom: 1px solid var(--tw-neutral-40);
+  white-space: nowrap;
+}
+.matrix thead th:first-child { min-width: 190px; }
+.matrix tbody th {
+  text-align: left;
+  font-weight: 500;
+  color: var(--tw-slate);
+  padding: 7px 18px 7px 0;
+  border-bottom: 1px solid var(--tw-neutral-30);
+  white-space: nowrap;
+}
+.matrix td { padding: 7px 18px 7px 0; border-bottom: 1px solid var(--tw-neutral-30); white-space: nowrap; }
+.matrix tbody tr:last-child td,
+.matrix tbody tr:last-child th { border-bottom: none; }
+.matrix .yes { color: var(--tw-indigo-100); font-weight: 600; }
+.matrix .no { color: var(--tw-neutral-100); }
+
+/* ------------------------------------------------------------- tool table */
+.tools { display: grid; gap: 2px; }
+
+.tool {
+  display: grid;
+  grid-template-columns: 60px minmax(220px, 300px) minmax(0, 1fr);
+  gap: 6px 18px;
+  align-items: baseline;
+  padding: 9px 0;
+  border-top: 1px dashed var(--tw-neutral-40);
+}
+.tool:first-child { border-top: none; }
+
+.badge {
+  justify-self: start;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: .07em;
+  text-transform: uppercase;
+  border-radius: var(--radius-pill);
+  padding: 3px 9px;
+  border: 1px solid transparent;
+  white-space: nowrap;
+}
+.badge--read { background: var(--tw-indigo-bg); border-color: #c3cffa; color: var(--tw-indigo-100); }
+.badge--write { background: var(--tw-orange-10); border-color: var(--tw-orange-20); color: #ac241b; }
+
+.tool__name { font-family: var(--mono); font-size: 13.5px; font-weight: 600; color: var(--tw-slate); word-break: break-word; }
+.tool__desc { font-size: .95rem; color: var(--tw-slate-40); }
+
+.empty { display: none; font-size: .97rem; color: var(--tw-slate-20); padding: 12px 0; }
+.is-empty .empty { display: block; }
+[hidden] { display: none !important; }
+
+/* ------------------------------------------------------------------ notes */
+.notes { background: var(--tw-violet); color: #e7e4f2; border-radius: var(--radius-lg); padding: 40px; }
+.notes h2 { color: var(--tw-white); font-size: clamp(1.5rem, 3vw, 2rem); margin-bottom: 10px; }
+.notes__intro { color: #b7aed2; max-width: 70ch; margin: 0 0 30px; }
+.notes__grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 26px; }
+.notes__item h3 { font-size: 1.05rem; color: var(--tw-white); margin-bottom: 8px; }
+.notes__item h3::before { content: ""; display: block; width: 26px; height: 3px; border-radius: 2px; background: var(--tw-pink); margin-bottom: 12px; }
+.notes__item p { margin: 0; font-size: .95rem; color: #b7aed2; }
+.notes__item code { font-family: var(--mono); font-size: .88em; color: #d9cfff; }
+.notes a { color: var(--tw-white); }
+
+/* ----------------------------------------------------------------- footer */
+footer { padding: 40px 0 64px; font-size: .93rem; color: var(--tw-slate-20); }
+footer p { margin: 0 0 6px; }
+
+/* -------------------------------------------------------------- responsive */
+@media (max-width: 900px) {
+  .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .connect { grid-template-columns: minmax(0, 1fr); }
+  .notes__grid { grid-template-columns: minmax(0, 1fr); gap: 24px; }
+  .notes { padding: 28px 24px; }
+}
+
+@media (max-width: 640px) {
+  body { font-size: 16px; }
+  .stats { grid-template-columns: minmax(0, 1fr); }
+  .panel { padding: 22px 20px; }
+  .hero { padding: 48px 0 40px; }
+  .tool { grid-template-columns: minmax(0, 1fr); gap: 4px; }
+  .controls { position: static; }
+  .masthead__product { display: none; }
+  .controls__count { margin-left: 0; width: 100%; }
+}
+
+</style>
+</head>
+<body>
+
+<header class="masthead">
+  <div class="wrap">
+    <a class="masthead__logo" href="https://www.teamwork.com/" aria-label="Teamwork.com"><svg xmlns="http://www.w3.org/2000/svg" version="1.1" width="181" height="20" viewBox="0 0 181 20" fill="#1d1c39">
+  <path d="M6.52484 7.46529C7.67233 7.46529 8.33026 6.84045 8.33026 5.75206C8.33026 4.72782 7.62269 4.03883 6.56961 4.03883H3.96707V2.11473C3.96707 0.727041 2.96946 0.00112915 1.98353 0.00112915C0.997607 0.00112915 0 0.727041 0 2.11473V15.3862C0 18.5755 1.27304 19.9982 4.12766 19.9982C5.67517 19.9982 6.5589 19.6017 7.21684 19.215C7.71905 18.9361 7.89813 18.3443 7.89813 17.8836C7.89813 17.0304 7.32682 16.08 6.50635 16.08C6.39247 16.08 6.27763 16.0995 6.15402 16.1403C6.1112 16.1578 6.06253 16.1792 6.009 16.2044C5.79293 16.3035 5.49803 16.4386 5.06492 16.4386C4.55298 16.4386 3.9661 16.2579 3.9661 14.8507V7.46432H6.52484V7.46529Z" fill-rule="evenodd" clip-rule="evenodd" />
+  <path d="M15.699 6.92871C16.2012 6.74601 16.7005 6.65369 17.1832 6.65369C18.8339 6.65369 19.9882 7.71875 20.5595 8.77896L13.1675 11.4649C12.8297 9.86928 13.294 7.80233 15.699 6.92773M23.6389 14.2957C23.2467 14.2957 22.8574 14.4395 22.5148 14.7106L22.4593 14.7602C21.7663 15.3773 20.9702 15.8437 20.0261 16.1868C19.3205 16.4433 18.6295 16.5735 17.9715 16.5735C16.2576 16.5735 14.8162 15.6591 14.0775 14.1149L23.198 10.8012C24.6336 10.2794 24.8273 9.2182 24.5285 8.39997C23.4151 5.34666 20.7921 3.44977 17.6835 3.44977C16.6693 3.44977 15.6153 3.64607 14.5505 4.03283C12.2127 4.88216 10.5474 6.41464 9.73375 8.4641C8.99698 10.3212 9.0145 12.5047 9.78338 14.6135C11.0272 18.0253 13.6716 19.9815 17.0411 19.9815C17.6786 19.9815 18.3463 19.9106 19.0256 19.7697C19.6407 19.6424 20.213 19.4811 20.7736 19.277C22.2997 18.7231 23.6886 17.9223 24.7923 16.9622L24.802 16.9535L24.8108 16.9438C25.1767 16.5288 25.3227 16.0361 25.2215 15.5541C25.0706 14.836 24.3922 14.2947 23.6419 14.2947" fill-rule="evenodd" clip-rule="evenodd" />
+  <path d="M38.9437 11.774C38.9437 14.0965 37.6229 16.4394 34.6729 16.4394C32.1453 16.4394 30.447 14.5824 30.447 11.8187C30.447 9.05494 32.1638 7.10946 34.7177 7.10946C36.8209 7.10946 38.9437 8.55253 38.9437 11.7749M41.0167 3.54986C39.841 3.54986 38.9884 4.38267 38.9884 5.53033V5.59349C37.8205 4.27091 36.089 3.54986 34.0481 3.54986C29.4416 3.54986 26.3466 6.85485 26.3466 11.7749C26.3466 16.695 29.388 20 33.9147 20C36.1338 20 37.9422 19.1954 39.0789 17.7202V18.0195C39.0789 19.4791 40.0804 20 41.0177 20C42.1866 20 42.9127 19.241 42.9127 18.0195V5.52936C42.9127 4.32631 42.1691 3.54889 41.0177 3.54889" fill-rule="evenodd" clip-rule="evenodd" />
+  <path d="M63.8147 3.54892C61.4847 3.54892 59.6832 4.57899 58.8034 6.39231C57.8388 4.52943 56.1054 3.54892 53.7628 3.54892C52.0187 3.54892 50.4595 4.23887 49.5358 5.38362C49.5076 4.31661 48.6823 3.54892 47.5523 3.54892C46.543 3.54892 45.524 4.18931 45.524 5.61879V18.0186C45.524 19.2965 46.2286 19.999 47.5075 19.999C48.7864 19.999 49.5358 19.2586 49.5358 18.0186V10.6137C49.5358 8.16968 50.6269 6.9297 52.7778 6.9297C54.9287 6.9297 55.7541 8.10069 55.7541 10.9713V17.9739C55.7541 19.2799 56.4587 19.999 57.7376 19.999C59.0165 19.999 59.7659 19.2605 59.7659 17.9739V11.0597C59.7659 8.28046 60.8414 6.9297 63.0546 6.9297C65.1394 6.9297 66.0299 8.16482 66.0299 11.0597V17.9739C66.0299 19.2799 66.7346 19.999 68.0135 19.999C69.2923 19.999 70.0418 19.2605 70.0418 17.9739V11.0597C70.0418 6.07552 67.9463 3.54794 63.8138 3.54794" fill-rule="evenodd" clip-rule="evenodd" />
+  <path d="M94.2519 3.54892C93.3711 3.54892 92.6324 4.18251 92.2801 5.24077L88.8921 14.7962L85.5479 5.28644C85.1849 4.24373 84.7255 3.54892 83.6647 3.54892C82.5308 3.54892 82.1123 4.16016 81.7376 5.28547L78.3924 14.7962L75.0064 5.24465C74.6521 4.18348 73.9144 3.54892 73.0336 3.54892C72.1528 3.54892 71.3177 4.23984 71.3177 5.39528C71.3177 5.76552 71.4024 6.1348 71.5999 6.62651L76.1568 18.2256C76.5928 19.2896 77.1398 19.9981 78.3934 19.9981C79.7657 19.9981 80.2874 19.0467 80.5891 18.2188L83.6627 9.85279L86.6497 18.2139C87.0448 19.3985 87.7991 19.999 88.8911 19.999C89.9832 19.999 90.7014 19.4024 91.1744 18.2226L95.6817 6.58958C95.8763 6.15229 95.9678 5.77232 95.9678 5.39431C95.9678 4.34188 95.2301 3.54794 94.251 3.54794" fill-rule="evenodd" clip-rule="evenodd" />
+  <path d="M104.454 16.8408C101.819 16.8408 100.183 14.8992 100.183 11.774C100.183 8.64878 101.859 6.79658 104.454 6.79658C107.049 6.79658 108.725 8.75081 108.725 11.774C108.725 14.7972 107.049 16.8408 104.454 16.8408ZM104.454 3.59363C101.852 3.59363 99.6965 4.44684 98.222 6.06095C96.9002 7.50792 96.1713 9.53698 96.1713 11.774C96.1713 14.011 96.8993 16.0517 98.221 17.5094C99.6984 19.1381 101.853 19.9991 104.454 19.9991C110.567 19.9991 112.736 15.5678 112.736 11.774C112.736 7.9802 110.567 3.59363 104.454 3.59363Z" fill-rule="evenodd" clip-rule="evenodd" />
+  <path d="M122.427 3.54889C120.863 3.54889 119.431 4.20581 118.418 5.36999C118.337 4.35254 117.481 3.54889 116.442 3.54889C115.329 3.54889 114.457 4.41862 114.457 5.52936V18.0185C114.457 19.3188 115.455 19.999 116.442 19.999C117.429 19.999 118.425 19.3188 118.425 18.0185V12.0859C118.425 8.50297 119.408 6.97438 121.713 6.97438C122.081 6.97438 122.294 7.02394 122.499 7.07156C122.681 7.11334 122.854 7.15318 123.099 7.15318C124.045 7.15318 124.681 6.44671 124.681 5.39525C124.681 4.27286 123.797 3.54889 122.429 3.54889" fill-rule="evenodd" clip-rule="evenodd" />
+  <path d="M133.826 11.8158L138.16 7.31548C138.763 6.71299 139.332 6.1445 139.332 5.35057C139.332 4.32341 138.556 3.54793 137.528 3.54793C136.722 3.54793 136.15 4.16598 135.597 4.76362L130.354 10.1735V1.98047C130.354 0.888198 129.464 0 128.37 0C127.276 0 126.386 0.888198 126.386 1.98047V18.0186C126.386 19.1108 127.276 19.999 128.37 19.999C129.464 19.999 130.354 19.1108 130.354 18.0186V13.1539L135.602 18.6036C135.694 18.6959 135.785 18.7901 135.875 18.8844C136.402 19.4325 136.946 20 137.752 20C138.705 20 139.512 19.1954 139.512 18.2421C139.512 17.5502 139.042 17.0225 138.561 16.5424L133.828 11.8167H133.826V11.8158Z" fill-rule="evenodd" clip-rule="evenodd" />
+  <path fill="#ff22b1" d="M144.39 14.8467C142.969 14.8467 141.813 16.0012 141.813 17.4209C141.813 18.8407 142.969 19.9951 144.39 19.9951C145.811 19.9951 146.968 18.8407 146.968 17.4209C146.968 16.0012 145.812 14.8467 144.39 14.8467Z" fill-rule="evenodd" clip-rule="evenodd" />
+  <path d="M149.629 15.5085C149.629 14.8389 149.733 14.2257 149.938 13.6679C150.143 13.1111 150.423 12.6379 150.776 12.2501C151.128 11.8624 151.549 11.5611 152.036 11.3435C152.524 11.1268 153.05 11.0179 153.615 11.0179C154.497 11.0179 155.237 11.2414 155.837 11.6875C156.436 12.1335 156.848 12.7088 157.071 13.4133C157.129 13.5659 157.135 13.7097 157.089 13.8448C157.042 13.9799 156.918 14.0469 156.718 14.0469H156.471C156.341 14.0469 156.232 14.0178 156.144 13.9585C156.056 13.9002 155.983 13.7943 155.925 13.6417C155.772 13.184 155.504 12.805 155.122 12.5057C154.739 12.2064 154.249 12.0567 153.649 12.0567C152.885 12.0567 152.232 12.3764 151.692 13.0168C151.151 13.6572 150.88 14.4871 150.88 15.5085C150.88 16.5298 151.148 17.3607 151.683 18.0001C152.217 18.6395 152.873 18.9592 153.649 18.9592C154.272 18.9592 154.769 18.8096 155.139 18.5103C155.509 18.211 155.771 17.832 155.924 17.3743C155.982 17.2217 156.056 17.1158 156.144 17.0575C156.232 16.9992 156.34 16.969 156.47 16.969H156.717C156.916 16.969 157.04 17.0371 157.088 17.1712C157.134 17.3062 157.128 17.4501 157.07 17.6026C156.846 18.3072 156.436 18.8824 155.836 19.3285C155.236 19.7745 154.496 19.9971 153.614 19.9971C152.392 19.9971 151.421 19.586 150.704 18.7649C149.987 17.9437 149.628 16.8573 149.628 15.5075H149.629V15.5085Z" />
+  <path d="M158.482 15.5075C158.482 14.838 158.585 14.2248 158.791 13.667C158.996 13.1102 159.281 12.6369 159.646 12.2492C160.01 11.8614 160.442 11.5602 160.943 11.3425C161.442 11.1258 161.986 11.017 162.574 11.017C163.808 11.017 164.799 11.428 165.545 12.2492C166.292 13.0713 166.665 14.1568 166.665 15.5065C166.665 16.1761 166.561 16.7893 166.356 17.3471C166.151 17.9049 165.866 18.3772 165.501 18.7649C165.136 19.1526 164.704 19.4548 164.204 19.6716C163.704 19.8883 163.161 19.9971 162.573 19.9971C161.339 19.9971 160.348 19.586 159.602 18.7649C158.855 17.9437 158.481 16.8573 158.481 15.5075H158.482ZM159.734 15.5075C159.734 16.5288 159.999 17.3597 160.527 17.9991C161.057 18.6386 161.738 18.9583 162.573 18.9583C163.408 18.9583 164.06 18.6386 164.601 17.9991C165.142 17.3597 165.413 16.5288 165.413 15.5075C165.413 14.4862 165.148 13.6116 164.62 12.9897C164.09 12.3677 163.409 12.0568 162.574 12.0568C161.739 12.0568 161.087 12.3765 160.546 13.0169C160.005 13.6573 159.734 14.4872 159.734 15.5085V15.5075Z" />
+  <path d="M168.481 19.5044V11.8799C168.481 11.7273 168.519 11.6098 168.596 11.5281C168.672 11.4465 168.786 11.4047 168.939 11.4047H169.15C169.303 11.4047 169.421 11.4465 169.503 11.5281C169.584 11.6107 169.626 11.7283 169.626 11.8799V12.9187H169.679C169.926 12.3434 170.293 11.9149 170.781 11.6331C171.268 11.3513 171.812 11.2104 172.412 11.2104C173.011 11.2104 173.573 11.3629 174.061 11.6681C174.548 11.9732 174.904 12.4601 175.127 13.1296C175.421 12.4494 175.824 11.9586 176.335 11.6593C176.847 11.36 177.425 11.2104 178.072 11.2104C178.472 11.2104 178.851 11.2716 179.21 11.395C179.568 11.5184 179.88 11.7147 180.144 11.9849C180.409 12.255 180.618 12.6068 180.77 13.0412C180.923 13.4756 181 14.0042 181 14.6261V19.5034C181 19.656 180.956 19.7765 180.868 19.8649C180.779 19.9534 180.658 19.9971 180.506 19.9971H180.294C180.13 19.9971 180.006 19.9534 179.924 19.8649C179.841 19.7765 179.8 19.657 179.8 19.5034V14.7845C179.8 13.8691 179.627 13.2171 179.28 12.8303C178.934 12.4426 178.448 12.2492 177.825 12.2492C177.155 12.2492 176.574 12.531 176.079 13.0946C175.586 13.6582 175.338 14.4502 175.338 15.4716V19.5034C175.338 19.656 175.295 19.7765 175.206 19.8649C175.118 19.9534 174.997 19.9971 174.845 19.9971H174.634C174.469 19.9971 174.346 19.9534 174.264 19.8649C174.181 19.7765 174.14 19.657 174.14 19.5034V14.7845C174.14 13.8691 173.961 13.2171 173.602 12.8303C173.243 12.4426 172.764 12.2492 172.165 12.2492C171.494 12.2492 170.913 12.531 170.419 13.0946C169.925 13.6582 169.678 14.457 169.678 15.4891V19.5034C169.678 19.656 169.634 19.7765 169.546 19.8649C169.457 19.9534 169.336 19.9971 169.184 19.9971H168.973C168.809 19.9971 168.685 19.9534 168.602 19.8649C168.52 19.7765 168.479 19.657 168.479 19.5034H168.481V19.5044Z" />
+</svg>
+</a>
+    <span class="masthead__divider" aria-hidden="true"></span>
+    <span class="masthead__product">MCP Server</span>
+    <span class="masthead__spacer"></span>
+    <a class="masthead__link" href="https://github.com/teamwork/mcp">GitHub</a>
+  </div>
+</header>
+
+<div class="hero">
+  <div class="wrap">
+    <p class="eyebrow">Model Context Protocol</p>
+    <h1>Your Teamwork.com site, as tools an AI client can <span class="accent">discover and call</span>.</h1>
+    <p class="hero__lede">The Teamwork.com MCP server publishes Projects, Desk, Spaces and Chat as a typed toolset. A connected client reads the catalogue below on connect, so it knows which operations exist and what each one needs — and every call runs with the permissions of the account that authorised it, nothing more.</p>
+    <div class="stats">
+      <div class="stat"><span class="stat__n">4</span><span class="stat__l">Products</span></div>
+      <div class="stat"><span class="stat__n">14</span><span class="stat__l">Toolsets</span></div>
+      <div class="stat"><span class="stat__n">207</span><span class="stat__l">Tools</span></div>
+      <div class="stat"><span class="stat__n">107&#8239;/&#8239;100</span><span class="stat__l">Read / write</span></div>
+    </div>
+  </div>
+</div>
+
+<section id="connect">
+  <div class="wrap">
+    <div class="section-head">
+      <h2>Connecting a client</h2>
+      <p>The hosted server speaks streamable HTTP and authenticates with OAuth. Point a client at the endpoint and it discovers everything on this page automatically.</p>
+    </div>
+    <div class="connect">
+      <div class="panel">
+        <h3>Hosted endpoint</h3>
+        <p>Loads every toolset. A local STDIO binary is available too — see the <a href="https://github.com/teamwork/mcp/blob/main/docs/usage/README.md">usage guide</a>.</p>
+        <code class="endpoint">https://mcp.ai.teamwork.com</code>
+      </div>
+      <div class="panel">
+        <h3>Profile endpoints</h3>
+        <p>A narrower tool list keeps a client focused. Each profile is a fixed set of toolsets, served on its own path.</p>
+        <table class="profiles">
+          <thead><tr><th>Profile</th><th>Toolsets</th></tr></thead>
+          <tbody>
+            <tr>
+              <td><code>https://mcp.ai.teamwork.com/analyst</code></td>
+              <td class="profiles__sets">Projects — Projects, Tasks, People, Planning, Time, Content; Desk — Tickets, Customers, Admin</td>
+            </tr>
+            <tr>
+              <td><code>https://mcp.ai.teamwork.com/desk</code></td>
+              <td class="profiles__sets">Desk — Tickets, Customers</td>
+            </tr>
+            <tr>
+              <td><code>https://mcp.ai.teamwork.com/knowledge-manager</code></td>
+              <td class="profiles__sets">Spaces — Spaces, Pages, Content</td>
+            </tr>
+            <tr>
+              <td><code>https://mcp.ai.teamwork.com/ops</code></td>
+              <td class="profiles__sets">Every toolset</td>
+            </tr>
+            <tr>
+              <td><code>https://mcp.ai.teamwork.com/project-manager</code></td>
+              <td class="profiles__sets">Projects — Projects, Tasks, People, Planning, Content</td>
+            </tr>
+            <tr>
+              <td><code>https://mcp.ai.teamwork.com/support</code></td>
+              <td class="profiles__sets">Desk — Tickets, Customers</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="tools">
+  <div class="wrap">
+    <div class="section-head">
+      <h2>The tool catalogue</h2>
+      <p>Generated from the server's own toolset registry, so it matches what a client actually receives. Each toolset opens with a coverage matrix — which resources support create, get, list and update — followed by every tool it publishes.</p>
+    </div>
+
+    <div class="controls">
+      <div class="wrap" style="padding:0">
+        <div class="controls__row">
+          <input id="tool-search" class="search" type="search" placeholder="Filter tools — try “timelog”, “milestone”, “count”" aria-label="Filter tools">
+          <div class="chips" role="group" aria-label="Filter by access">
+            <button class="chip" type="button" data-access-filter="all" aria-pressed="true">All</button>
+            <button class="chip" type="button" data-access-filter="read" aria-pressed="false">Read</button>
+            <button class="chip" type="button" data-access-filter="write" aria-pressed="false">Write</button>
+          </div>
+          <span class="controls__count" id="tool-count" aria-live="polite">207 tools</span>
+        </div>
+      </div>
+    </div>
+
+    <div id="explorer">
+      <p class="empty">No tool matches that filter.</p>
+      <div class="product" data-product id="projects">
+        <div class="product__head">
+          <h3 class="product__name">Projects</h3>
+          <span class="product__scope">twprojects-&#8203;* &middot; scope projects</span>
+          <span class="product__counts">133 tools &middot; 6 toolsets</span>
+        </div>
+        <div class="toolset" data-toolset id="twprojects-content">
+          <div class="toolset__head">
+            <h4 class="toolset__title">Content</h4>
+            <span class="toolset__method">twprojects-content</span>
+          </div>
+          <p class="toolset__desc">Comments, notebooks, milestones, tags, and activity feeds in Teamwork.com.</p>
+          <div data-matrix>
+            <p class="subhead">Resource coverage</p>
+            <div class="matrix-scroll">
+              <table class="matrix">
+                <thead>
+                  <tr>
+                    <th scope="col">Resource</th><th scope="col">Create</th><th scope="col">Get</th><th scope="col">List</th><th scope="col">Update</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <th scope="row">Activity</th><td class="no" aria-label="no">&mdash;</td><td class="no" aria-label="no">&mdash;</td><td class="yes" aria-label="yes">&check;</td><td class="no" aria-label="no">&mdash;</td>
+                  </tr>
+                  <tr>
+                    <th scope="row">Comment</th><td class="yes" aria-label="yes">&check;</td><td class="yes" aria-label="yes">&check;</td><td class="yes" aria-label="yes">&check;</td><td class="yes" aria-label="yes">&check;</td>
+                  </tr>
+                  <tr>
+                    <th scope="row">Milestone</th><td class="yes" aria-label="yes">&check;</td><td class="yes" aria-label="yes">&check;</td><td class="yes" aria-label="yes">&check;</td><td class="yes" aria-label="yes">&check;</td>
+                  </tr>
+                  <tr>
+                    <th scope="row">Notebook</th><td class="yes" aria-label="yes">&check;</td><td class="yes" aria-label="yes">&check;</td><td class="yes" aria-label="yes">&check;</td><td class="yes" aria-label="yes">&check;</td>
+                  </tr>
+                  <tr>
+                    <th scope="row">Tag</th><td class="yes" aria-label="yes">&check;</td><td class="yes" aria-label="yes">&check;</td><td class="yes" aria-label="yes">&check;</td><td class="yes" aria-label="yes">&check;</td>
+                  </tr>
+                  <tr>
+                    <th scope="row">Message</th><td class="yes" aria-label="yes">&check;</td><td class="yes" aria-label="yes">&check;</td><td class="yes" aria-label="yes">&check;</td><td class="yes" aria-label="yes">&check;</td>
+                  </tr>
+                  <tr>
+                    <th scope="row">Message Reply</th><td class="yes" aria-label="yes">&check;</td><td class="yes" aria-label="yes">&check;</td><td class="yes" aria-label="yes">&check;</td><td class="yes" aria-label="yes">&check;</td>
+                  </tr>
+                  <tr>
+                    <th scope="row">Link</th><td class="yes" aria-label="yes">&check;</td><td class="yes" aria-label="yes">&check;</td><td class="yes" aria-label="yes">&check;</td><td class="yes" aria-label="yes">&check;</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <p class="subhead">Tools</p>
+          <div class="tools">
+            <div class="tool" data-search="twprojects-count_milestones exact milestone count for any filter set: one call, one number, no rows." data-access="read">
+              <span class="badge badge--read">read</span>
+              <span class="tool__name">twprojects-count_milestones</span>
+              <span class="tool__desc">Exact milestone count for any filter set: one call, one number, no rows.</span>
+            </div>
+            <div class="tool" data-search="twprojects-create_comment create comment on a task, milestone, notebook, file, or link." data-access="write">
+              <span class="badge badge--write">write</span>
+              <span class="tool__name">twprojects-create_comment</span>
+              <span class="tool__desc">Create comment on a task, milestone, notebook, file, or link.</span>
+            </div>
+            <div class="tool" data-search="twprojects-create_link create link." data-access="write">
+              <span class="badge badge--write">write</span>
+              <span class="tool__name">twprojects-create_link</span>
+              <span class="tool__desc">Create link.</span>
+            </div>
+            <div class="tool" data-search="twprojects-create_message create message in a project." data-access="write">
+              <span class="badge badge--write">write</span>
+              <span class="tool__name">twprojects-create_message</span>
+              <span class="tool__desc">Create message in a project.</span>
+            </div>
+            <div class="tool" data-search="twprojects-create_message_reply create message reply." data-access="write">
+              <span class="badge badge--write">write</span>
+              <span class="tool__name">twprojects-create_message_reply</span>
+              <span class="tool__desc">Create message reply.</span>
+            </div>
+            <div class="tool" data-search="twprojects-create_milestone create milestone in a project." data-access="write">
+              <span class="badge badge--write">write</span>
+              <span class="tool__name">twprojects-create_milestone</span>
+              <span class="tool__desc">Create milestone in a project.</span>
+            </div>
+            <div class="tool" data-search="twprojects-create_notebook create notebook in a project." data-access="write">
+              <span class="badge badge--write">write</span>
+              <span class="tool__name">twprojects-create_notebook</span>
+              <span class="tool__desc">Create notebook in a project.</span>
+            </div>
+            <div class="tool" data-search="twprojects-create_tag create tag." data-access="write">
+              <span class="badge badge--write">write</span>
+              <span class="tool__name">twprojects-create_tag</span>
+              <span class="tool__desc">Create tag.</span>
+            </div>
+            <div class="tool" data-search="twprojects-get_comment get comment." data-access="read">
+              <span class="badge badge--read">read</span>
+              <span class="tool__name">twprojects-get_comment</span>
+              <span class="tool__desc">Get comment.</span>
+            </div>
+            <div class="tool" data-search="twprojects-get_link get link." data-access="read">
+              <span class="badge badge--read">read</span>
+              <span class="tool__name">twprojects-get_link</span>
+              <span class="tool__desc">Get link.</span>
+            </div>
+            <div class="tool" data-search="twprojects-get_message get message." data-access="read">
+              <span class="badge badge--read">read</span>
+              <span class="tool__name">twprojects-get_message</span>
+              <span class="tool__desc">Get message.</span>
+            </div>
+            <div class="tool" data-search="twprojects-get_message_reply get message reply." data-access="read">
+              <span class="badge badge--read">read</span>
+              <span class="tool__name">twprojects-get_message_reply</span>
+              <span class="tool__desc">Get message reply.</span>
+            </div>
+            <div class="tool" data-search="twprojects-get_milestone get milestone." data-access="read">
+              <span class="badge badge--read">read</span>
+              <span class="tool__name">twprojects-get_milestone</span>
+              <span class="tool__desc">Get milestone.</span>
+            </div>
+            <div class="tool" data-search="twprojects-get_notebook get notebook." data-access="read">
+              <span class="badge badge--read">read</span>
+              <span class="tool__name">twprojects-get_notebook</span>
+              <span class="tool__desc">Get notebook.</span>
+            </div>
+            <div class="tool" data-search="twprojects-get_tag get tag." data-access="read">
+              <span class="badge badge--read">read</span>
+              <span class="tool__name">twprojects-get_tag</span>
+              <span class="tool__desc">Get tag.</span>
+            </div>
+            <div class="tool" data-search="twprojects-list_activities list recent activity events." data-access="read">
+              <span class="badge badge--read">read</span>
+              <span class="tool__name">twprojects-list_activities</span>
+              <span class="tool__desc">List recent activity events.</span>
+            </div>
+            <div class="tool" data-search="twprojects-list_comments list comments." data-access="read">
+              <span class="badge badge--read">read</span>
+              <span class="tool__name">twprojects-list_comments</span>
+              <span class="tool__desc">List comments.</span>
+            </div>
+            <div class="tool" data-search="twprojects-list_links list links." data-access="read">
+              <span class="badge badge--read">read</span>
+              <span class="tool__name">twprojects-list_links</span>
+              <span class="tool__desc">List links.</span>
+            </div>
+            <div class="tool" data-search="twprojects-list_message_replies list replies under a message thread." data-access="read">
+              <span class="badge badge--read">read</span>
+              <span class="tool__name">twprojects-list_message_replies</span>
+              <span class="tool__desc">List replies under a message thread.</span>
+            </div>
+            <div class="tool" data-search="twprojects-list_messages list project messages (top-level posts)." data-access="read">
+              <span class="badge badge--read">read</span>
+              <span class="tool__name">twprojects-list_messages</span>
+              <span class="tool__desc">List project messages (top-level posts).</span>
+            </div>
+            <div class="tool" data-search="twprojects-list_milestones list milestones." data-access="read">
+              <span class="badge badge--read">read</span>
+              <span class="tool__name">twprojects-list_milestones</span>
+              <span class="tool__desc">List milestones.</span>
+            </div>
+            <div class="tool" data-search="twprojects-list_notebooks list notebooks." data-access="read">
+              <span class="badge badge--read">read</span>
+              <span class="tool__name">twprojects-list_notebooks</span>
+              <span class="tool__desc">List notebooks.</span>
+            </div>
+            <div class="tool" data-search="twprojects-list_tags list tags." data-access="read">
+              <span class="badge badge--read">read</span>
+              <span class="tool__name">twprojects-list_tags</span>
+              <span class="tool__desc">List tags.</span>
+            </div>
+            <div class="tool" data-search="twprojects-search cross-entity keyword search across projects, tasks, files, messages, and more." data-access="read">
+              <span class="badge badge--read">read</span>
+              <span class="tool__name">twprojects-search</span>
+              <span class="tool__desc">Cross-entity keyword search across projects, tasks, files, messages, and more.</span>
+            </div>
+            <div class="tool" data-search="twprojects-update_comment update comment." data-access="write">
+              <span class="badge badge--write">write</span>
+              <span class="tool__name">twprojects-update_comment</span>
+              <span class="tool__desc">Update comment.</span>
+            </div>
+            <div class="tool" data-search="twprojects-update_link update link." data-access="write">
+              <span class="badge badge--write">write</span>
+              <span class="tool__name">twprojects-update_link</span>
+              <span class="tool__desc">Update link.</span>
+            </div>
+            <div class="tool" data-search="twprojects-update_message update message." data-access="write">
+              <span class="badge badge--write">write</span>
+              <span class="tool__name">twprojects-update_message</span>
+              <span class="tool__desc">Update message.</span>
+            </div>
+            <div class="tool" data-search="twprojects-update_message_reply update message reply." data-access="write">
+              <span class="badge badge--write">write</span>
+              <span class="tool__name">twprojects-update_message_reply</span>
+              <span class="tool__desc">Update message reply.</span>
+            </div>
+            <div class="tool" data-search="twprojects-update_milestone update milestone." data-access="write">
+              <span class="badge badge--write">write</span>
+              <span class="tool__name">twprojects-update_milestone</span>
+              <span class="tool__desc">Update milestone.</span>
+            </div>
+            <div class="tool" data-search="twprojects-update_notebook update notebook." data-access="write">
+              <span class="badge badge--write">write</span>
+              <span class="tool__name">twprojects-update_notebook</span>
+              <span class="tool__desc">Update notebook.</span>
+            </div>
+            <div class="tool" data-search="twprojects-update_tag update tag." data-access="write">
+              <span class="badge badge--write">write</span>
+              <span class="tool__name">twprojects-update_tag</span>
+              <span class="tool__desc">Update tag.</span>
+            </div>
+          </div>
+        </div>
+        <div class="toolset" data-toolset id="twprojects-people">
+          <div class="toolset__head">
+            <h4 class="toolset__title">People</h4>
+            <span class="toolset__method">twprojects-people</span>
+          </div>
+          <p class="toolset__desc">Users, companies, teams, skills, and job roles in Teamwork.com.</p>
+          <div data-matrix>
+            <p class="subhead">Resource coverage</p>
+            <div class="matrix-scroll">
+              <table class="matrix">
+                <thead>
+                  <tr>
+                    <th scope="col">Resource</th><th scope="col">Create</th><th scope="col">Get</th><th scope="col">List</th><th scope="col">Update</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <th scope="row">Company</th><td class="yes" aria-label="yes">&check;</td><td class="yes" aria-label="yes">&check;</td><td class="yes" aria-label="yes">&check;</td><td class="yes" aria-label="yes">&check;</td>
+                  </tr>
+                  <tr>
+                    <th scope="row">Industry</th><td class="no" aria-label="no">&mdash;</td><td class="no" aria-label="no">&mdash;</td><td class="yes" aria-label="yes">&check;</td><td class="no" aria-label="no">&mdash;</td>
+                  </tr>
+                  <tr>
+                    <th scope="row">Job Role</th><td class="yes" aria-label="yes">&check;</td><td class="yes" aria-label="yes">&check;</td><td class="yes" aria-label="yes">&check;</td><td class="yes" aria-label="yes">&check;</td>
+                  </tr>
+                  <tr>
+                    <th scope="row">Skill</th><td class="yes" aria-label="yes">&check;</td><td class="yes" aria-label="yes">&check;</td><td class="yes" aria-label="yes">&check;</td><td class="yes" aria-label="yes">&check;</td>
+                  </tr>
+                  <tr>
+                    <th scope="row">Team</th><td class="yes" aria-label="yes">&check;</td><td class="yes" aria-label="yes">&check;</td><td class="yes" aria-label="yes">&check;</td><td class="yes" aria-label="yes">&check;</td>
+                  </tr>
+                  <tr>
+                    <th scope="row">User</th><td class="yes" aria-label="yes">&check;</td><td class="yes" aria-label="yes">&check;</td><td class="yes" aria-label="yes">&check;</td><td class="yes" aria-label="yes">&check;</td>
+                  </tr>
+                  <tr>
+                    <th scope="row">Current User (me)</th><td class="no" aria-label="no">&mdash;</td><td class="yes" aria-label="yes">&check;</td><td class="no" aria-label="no">&mdash;</td><td class="no" aria-label="no">&mdash;</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <p class="subhead">Tools</p>
+          <div class="tools">
+            <div class="tool" data-search="twprojects-create_company create company (aka client)." data-access="write">
+              <span class="badge badge--write">write</span>
+              <span class="tool__name">twprojects-create_company</span>
+              <span class="tool__desc">Create company (aka client).</span>
+            </div>
+            <div class="tool" data-search="twprojects-create_jobrole create job role." data-access="write">
+              <span class="badge badge--write">write</span>
+              <span class="tool__name">twprojects-create_jobrole</span>
+              <span class="tool__desc">Create job role.</span>
+            </div>
+            <div class="tool" data-search="twprojects-create_skill create skill." data-access="write">
+              <span class="badge badge--write">write</span>
+              <span class="tool__name">twprojects-create_skill</span>
+              <span class="tool__desc">Create skill.</span>
+            </div>
+            <div class="tool" data-search="twprojects-create_team create team." data-access="write">
+              <span class="badge badge--write">write</span>
+              <span class="tool__name">twprojects-create_team</span>
+              <span class="tool__desc">Create team.</span>
+            </div>
+            <div class="tool" data-search="twprojects-create_user create user." data-access="write">
+              <span class="badge badge--write">write</span>
+              <span class="tool__name">twprojects-create_user</span>
+              <span class="tool__desc">Create user.</span>
+            </div>
+            <div class="tool" data-search="twprojects-get_company get company (aka client)." data-access="read">
+              <span class="badge badge--read">read</span>
+              <span class="tool__name">twprojects-get_company</span>
+              <span class="tool__desc">Get company (aka client).</span>
+            </div>
+            <div class="tool" data-search="twprojects-get_jobrole get job role." data-access="read">
+              <span class="badge badge--read">read</span>
+              <span class="tool__name">twprojects-get_jobrole</span>
+              <span class="tool__desc">Get job role.</span>
+            </div>
+            <div class="tool" data-search="twprojects-get_skill get skill." data-access="read">
+              <span class="badge badge--read">read</span>
+              <span class="tool__name">twprojects-get_skill</span>
+              <span class="tool__desc">Get skill.</span>
+            </div>
+            <div class="tool" data-search="twprojects-get_team get team." data-access="read">
+              <span class="badge badge--read">read</span>
+              <span class="tool__name">twprojects-get_team</span>
+              <span class="tool__desc">Get team.</span>
+            </div>
+            <div class="tool" data-search="twprojects-get_user get user." data-access="read">
+              <span class="badge badge--read">read</span>
+              <span class="tool__name">twprojects-get_user</span>
+              <span class="tool__desc">Get user.</span>
+            </div>
+            <div class="tool" data-search="twprojects-get_user_me get the currently authenticated user." data-access="read">
+              <span class="badge badge--read">read</span>
+              <span class="tool__name">twprojects-get_user_me</span>
+              <span class="tool__desc">Get the currently authenticated user.</span>
+            </div>
+            <div class="tool" data-search="twprojects-list_companies list companies (aka clients)." data-access="read">
+              <span class="badge badge--read">read</span>
+              <span class="tool__name">twprojects-list_companies</span>
+              <span class="tool__desc">List companies (aka clients).</span>
+            </div>
+            <div class="tool" data-search="twprojects-list_industries list supported company (aka client) industries." data-access="read">
+              <span class="badge badge--read">read</span>
+              <span class="tool__name">twprojects-list_industries</span>
+              <span class="tool__desc">List supported company (aka client) industries.</span>
+            </div>
+            <div class="tool" data-search="twprojects-list_jobroles list job roles." data-access="read">
+              <span class="badge badge--read">read</span>
+              <span class="tool__name">twprojects-list_jobroles</span>
+              <span class="tool__desc">List job roles.</span>
+            </div>
+            <div class="tool" data-search="twprojects-list_skills list skills." data-access="read">
+              <span class="badge badge--read">read</span>
+              <span class="tool__name">twprojects-list_skills</span>
+              <span class="tool__desc">List skills.</span>
+            </div>
+            <div class="tool" data-search="twprojects-list_teams list teams." data-access="read">
+              <span class="badge badge--read">read</span>
+              <span class="tool__name">twprojects-list_teams</span>
+              <span class="tool__desc">List teams.</span>
+            </div>
+            <div class="tool" data-search="twprojects-list_users list users." data-access="read">
+              <span class="badge badge--read">read</span>
+              <span class="tool__name">twprojects-list_users</span>
+              <span class="tool__desc">List users.</span>
+            </div>
+            <div class="tool" data-search="twprojects-update_company update company (aka client)." data-access="write">
+              <span class="badge badge--write">write</span>
+              <span class="tool__name">twprojects-update_company</span>
+              <span class="tool__desc">Update company (aka client).</span>
+            </div>
+            <div class="tool" data-search="twprojects-update_jobrole update job role." data-access="write">
+              <span class="badge badge--write">write</span>
+              <span class="tool__name">twprojects-update_jobrole</span>
+              <span class="tool__desc">Update job role.</span>
+            </div>
+            <div class="tool" data-search="twprojects-update_skill update skill." data-access="write">
+              <span class="badge badge--write">write</span>
+              <span class="tool__name">twprojects-update_skill</span>
+              <span class="tool__desc">Update skill.</span>
+            </div>
+            <div class="tool" data-search="twprojects-update_team update team." data-access="write">
+              <span class="badge badge--write">write</span>
+              <span class="tool__name">twprojects-update_team</span>
+              <span class="tool__desc">Update team.</span>
+            </div>
+            <div class="tool" data-search="twprojects-update_user update user." data-access="write">
+              <span class="badge badge--write">write</span>
+              <span class="tool__name">twprojects-update_user</span>
+              <span class="tool__desc">Update user.</span>
+            </div>
+          </div>
+        </div>
+        <div class="toolset" data-toolset id="twprojects-planning">
+          <div class="toolset__head">
+            <h4 class="toolset__title">Planning</h4>
+            <span class="toolset__method">twprojects-planning</span>
+          </div>
+          <p class="toolset__desc">Resource scheduling in Teamwork.com: allocations, which commit a person&#39;s time to a project, and the workload view of the time their assigned tasks are estimated to take. The two are separate planes of planning and are not summed.</p>
+          <div data-matrix>
+            <p class="subhead">Resource coverage</p>
+            <div class="matrix-scroll">
+              <table class="matrix">
+                <thead>
+                  <tr>
+                    <th scope="col">Resource</th><th scope="col">Create</th><th scope="col">Get</th><th scope="col">List</th><th scope="col">Update</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <th scope="row">Allocation</th><td class="yes" aria-label="yes">&check;</td><td class="yes" aria-label="yes">&check;</td><td class="yes" aria-label="yes">&check;</td><td class="yes" aria-label="yes">&check;</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <p class="subhead">Tools</p>
+          <div class="tools">
+            <div class="tool" data-search="twprojects-create_allocation commit a user&#39;s time to a project over a date range (a scheduler allocation)." data-access="write">
+              <span class="badge badge--write">write</span>
+              <span class="tool__name">twprojects-create_allocation</span>
+              <span class="tool__desc">Commit a user&#39;s time to a project over a date range (a scheduler allocation).</span>
+            </div>
+            <div class="tool" data-search="twprojects-get_allocation get an allocation." data-access="read">
+              <span class="badge badge--read">read</span>
+              <span class="tool__name">twprojects-get_allocation</span>
+              <span class="tool__desc">Get an allocation.</span>
+            </div>
+            <div class="tool" data-search="twprojects-link_task_to_allocation link one task to an allocation, showing what task work sits behind the committed time." data-access="write">
+              <span class="badge badge--write">write</span>
+              <span class="tool__name">twprojects-link_task_to_allocation</span>
+              <span class="tool__desc">Link one task to an allocation, showing what task work sits behind the committed time.</span>
+            </div>
+            <div class="tool" data-search="twprojects-list_allocations list scheduler allocations — who is committed to which project, and when." data-access="read">
+              <span class="badge badge--read">read</span>
+              <span class="tool__name">twprojects-list_allocations</span>
+              <span class="tool__desc">List scheduler allocations — who is committed to which project, and when.</span>
+            </div>
+            <div class="tool" data-search="twprojects-restore_allocation restore a deleted allocation." data-access="write">
+              <span class="badge badge--write">write</span>
+              <span class="tool__name">twprojects-restore_allocation</span>
+              <span class="tool__desc">Restore a deleted allocation.</span>
+            </div>
+            <div class="tool" data-search="twprojects-unlink_task_from_allocation remove the link between one task and an allocation." data-access="write">
+              <span class="badge badge--write">write</span>
+              <span class="tool__name">twprojects-unlink_task_from_allocation</span>
+              <span class="tool__desc">Remove the link between one task and an allocation.</span>
+            </div>
+            <div class="tool" data-search="twprojects-update_allocation update an allocation." data-access="write">
+              <span class="badge badge--write">write</span>
+              <span class="tool__name">twprojects-update_allocation</span>
+              <span class="tool__desc">Update an allocation.</span>
+            </div>
+            <div class="tool" data-search="twprojects-users_workload get task allocation across users for a date range." data-access="read">
+              <span class="badge badge--read">read</span>
+              <span class="tool__name">twprojects-users_workload</span>
+              <span class="tool__desc">Get task allocation across users for a date range.</span>
+            </div>
+          </div>
+        </div>
+        <div class="toolset" data-toolset id="twprojects-projects">
+          <div class="toolset__head">
+            <h4 class="toolset__title">Projects</h4>
+            <span class="toolset__method">twprojects-projects</span>
+          </div>
+          <p class="toolset__desc">Project, category, template, member, custom field, and custom item (user-defined entity types like Contracts, Leads, Deals) management in Teamwork.com.</p>
+          <div data-matrix>
+            <p class="subhead">Resource coverage</p>
+            <div class="matrix-scroll">
+              <table class="matrix">
+                <thead>
+                  <tr>
+                    <th scope="col">Resource</th><th scope="col">Create</th><th scope="col">Get</th><th scope="col">List</th><th scope="col">Update</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <th scope="row">Project Category</th><td class="yes" aria-label="yes">&check;</td><td class="yes" aria-label="yes">&check;</td><td class="yes" aria-label="yes">&check;</td><td class="yes" aria-label="yes">&check;</td>
+                  </tr>
+                  <tr>
+                    <th scope="row">Project</th><td class="yes" aria-label="yes">&check;</td><td class="yes" aria-label="yes">&check;</td><td class="yes" aria-label="yes">&check;</td><td class="yes" aria-label="yes">&check;</td>
+                  </tr>
+                  <tr>
+                    <th scope="row">Project Template</th><td class="yes" aria-label="yes">&check;</td><td class="no" aria-label="no">&mdash;</td><td class="yes" aria-label="yes">&check;</td><td class="no" aria-label="no">&mdash;</td>
+                  </tr>
+                  <tr>
+                    <th scope="row">Custom Field</th><td class="yes" aria-label="yes">&check;</td><td class="yes" aria-label="yes">&check;</td><td class="yes" aria-label="yes">&check;</td><td class="yes" aria-label="yes">&check;</td>
+                  </tr>
+                  <tr>
+                    <th scope="row">Custom Field Value</th><td class="yes" aria-label="yes">&check;</td><td class="yes" aria-label="yes">&check;</td><td class="yes" aria-label="yes">&check;</td><td class="yes" aria-label="yes">&check;</td>
+                  </tr>
+                  <tr>
+                    <th scope="row">Custom Item</th><td class="yes" aria-label="yes">&check;</td><td class="yes" aria-label="yes">&check;</td><td class="yes" aria-label="yes">&check;</td><td class="yes" aria-label="yes">&check;</td>
+                  </tr>
+                  <tr>
+                    <th scope="row">Custom Item Field</th><td class="yes" aria-label="yes">&check;</td><td class="yes" aria-label="yes">&check;</td><td class="yes" aria-label="yes">&check;</td><td class="yes" aria-label="yes">&check;</td>
+                  </tr>
+                  <tr>
+                    <th scope="row">Custom Item Record</th><td class="yes" aria-label="yes">&check;</td><td class="yes" aria-label="yes">&check;</td><td class="yes" aria-label="yes">&check;</td><td class="yes" aria-label="yes">&check;</td>
+                  </tr>
+                  <tr>
+                    <th scope="row">File</th><td class="yes" aria-label="yes">&check;</td><td class="no" aria-label="no">&mdash;</td><td class="no" aria-label="no">&mdash;</td><td class="no" aria-label="no">&mdash;</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <p class="subhead">Tools</p>
+          <div class="tools">
+            <div class="tool" data-search="twprojects-add_project_member add a user to a project." data-access="write">
+              <span class="badge badge--write">write</span>
+              <span class="tool__name">twprojects-add_project_member</span>
+              <span class="tool__desc">Add a user to a project.</span>
+            </div>
+            <div class="tool" data-search="twprojects-clone_project clone/copy an existing project or instantiate one from a template." data-access="write">
+              <span class="badge badge--write">write</span>
+              <span class="tool__name">twprojects-clone_project</span>
+              <span class="tool__desc">Clone/copy an existing project or instantiate one from a template.</span>
+            </div>
+            <div class="tool" data-search="twprojects-count_projects exact project count for any filter set: one call, one number, no rows." data-access="read">
+              <span class="badge badge--read">read</span>
+              <span class="tool__name">twprojects-count_projects</span>
+              <span class="tool__desc">Exact project count for any filter set: one call, one number, no rows.</span>
+            </div>
+            <div class="tool" data-search="twprojects-create_custom_field create custom field." data-access="write">
+              <span class="badge badge--write">write</span>
+              <span class="tool__name">twprojects-create_custom_field</span>
+              <span class="tool__desc">Create custom field.</span>
+            </div>
+            <div class="tool" data-search="twprojects-create_custom_field_value set a custom field value on a task, project or company." data-access="write">
+              <span class="badge badge--write">write</span>
+              <span class="tool__name">twprojects-create_custom_field_value</span>
+              <span class="tool__desc">Set a custom field value on a task, project or company.</span>
+            </div>
+            <div class="tool" data-search="twprojects-create_custom_item create a new custom item type (e.g. contracts, leads, deals) on a project." data-access="write">
+              <span class="badge badge--write">write</span>
+              <span class="tool__name">twprojects-create_custom_item</span>
+              <span class="tool__desc">Create a new custom item type (e.g. Contracts, Leads, Deals) on a project.</span>
+            </div>
+            <div class="tool" data-search="twprojects-create_custom_item_field add a field (column) to a custom item type." data-access="write">
+              <span class="badge badge--write">write</span>
+              <span class="tool__name">twprojects-create_custom_item_field</span>
+              <span class="tool__desc">Add a field (column) to a custom item type.</span>
+            </div>
+            <div class="tool" data-search="twprojects-create_custom_item_record create a record (row) on a custom item type." data-access="write">
+              <span class="badge badge--write">write</span>
+              <span class="tool__name">twprojects-create_custom_item_record</span>
+              <span class="tool__desc">Create a record (row) on a custom item type.</span>
+            </div>
+            <div class="tool" data-search="twprojects-create_file upload a file so it can be attached to a task, comment or message." data-access="write">
+              <span class="badge badge--write">write</span>
+              <span class="tool__name">twprojects-create_file</span>
+              <span class="tool__desc">Upload a file so it can be attached to a task, comment or message.</span>
+            </div>
+            <div class="tool" data-search="twprojects-create_project create project." data-access="write">
+              <span class="badge badge--write">write</span>
+              <span class="tool__name">twprojects-create_project</span>
+              <span class="tool__desc">Create project.</span>
+            </div>
+            <div class="tool" data-search="twprojects-create_project_category create project category." data-access="write">
+              <span class="badge badge--write">write</span>
+              <span class="tool__name">twprojects-create_project_category</span>
+              <span class="tool__desc">Create project category.</span>
+            </div>
+            <div class="tool" data-search="twprojects-create_project_template create project template." data-access="write">
+              <span class="badge badge--write">write</span>
+              <span class="tool__name">twprojects-create_project_template</span>
+              <span class="tool__desc">Create project template.</span>
+            </div>
+            <div class="tool" data-search="twprojects-get_custom_field get custom field." data-access="read">
+              <span class="badge badge--read">read</span>
+              <span class="tool__name">twprojects-get_custom_field</span>
+              <span class="tool__desc">Get custom field.</span>
+            </div>
+            <div class="tool" data-search="twprojects-get_custom_field_value get a single custom field value from a task, project or company." data-access="read">
+              <span class="badge badge--read">read</span>
+              <span class="tool__name">twprojects-get_custom_field_value</span>
+              <span class="tool__desc">Get a single custom field value from a task, project or company.</span>
+            </div>
+            <div class="tool" data-search="twprojects-get_custom_item get a custom item type with its fields and sections inline, so you can see its schema before creating or updating records." data-access="read">
+              <span class="badge badge--read">read</span>
+              <span class="tool__name">twprojects-get_custom_item</span>
+              <span class="tool__desc">Get a custom item type with its fields and sections inline, so you can see its schema before creating or updating records.</span>
+            </div>
+            <div class="tool" data-search="twprojects-get_custom_item_field get a single field on a custom item type." data-access="read">
+              <span class="badge badge--read">read</span>
+              <span class="tool__name">twprojects-get_custom_item_field</span>
+              <span class="tool__desc">Get a single field on a custom item type.</span>
+            </div>
+            <div class="tool" data-search="twprojects-get_custom_item_record get a single record." data-access="read">
+              <span class="badge badge--read">read</span>
+              <span class="tool__name">twprojects-get_custom_item_record</span>
+              <span class="tool__desc">Get a single record.</span>
+            </div>
+            <div class="tool" data-search="twprojects-get_project get project." data-access="read">
+              <span class="badge badge--read">read</span>
+              <span class="tool__name">twprojects-get_project</span>
+              <span class="tool__desc">Get project.</span>
+            </div>
+            <div class="tool" data-search="twprojects-get_project_category get project category." data-access="read">
+              <span class="badge badge--read">read</span>
+              <span class="tool__name">twprojects-get_project_category</span>
+              <span class="tool__desc">Get project category.</span>
+            </div>
+            <div class="tool" data-search="twprojects-list_custom_field_values list the custom field values of a task, project or company." data-access="read">
+              <span class="badge badge--read">read</span>
+              <span class="tool__name">twprojects-list_custom_field_values</span>
+              <span class="tool__desc">List the custom field values of a task, project or company.</span>
+            </div>
+            <div class="tool" data-search="twprojects-list_custom_fields list custom fields." data-access="read">
+              <span class="badge badge--read">read</span>
+              <span class="tool__name">twprojects-list_custom_fields</span>
+              <span class="tool__desc">List custom fields.</span>
+            </div>
+            <div class="tool" data-search="twprojects-list_custom_item_fields list fields on a custom item type." data-access="read">
+              <span class="badge badge--read">read</span>
+              <span class="tool__name">twprojects-list_custom_item_fields</span>
+              <span class="tool__desc">List fields on a custom item type.</span>
+            </div>
+            <div class="tool" data-search="twprojects-list_custom_item_records list records on a custom item type." data-access="read">
+              <span class="badge badge--read">read</span>
+              <span class="tool__name">twprojects-list_custom_item_records</span>
+              <span class="tool__desc">List records on a custom item type.</span>
+            </div>
+            <div class="tool" data-search="twprojects-list_custom_items list the custom item types defined on a project." data-access="read">
+              <span class="badge badge--read">read</span>
+              <span class="tool__name">twprojects-list_custom_items</span>
+              <span class="tool__desc">List the custom item types defined on a project.</span>
+            </div>
+            <div class="tool" data-search="twprojects-list_project_categories list project categories." data-access="read">
+              <span class="badge badge--read">read</span>
+              <span class="tool__name">twprojects-list_project_categories</span>
+              <span class="tool__desc">List project categories.</span>
+            </div>
+            <div class="tool" data-search="twprojects-list_project_templates list project templates." data-access="read">
+              <span class="badge badge--read">read</span>
+              <span class="tool__name">twprojects-list_project_templates</span>
+              <span class="tool__desc">List project templates.</span>
+            </div>
+            <div class="tool" data-search="twprojects-list_projects list projects with structured filters (membership, progress state, health, category, tag, company, owner)." data-access="read">
+              <span class="badge badge--read">read</span>
+              <span class="tool__name">twprojects-list_projects</span>
+              <span class="tool__desc">List projects with structured filters (membership, progress state, health, category, tag, company, owner).</span>
+            </div>
+            <div class="tool" data-search="twprojects-update_custom_field update custom field." data-access="write">
+              <span class="badge badge--write">write</span>
+              <span class="tool__name">twprojects-update_custom_field</span>
+              <span class="tool__desc">Update custom field.</span>
+            </div>
+            <div class="tool" data-search="twprojects-update_custom_field_value update a custom field value on a task, project or company." data-access="write">
+              <span class="badge badge--write">write</span>
+              <span class="tool__name">twprojects-update_custom_field_value</span>
+              <span class="tool__desc">Update a custom field value on a task, project or company.</span>
+            </div>
+            <div class="tool" data-search="twprojects-update_custom_item update a custom item type&#39;s display name, description, or labels." data-access="write">
+              <span class="badge badge--write">write</span>
+              <span class="tool__name">twprojects-update_custom_item</span>
+              <span class="tool__desc">Update a custom item type&#39;s display name, description, or labels.</span>
+            </div>
+            <div class="tool" data-search="twprojects-update_custom_item_field update a field on a custom item type." data-access="write">
+              <span class="badge badge--write">write</span>
+              <span class="tool__name">twprojects-update_custom_item_field</span>
+              <span class="tool__desc">Update a field on a custom item type.</span>
+            </div>
+            <div class="tool" data-search="twprojects-update_custom_item_record update a record on a custom item type." data-access="write">
+              <span class="badge badge--write">write</span>
+              <span class="tool__name">twprojects-update_custom_item_record</span>
+              <span class="tool__desc">Update a record on a custom item type.</span>
+            </div>
+            <div class="tool" data-search="twprojects-update_project update project." data-access="write">
+              <span class="badge badge--write">write</span>
+              <span class="tool__name">twprojects-update_project</span>
+              <span class="tool__desc">Update project.</span>
+            </div>
+            <div class="tool" data-search="twprojects-update_project_category update project category." data-access="write">
+              <span class="badge badge--write">write</span>
+              <span class="tool__name">twprojects-update_project_category</span>
+              <span class="tool__desc">Update project category.</span>
+            </div>
+          </div>
+        </div>
+        <div class="toolset" data-toolset id="twprojects-tasks">
+          <div class="toolset__head">
+            <h4 class="toolset__title">Tasks</h4>
+            <span class="toolset__method">twprojects-tasks</span>
+          </div>
+          <p class="toolset__desc">Task, tasklist, and workflow management in Teamwork.com.</p>
+          <div data-matrix>
+            <p class="subhead">Resource coverage</p>
+            <div class="matrix-scroll">
+              <table class="matrix">
+                <thead>
+                  <tr>
+                    <th scope="col">Resource</th><th scope="col">Create</th><th scope="col">Get</th><th scope="col">List</th><th scope="col">Update</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <th scope="row">Task</th><td class="yes" aria-label="yes">&check;</td><td class="yes" aria-label="yes">&check;</td><td class="yes" aria-label="yes">&check;</td><td class="yes" aria-label="yes">&check;</td>
+                  </tr>
+                  <tr>
+                    <th scope="row">Tasklist</th><td class="yes" aria-label="yes">&check;</td><td class="yes" aria-label="yes">&check;</td><td class="yes" aria-label="yes">&check;</td><td class="yes" aria-label="yes">&check;</td>
+                  </tr>
+                  <tr>
+                    <th scope="row">Workflow</th><td class="yes" aria-label="yes">&check;</td><td class="yes" aria-label="yes">&check;</td><td class="yes" aria-label="yes">&check;</td><td class="yes" aria-label="yes">&check;</td>
+                  </tr>
+                  <tr>
+                    <th scope="row">Workflow Stage</th><td class="yes" aria-label="yes">&check;</td><td class="yes" aria-label="yes">&check;</td><td class="yes" aria-label="yes">&check;</td><td class="yes" aria-label="yes">&check;</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <p class="subhead">Tools</p>
+          <div class="tools">
+            <div class="tool" data-search="twprojects-complete_task mark task complete." data-access="write">
+              <span class="badge badge--write">write</span>
+              <span class="tool__name">twprojects-complete_task</span>
+              <span class="tool__desc">Mark task complete.</span>
+            </div>
+            <div class="tool" data-search="twprojects-count_tasks exact task count for any filter set: one call, one number, no rows." data-access="read">
+              <span class="badge badge--read">read</span>
+              <span class="tool__name">twprojects-count_tasks</span>
+              <span class="tool__desc">Exact task count for any filter set: one call, one number, no rows.</span>
+            </div>
+            <div class="tool" data-search="twprojects-create_task create task in a tasklist." data-access="write">
+              <span class="badge badge--write">write</span>
+              <span class="tool__name">twprojects-create_task</span>
+              <span class="tool__desc">Create task in a tasklist.</span>
+            </div>
+            <div class="tool" data-search="twprojects-create_tasklist create tasklist in a project." data-access="write">
+              <span class="badge badge--write">write</span>
+              <span class="tool__name">twprojects-create_tasklist</span>
+              <span class="tool__desc">Create tasklist in a project.</span>
+            </div>
+            <div class="tool" data-search="twprojects-create_workflow create workflow." data-access="write">
+              <span class="badge badge--write">write</span>
+              <span class="tool__name">twprojects-create_workflow</span>
+              <span class="tool__desc">Create workflow.</span>
+            </div>
+            <div class="tool" data-search="twprojects-create_workflow_stage create workflow stage." data-access="write">
+              <span class="badge badge--write">write</span>
+              <span class="tool__name">twprojects-create_workflow_stage</span>
+              <span class="tool__desc">Create workflow stage.</span>
+            </div>
+            <div class="tool" data-search="twprojects-get_task get task." data-access="read">
+              <span class="badge badge--read">read</span>
+              <span class="tool__name">twprojects-get_task</span>
+              <span class="tool__desc">Get task.</span>
+            </div>
+            <div class="tool" data-search="twprojects-get_tasklist get tasklist." data-access="read">
+              <span class="badge badge--read">read</span>
+              <span class="tool__name">twprojects-get_tasklist</span>
+              <span class="tool__desc">Get tasklist.</span>
+            </div>
+            <div class="tool" data-search="twprojects-get_workflow get workflow." data-access="read">
+              <span class="badge badge--read">read</span>
+              <span class="tool__name">twprojects-get_workflow</span>
+              <span class="tool__desc">Get workflow.</span>
+            </div>
+            <div class="tool" data-search="twprojects-get_workflow_stage get workflow stage." data-access="read">
+              <span class="badge badge--read">read</span>
+              <span class="tool__name">twprojects-get_workflow_stage</span>
+              <span class="tool__desc">Get workflow stage.</span>
+            </div>
+            <div class="tool" data-search="twprojects-link_project_to_workflow link a project to a workflow so its tasks track through workflow stages." data-access="write">
+              <span class="badge badge--write">write</span>
+              <span class="tool__name">twprojects-link_project_to_workflow</span>
+              <span class="tool__desc">Link a project to a workflow so its tasks track through workflow stages.</span>
+            </div>
+            <div class="tool" data-search="twprojects-list_tasklists list tasklists." data-access="read">
+              <span class="badge badge--read">read</span>
+              <span class="tool__name">twprojects-list_tasklists</span>
+              <span class="tool__desc">List tasklists.</span>
+            </div>
+            <div class="tool" data-search="twprojects-list_tasks list tasks with structured filters (tasklist_id, project_id, or site-wide)." data-access="read">
+              <span class="badge badge--read">read</span>
+              <span class="tool__name">twprojects-list_tasks</span>
+              <span class="tool__desc">List tasks with structured filters (tasklist_id, project_id, or site-wide).</span>
+            </div>
+            <div class="tool" data-search="twprojects-list_workflow_stages list workflow stages." data-access="read">
+              <span class="badge badge--read">read</span>
+              <span class="tool__name">twprojects-list_workflow_stages</span>
+              <span class="tool__desc">List workflow stages.</span>
+            </div>
+            <div class="tool" data-search="twprojects-list_workflows list workflows." data-access="read">
+              <span class="badge badge--read">read</span>
+              <span class="tool__name">twprojects-list_workflows</span>
+              <span class="tool__desc">List workflows.</span>
+            </div>
+            <div class="tool" data-search="twprojects-move_task_to_workflow_stage move one or more tasks to a workflow stage." data-access="write">
+              <span class="badge badge--write">write</span>
+              <span class="tool__name">twprojects-move_task_to_workflow_stage</span>
+              <span class="tool__desc">Move one or more tasks to a workflow stage.</span>
+            </div>
+            <div class="tool" data-search="twprojects-move_tasks move tasks and all their subtasks to another tasklist, preserving the parent/child structure." data-access="write">
+              <span class="badge badge--write">write</span>
+              <span class="tool__name">twprojects-move_tasks</span>
+              <span class="tool__desc">Move tasks and all their subtasks to another tasklist, preserving the parent/child structure.</span>
+            </div>
+            <div class="tool" data-search="twprojects-update_task update task." data-access="write">
+              <span class="badge badge--write">write</span>
+              <span class="tool__name">twprojects-update_task</span>
+              <span class="tool__desc">Update task.</span>
+            </div>
+            <div class="tool" data-search="twprojects-update_tasklist update tasklist." data-access="write">
+              <span class="badge badge--write">write</span>
+              <span class="tool__name">twprojects-update_tasklist</span>
+              <span class="tool__desc">Update tasklist.</span>
+            </div>
+            <div class="tool" data-search="twprojects-update_workflow update workflow." data-access="write">
+              <span class="badge badge--write">write</span>
+              <span class="tool__name">twprojects-update_workflow</span>
+              <span class="tool__desc">Update workflow.</span>
+            </div>
+            <div class="tool" data-search="twprojects-update_workflow_stage update workflow stage." data-access="write">
+              <span class="badge badge--write">write</span>
+              <span class="tool__name">twprojects-update_workflow_stage</span>
+              <span class="tool__desc">Update workflow stage.</span>
+            </div>
+          </div>
+        </div>
+        <div class="toolset" data-toolset id="twprojects-time">
+          <div class="toolset__head">
+            <h4 class="toolset__title">Time</h4>
+            <span class="toolset__method">twprojects-time</span>
+          </div>
+          <p class="toolset__desc">Time tracking via timelogs, timers, calendars with time blocking, and budget reporting in Teamwork.com.</p>
+          <div data-matrix>
+            <p class="subhead">Resource coverage</p>
+            <div class="matrix-scroll">
+              <table class="matrix">
+                <thead>
+                  <tr>
+                    <th scope="col">Resource</th><th scope="col">Create</th><th scope="col">Get</th><th scope="col">List</th><th scope="col">Update</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <th scope="row">Calendar Event</th><td class="no" aria-label="no">&mdash;</td><td class="no" aria-label="no">&mdash;</td><td class="yes" aria-label="yes">&check;</td><td class="no" aria-label="no">&mdash;</td>
+                  </tr>
+                  <tr>
+                    <th scope="row">Calendar</th><td class="no" aria-label="no">&mdash;</td><td class="no" aria-label="no">&mdash;</td><td class="yes" aria-label="yes">&check;</td><td class="no" aria-label="no">&mdash;</td>
+                  </tr>
+                  <tr>
+                    <th scope="row">Project Budget</th><td class="no" aria-label="no">&mdash;</td><td class="no" aria-label="no">&mdash;</td><td class="yes" aria-label="yes">&check;</td><td class="no" aria-label="no">&mdash;</td>
+                  </tr>
+                  <tr>
+                    <th scope="row">Tasklist Budget</th><td class="no" aria-label="no">&mdash;</td><td class="no" aria-label="no">&mdash;</td><td class="yes" aria-label="yes">&check;</td><td class="no" aria-label="no">&mdash;</td>
+                  </tr>
+                  <tr>
+                    <th scope="row">Timelog</th><td class="yes" aria-label="yes">&check;</td><td class="yes" aria-label="yes">&check;</td><td class="yes" aria-label="yes">&check;</td><td class="yes" aria-label="yes">&check;</td>
+                  </tr>
+                  <tr>
+                    <th scope="row">Timer</th><td class="yes" aria-label="yes">&check;</td><td class="yes" aria-label="yes">&check;</td><td class="yes" aria-label="yes">&check;</td><td class="yes" aria-label="yes">&check;</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <p class="subhead">Tools</p>
+          <div class="tools">
+            <div class="tool" data-search="twprojects-complete_timer stop a timer permanently and convert it to a timelog." data-access="write">
+              <span class="badge badge--write">write</span>
+              <span class="tool__name">twprojects-complete_timer</span>
+              <span class="tool__desc">Stop a timer permanently and convert it to a timelog.</span>
+            </div>
+            <div class="tool" data-search="twprojects-count_timelogs exact count of time entries for any filter set: one call, one number, no rows." data-access="read">
+              <span class="badge badge--read">read</span>
+              <span class="tool__name">twprojects-count_timelogs</span>
+              <span class="tool__desc">Exact count of time entries for any filter set: one call, one number, no rows.</span>
+            </div>
+            <div class="tool" data-search="twprojects-create_timelog create timelog entry against a project or task." data-access="write">
+              <span class="badge badge--write">write</span>
+              <span class="tool__name">twprojects-create_timelog</span>
+              <span class="tool__desc">Create timelog entry against a project or task.</span>
+            </div>
+            <div class="tool" data-search="twprojects-create_timer create and start a timer." data-access="write">
+              <span class="badge badge--write">write</span>
+              <span class="tool__name">twprojects-create_timer</span>
+              <span class="tool__desc">Create and start a timer.</span>
+            </div>
+            <div class="tool" data-search="twprojects-get_timelog get timelog." data-access="read">
+              <span class="badge badge--read">read</span>
+              <span class="tool__name">twprojects-get_timelog</span>
+              <span class="tool__desc">Get timelog.</span>
+            </div>
+            <div class="tool" data-search="twprojects-get_timer get timer." data-access="read">
+              <span class="badge badge--read">read</span>
+              <span class="tool__name">twprojects-get_timer</span>
+              <span class="tool__desc">Get timer.</span>
+            </div>
+            <div class="tool" data-search="twprojects-list_calendar_events list events from a calendar, including time-blocking events that link a calendar slot to a teamwork project, task or timelog." data-access="read">
+              <span class="badge badge--read">read</span>
+              <span class="tool__name">twprojects-list_calendar_events</span>
+              <span class="tool__desc">List events from a calendar, including time-blocking events that link a calendar slot to a Teamwork project, task or timelog.</span>
+            </div>
+            <div class="tool" data-search="twprojects-list_calendars list calendars." data-access="read">
+              <span class="badge badge--read">read</span>
+              <span class="tool__name">twprojects-list_calendars</span>
+              <span class="tool__desc">List calendars.</span>
+            </div>
+            <div class="tool" data-search="twprojects-list_project_budgets lists top-level project budgets." data-access="read">
+              <span class="badge badge--read">read</span>
+              <span class="tool__name">twprojects-list_project_budgets</span>
+              <span class="tool__desc">Lists top-level project budgets.</span>
+            </div>
+            <div class="tool" data-search="twprojects-list_tasklist_budgets list tasklist budgets nested under a project budget." data-access="read">
+              <span class="badge badge--read">read</span>
+              <span class="tool__name">twprojects-list_tasklist_budgets</span>
+              <span class="tool__desc">List tasklist budgets nested under a project budget.</span>
+            </div>
+            <div class="tool" data-search="twprojects-list_timelogs list timelogs." data-access="read">
+              <span class="badge badge--read">read</span>
+              <span class="tool__name">twprojects-list_timelogs</span>
+              <span class="tool__desc">List timelogs.</span>
+            </div>
+            <div class="tool" data-search="twprojects-list_timers list timers." data-access="read">
+              <span class="badge badge--read">read</span>
+              <span class="tool__name">twprojects-list_timers</span>
+              <span class="tool__desc">List timers.</span>
+            </div>
+            <div class="tool" data-search="twprojects-pause_timer pause a running timer; can be resumed later." data-access="write">
+              <span class="badge badge--write">write</span>
+              <span class="tool__name">twprojects-pause_timer</span>
+              <span class="tool__desc">Pause a running timer; can be resumed later.</span>
+            </div>
+            <div class="tool" data-search="twprojects-resume_timer resume a paused timer back to running." data-access="write">
+              <span class="badge badge--write">write</span>
+              <span class="tool__name">twprojects-resume_timer</span>
+              <span class="tool__desc">Resume a paused timer back to running.</span>
+            </div>
+            <div class="tool" data-search="twprojects-summarize_timelogs deterministic, complete time-tracking totals for a date window, grouped by user or project." data-access="read">
+              <span class="badge badge--read">read</span>
+              <span class="tool__name">twprojects-summarize_timelogs</span>
+              <span class="tool__desc">Deterministic, complete time-tracking totals for a date window, grouped by user or project.</span>
+            </div>
+            <div class="tool" data-search="twprojects-update_timelog update timelog." data-access="write">
+              <span class="badge badge--write">write</span>
+              <span class="tool__name">twprojects-update_timelog</span>
+              <span class="tool__desc">Update timelog.</span>
+            </div>
+            <div class="tool" data-search="twprojects-update_timer update timer." data-access="write">
+              <span class="badge badge--write">write</span>
+              <span class="tool__name">twprojects-update_timer</span>
+              <span class="tool__desc">Update timer.</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="product" data-product id="desk">
+        <div class="product__head">
+          <h3 class="product__name">Desk</h3>
+          <span class="product__scope">twdesk-&#8203;* &middot; scope desk</span>
+          <span class="product__counts">42 tools &middot; 4 toolsets</span>
+        </div>
+        <div class="toolset" data-toolset id="twdesk-admin">
+          <div class="toolset__head">
+            <h4 class="toolset__title">Admin</h4>
+            <span class="toolset__method">twdesk-admin</span>
+          </div>
+          <p class="toolset__desc">Inbox configuration: priorities, statuses, types, and tags in Teamwork Desk.</p>
+          <div data-matrix>
+            <p class="subhead">Resource coverage</p>
+            <div class="matrix-scroll">
+              <table class="matrix">
+                <thead>
+                  <tr>
+                    <th scope="col">Resource</th><th scope="col">Create</th><th scope="col">Get</th><th scope="col">List</th><th scope="col">Update</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <th scope="row">Priority</th><td class="yes" aria-label="yes">&check;</td><td class="yes" aria-label="yes">&check;</td><td class="yes" aria-label="yes">&check;</td><td class="yes" aria-label="yes">&check;</td>
+                  </tr>
+                  <tr>
+                    <th scope="row">Status</th><td class="yes" aria-label="yes">&check;</td><td class="yes" aria-label="yes">&check;</td><td class="yes" aria-label="yes">&check;</td><td class="yes" aria-label="yes">&check;</td>
+                  </tr>
+                  <tr>
+                    <th scope="row">Tag</th><td class="yes" aria-label="yes">&check;</td><td class="yes" aria-label="yes">&check;</td><td class="yes" aria-label="yes">&check;</td><td class="yes" aria-label="yes">&check;</td>
+                  </tr>
+                  <tr>
+                    <th scope="row">Ticket Type</th><td class="yes" aria-label="yes">&check;</td><td class="yes" aria-label="yes">&check;</td><td class="yes" aria-label="yes">&check;</td><td class="yes" aria-label="yes">&check;</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <p class="subhead">Tools</p>
+          <div class="tools">
+            <div class="tool" data-search="twdesk-create_priority create ticket priority." data-access="write">
+              <span class="badge badge--write">write</span>
+              <span class="tool__name">twdesk-create_priority</span>
+              <span class="tool__desc">Create ticket priority.</span>
+            </div>
+            <div class="tool" data-search="twdesk-create_status create ticket status." data-access="write">
+              <span class="badge badge--write">write</span>
+              <span class="tool__name">twdesk-create_status</span>
+              <span class="tool__desc">Create ticket status.</span>
+            </div>
+            <div class="tool" data-search="twdesk-create_tag create desk tag." data-access="write">
+              <span class="badge badge--write">write</span>
+              <span class="tool__name">twdesk-create_tag</span>
+              <span class="tool__desc">Create Desk tag.</span>
+            </div>
+            <div class="tool" data-search="twdesk-create_ticket_type create ticket type." data-access="write">
+              <span class="badge badge--write">write</span>
+              <span class="tool__name">twdesk-create_ticket_type</span>
+              <span class="tool__desc">Create ticket type.</span>
+            </div>
+            <div class="tool" data-search="twdesk-get_priority get ticket priority." data-access="read">
+              <span class="badge badge--read">read</span>
+              <span class="tool__name">twdesk-get_priority</span>
+              <span class="tool__desc">Get ticket priority.</span>
+            </div>
+            <div class="tool" data-search="twdesk-get_status get ticket status." data-access="read">
+              <span class="badge badge--read">read</span>
+              <span class="tool__name">twdesk-get_status</span>
+              <span class="tool__desc">Get ticket status.</span>
+            </div>
+            <div class="tool" data-search="twdesk-get_tag get desk tag." data-access="read">
+              <span class="badge badge--read">read</span>
+              <span class="tool__name">twdesk-get_tag</span>
+              <span class="tool__desc">Get Desk tag.</span>
+            </div>
+            <div class="tool" data-search="twdesk-get_ticket_type get ticket type." data-access="read">
+              <span class="badge badge--read">read</span>
+              <span class="tool__name">twdesk-get_ticket_type</span>
+              <span class="tool__desc">Get ticket type.</span>
+            </div>
+            <div class="tool" data-search="twdesk-list_priorities list ticket priorities." data-access="read">
+              <span class="badge badge--read">read</span>
+              <span class="tool__name">twdesk-list_priorities</span>
+              <span class="tool__desc">List ticket priorities.</span>
+            </div>
+            <div class="tool" data-search="twdesk-list_statuses list ticket statuses." data-access="read">
+              <span class="badge badge--read">read</span>
+              <span class="tool__name">twdesk-list_statuses</span>
+              <span class="tool__desc">List ticket statuses.</span>
+            </div>
+            <div class="tool" data-search="twdesk-list_tags list desk tags." data-access="read">
+              <span class="badge badge--read">read</span>
+              <span class="tool__name">twdesk-list_tags</span>
+              <span class="tool__desc">List Desk tags.</span>
+            </div>
+            <div class="tool" data-search="twdesk-list_ticket_types list ticket types." data-access="read">
+              <span class="badge badge--read">read</span>
+              <span class="tool__name">twdesk-list_ticket_types</span>
+              <span class="tool__desc">List ticket types.</span>
+            </div>
+            <div class="tool" data-search="twdesk-update_priority update ticket priority." data-access="write">
+              <span class="badge badge--write">write</span>
+              <span class="tool__name">twdesk-update_priority</span>
+              <span class="tool__desc">Update ticket priority.</span>
+            </div>
+            <div class="tool" data-search="twdesk-update_status update ticket status." data-access="write">
+              <span class="badge badge--write">write</span>
+              <span class="tool__name">twdesk-update_status</span>
+              <span class="tool__desc">Update ticket status.</span>
+            </div>
+            <div class="tool" data-search="twdesk-update_tag update desk tag." data-access="write">
+              <span class="badge badge--write">write</span>
+              <span class="tool__name">twdesk-update_tag</span>
+              <span class="tool__desc">Update Desk tag.</span>
+            </div>
+            <div class="tool" data-search="twdesk-update_ticket_type update ticket type." data-access="write">
+              <span class="badge badge--write">write</span>
+              <span class="tool__name">twdesk-update_ticket_type</span>
+              <span class="tool__desc">Update ticket type.</span>
+            </div>
+          </div>
+        </div>
+        <div class="toolset" data-toolset id="twdesk-customers">
+          <div class="toolset__head">
+            <h4 class="toolset__title">Customers</h4>
+            <span class="toolset__method">twdesk-customers</span>
+          </div>
+          <p class="toolset__desc">Companies, customers, and user management in Teamwork Desk.</p>
+          <div data-matrix>
+            <p class="subhead">Resource coverage</p>
+            <div class="matrix-scroll">
+              <table class="matrix">
+                <thead>
+                  <tr>
+                    <th scope="col">Resource</th><th scope="col">Create</th><th scope="col">Get</th><th scope="col">List</th><th scope="col">Update</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <th scope="row">Company</th><td class="yes" aria-label="yes">&check;</td><td class="yes" aria-label="yes">&check;</td><td class="yes" aria-label="yes">&check;</td><td class="yes" aria-label="yes">&check;</td>
+                  </tr>
+                  <tr>
+                    <th scope="row">Customer</th><td class="yes" aria-label="yes">&check;</td><td class="yes" aria-label="yes">&check;</td><td class="yes" aria-label="yes">&check;</td><td class="yes" aria-label="yes">&check;</td>
+                  </tr>
+                  <tr>
+                    <th scope="row">User</th><td class="no" aria-label="no">&mdash;</td><td class="yes" aria-label="yes">&check;</td><td class="yes" aria-label="yes">&check;</td><td class="no" aria-label="no">&mdash;</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <p class="subhead">Tools</p>
+          <div class="tools">
+            <div class="tool" data-search="twdesk-create_company create desk company." data-access="write">
+              <span class="badge badge--write">write</span>
+              <span class="tool__name">twdesk-create_company</span>
+              <span class="tool__desc">Create Desk company.</span>
+            </div>
+            <div class="tool" data-search="twdesk-create_customer create customer." data-access="write">
+              <span class="badge badge--write">write</span>
+              <span class="tool__name">twdesk-create_customer</span>
+              <span class="tool__desc">Create customer.</span>
+            </div>
+            <div class="tool" data-search="twdesk-get_company get desk company (customer organization)." data-access="read">
+              <span class="badge badge--read">read</span>
+              <span class="tool__name">twdesk-get_company</span>
+              <span class="tool__desc">Get Desk company (customer organization).</span>
+            </div>
+            <div class="tool" data-search="twdesk-get_customer get customer." data-access="read">
+              <span class="badge badge--read">read</span>
+              <span class="tool__name">twdesk-get_customer</span>
+              <span class="tool__desc">Get customer.</span>
+            </div>
+            <div class="tool" data-search="twdesk-get_user get support agent." data-access="read">
+              <span class="badge badge--read">read</span>
+              <span class="tool__name">twdesk-get_user</span>
+              <span class="tool__desc">Get support agent.</span>
+            </div>
+            <div class="tool" data-search="twdesk-list_companies list desk companies." data-access="read">
+              <span class="badge badge--read">read</span>
+              <span class="tool__name">twdesk-list_companies</span>
+              <span class="tool__desc">List Desk companies.</span>
+            </div>
+            <div class="tool" data-search="twdesk-list_customers list customers." data-access="read">
+              <span class="badge badge--read">read</span>
+              <span class="tool__name">twdesk-list_customers</span>
+              <span class="tool__desc">List customers.</span>
+            </div>
+            <div class="tool" data-search="twdesk-list_users list support agents." data-access="read">
+              <span class="badge badge--read">read</span>
+              <span class="tool__name">twdesk-list_users</span>
+              <span class="tool__desc">List support agents.</span>
+            </div>
+            <div class="tool" data-search="twdesk-update_company update desk company." data-access="write">
+              <span class="badge badge--write">write</span>
+              <span class="tool__name">twdesk-update_company</span>
+              <span class="tool__desc">Update Desk company.</span>
+            </div>
+            <div class="tool" data-search="twdesk-update_customer update customer." data-access="write">
+              <span class="badge badge--write">write</span>
+              <span class="tool__name">twdesk-update_customer</span>
+              <span class="tool__desc">Update customer.</span>
+            </div>
+          </div>
+        </div>
+        <div class="toolset" data-toolset id="twdesk-helpdocs">
+          <div class="toolset__head">
+            <h4 class="toolset__title">Helpdocs</h4>
+            <span class="toolset__method">twdesk-helpdocs</span>
+          </div>
+          <p class="toolset__desc">Help doc articles and sites in Teamwork Desk.</p>
+          <div data-matrix>
+            <p class="subhead">Resource coverage</p>
+            <div class="matrix-scroll">
+              <table class="matrix">
+                <thead>
+                  <tr>
+                    <th scope="col">Resource</th><th scope="col">Create</th><th scope="col">Get</th><th scope="col">List</th><th scope="col">Update</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <th scope="row">Helpdoc Article</th><td class="yes" aria-label="yes">&check;</td><td class="yes" aria-label="yes">&check;</td><td class="no" aria-label="no">&mdash;</td><td class="yes" aria-label="yes">&check;</td>
+                  </tr>
+                  <tr>
+                    <th scope="row">Helpdoc Site</th><td class="no" aria-label="no">&mdash;</td><td class="yes" aria-label="yes">&check;</td><td class="yes" aria-label="yes">&check;</td><td class="no" aria-label="no">&mdash;</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <p class="subhead">Tools</p>
+          <div class="tools">
+            <div class="tool" data-search="twdesk-create_helpdoc_article create a new help doc article." data-access="write">
+              <span class="badge badge--write">write</span>
+              <span class="tool__name">twdesk-create_helpdoc_article</span>
+              <span class="tool__desc">Create a new help doc article.</span>
+            </div>
+            <div class="tool" data-search="twdesk-get_helpdoc_article get a help doc article by id." data-access="read">
+              <span class="badge badge--read">read</span>
+              <span class="tool__name">twdesk-get_helpdoc_article</span>
+              <span class="tool__desc">Get a help doc article by ID.</span>
+            </div>
+            <div class="tool" data-search="twdesk-get_helpdoc_site get a help doc site (knowledge base) by id, including its subdomain, branding and article counts." data-access="read">
+              <span class="badge badge--read">read</span>
+              <span class="tool__name">twdesk-get_helpdoc_site</span>
+              <span class="tool__desc">Get a help doc site (knowledge base) by ID, including its subdomain, branding and article counts.</span>
+            </div>
+            <div class="tool" data-search="twdesk-list_helpdoc_sites list help doc sites (knowledge bases)." data-access="read">
+              <span class="badge badge--read">read</span>
+              <span class="tool__name">twdesk-list_helpdoc_sites</span>
+              <span class="tool__desc">List help doc sites (knowledge bases).</span>
+            </div>
+            <div class="tool" data-search="twdesk-search_helpdoc_articles search help doc articles." data-access="read">
+              <span class="badge badge--read">read</span>
+              <span class="tool__name">twdesk-search_helpdoc_articles</span>
+              <span class="tool__desc">Search help doc articles.</span>
+            </div>
+            <div class="tool" data-search="twdesk-update_helpdoc_article update an existing help doc article." data-access="write">
+              <span class="badge badge--write">write</span>
+              <span class="tool__name">twdesk-update_helpdoc_article</span>
+              <span class="tool__desc">Update an existing help doc article.</span>
+            </div>
+          </div>
+        </div>
+        <div class="toolset" data-toolset id="twdesk-tickets">
+          <div class="toolset__head">
+            <h4 class="toolset__title">Tickets</h4>
+            <span class="toolset__method">twdesk-tickets</span>
+          </div>
+          <p class="toolset__desc">Tickets, messages, files, and inboxes in Teamwork Desk.</p>
+          <div data-matrix>
+            <p class="subhead">Resource coverage</p>
+            <div class="matrix-scroll">
+              <table class="matrix">
+                <thead>
+                  <tr>
+                    <th scope="col">Resource</th><th scope="col">Create</th><th scope="col">Get</th><th scope="col">List</th><th scope="col">Update</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <th scope="row">Inbox</th><td class="no" aria-label="no">&mdash;</td><td class="yes" aria-label="yes">&check;</td><td class="yes" aria-label="yes">&check;</td><td class="no" aria-label="no">&mdash;</td>
+                  </tr>
+                  <tr>
+                    <th scope="row">Ticket</th><td class="yes" aria-label="yes">&check;</td><td class="yes" aria-label="yes">&check;</td><td class="no" aria-label="no">&mdash;</td><td class="yes" aria-label="yes">&check;</td>
+                  </tr>
+                  <tr>
+                    <th scope="row">File</th><td class="yes" aria-label="yes">&check;</td><td class="no" aria-label="no">&mdash;</td><td class="no" aria-label="no">&mdash;</td><td class="no" aria-label="no">&mdash;</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <p class="subhead">Tools</p>
+          <div class="tools">
+            <div class="tool" data-search="twdesk-create_file upload file." data-access="write">
+              <span class="badge badge--write">write</span>
+              <span class="tool__name">twdesk-create_file</span>
+              <span class="tool__desc">Upload file.</span>
+            </div>
+            <div class="tool" data-search="twdesk-create_ticket create ticket." data-access="write">
+              <span class="badge badge--write">write</span>
+              <span class="tool__name">twdesk-create_ticket</span>
+              <span class="tool__desc">Create ticket.</span>
+            </div>
+            <div class="tool" data-search="twdesk-get_inbox get inbox." data-access="read">
+              <span class="badge badge--read">read</span>
+              <span class="tool__name">twdesk-get_inbox</span>
+              <span class="tool__desc">Get inbox.</span>
+            </div>
+            <div class="tool" data-search="twdesk-get_ticket get ticket." data-access="read">
+              <span class="badge badge--read">read</span>
+              <span class="tool__name">twdesk-get_ticket</span>
+              <span class="tool__desc">Get ticket.</span>
+            </div>
+            <div class="tool" data-search="twdesk-link_task_to_ticket link a teamwork projects task to a desk ticket, so the ticket shows the work tracked by that task." data-access="write">
+              <span class="badge badge--write">write</span>
+              <span class="tool__name">twdesk-link_task_to_ticket</span>
+              <span class="tool__desc">Link a Teamwork Projects task to a Desk ticket, so the ticket shows the work tracked by that task.</span>
+            </div>
+            <div class="tool" data-search="twdesk-list_inboxes list inboxes." data-access="read">
+              <span class="badge badge--read">read</span>
+              <span class="tool__name">twdesk-list_inboxes</span>
+              <span class="tool__desc">List inboxes.</span>
+            </div>
+            <div class="tool" data-search="twdesk-reply_ticket reply to a ticket." data-access="write">
+              <span class="badge badge--write">write</span>
+              <span class="tool__name">twdesk-reply_ticket</span>
+              <span class="tool__desc">Reply to a ticket.</span>
+            </div>
+            <div class="tool" data-search="twdesk-search_tickets search tickets." data-access="read">
+              <span class="badge badge--read">read</span>
+              <span class="tool__name">twdesk-search_tickets</span>
+              <span class="tool__desc">Search tickets.</span>
+            </div>
+            <div class="tool" data-search="twdesk-unlink_task_from_ticket unlink a teamwork projects task from a desk ticket." data-access="write">
+              <span class="badge badge--write">write</span>
+              <span class="tool__name">twdesk-unlink_task_from_ticket</span>
+              <span class="tool__desc">Unlink a Teamwork Projects task from a Desk ticket.</span>
+            </div>
+            <div class="tool" data-search="twdesk-update_ticket update ticket." data-access="write">
+              <span class="badge badge--write">write</span>
+              <span class="tool__name">twdesk-update_ticket</span>
+              <span class="tool__desc">Update ticket.</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="product" data-product id="spaces">
+        <div class="product__head">
+          <h3 class="product__name">Spaces</h3>
+          <span class="product__scope">twspaces-&#8203;* &middot; scope spaces</span>
+          <span class="product__counts">24 tools &middot; 3 toolsets</span>
+        </div>
+        <div class="toolset" data-toolset id="twspaces-content">
+          <div class="toolset__head">
+            <h4 class="toolset__title">Content</h4>
+            <span class="toolset__method">twspaces-content</span>
+          </div>
+          <p class="toolset__desc">Comments, tags, categories, and search in Teamwork Spaces.</p>
+          <div data-matrix>
+            <p class="subhead">Resource coverage</p>
+            <div class="matrix-scroll">
+              <table class="matrix">
+                <thead>
+                  <tr>
+                    <th scope="col">Resource</th><th scope="col">Create</th><th scope="col">Get</th><th scope="col">List</th><th scope="col">Update</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <th scope="row">Comment</th><td class="yes" aria-label="yes">&check;</td><td class="yes" aria-label="yes">&check;</td><td class="yes" aria-label="yes">&check;</td><td class="yes" aria-label="yes">&check;</td>
+                  </tr>
+                  <tr>
+                    <th scope="row">Tag</th><td class="yes" aria-label="yes">&check;</td><td class="yes" aria-label="yes">&check;</td><td class="yes" aria-label="yes">&check;</td><td class="yes" aria-label="yes">&check;</td>
+                  </tr>
+                  <tr>
+                    <th scope="row">Category</th><td class="yes" aria-label="yes">&check;</td><td class="yes" aria-label="yes">&check;</td><td class="yes" aria-label="yes">&check;</td><td class="yes" aria-label="yes">&check;</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <p class="subhead">Tools</p>
+          <div class="tools">
+            <div class="tool" data-search="twspaces-create_category create space category." data-access="write">
+              <span class="badge badge--write">write</span>
+              <span class="tool__name">twspaces-create_category</span>
+              <span class="tool__desc">Create space category.</span>
+            </div>
+            <div class="tool" data-search="twspaces-create_comment create comment on a page." data-access="write">
+              <span class="badge badge--write">write</span>
+              <span class="tool__name">twspaces-create_comment</span>
+              <span class="tool__desc">Create comment on a page.</span>
+            </div>
+            <div class="tool" data-search="twspaces-create_tags create one or more spaces tags in a single request." data-access="write">
+              <span class="badge badge--write">write</span>
+              <span class="tool__name">twspaces-create_tags</span>
+              <span class="tool__desc">Create one or more Spaces tags in a single request.</span>
+            </div>
+            <div class="tool" data-search="twspaces-get_category get space category." data-access="read">
+              <span class="badge badge--read">read</span>
+              <span class="tool__name">twspaces-get_category</span>
+              <span class="tool__desc">Get space category.</span>
+            </div>
+            <div class="tool" data-search="twspaces-get_comment get page comment." data-access="read">
+              <span class="badge badge--read">read</span>
+              <span class="tool__name">twspaces-get_comment</span>
+              <span class="tool__desc">Get page comment.</span>
+            </div>
+            <div class="tool" data-search="twspaces-get_tag get spaces tag." data-access="read">
+              <span class="badge badge--read">read</span>
+              <span class="tool__name">twspaces-get_tag</span>
+              <span class="tool__desc">Get Spaces tag.</span>
+            </div>
+            <div class="tool" data-search="twspaces-list_categories list space categories." data-access="read">
+              <span class="badge badge--read">read</span>
+              <span class="tool__name">twspaces-list_categories</span>
+              <span class="tool__desc">List space categories.</span>
+            </div>
+            <div class="tool" data-search="twspaces-list_comments list comments on a page." data-access="read">
+              <span class="badge badge--read">read</span>
+              <span class="tool__name">twspaces-list_comments</span>
+              <span class="tool__desc">List comments on a page.</span>
+            </div>
+            <div class="tool" data-search="twspaces-list_tags list spaces tags." data-access="read">
+              <span class="badge badge--read">read</span>
+              <span class="tool__name">twspaces-list_tags</span>
+              <span class="tool__desc">List Spaces tags.</span>
+            </div>
+            <div class="tool" data-search="twspaces-search full-text search across pages." data-access="read">
+              <span class="badge badge--read">read</span>
+              <span class="tool__name">twspaces-search</span>
+              <span class="tool__desc">Full-text search across pages.</span>
+            </div>
+            <div class="tool" data-search="twspaces-update_category update space category." data-access="write">
+              <span class="badge badge--write">write</span>
+              <span class="tool__name">twspaces-update_category</span>
+              <span class="tool__desc">Update space category.</span>
+            </div>
+            <div class="tool" data-search="twspaces-update_comment update page comment." data-access="write">
+              <span class="badge badge--write">write</span>
+              <span class="tool__name">twspaces-update_comment</span>
+              <span class="tool__desc">Update page comment.</span>
+            </div>
+            <div class="tool" data-search="twspaces-update_tag update spaces tag." data-access="write">
+              <span class="badge badge--write">write</span>
+              <span class="tool__name">twspaces-update_tag</span>
+              <span class="tool__desc">Update Spaces tag.</span>
+            </div>
+          </div>
+        </div>
+        <div class="toolset" data-toolset id="twspaces-pages">
+          <div class="toolset__head">
+            <h4 class="toolset__title">Pages</h4>
+            <span class="toolset__method">twspaces-pages</span>
+          </div>
+          <p class="toolset__desc">Page CRUD, homepage, and duplication in Teamwork Spaces.</p>
+          <div data-matrix>
+            <p class="subhead">Resource coverage</p>
+            <div class="matrix-scroll">
+              <table class="matrix">
+                <thead>
+                  <tr>
+                    <th scope="col">Resource</th><th scope="col">Create</th><th scope="col">Get</th><th scope="col">List</th><th scope="col">Update</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <th scope="row">Page</th><td class="yes" aria-label="yes">&check;</td><td class="yes" aria-label="yes">&check;</td><td class="yes" aria-label="yes">&check;</td><td class="yes" aria-label="yes">&check;</td>
+                  </tr>
+                  <tr>
+                    <th scope="row">Homepage</th><td class="no" aria-label="no">&mdash;</td><td class="yes" aria-label="yes">&check;</td><td class="no" aria-label="no">&mdash;</td><td class="no" aria-label="no">&mdash;</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <p class="subhead">Tools</p>
+          <div class="tools">
+            <div class="tool" data-search="twspaces-create_page create page in a space." data-access="write">
+              <span class="badge badge--write">write</span>
+              <span class="tool__name">twspaces-create_page</span>
+              <span class="tool__desc">Create page in a space.</span>
+            </div>
+            <div class="tool" data-search="twspaces-duplicate_page duplicate page with a new title." data-access="write">
+              <span class="badge badge--write">write</span>
+              <span class="tool__name">twspaces-duplicate_page</span>
+              <span class="tool__desc">Duplicate page with a new title.</span>
+            </div>
+            <div class="tool" data-search="twspaces-get_homepage get a space&#39;s homepage." data-access="read">
+              <span class="badge badge--read">read</span>
+              <span class="tool__name">twspaces-get_homepage</span>
+              <span class="tool__desc">Get a space&#39;s homepage.</span>
+            </div>
+            <div class="tool" data-search="twspaces-get_page get page." data-access="read">
+              <span class="badge badge--read">read</span>
+              <span class="tool__name">twspaces-get_page</span>
+              <span class="tool__desc">Get page.</span>
+            </div>
+            <div class="tool" data-search="twspaces-list_pages list pages in a space as a hierarchical tree." data-access="read">
+              <span class="badge badge--read">read</span>
+              <span class="tool__name">twspaces-list_pages</span>
+              <span class="tool__desc">List pages in a space as a hierarchical tree.</span>
+            </div>
+            <div class="tool" data-search="twspaces-update_page update page." data-access="write">
+              <span class="badge badge--write">write</span>
+              <span class="tool__name">twspaces-update_page</span>
+              <span class="tool__desc">Update page.</span>
+            </div>
+          </div>
+        </div>
+        <div class="toolset" data-toolset id="twspaces-spaces">
+          <div class="toolset__head">
+            <h4 class="toolset__title">Spaces</h4>
+            <span class="toolset__method">twspaces-spaces</span>
+          </div>
+          <p class="toolset__desc">Space CRUD and collaborators in Teamwork Spaces.</p>
+          <div data-matrix>
+            <p class="subhead">Resource coverage</p>
+            <div class="matrix-scroll">
+              <table class="matrix">
+                <thead>
+                  <tr>
+                    <th scope="col">Resource</th><th scope="col">Create</th><th scope="col">Get</th><th scope="col">List</th><th scope="col">Update</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <th scope="row">Space</th><td class="yes" aria-label="yes">&check;</td><td class="yes" aria-label="yes">&check;</td><td class="yes" aria-label="yes">&check;</td><td class="yes" aria-label="yes">&check;</td>
+                  </tr>
+                  <tr>
+                    <th scope="row">Space Collaborator</th><td class="no" aria-label="no">&mdash;</td><td class="no" aria-label="no">&mdash;</td><td class="yes" aria-label="yes">&check;</td><td class="no" aria-label="no">&mdash;</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <p class="subhead">Tools</p>
+          <div class="tools">
+            <div class="tool" data-search="twspaces-create_space create space." data-access="write">
+              <span class="badge badge--write">write</span>
+              <span class="tool__name">twspaces-create_space</span>
+              <span class="tool__desc">Create space.</span>
+            </div>
+            <div class="tool" data-search="twspaces-get_space get space." data-access="read">
+              <span class="badge badge--read">read</span>
+              <span class="tool__name">twspaces-get_space</span>
+              <span class="tool__desc">Get space.</span>
+            </div>
+            <div class="tool" data-search="twspaces-list_space_collaborators list space collaborators (users and teams)." data-access="read">
+              <span class="badge badge--read">read</span>
+              <span class="tool__name">twspaces-list_space_collaborators</span>
+              <span class="tool__desc">List space collaborators (users and teams).</span>
+            </div>
+            <div class="tool" data-search="twspaces-list_spaces list spaces." data-access="read">
+              <span class="badge badge--read">read</span>
+              <span class="tool__name">twspaces-list_spaces</span>
+              <span class="tool__desc">List spaces.</span>
+            </div>
+            <div class="tool" data-search="twspaces-update_space update space." data-access="write">
+              <span class="badge badge--write">write</span>
+              <span class="tool__name">twspaces-update_space</span>
+              <span class="tool__desc">Update space.</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="product" data-product id="chat">
+        <div class="product__head">
+          <h3 class="product__name">Chat</h3>
+          <span class="product__scope">twchat-&#8203;* &middot; scope chat</span>
+          <span class="product__counts">8 tools &middot; 1 toolsets</span>
+        </div>
+        <div class="toolset" data-toolset id="twchat-chat">
+          <div class="toolset__head">
+            <h4 class="toolset__title">Chat</h4>
+            <span class="toolset__method">twchat-chat</span>
+          </div>
+          <p class="toolset__desc">Read conversations, messages, and people, and send messages in Teamwork Chat.</p>
+          <div data-matrix>
+            <p class="subhead">Resource coverage</p>
+            <div class="matrix-scroll">
+              <table class="matrix">
+                <thead>
+                  <tr>
+                    <th scope="col">Resource</th><th scope="col">Create</th><th scope="col">Get</th><th scope="col">List</th><th scope="col">Update</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <th scope="row">Current User</th><td class="no" aria-label="no">&mdash;</td><td class="yes" aria-label="yes">&check;</td><td class="no" aria-label="no">&mdash;</td><td class="no" aria-label="no">&mdash;</td>
+                  </tr>
+                  <tr>
+                    <th scope="row">Conversation</th><td class="no" aria-label="no">&mdash;</td><td class="yes" aria-label="yes">&check;</td><td class="yes" aria-label="yes">&check;</td><td class="no" aria-label="no">&mdash;</td>
+                  </tr>
+                  <tr>
+                    <th scope="row">Message</th><td class="no" aria-label="no">&mdash;</td><td class="no" aria-label="no">&mdash;</td><td class="yes" aria-label="yes">&check;</td><td class="no" aria-label="no">&mdash;</td>
+                  </tr>
+                  <tr>
+                    <th scope="row">People</th><td class="no" aria-label="no">&mdash;</td><td class="no" aria-label="no">&mdash;</td><td class="yes" aria-label="yes">&check;</td><td class="no" aria-label="no">&mdash;</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <p class="subhead">Tools</p>
+          <div class="tools">
+            <div class="tool" data-search="twchat-get_conversation get a single teamwork chat conversation by id." data-access="read">
+              <span class="badge badge--read">read</span>
+              <span class="tool__name">twchat-get_conversation</span>
+              <span class="tool__desc">Get a single Teamwork Chat conversation by ID.</span>
+            </div>
+            <div class="tool" data-search="twchat-get_current_user get the current authenticated teamwork chat user, including identity, counts (unread conversations/messages, mentions), and settings." data-access="read">
+              <span class="badge badge--read">read</span>
+              <span class="tool__name">twchat-get_current_user</span>
+              <span class="tool__desc">Get the current authenticated Teamwork Chat user, including identity, counts (unread conversations/messages, mentions), and settings.</span>
+            </div>
+            <div class="tool" data-search="twchat-get_or_create_dm get the 1:1 direct-message conversation with a person, creating it if it does not exist yet." data-access="write">
+              <span class="badge badge--write">write</span>
+              <span class="tool__name">twchat-get_or_create_dm</span>
+              <span class="tool__desc">Get the 1:1 direct-message conversation with a person, creating it if it does not exist yet.</span>
+            </div>
+            <div class="tool" data-search="twchat-list_conversations list teamwork chat conversations the current user is a member of." data-access="read">
+              <span class="badge badge--read">read</span>
+              <span class="tool__name">twchat-list_conversations</span>
+              <span class="tool__desc">List Teamwork Chat conversations the current user is a member of.</span>
+            </div>
+            <div class="tool" data-search="twchat-list_messages list messages within a teamwork chat conversation." data-access="read">
+              <span class="badge badge--read">read</span>
+              <span class="tool__name">twchat-list_messages</span>
+              <span class="tool__desc">List messages within a Teamwork Chat conversation.</span>
+            </div>
+            <div class="tool" data-search="twchat-list_people list people in the teamwork chat installation." data-access="read">
+              <span class="badge badge--read">read</span>
+              <span class="tool__name">twchat-list_people</span>
+              <span class="tool__desc">List people in the Teamwork Chat installation.</span>
+            </div>
+            <div class="tool" data-search="twchat-send_dm send a direct message to a person, resolving (or creating) the 1:1 conversation automatically." data-access="write">
+              <span class="badge badge--write">write</span>
+              <span class="tool__name">twchat-send_dm</span>
+              <span class="tool__desc">Send a direct message to a person, resolving (or creating) the 1:1 conversation automatically.</span>
+            </div>
+            <div class="tool" data-search="twchat-send_message send a message to a teamwork chat conversation." data-access="write">
+              <span class="badge badge--write">write</span>
+              <span class="tool__name">twchat-send_message</span>
+              <span class="tool__desc">Send a message to a Teamwork Chat conversation.</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="notes">
+  <div class="wrap">
+    <div class="notes">
+      <h2>What bounds this surface</h2>
+      <p class="notes__intro">The catalogue above is the whole story for a hosted client — there is no second, wider set of tools behind it.</p>
+      <div class="notes__grid">
+        <div class="notes__item">
+          <h3>Your permissions, not more</h3>
+          <p>Every call is made as the account that authorised the connection, so a client can only read and change what that person already could in the Teamwork.com UI.</p>
+        </div>
+        <div class="notes__item">
+          <h3>Deletes are not published</h3>
+          <p>Delete tools exist in the codebase but sit behind an <code>allowDelete</code> flag that no shipped server turns on, so no client can call one. That is why no <code>delete_*</code> tool appears above.</p>
+        </div>
+        <div class="notes__item">
+          <h3>Read-only is one flag</h3>
+          <p>Running a server with <code>-read-only</code> drops every write tool, leaving the 107 read tools listed above. Scopes narrow it further: a token carries one scope per product.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <p>Generated from the registered toolsets by <code>cmd/docs-gen</code> — do not edit by hand.</p>
+    <p>Source and technical documentation: <a href="https://github.com/teamwork/mcp">github.com/teamwork/mcp</a>. Teamwork.com logo and brand colours used per the <a href="https://www.teamwork.com/brand/">Teamwork.com brand guidelines</a>.</p>
+  </div>
+</footer>
+
+<script>
+// Client-side filtering for the tool explorer. Every tool row carries a
+// data-search haystack (name + description, lowercased at generation time) and
+// a data-access value, so filtering never touches the DOM text.
+(function () {
+  var search = document.getElementById('tool-search');
+  var count = document.getElementById('tool-count');
+  var chips = Array.prototype.slice.call(document.querySelectorAll('[data-access-filter]'));
+  var tools = Array.prototype.slice.call(document.querySelectorAll('[data-search]'));
+  var toolsets = Array.prototype.slice.call(document.querySelectorAll('[data-toolset]'));
+  var products = Array.prototype.slice.call(document.querySelectorAll('[data-product]'));
+  var explorer = document.getElementById('explorer');
+  var total = tools.length;
+  var access = 'all';
+
+  function apply() {
+    var query = (search.value || '').trim().toLowerCase();
+    var terms = query ? query.split(/\s+/) : [];
+    var visible = 0;
+
+    tools.forEach(function (tool) {
+      var haystack = tool.getAttribute('data-search');
+      var ok = (access === 'all' || tool.getAttribute('data-access') === access) &&
+        terms.every(function (t) { return haystack.indexOf(t) !== -1; });
+      tool.hidden = !ok;
+      if (ok) { visible++; }
+    });
+
+    // A matrix summarises a whole toolset, so it is only meaningful unfiltered.
+    var filtering = terms.length > 0 || access !== 'all';
+    toolsets.forEach(function (toolset) {
+      var matrix = toolset.querySelector('[data-matrix]');
+      if (matrix) { matrix.hidden = filtering; }
+      toolset.hidden = !toolset.querySelector('[data-search]:not([hidden])');
+    });
+    products.forEach(function (product) {
+      product.hidden = !product.querySelector('[data-toolset]:not([hidden])');
+    });
+
+    explorer.classList.toggle('is-empty', visible === 0);
+    count.textContent = visible === total
+      ? total + ' tools'
+      : visible + ' of ' + total + ' tools';
+  }
+
+  search.addEventListener('input', apply);
+  chips.forEach(function (chip) {
+    chip.addEventListener('click', function () {
+      access = chip.getAttribute('data-access-filter');
+      chips.forEach(function (other) {
+        other.setAttribute('aria-pressed', String(other === chip));
+      });
+      apply();
+    });
+  });
+
+  apply();
+})();
+
+</script>
+
+</body>
+</html>
