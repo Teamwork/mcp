@@ -741,10 +741,12 @@ func AllocationList(engine *twapi.Engine) toolsets.ToolWrapper {
 						"Only return allocations updated after this moment."),
 					"deleted_after": helpers.DateTimeFilterSchema(
 						"Only return allocations deleted after this moment. Pair it with show_deleted, which is " +
-							"what makes deleted allocations visible at all."),
+							"what switches the results to deleted allocations."),
 					"show_deleted": {
-						Description: "Include deleted allocations in the results. Deleting an allocation is a soft " +
-							"delete, and this is the only way to find one again so it can be restored.",
+						Description: "Return ONLY deleted allocations instead of the active ones — this replaces " +
+							"the result set rather than adding to it, so a call with this set says nothing about " +
+							"what is currently scheduled. Deleting an allocation is a soft delete, and this is how " +
+							"a deleted one is found again.",
 						AnyOf: []*jsonschema.Schema{
 							{Type: "boolean"},
 							{Type: "null"},
