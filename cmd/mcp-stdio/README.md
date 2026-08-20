@@ -78,7 +78,7 @@ TW_MCP_BEARER_TOKEN=your-bearer-token \
 
 | Profile           | Toolsets included                                                                    | Intended use                                  |
 | ----------------- | ------------------------------------------------------------------------------------ | --------------------------------------------- |
-| `project-manager` | `twprojects-projects`, `twprojects-tasks`, `twprojects-people`, `twprojects-content` | Project managers working in Teamwork Projects |
+| `project-manager` | `twprojects-projects`, `twprojects-tasks`, `twprojects-people`, `twprojects-planning`, `twprojects-content` | Project managers working in Teamwork Projects |
 | `support` (alias: `desk`) | `twdesk-tickets`, `twdesk-customers`                                         | Support agents working in Teamwork Desk       |
 | `analyst`         | All sub-toolsets (combine with `-read-only`)                                         | Read-only reporting across both products      |
 | `ops`             | All sub-toolsets                                                                     | Full access — same as `all`                   |
@@ -89,7 +89,8 @@ TW_MCP_BEARER_TOKEN=your-bearer-token \
 | --------------------- | ------------------------------------------------------------ |
 | `twprojects-projects` | Projects, categories, templates, project members, industries |
 | `twprojects-tasks`    | Tasks and tasklists                                          |
-| `twprojects-people`   | Users, companies, teams, skills, job roles, workload         |
+| `twprojects-people`   | Users, companies, teams, skills, job roles                   |
+| `twprojects-planning` | Scheduler allocations, workload                              |
 | `twprojects-time`     | Timelogs, timers, budgets                                    |
 | `twprojects-content`  | Comments, notebooks, milestones, tags, activities            |
 | `twdesk-tickets`      | Tickets, messages, files, inboxes                            |
