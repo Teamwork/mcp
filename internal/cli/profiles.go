@@ -29,6 +29,7 @@ func registerProfiles() {
 		twprojects.ToolsetProjects,
 		twprojects.ToolsetTasks,
 		twprojects.ToolsetPeople,
+		twprojects.ToolsetPlanning,
 		twprojects.ToolsetContent,
 	})
 	toolsets.RegisterProfiles([]string{"support", "desk"}, []toolsets.Method{
@@ -39,6 +40,7 @@ func registerProfiles() {
 		twprojects.ToolsetProjects,
 		twprojects.ToolsetTasks,
 		twprojects.ToolsetPeople,
+		twprojects.ToolsetPlanning,
 		twprojects.ToolsetTime,
 		twprojects.ToolsetContent,
 		twdesk.ToolsetTickets,

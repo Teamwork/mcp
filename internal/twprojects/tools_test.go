@@ -7,6 +7,7 @@ import (
 
 	"github.com/google/jsonschema-go/jsonschema"
 	"github.com/teamwork/mcp/internal/testutil"
+	"github.com/teamwork/mcp/internal/toolsets"
 	"github.com/teamwork/mcp/internal/twprojects"
 )
 
@@ -78,4 +79,43 @@ func isArrayType(s *jsonschema.Schema) bool {
 		return true
 	}
 	return slices.Contains(s.Types, "array")
+}
+
+// TestPlanningToolsetMembership pins which sub-toolset each planning tool is
+// reachable from. users_workload moved out of twprojects-people when the
+// allocation tools landed, so anyone pinning -toolsets=twprojects-people has to
+// add twprojects-planning to keep it — a change worth failing loudly if it is
+// ever quietly reverted, since the two toolsets between them hold the allocated
+// and the estimated plane of the same question.
+func TestPlanningToolsetMembership(t *testing.T) {
+	group := twprojects.DefaultToolsetGroup(false, true, testutil.ProjectsEngineMock(200, nil))
+
+	toolsetOf := make(map[string]string)
+	for method, toolset := range group.Toolsets {
+		for _, tool := range toolset.GetAvailableTools() {
+			toolsetOf[tool.Tool.Name] = method.String()
+		}
+	}
+
+	want := map[toolsets.Method]toolsets.Method{
+		twprojects.MethodAllocationCreate:     twprojects.ToolsetPlanning,
+		twprojects.MethodAllocationUpdate:     twprojects.ToolsetPlanning,
+		twprojects.MethodAllocationDelete:     twprojects.ToolsetPlanning,
+		twprojects.MethodAllocationRestore:    twprojects.ToolsetPlanning,
+		twprojects.MethodAllocationTaskLink:   twprojects.ToolsetPlanning,
+		twprojects.MethodAllocationTaskUnlink: twprojects.ToolsetPlanning,
+		twprojects.MethodAllocationGet:        twprojects.ToolsetPlanning,
+		twprojects.MethodAllocationList:       twprojects.ToolsetPlanning,
+		twprojects.MethodUsersWorkload:        twprojects.ToolsetPlanning,
+	}
+	for method, wantToolset := range want {
+		got, ok := toolsetOf[method.String()]
+		if !ok {
+			t.Errorf("%s is not registered in any toolset", method)
+			continue
+		}
+		if got != wantToolset.String() {
+			t.Errorf("expected %s in %s, found it in %s", method, wantToolset, got)
+		}
+	}
 }
