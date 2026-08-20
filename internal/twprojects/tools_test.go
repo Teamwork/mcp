@@ -7,8 +7,8 @@ import (
 
 	"github.com/google/jsonschema-go/jsonschema"
 	"github.com/teamwork/mcp/internal/testutil"
-	"github.com/teamwork/mcp/internal/toolsets"
 	"github.com/teamwork/mcp/internal/twprojects"
+	"github.com/teamwork/mcp/pkg/toolsets"
 )
 
 // TestToolInputSchemasArrayItems guards against array-typed schema nodes that
