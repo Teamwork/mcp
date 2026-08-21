@@ -34,7 +34,9 @@ through AI agents.
 - **Read-Only Mode**: Optional restriction to read-only operations for safety
 
 See the auto-generated **[Tool Reference](docs/tool-reference.md)** for every
-create/read/update operation exposed across Projects, Desk, Spaces, and Chat.
+create/read/update operation exposed across Projects, Desk, Spaces, and Chat, or
+browse the same catalogue with per-tool descriptions and a search filter at
+**[teamwork.github.io/mcp](https://teamwork.github.io/mcp/)**.
 
 ## 🚀 Available Servers
 
@@ -111,7 +113,7 @@ NODE_EXTRA_CA_CERTS=letsencrypt-stg-root-x1.pem npx @modelcontextprotocol/inspec
 │   ├── mcp-http-cli/      # CLI tool for testing via HTTP
 │   ├── mcp-test/          # Walks tool handlers against a real site
 │   ├── mcp-tokens/        # Token-cost report for the tool surface
-│   └── docs-gen/          # Generates docs/tool-reference.md
+│   └── docs-gen/          # Generates the tool reference (Markdown + GitHub Pages)
 ├── pkg/                   # Importable by other MCP servers built on this one
 │   ├── auth/              # Authentication helpers (bearer & OAuth2 token handling)
 │   ├── cli/               # -toolsets flag parsing

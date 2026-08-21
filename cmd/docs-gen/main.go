@@ -1,5 +1,6 @@
-// Command docs-gen generates a Markdown reference of the Teamwork MCP tool
-// surface (the CRUD matrix) directly from the registered toolsets.
+// Command docs-gen generates the Teamwork MCP tool reference directly from the
+// registered toolsets, in two forms: a Markdown CRUD matrix (docs/tool-reference.md)
+// and a browsable HTML page published to GitHub Pages (docs/index.html).
 //
 // It builds each product's default toolset group with writes and deletes
 // enabled so the full surface is visible, then reflects over each tool's static
@@ -9,9 +10,10 @@
 //
 // Usage:
 //
-//	go run ./cmd/docs-gen              # write docs/tool-reference.md
-//	go run ./cmd/docs-gen -o -         # write to stdout
-//	go run ./cmd/docs-gen -check       # verify docs/tool-reference.md is current
+//	go run ./cmd/docs-gen              # write both documents
+//	go run ./cmd/docs-gen -o -         # write the Markdown to stdout
+//	go run ./cmd/docs-gen -html -      # write the HTML page to stdout
+//	go run ./cmd/docs-gen -check       # verify both committed documents are current
 package main
 
 import (
@@ -91,41 +93,69 @@ type resourceInfo struct {
 	columns map[string]bool // column name -> present
 }
 
+const (
+	defaultMarkdownPath = "docs/tool-reference.md"
+	defaultHTMLPath     = "docs/index.html"
+)
+
 func main() {
-	out := flag.String("o", "docs/tool-reference.md", "output file, or - for stdout")
+	out := flag.String("o", defaultMarkdownPath, "Markdown output file, or - for stdout")
+	htmlOut := flag.String("html", defaultHTMLPath, "HTML output file, or - for stdout")
 	check := flag.Bool("check", false,
-		"verify the committed doc matches freshly generated output; exit non-zero if stale")
+		"verify the committed docs match freshly generated output; exit non-zero if stale")
 	flag.Parse()
 
-	content := generate()
-
-	if *check {
-		path := *out
-		if path == "-" {
-			path = "docs/tool-reference.md"
-		}
-		committed, err := os.ReadFile(path)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "error reading %s: %v\n", path, err)
-			os.Exit(1)
-		}
-		if !bytes.Equal(committed, []byte(content)) {
-			fmt.Fprintf(os.Stderr,
-				"%s is stale — run `go run ./cmd/docs-gen` to regenerate it\n", path)
-			os.Exit(1)
-		}
-		return
-	}
-
-	if *out == "-" {
-		fmt.Print(content)
-		return
-	}
-	if err := os.WriteFile(*out, []byte(content), 0o644); err != nil {
-		fmt.Fprintf(os.Stderr, "error writing %s: %v\n", *out, err)
+	markdown := generate()
+	page, err := generateHTML()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "error generating HTML: %v\n", err)
 		os.Exit(1)
 	}
-	fmt.Printf("wrote %s\n", *out)
+
+	docs := []struct {
+		path     string
+		fallback string
+		content  string
+	}{
+		{*out, defaultMarkdownPath, markdown},
+		{*htmlOut, defaultHTMLPath, page},
+	}
+
+	if *check {
+		var stale bool
+		for _, doc := range docs {
+			path := doc.path
+			if path == "-" {
+				path = doc.fallback
+			}
+			committed, err := os.ReadFile(path)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "error reading %s: %v\n", path, err)
+				os.Exit(1)
+			}
+			if !bytes.Equal(committed, []byte(doc.content)) {
+				fmt.Fprintf(os.Stderr,
+					"%s is stale — run `go run ./cmd/docs-gen` to regenerate it\n", path)
+				stale = true
+			}
+		}
+		if stale {
+			os.Exit(1)
+		}
+		return
+	}
+
+	for _, doc := range docs {
+		if doc.path == "-" {
+			fmt.Print(doc.content)
+			continue
+		}
+		if err := os.WriteFile(doc.path, []byte(doc.content), 0o644); err != nil {
+			fmt.Fprintf(os.Stderr, "error writing %s: %v\n", doc.path, err)
+			os.Exit(1)
+		}
+		fmt.Printf("wrote %s\n", doc.path)
+	}
 }
 
 // generate renders the full tool-reference Markdown document from the
@@ -181,36 +211,12 @@ func writeToolset(b *strings.Builder, ts *toolsets.Toolset) {
 		fmt.Fprintf(b, "%s\n\n", ts.Description)
 	}
 
-	resources := map[string]*resourceInfo{}
-	var resourceKeys []string
-	var others []string
-
-	for _, tw := range ts.GetAvailableTools() {
-		slug := stripPrefix(tw.Tool.Name)
-		verb, rest, _ := strings.Cut(slug, "_")
-		col, isCRUD := verbColumn[verb]
-		if !isCRUD || rest == "" || forceOther[slug] {
-			others = append(others, slug)
-			continue
-		}
-		key := singular(rest)
-		ri, ok := resources[key]
-		if !ok {
-			ri = &resourceInfo{name: displayName(key), order: len(resourceKeys), columns: map[string]bool{}}
-			resources[key] = ri
-			resourceKeys = append(resourceKeys, key)
-		}
-		ri.columns[col] = true
-	}
+	resources, others := classifyToolset(ts)
 
 	// Matrix table.
 	b.WriteString("| Resource | " + strings.Join(matrixColumns, " | ") + " |\n")
 	b.WriteString("|" + strings.Repeat("---|", len(matrixColumns)+1) + "\n")
-	sort.SliceStable(resourceKeys, func(i, j int) bool {
-		return resources[resourceKeys[i]].order < resources[resourceKeys[j]].order
-	})
-	for _, key := range resourceKeys {
-		ri := resources[key]
+	for _, ri := range resources {
 		cells := make([]string, 0, len(matrixColumns))
 		for _, col := range matrixColumns {
 			if ri.columns[col] {
@@ -224,13 +230,44 @@ func writeToolset(b *strings.Builder, ts *toolsets.Toolset) {
 
 	// Other (non-CRUD) actions.
 	if len(others) > 0 {
-		sort.Strings(others)
 		labels := make([]string, 0, len(others))
 		for _, o := range others {
 			labels = append(labels, "`"+o+"`")
 		}
 		fmt.Fprintf(b, "\n**Other actions:** %s\n", strings.Join(labels, ", "))
 	}
+}
+
+// classifyToolset splits a toolset's tools into the CRUD matrix rows and the
+// leftover "other actions" slugs. Both renderers (Markdown and HTML) consume it,
+// so a tool cannot land in one document's matrix and the other's other-actions
+// list. Resources come back in first-seen order; others are sorted.
+func classifyToolset(ts *toolsets.Toolset) ([]*resourceInfo, []string) {
+	byKey := map[string]*resourceInfo{}
+	var ordered []*resourceInfo
+	var others []string
+
+	for _, tw := range ts.GetAvailableTools() {
+		slug := stripPrefix(tw.Tool.Name)
+		verb, rest, _ := strings.Cut(slug, "_")
+		col, isCRUD := verbColumn[verb]
+		if !isCRUD || rest == "" || forceOther[slug] {
+			others = append(others, slug)
+			continue
+		}
+		key := singular(rest)
+		ri, ok := byKey[key]
+		if !ok {
+			ri = &resourceInfo{name: displayName(key), order: len(ordered), columns: map[string]bool{}}
+			byKey[key] = ri
+			ordered = append(ordered, ri)
+		}
+		ri.columns[col] = true
+	}
+
+	sort.SliceStable(ordered, func(i, j int) bool { return ordered[i].order < ordered[j].order })
+	sort.Strings(others)
+	return ordered, others
 }
 
 // stripPrefix removes the "tw<product>-" namespace prefix from a tool or method

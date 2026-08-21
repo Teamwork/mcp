@@ -34,6 +34,13 @@ var fieldsToolCases = []fieldsToolCase{{
 	method:     twprojects.MethodActivityList.String(),
 	attributes: attributesOf[projects.ActivityField, projects.Activity],
 }, {
+	method:     twprojects.MethodAllocationList.String(),
+	attributes: attributesOf[projects.AllocationField, projects.Allocation],
+}, {
+	method:     twprojects.MethodAllocationGet.String(),
+	args:       map[string]any{"id": float64(123)},
+	attributes: attributesOf[projects.AllocationField, projects.Allocation],
+}, {
 	method:     twprojects.MethodCalendarList.String(),
 	attributes: attributesOf[projects.CalendarField, projects.Calendar],
 }, {

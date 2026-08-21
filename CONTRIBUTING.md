@@ -72,7 +72,7 @@ mcp/
 │   ├── mcp-test/          # Walks tool handlers against a real site
 │   ├── mcp-tokens/        # Token-cost report for the tool surface
 │   ├── next-version/      # Computes the next release version from the changes
-│   └── docs-gen/          # Generates docs/tool-reference.md
+│   └── docs-gen/          # Generates the tool reference (Markdown + GitHub Pages)
 ├── pkg/                   # Shared packages, importable by other MCP servers
 │   ├── auth/              # Authentication and authorization
 │   ├── cli/               # Command-line flag parsing

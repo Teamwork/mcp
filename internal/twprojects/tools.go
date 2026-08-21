@@ -9,9 +9,12 @@ const (
 	projectsDescription = "Project, category, template, member, custom field, " +
 		"and custom item (user-defined entity types like Contracts, Leads, Deals) " +
 		"management in Teamwork.com."
-	tasksDescription  = "Task, tasklist, and workflow management in Teamwork.com."
-	peopleDescription = "Users, companies, teams, skills, job roles, and workload management in Teamwork.com."
-	timeDescription   = "Time tracking via timelogs, timers, calendars with time blocking, " +
+	tasksDescription    = "Task, tasklist, and workflow management in Teamwork.com."
+	peopleDescription   = "Users, companies, teams, skills, and job roles in Teamwork.com."
+	planningDescription = "Resource scheduling in Teamwork.com: allocations, which commit a person's time to a " +
+		"project, and the workload view of the time their assigned tasks are estimated to take. The two are " +
+		"separate planes of planning and are not summed."
+	timeDescription = "Time tracking via timelogs, timers, calendars with time blocking, " +
 		"and budget reporting in Teamwork.com."
 	contentDescription = "Comments, notebooks, milestones, tags, and activity feeds in Teamwork.com."
 )
@@ -23,8 +26,10 @@ const (
 	ToolsetProjects toolsets.Method = "twprojects-projects"
 	// ToolsetTasks covers task and tasklist management.
 	ToolsetTasks toolsets.Method = "twprojects-tasks"
-	// ToolsetPeople covers users, companies, teams, skills, job roles, and workload.
+	// ToolsetPeople covers users, companies, teams, skills, and job roles.
 	ToolsetPeople toolsets.Method = "twprojects-people"
+	// ToolsetPlanning covers resource-scheduler allocations and workload.
+	ToolsetPlanning toolsets.Method = "twprojects-planning"
 	// ToolsetTime covers timelogs, timers, and calendars.
 	ToolsetTime toolsets.Method = "twprojects-time"
 	// ToolsetContent covers comments, notebooks, milestones, tags, activities, and budgets.
@@ -35,6 +40,7 @@ func init() {
 	toolsets.RegisterMethod(ToolsetProjects)
 	toolsets.RegisterMethod(ToolsetTasks)
 	toolsets.RegisterMethod(ToolsetPeople)
+	toolsets.RegisterMethod(ToolsetPlanning)
 	toolsets.RegisterMethod(ToolsetTime)
 	toolsets.RegisterMethod(ToolsetContent)
 }
@@ -174,9 +180,40 @@ func DefaultToolsetGroup(readOnly, allowDelete bool, engine *twapi.Engine) *tool
 			UserGet(engine),
 			UserGetMe(engine),
 			UserList(engine),
-			UsersWorkload(engine),
 		)
 	group.AddToolset(peopleToolset)
+
+	// --- planning sub-toolset ---
+	//
+	// UsersWorkload lives here rather than in people: it and the allocation tools
+	// are the two planes of resource planning, and reading one without the other
+	// is how "how loaded is this person" gets answered from half the picture.
+	planningWriteTools := []toolsets.ToolWrapper{
+		AllocationCreate(engine),
+		AllocationUpdate(engine),
+		AllocationTaskLink(engine),
+		AllocationTaskUnlink(engine),
+		// Restore is not gated with delete. It undoes a deletion rather than
+		// performing one, and it acts on anything soft-deleted by any client, not
+		// just what delete_allocation removed — so a deployment without deletes
+		// still has plenty for it to recover. Gating it would also leave
+		// list_allocations able to find deleted allocations, being a read tool,
+		// with no way to act on them.
+		AllocationRestore(engine),
+	}
+	if allowDelete {
+		planningWriteTools = append(planningWriteTools,
+			AllocationDelete(engine),
+		)
+	}
+	planningToolset := toolsets.NewToolset(ToolsetPlanning, planningDescription).
+		AddWriteTools(planningWriteTools...).
+		AddReadTools(
+			AllocationGet(engine),
+			AllocationList(engine),
+			UsersWorkload(engine),
+		)
+	group.AddToolset(planningToolset)
 
 	// --- time sub-toolset ---
 	timeWriteTools := []toolsets.ToolWrapper{

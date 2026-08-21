@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Teamwork.com MCP Server — Tool Reference</title>
+<meta name="description" content="Every tool the Teamwork.com MCP server exposes to an AI client: {{.Stats.Tools}} tools across {{.Stats.Toolsets}} toolsets and {{.Stats.Products}} products, generated from the server's own registry.">
+<meta property="og:title" content="Teamwork.com MCP Server — Tool Reference">
+<meta property="og:description" content="{{.Stats.Tools}} tools across {{.Stats.Products}} Teamwork.com products, generated from the server's own toolset registry.">
+<meta property="og:type" content="website">
+<link rel="icon" href="data:image/svg+xml,{{.Favicon}}">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Work+Sans:wght@400;500;600;700&display=swap">
+<style>
+{{.CSS}}
+</style>
+</head>
+<body>
+
+<header class="masthead">
+  <div class="wrap">
+    <a class="masthead__logo" href="https://www.teamwork.com/" aria-label="Teamwork.com">{{.Logo}}</a>
+    <span class="masthead__divider" aria-hidden="true"></span>
+    <span class="masthead__product">MCP Server</span>
+    <span class="masthead__spacer"></span>
+    <a class="masthead__link" href="{{.RepoURL}}">GitHub</a>
+  </div>
+</header>
+
+<div class="hero">
+  <div class="wrap">
+    <p class="eyebrow">Model Context Protocol</p>
+    <h1>Your Teamwork.com site, as tools an AI client can <span class="accent">discover and call</span>.</h1>
+    <p class="hero__lede">The Teamwork.com MCP server publishes Projects, Desk, Spaces and Chat as a typed toolset. A connected client reads the catalogue below on connect, so it knows which operations exist and what each one needs — and every call runs with the permissions of the account that authorised it, nothing more.</p>
+    <div class="stats">
+      <div class="stat"><span class="stat__n">{{.Stats.Products}}</span><span class="stat__l">Products</span></div>
+      <div class="stat"><span class="stat__n">{{.Stats.Toolsets}}</span><span class="stat__l">Toolsets</span></div>
+      <div class="stat"><span class="stat__n">{{.Stats.Tools}}</span><span class="stat__l">Tools</span></div>
+      <div class="stat"><span class="stat__n">{{.Stats.Read}}&#8239;/&#8239;{{.Stats.Write}}</span><span class="stat__l">Read / write</span></div>
+    </div>
+  </div>
+</div>
+
+<section id="connect">
+  <div class="wrap">
+    <div class="section-head">
+      <h2>Connecting a client</h2>
+      <p>The hosted server speaks streamable HTTP and authenticates with OAuth. Point a client at the endpoint and it discovers everything on this page automatically.</p>
+    </div>
+    <div class="connect">
+      <div class="panel">
+        <h3>Hosted endpoint</h3>
+        <p>Loads every toolset. A local STDIO binary is available too — see the <a href="{{.RepoURL}}/blob/main/docs/usage/README.md">usage guide</a>.</p>
+        <code class="endpoint">{{.Endpoint}}</code>
+      </div>
+      <div class="panel">
+        <h3>Profile endpoints</h3>
+        <p>A narrower tool list keeps a client focused. Each profile is a fixed set of toolsets, served on its own path.</p>
+        <table class="profiles">
+          <thead><tr><th>Profile</th><th>Toolsets</th></tr></thead>
+          <tbody>
+          {{- range .Profiles}}
+            <tr>
+              <td><code>{{$.Endpoint}}/{{.Name}}</code></td>
+              <td class="profiles__sets">{{.Toolsets}}</td>
+            </tr>
+          {{- end}}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="tools">
+  <div class="wrap">
+    <div class="section-head">
+      <h2>The tool catalogue</h2>
+      <p>Generated from the server's own toolset registry, so it matches what a client actually receives. Each toolset opens with a coverage matrix — which resources support create, get, list and update — followed by every tool it publishes.</p>
+    </div>
+
+    <div class="controls">
+      <div class="wrap" style="padding:0">
+        <div class="controls__row">
+          <input id="tool-search" class="search" type="search" placeholder="Filter tools — try “timelog”, “milestone”, “count”" aria-label="Filter tools">
+          <div class="chips" role="group" aria-label="Filter by access">
+            <button class="chip" type="button" data-access-filter="all" aria-pressed="true">All</button>
+            <button class="chip" type="button" data-access-filter="read" aria-pressed="false">Read</button>
+            <button class="chip" type="button" data-access-filter="write" aria-pressed="false">Write</button>
+          </div>
+          <span class="controls__count" id="tool-count" aria-live="polite">{{.Stats.Tools}} tools</span>
+        </div>
+      </div>
+    </div>
+
+    <div id="explorer">
+      <p class="empty">No tool matches that filter.</p>
+      {{- range .Products}}
+      <div class="product" data-product id="{{.Slug}}">
+        <div class="product__head">
+          <h3 class="product__name">{{.Label}}</h3>
+          <span class="product__scope">{{.Prefix}}-&#8203;* &middot; scope {{.Scope}}</span>
+          <span class="product__counts">{{.ToolCount}} tools &middot; {{len .Toolsets}} toolsets</span>
+        </div>
+        {{- range .Toolsets}}
+        <div class="toolset" data-toolset id="{{.Method}}">
+          <div class="toolset__head">
+            <h4 class="toolset__title">{{.Title}}</h4>
+            <span class="toolset__method">{{.Method}}</span>
+          </div>
+          {{- if .Description}}
+          <p class="toolset__desc">{{.Description}}</p>
+          {{- end}}
+          {{- if .Resources}}
+          <div data-matrix>
+            <p class="subhead">Resource coverage</p>
+            <div class="matrix-scroll">
+              <table class="matrix">
+                <thead>
+                  <tr>
+                    <th scope="col">Resource</th>
+                    {{- range $.Columns}}<th scope="col">{{.}}</th>{{end}}
+                  </tr>
+                </thead>
+                <tbody>
+                {{- range .Resources}}
+                  <tr>
+                    <th scope="row">{{.Name}}</th>
+                    {{- range .Cells}}
+                    {{- if .}}<td class="yes" aria-label="yes">&check;</td>{{else}}<td class="no" aria-label="no">&mdash;</td>{{end}}
+                    {{- end}}
+                  </tr>
+                {{- end}}
+                </tbody>
+              </table>
+            </div>
+          </div>
+          {{- end}}
+          <p class="subhead">Tools</p>
+          <div class="tools">
+          {{- range .Tools}}
+            <div class="tool" data-search="{{.Haystack}}" data-access="{{.Access}}">
+              <span class="badge badge--{{.Access}}">{{.Access}}</span>
+              <span class="tool__name">{{.Name}}</span>
+              <span class="tool__desc">{{.Description}}</span>
+            </div>
+          {{- end}}
+          </div>
+        </div>
+        {{- end}}
+      </div>
+      {{- end}}
+    </div>
+  </div>
+</section>
+
+<section id="notes">
+  <div class="wrap">
+    <div class="notes">
+      <h2>What bounds this surface</h2>
+      <p class="notes__intro">The catalogue above is the whole story for a hosted client — there is no second, wider set of tools behind it.</p>
+      <div class="notes__grid">
+        <div class="notes__item">
+          <h3>Your permissions, not more</h3>
+          <p>Every call is made as the account that authorised the connection, so a client can only read and change what that person already could in the Teamwork.com UI.</p>
+        </div>
+        <div class="notes__item">
+          <h3>Deletes are not published</h3>
+          <p>Delete tools exist in the codebase but sit behind an <code>allowDelete</code> flag that no shipped server turns on, so no client can call one. That is why no <code>delete_*</code> tool appears above.</p>
+        </div>
+        <div class="notes__item">
+          <h3>Read-only is one flag</h3>
+          <p>Running a server with <code>-read-only</code> drops every write tool, leaving the {{.Stats.Read}} read tools listed above. Scopes narrow it further: a token carries one scope per product.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <p>Generated from the registered toolsets by <code>cmd/docs-gen</code> — do not edit by hand.</p>
+    <p>Source and technical documentation: <a href="{{.RepoURL}}">{{.RepoLabel}}</a>. Teamwork.com logo and brand colours used per the <a href="https://www.teamwork.com/brand/">Teamwork.com brand guidelines</a>.</p>
+  </div>
+</footer>
+
+<script>
+{{.JS}}
+</script>
+
+</body>
+</html>

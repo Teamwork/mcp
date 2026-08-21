@@ -25,7 +25,7 @@ Comments, notebooks, milestones, tags, and activity feeds in Teamwork.com.
 
 ### People — `twprojects-people`
 
-Users, companies, teams, skills, job roles, and workload management in Teamwork.com.
+Users, companies, teams, skills, and job roles in Teamwork.com.
 
 | Resource | Create | Get | List | Update |
 |---|---|---|---|---|
@@ -37,7 +37,15 @@ Users, companies, teams, skills, job roles, and workload management in Teamwork.
 | User | ✓ | ✓ | ✓ | ✓ |
 | Current User (me) | — | ✓ | — | — |
 
-**Other actions:** `users_workload`
+### Planning — `twprojects-planning`
+
+Resource scheduling in Teamwork.com: allocations, which commit a person's time to a project, and the workload view of the time their assigned tasks are estimated to take. The two are separate planes of planning and are not summed.
+
+| Resource | Create | Get | List | Update |
+|---|---|---|---|---|
+| Allocation | ✓ | ✓ | ✓ | ✓ |
+
+**Other actions:** `link_task_to_allocation`, `restore_allocation`, `unlink_task_from_allocation`, `users_workload`
 
 ### Projects — `twprojects-projects`
 
