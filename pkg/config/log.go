@@ -78,7 +78,7 @@ func newCustomLogHandler(resources Resources, output io.Writer) slog.Handler {
 		err := sentry.Init(sentry.ClientOptions{
 			Dsn:            resources.Info.Log.SentryDSN,
 			EnableTracing:  true,
-			SendDefaultPII: true,
+			DataCollection: &sentry.DataCollection{UserInfo: sentry.Set(true)},
 			Release:        resources.Info.Version,
 			Environment:    resources.Info.Environment,
 		})
