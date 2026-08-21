@@ -199,9 +199,12 @@ func withSuggestionsSchema(schema *jsonschema.Schema) *jsonschema.Schema {
 // and would stamp each suggestion with a link built from the calling tool's own
 // path prefix, pointing a project candidate at /app/tasks.
 //
-// The lookup is best effort. The caller's result is already complete without
-// suggestions, so a search that fails, a body that does not decode, or a term
-// the search endpoint would reject all return the response as it stands.
+// A term the search endpoint would reject (under three characters, its floor)
+// skips the lookup and returns the response as it stands. Any other failure —
+// the search call, a body that does not decode or re-encode — is returned to
+// the caller alongside the original body, to be reported like any other API
+// failure: an empty list without suggestions then always means the lookup ran
+// and found nothing, never that it silently failed.
 func withNearMissSuggestions(
 	ctx context.Context,
 	engine *twapi.Engine,
@@ -253,7 +256,7 @@ func withNearMissSuggestions(
 }
 
 // nearMissSuggestions runs one search for the term and returns the hits it can
-// name, most relevant first. It returns nil on any failure.
+// name, most relevant first, or the search's own error.
 func nearMissSuggestions(ctx context.Context, engine *twapi.Engine, searchTerm string) ([]searchSuggestion, error) {
 	var searchRequest projects.SearchRequest
 	searchRequest.Filters.SearchTerm = searchTerm

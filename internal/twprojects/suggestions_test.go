@@ -207,29 +207,54 @@ func TestListSkipsSuggestionsForShortSearchTerm(t *testing.T) {
 	assertNoSuggestionSearch(t, *recorded)
 }
 
-// TestListSuggestionsAreBestEffort covers a failing lookup: the caller keeps
-// the empty result it asked for, as a success, with no suggestions.
-func TestListSuggestionsAreBestEffort(t *testing.T) {
-	for _, status := range []int{http.StatusForbidden, http.StatusNotFound, http.StatusInternalServerError} {
-		t.Run(http.StatusText(status), func(t *testing.T) {
-			// The override route takes precedence over the search route
-			// nearMissMock appends, so the search fails while the list succeeds.
-			mcpServer := nearMissMock(t, "tasks", "[]", nearMissSearchResponse,
-				testutil.ProjectsMockRoute{Match: "search.json", Status: status, Body: []byte(`{"error": "nope"}`)})
+// TestListSuggestionsSearchFailureIsAnError covers a failing lookup: the
+// search's status is reported like any other API failure — an IsError tool
+// result via helpers.HandleAPIError — rather than swallowed, so an empty list
+// without suggestions always means the lookup ran and found nothing, never
+// that it silently failed.
+func TestListSuggestionsSearchFailureIsAnError(t *testing.T) {
+	statuses := []struct {
+		status int
+		want   string
+	}{
+		{status: http.StatusForbidden, want: "bad request"},
+		{status: http.StatusNotFound, want: "bad request"},
+		{status: http.StatusInternalServerError, want: "server error"},
+	}
 
-			testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodTaskList.String(), map[string]any{
-				"search_term": "Website Redesign",
-			}, testutil.ExecuteToolRequestWithCheckMessage(func(t *testing.T, result mcp.Result) {
-				t.Helper()
-				// The list request succeeded; a failed suggestion lookup must not
-				// turn that into an error.
-				testutil.CheckMessage(t, result)
+	for _, tool := range nearMissTools {
+		for _, s := range statuses {
+			t.Run(tool.method+"/"+http.StatusText(s.status), func(t *testing.T) {
+				// The override route takes precedence over the search route
+				// nearMissMock appends, so the search fails while the list succeeds.
+				mcpServer := nearMissMock(t, tool.listKey, "[]", nearMissSearchResponse,
+					testutil.ProjectsMockRoute{Match: "search.json", Status: s.status, Body: []byte(`{"error": "nope"}`)})
 
-				if got := suggestionsFromToolResult(t, result); got != nil {
-					t.Errorf("expected no suggestions after a %d from the search but got %v", status, got)
-				}
-			}))
-		})
+				testutil.ExecuteToolRequest(t, mcpServer, tool.method, map[string]any{
+					"search_term": "Website Redesign",
+				}, testutil.ExecuteToolRequestWithCheckMessage(func(t *testing.T, result mcp.Result) {
+					t.Helper()
+
+					toolResult, ok := result.(*mcp.CallToolResult)
+					if !ok {
+						t.Fatalf("unexpected result type: %T", result)
+					}
+					if !toolResult.IsError {
+						t.Fatalf("a %d from the suggestion search should produce an error tool result", s.status)
+					}
+					if len(toolResult.Content) == 0 {
+						t.Fatal("error tool result should carry content the model can read")
+					}
+					textContent, ok := toolResult.Content[0].(*mcp.TextContent)
+					if !ok {
+						t.Fatalf("unexpected content type: %T", toolResult.Content[0])
+					}
+					if !strings.Contains(textContent.Text, s.want) {
+						t.Errorf("error text should classify HTTP %d as %q, got %q", s.status, s.want, textContent.Text)
+					}
+				}))
+			})
+		}
 	}
 }
 
