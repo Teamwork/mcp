@@ -2,7 +2,7 @@
 
 > Command-line interface for interacting with the Teamwork MCP server via HTTP
 
-[![Go](https://img.shields.io/badge/Go-1.26.0-blue.svg)](https://golang.org/)
+[![Go](https://img.shields.io/badge/Go-1.27.0-blue.svg)](https://golang.org/)
 [![MCP](https://img.shields.io/badge/MCP-Compatible-green.svg)](https://modelcontextprotocol.io/)
 
 ## 📖 Overview
@@ -32,7 +32,7 @@ This CLI tool is designed for:
 
 ### 📋 Prerequisites
 
-- Go 1.26 or later
+- Go 1.27 or later
 - Valid Teamwork MCP server URL and bearer token
 - Running Teamwork MCP server (see main [README](../mcp/README.md))
 

@@ -1,6 +1,6 @@
 module github.com/teamwork/mcp
 
-go 1.26.2
+go 1.27.0
 
 require (
 	github.com/DataDog/dd-trace-go/contrib/net/http/v2 v2.9.2
@@ -14,7 +14,7 @@ require (
 	github.com/sonh/qs v0.7.0
 	github.com/teamwork/desksdkgo v1.1.0
 	github.com/teamwork/spacessdkgo v0.0.0-20260518181558-a6af69d00abb
-	github.com/teamwork/twapi-go-sdk v1.23.1
+	github.com/teamwork/twapi-go-sdk v1.24.0
 )
 
 require (
