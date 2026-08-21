@@ -48,7 +48,7 @@ func TestSparseFieldNames(t *testing.T) {
 func TestSparseFieldNamesMatchMarshalledKeys(t *testing.T) {
 	encoded, err := json.Marshal(testEntity{
 		testEmbedded: testEmbedded{Embedded: "embedded", Shadowed: "shadowed"},
-		testTagged:   testTagged{Tagged: "tagged"},
+		Tagged:       "tagged",
 		ID:           1,
 		Name:         "name",
 		Shadowed:     2,
