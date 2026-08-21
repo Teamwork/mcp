@@ -1,7 +1,9 @@
 package helpers
 
 import (
+	"encoding/json"
 	"fmt"
+	"slices"
 	"strings"
 	"time"
 )
@@ -122,4 +124,62 @@ func NormalizeDateTime(key, value string, endOfDay bool) (string, error) {
 		return "", fmt.Errorf("invalid time format for %s: %w", key, err)
 	}
 	return t.Format(time.RFC3339), nil
+}
+
+// NullifyEmptyDates rewrites an empty-string value held at any of the named JSON
+// keys to null, wherever it appears in a raw API body.
+//
+// The v1 routes spell "unset" as an empty string on a date field, and the list_*
+// contract streams those bodies straight to the caller, so the SDK's
+// MarshalJSON — which encodes an unset OptionalDateTime as null — never runs.
+// WithDateTypeSchema declares such a field with a "date" or "date-time" format,
+// and an empty string satisfies neither, so a client that asserts formats
+// discards the whole response. Call this on any raw body carrying a field the
+// published schema gives a date format.
+//
+// Anything unexpected leaves the payload untouched: returning the response whole
+// beats failing a read the API already answered.
+func NullifyEmptyDates(body []byte, fields ...string) []byte {
+	if len(fields) == 0 {
+		return body
+	}
+	var decoded any
+	if err := json.Unmarshal(body, &decoded); err != nil {
+		return body
+	}
+	if !nullifyEmptyDates(decoded, fields) {
+		return body
+	}
+	encoded, err := json.Marshal(decoded)
+	if err != nil {
+		return body
+	}
+	return encoded
+}
+
+// nullifyEmptyDates walks value, replacing an empty string held at one of the
+// named keys with nil. It reports whether it changed anything, so the caller can
+// return the original bytes untouched when there was nothing to do.
+func nullifyEmptyDates(value any, fields []string) bool {
+	var changed bool
+	switch typed := value.(type) {
+	case map[string]any:
+		for key, held := range typed {
+			if held == "" && slices.Contains(fields, key) {
+				typed[key] = nil
+				changed = true
+				continue
+			}
+			if nullifyEmptyDates(held, fields) {
+				changed = true
+			}
+		}
+	case []any:
+		for _, held := range typed {
+			if nullifyEmptyDates(held, fields) {
+				changed = true
+			}
+		}
+	}
+	return changed
 }
