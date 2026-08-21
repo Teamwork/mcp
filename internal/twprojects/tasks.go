@@ -1179,7 +1179,11 @@ func TaskList(engine *twapi.Engine) toolsets.ToolWrapper {
 			}
 
 			linked := helpers.WebLinker(ctx, body, helpers.WebLinkerWithIDPathBuilder("/app/tasks"))
-			linked = withNearMissSuggestions(ctx, engine, linked, "tasks", taskListRequest.Filters.SearchTerm)
+			linked, err = withNearMissSuggestions(ctx, engine, linked, "tasks", taskListRequest.Filters.SearchTerm)
+			if err != nil {
+				return helpers.HandleAPIError(err, "failed to generate near-miss suggestions")
+			}
+
 			result := &mcp.CallToolResult{
 				Content: []mcp.Content{
 					&mcp.TextContent{

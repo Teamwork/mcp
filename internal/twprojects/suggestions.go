@@ -208,48 +208,53 @@ func withNearMissSuggestions(
 	body []byte,
 	listKey string,
 	searchTerm string,
-) []byte {
+) ([]byte, error) {
 	if utf8.RuneCountInString(searchTerm) < minSuggestionSearchTerm {
-		return body
+		return body, nil
 	}
 
 	var decoded map[string]any
-	if err := json.Unmarshal(body, &decoded); err != nil {
-		return body
+	err := json.Unmarshal(body, &decoded)
+	if err != nil {
+		return body, err
 	}
 	// An absent key is not an empty result: it means this is not the list
 	// response shape the lookup understands, and guessing would fire a search
 	// against every unrelated payload.
 	list, ok := decoded[listKey]
 	if !ok {
-		return body
+		return body, nil
 	}
 	switch list := list.(type) {
 	case nil:
 	case []any:
 		if len(list) > 0 {
-			return body
+			return body, nil
 		}
 	default:
-		return body
+		return body, nil
 	}
 
-	suggestions := nearMissSuggestions(ctx, engine, searchTerm)
+	suggestions, err := nearMissSuggestions(ctx, engine, searchTerm)
+	if err != nil {
+		return body, err
+	}
 	if len(suggestions) == 0 {
-		return body
+		return body, nil
 	}
 	decoded["suggestions"] = suggestions
 
 	encoded, err := json.Marshal(decoded)
 	if err != nil {
-		return body
+		return body, err
 	}
-	return encoded
+
+	return encoded, nil
 }
 
 // nearMissSuggestions runs one search for the term and returns the hits it can
 // name, most relevant first. It returns nil on any failure.
-func nearMissSuggestions(ctx context.Context, engine *twapi.Engine, searchTerm string) []searchSuggestion {
+func nearMissSuggestions(ctx context.Context, engine *twapi.Engine, searchTerm string) ([]searchSuggestion, error) {
 	var searchRequest projects.SearchRequest
 	searchRequest.Filters.SearchTerm = searchTerm
 	searchRequest.Filters.Limit = suggestionSearchLimit
@@ -270,7 +275,7 @@ func nearMissSuggestions(ctx context.Context, engine *twapi.Engine, searchTerm s
 
 	response, err := projects.Search(ctx, engine, searchRequest)
 	if err != nil {
-		return nil
+		return nil, err
 	}
 
 	var suggestions []searchSuggestion
@@ -292,5 +297,5 @@ func nearMissSuggestions(ctx context.Context, engine *twapi.Engine, searchTerm s
 			break
 		}
 	}
-	return suggestions
+	return suggestions, nil
 }

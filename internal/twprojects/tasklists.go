@@ -407,7 +407,11 @@ func TasklistList(engine *twapi.Engine) toolsets.ToolWrapper {
 			}
 
 			linked := helpers.WebLinker(ctx, body, helpers.WebLinkerWithIDPathBuilder("/app/tasklists"))
-			linked = withNearMissSuggestions(ctx, engine, linked, "tasklists", tasklistListRequest.Filters.SearchTerm)
+			linked, err = withNearMissSuggestions(ctx, engine, linked, "tasklists", tasklistListRequest.Filters.SearchTerm)
+			if err != nil {
+				return helpers.HandleAPIError(err, "failed to add near-miss suggestions")
+			}
+
 			result := &mcp.CallToolResult{
 				Content: []mcp.Content{
 					&mcp.TextContent{Text: string(linked)},
