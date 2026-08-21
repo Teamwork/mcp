@@ -465,6 +465,12 @@ func TeamList(engine *twapi.Engine) toolsets.ToolWrapper {
 				return nil, fmt.Errorf("failed to read response body: %w", err)
 			}
 
+			// The v1 route sends deletedDate: "" for every live team. This tool streams
+			// the raw body, so OptionalDateTime.MarshalJSON never gets to turn the unset
+			// value into null, and the published schema types the field as an RFC3339
+			// date-time — which the empty string is not.
+			body = helpers.NullifyEmptyDates(body, string(projects.TeamFieldDeletedAt))
+
 			linked := helpers.WebLinker(ctx, body, helpers.WebLinkerWithIDPathBuilder("/app/teams"))
 			result := &mcp.CallToolResult{
 				Content: []mcp.Content{

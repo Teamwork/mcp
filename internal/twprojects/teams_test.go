@@ -2,8 +2,10 @@ package twprojects_test
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"testing"
+	"time"
 
 	"github.com/google/jsonschema-go/jsonschema"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
@@ -154,6 +156,58 @@ func checkStructuredContentMatchesOutputSchema(toolName string) func(t *testing.
 		if err := resolved.Validate(decoded); err != nil {
 			t.Errorf("tool %s: structured content does not match its output schema: %s\nbody: %s",
 				toolName, err, encoded)
+		}
+		checkSchemaFormats(t, toolName, resolved.Schema(), decoded, "data")
+	}
+}
+
+// checkSchemaFormats asserts that every string value sitting under a schema node
+// carrying a "date" or "date-time" format actually parses as one.
+//
+// jsonschema-go treats format as an annotation and never asserts it — there is no
+// option to turn it on, and validate.go does not mention the keyword — so
+// Validate alone passes a body that a client running Ajv-with-formats rejects
+// outright. That blind spot is why the empty string the v1 teams route sends for
+// deletedDate survived two rounds of fixes: widening the declared type to
+// null|string satisfied the validator while leaving the format unmet.
+//
+// It walks properties, items and additionalProperties only. A format nested in an
+// anyOf/oneOf branch is conditional on that branch matching, which is not
+// something this check can decide, so it is deliberately not asserted.
+func checkSchemaFormats(t *testing.T, toolName string, schema *jsonschema.Schema, value any, path string) {
+	t.Helper()
+
+	if schema == nil {
+		return
+	}
+	if held, ok := value.(string); ok {
+		var layout string
+		switch schema.Format {
+		case "date-time":
+			layout = time.RFC3339
+		case "date":
+			layout = time.DateOnly
+		}
+		if layout != "" {
+			if _, err := time.Parse(layout, held); err != nil {
+				t.Errorf("tool %s: %s is %q, which the schema declares as format %q: %s",
+					toolName, path, held, schema.Format, err)
+			}
+		}
+	}
+
+	switch held := value.(type) {
+	case map[string]any:
+		for key, nested := range held {
+			if property, ok := schema.Properties[key]; ok {
+				checkSchemaFormats(t, toolName, property, nested, path+"/"+key)
+				continue
+			}
+			checkSchemaFormats(t, toolName, schema.AdditionalProperties, nested, path+"/"+key)
+		}
+	case []any:
+		for i, nested := range held {
+			checkSchemaFormats(t, toolName, schema.Items, nested, fmt.Sprintf("%s/%d", path, i))
 		}
 	}
 }

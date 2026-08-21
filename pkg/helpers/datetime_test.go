@@ -248,3 +248,61 @@ func TestNormalizeDateTime(t *testing.T) {
 		}
 	})
 }
+
+// TestNullifyEmptyDates covers the shapes a raw v1 body uses to spell "unset" on
+// a date field, and pins that nothing else is touched. The empty string is the
+// case that matters: the schema WithDateTypeSchema publishes gives the field a
+// "date-time" format, which "" does not satisfy, so a client asserting formats
+// discards the whole response.
+func TestNullifyEmptyDates(t *testing.T) {
+	tests := []struct {
+		name   string
+		body   string
+		fields []string
+		want   string
+	}{{
+		name:   "empty string becomes null",
+		body:   `{"teams":[{"id":"1","deletedDate":""}]}`,
+		fields: []string{"deletedDate"},
+		want:   `{"teams":[{"deletedDate":null,"id":"1"}]}`,
+	}, {
+		name:   "a real timestamp is left alone",
+		body:   `{"teams":[{"deletedDate":"2026-01-02T03:04:05Z"}]}`,
+		fields: []string{"deletedDate"},
+		want:   `{"teams":[{"deletedDate":"2026-01-02T03:04:05Z"}]}`,
+	}, {
+		name:   "an untouched body is returned byte for byte",
+		body:   `{"teams":[{"id":"1","name":""}]}`,
+		fields: []string{"deletedDate"},
+		want:   `{"teams":[{"id":"1","name":""}]}`,
+	}, {
+		name:   "an empty string at an unnamed key is left alone",
+		body:   `{"teams":[{"deletedDate":"","name":""}]}`,
+		fields: []string{"deletedDate"},
+		want:   `{"teams":[{"deletedDate":null,"name":""}]}`,
+	}, {
+		name:   "nested objects are reached",
+		body:   `{"included":{"teams":{"7":{"deletedDate":""}}}}`,
+		fields: []string{"deletedDate"},
+		want:   `{"included":{"teams":{"7":{"deletedDate":null}}}}`,
+	}, {
+		name:   "no fields named leaves the body untouched",
+		body:   `{"teams":[{"deletedDate":""}]}`,
+		fields: nil,
+		want:   `{"teams":[{"deletedDate":""}]}`,
+	}, {
+		name:   "a body that is not JSON is returned unchanged",
+		body:   `not json`,
+		fields: []string{"deletedDate"},
+		want:   `not json`,
+	}}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := string(helpers.NullifyEmptyDates([]byte(tt.body), tt.fields...))
+			if got != tt.want {
+				t.Errorf("expected %s but got %s", tt.want, got)
+			}
+		})
+	}
+}
