@@ -1072,7 +1072,9 @@ func TaskList(engine *twapi.Engine) toolsets.ToolWrapper {
 				},
 				Required: []string{},
 			},
-			OutputSchema: helpers.WithCountOnlySchema(helpers.WithOptionalFields(taskListOutputSchema)),
+			OutputSchema: helpers.WithCountOnlySchema(
+				helpers.WithOptionalFields(withSuggestionsSchema(taskListOutputSchema)),
+			),
 		},
 		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 			var taskListRequest projects.TaskListRequest
@@ -1177,6 +1179,11 @@ func TaskList(engine *twapi.Engine) toolsets.ToolWrapper {
 			}
 
 			linked := helpers.WebLinker(ctx, body, helpers.WebLinkerWithIDPathBuilder("/app/tasks"))
+			linked, err = withNearMissSuggestions(ctx, engine, linked, "tasks", taskListRequest.Filters.SearchTerm)
+			if err != nil {
+				return helpers.HandleAPIError(err, "failed to generate near-miss suggestions")
+			}
+
 			result := &mcp.CallToolResult{
 				Content: []mcp.Content{
 					&mcp.TextContent{
