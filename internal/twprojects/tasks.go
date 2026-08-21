@@ -880,6 +880,15 @@ func TaskComplete(engine *twapi.Engine) toolsets.ToolWrapper {
 	}
 }
 
+// taskFieldsNeedRelatedTasks reports whether a sparse-field selection names an
+// attribute the API leaves empty unless the request also asks for related
+// tasks. Both are computed rather than stored, so the selection alone is not
+// enough to populate them.
+func taskFieldsNeedRelatedTasks(fields []projects.TaskField) bool {
+	return slices.Contains(fields, projects.TaskFieldPredecessors) ||
+		slices.Contains(fields, projects.TaskFieldSubTaskIDs)
+}
+
 // TaskGet retrieves a task in Teamwork.com.
 func TaskGet(engine *twapi.Engine) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{
@@ -909,6 +918,14 @@ func TaskGet(engine *twapi.Engine) toolsets.ToolWrapper {
 			var taskGetRequest projects.TaskGetRequest
 			taskGetRequest.Filters.IncludeRelatedTasks = true
 
+			// The related-task filter reports *active* subtasks, dependencies and
+			// predecessors only, so a task whose subtasks are all done answers with an
+			// empty subTaskIds — indistinguishable from a task that never had any. The
+			// flag below widens the whole related-task response, not the predecessors
+			// its name suggests, and it cannot drop the row: this endpoint addresses
+			// the task by ID.
+			taskGetRequest.Filters.IncludeCompletedPredecessors = true
+
 			// Always include custom fields and values in task get response for richer
 			// context, as they are commonly used in Teamwork projects and provide
 			// valuable information about the task.
@@ -933,10 +950,13 @@ func TaskGet(engine *twapi.Engine) toolsets.ToolWrapper {
 				// Drop the sideloads: they are not what the selection named, and
 				// they would return the bulk it exists to avoid. IncludeRelatedTasks
 				// is not one of them — it adds no entity to the response, it is what
-				// makes `predecessors` non-empty at all — so put it back when the
-				// selection names that attribute.
+				// makes `predecessors` and `subTaskIds` non-empty at all — so put it
+				// back, with the two completed-work flags it gates, when the selection
+				// names either attribute.
+				relatedTasks := taskFieldsNeedRelatedTasks(taskGetRequest.Fields.Task)
 				taskGetRequest.Filters = projects.TaskRequestFilters{
-					IncludeRelatedTasks: slices.Contains(taskGetRequest.Fields.Task, projects.TaskFieldPredecessors),
+					IncludeRelatedTasks:          relatedTasks,
+					IncludeCompletedPredecessors: relatedTasks,
 				}
 				return helpers.NewRawToolResult(ctx, engine, taskGetRequest, "failed to get task",
 					helpers.WebLinkerWithIDPathBuilder("/app/tasks"),
@@ -974,7 +994,9 @@ func TaskList(engine *twapi.Engine) toolsets.ToolWrapper {
 		Tool: &mcp.Tool{
 			Name: string(MethodTaskList),
 			Description: "List tasks with structured filters (tasklist_id, project_id, or site-wide). " +
-				"For keyword search use search.",
+				"For keyword search use search. Completed tasks and tasks in completed tasklists are " +
+				"excluded unless show_completed is true, so an empty result may mean the matching work " +
+				"is already done rather than missing.",
 			Annotations: &mcp.ToolAnnotations{
 				Title:           "List Tasks",
 				ReadOnlyHint:    true,
@@ -1120,11 +1142,14 @@ func TaskList(engine *twapi.Engine) toolsets.ToolWrapper {
 				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
 			}
 			if showCompleted != nil {
-				// A single flag drives both SDK filters: completed tasks are hidden by
-				// default, and so are tasks living inside a completed tasklist. Callers
-				// asking to see completed work expect both.
+				// A single flag drives all three SDK filters: completed tasks are hidden
+				// by default, so are tasks living inside a completed tasklist, and so are
+				// the completed entries of the related-task lists a row carries. Callers
+				// asking to see completed work expect all of them, and a caller who asked
+				// to hide it would not expect completed IDs in `subTaskIds`.
 				taskListRequest.Filters.IncludeCompletedTasks = showCompleted
 				taskListRequest.Filters.IncludeTasksFromCompletedTasklists = showCompleted
+				taskListRequest.Filters.IncludeCompletedPredecessors = *showCompleted
 			}
 			if countOnly {
 				// Ahead of the row wiring below: the count returns no rows.
@@ -1136,14 +1161,15 @@ func TaskList(engine *twapi.Engine) toolsets.ToolWrapper {
 				// caller has already said what it wants, and sideloading custom
 				// fields would smuggle back the bulk the selection exists to avoid.
 				//
-				// `predecessors` is the exception: the API only populates it when the
-				// request also asks for related tasks, so selecting it without the
-				// filter returns an empty array on every row — indistinguishable from
-				// a task nothing blocks, which is how a dependency question ends up
-				// answered "nothing is blocking". The filter is not a sideload; it
-				// adds no other entity to the response.
-				taskListRequest.Filters.IncludeRelatedTasks = slices.Contains(taskListRequest.Filters.Fields.Tasks,
-					projects.TaskFieldPredecessors)
+				// `predecessors` and `subTaskIds` are the exception: the API only
+				// populates them when the request also asks for related tasks, so
+				// selecting either without the filter returns an empty array on every
+				// row — indistinguishable from a task nothing blocks and a task with
+				// no subtasks, which is how a dependency question ends up answered
+				// "nothing is blocking". The filter is not a sideload; it adds no
+				// other entity to the response.
+				taskListRequest.Filters.IncludeRelatedTasks = taskFieldsNeedRelatedTasks(
+					taskListRequest.Filters.Fields.Tasks)
 
 			case verbose:
 				// Include custom fields and values in task list response for richer
@@ -1153,7 +1179,7 @@ func TaskList(engine *twapi.Engine) toolsets.ToolWrapper {
 					projects.TaskRequestSideloadCustomFields,
 					projects.TaskRequestSideloadCustomFieldValues,
 				}
-				// Ensure predecessors are included in the response
+				// Ensure predecessors and subtask IDs are included in the response
 				taskListRequest.Filters.IncludeRelatedTasks = true
 
 			default:

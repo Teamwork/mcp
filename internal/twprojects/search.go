@@ -125,7 +125,9 @@ func Search(engine *twapi.Engine) toolsets.ToolWrapper {
 			Description: "Cross-entity keyword search across projects, tasks, files, messages, and more. " +
 				"Long content fields in the sideloaded records are truncated at " +
 				strconv.Itoa(contentTruncationLimit) + " characters and marked where they are cut; " +
-				"the marker names the tool that returns the full record.",
+				"the marker names the tool that returns the full record. Completed items are excluded " +
+				"unless include_completed_items is true, so an empty result may mean the matching work " +
+				"is already done rather than missing.",
 			Annotations: &mcp.ToolAnnotations{
 				Title:           "Search",
 				ReadOnlyHint:    true,
@@ -150,7 +152,8 @@ func Search(engine *twapi.Engine) toolsets.ToolWrapper {
 						},
 					},
 					"include_completed_items": {
-						Description: "Whether to include completed items in the search results.",
+						Description: "Whether to include completed items in the search results. " +
+							"Excluded by default.",
 						AnyOf: []*jsonschema.Schema{
 							{Type: "boolean"},
 							{Type: "null"},

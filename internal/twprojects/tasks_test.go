@@ -485,3 +485,145 @@ func TestTaskListByProject(t *testing.T) {
 		"page_size":           float64(10),
 	})
 }
+
+// TestTaskGetCarriesCompletedWork pins the pair of filters that decide whether a
+// get answers with the task's completed subtasks and predecessors. The
+// related-task filter reports active ones only, so a parent whose subtasks are
+// all done came back with an empty subTaskIds — indistinguishable from a task
+// that never had any, and with no parameter the caller could pass to tell them
+// apart. includeCompletedPredecessors widens the whole related-task response
+// despite its name, and cannot drop the row: the endpoint addresses the task by
+// ID.
+//
+// Asserted on the query string, because the mock replies with the same canned
+// body whether the filters are sent or not.
+func TestTaskGetCarriesCompletedWork(t *testing.T) {
+	mcpServer, lastURL := testutil.ProjectsMCPServerMockWithRequestURL(t, http.StatusOK, []byte(`{}`))
+	testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodTaskGet.String(), map[string]any{
+		"id": float64(777),
+	})
+
+	for name, want := range map[string]string{
+		"includeRelatedTasks":          "true",
+		"includeCompletedPredecessors": "true",
+	} {
+		if got := lastURL.Query().Get(name); got != want {
+			t.Errorf("expected %s=%s but got %q (raw query: %s)", name, want, got, lastURL.RawQuery)
+		}
+	}
+}
+
+// TestTaskSparseFieldsSubTaskIDsCarryRelatedTasks covers subTaskIds the way
+// TestSparseFieldsPredecessorsCarryRelatedTasks covers predecessors: the API
+// leaves it empty unless the request also asks for related tasks, and empty
+// reads as "this task has no subtasks". Completed subtasks need the second flag
+// on top, since the related-task filter reports active ones only.
+func TestTaskSparseFieldsSubTaskIDsCarryRelatedTasks(t *testing.T) {
+	for _, testCase := range []struct {
+		method string
+		args   map[string]any
+	}{
+		{method: twprojects.MethodTaskList.String()},
+		{method: twprojects.MethodTaskGet.String(), args: map[string]any{"id": float64(777)}},
+	} {
+		t.Run(testCase.method, func(t *testing.T) {
+			mcpServer, lastURL := testutil.ProjectsMCPServerMockWithRequestURL(t, http.StatusOK, []byte(`{}`))
+			testutil.ExecuteToolRequest(t, mcpServer, testCase.method,
+				argsWithFields(testCase.args, "subTaskIds"))
+			if got := lastURL.Query().Get("includeRelatedTasks"); got != "true" {
+				t.Errorf("expected includeRelatedTasks=true alongside a subTaskIds selection but got %q "+
+					"(raw query: %s)", got, lastURL.RawQuery)
+			}
+
+			// Control: the filter rides on the selection naming subTaskIds, not on
+			// every selection, so an unrelated one must not carry it.
+			mcpServer, lastURL = testutil.ProjectsMCPServerMockWithRequestURL(t, http.StatusOK, []byte(`{}`))
+			testutil.ExecuteToolRequest(t, mcpServer, testCase.method,
+				argsWithFields(testCase.args, "name"))
+			if got := lastURL.Query().Get("includeRelatedTasks"); got != "" {
+				t.Errorf("expected no includeRelatedTasks without a subTaskIds selection but got %q", got)
+			}
+		})
+	}
+}
+
+// TestTaskGetSparseFieldsSubTaskIDsCarryCompletedWork is the get-only half of
+// the above: a selection naming subTaskIds must still reach completed subtasks,
+// which the related-task filter alone leaves out.
+func TestTaskGetSparseFieldsSubTaskIDsCarryCompletedWork(t *testing.T) {
+	mcpServer, lastURL := testutil.ProjectsMCPServerMockWithRequestURL(t, http.StatusOK, []byte(`{}`))
+	testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodTaskGet.String(),
+		argsWithFields(map[string]any{"id": float64(777)}, "subTaskIds"))
+	if got := lastURL.Query().Get("includeCompletedPredecessors"); got != "true" {
+		t.Errorf("expected includeCompletedPredecessors=true alongside a subTaskIds selection but got %q "+
+			"(raw query: %s)", got, lastURL.RawQuery)
+	}
+
+	// Control: a selection that needs no related tasks must not widen the get.
+	mcpServer, lastURL = testutil.ProjectsMCPServerMockWithRequestURL(t, http.StatusOK, []byte(`{}`))
+	testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodTaskGet.String(),
+		argsWithFields(map[string]any{"id": float64(777)}, "name"))
+	if got := lastURL.Query().Get("includeCompletedPredecessors"); got != "" {
+		t.Errorf("expected no includeCompletedPredecessors without a related-task selection but got %q", got)
+	}
+}
+
+// TestTaskListShowCompletedReachesTheWire pins the flag a caller needs to find
+// work that is already done. Scoped to a tasklist with a search term, a list
+// that omits it answers zero rows for tasks that plainly exist, which is
+// indistinguishable from no match.
+//
+// It governs the related-task lists a row carries too: a caller that asked to
+// hide completed work would not expect completed IDs in `subTaskIds`. The SDK
+// models that third filter as a plain bool, so "false" and "unset" both send
+// nothing — only the true case reaches the wire.
+func TestTaskListShowCompletedReachesTheWire(t *testing.T) {
+	for _, testCase := range []struct {
+		name     string
+		args     map[string]any
+		expected map[string]string
+	}{{
+		name: "omitted keeps the API default",
+		args: map[string]any{"tasklist_id": float64(777), "search_term": "design"},
+		expected: map[string]string{
+			"includeCompletedTasks":        "",
+			"showCompletedLists":           "",
+			"includeCompletedPredecessors": "",
+		},
+	}, {
+		name: "true asks for completed work",
+		args: map[string]any{
+			"tasklist_id":    float64(777),
+			"search_term":    "design",
+			"show_completed": true,
+		},
+		expected: map[string]string{
+			"includeCompletedTasks":        "true",
+			"showCompletedLists":           "true",
+			"includeCompletedPredecessors": "true",
+		},
+	}, {
+		name: "false keeps it out",
+		args: map[string]any{
+			"tasklist_id":    float64(777),
+			"search_term":    "design",
+			"show_completed": false,
+		},
+		expected: map[string]string{
+			"includeCompletedTasks":        "false",
+			"showCompletedLists":           "false",
+			"includeCompletedPredecessors": "",
+		},
+	}} {
+		t.Run(testCase.name, func(t *testing.T) {
+			mcpServer, lastURL := testutil.ProjectsMCPServerMockWithRequestURL(t, http.StatusOK, []byte(`{}`))
+			testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodTaskList.String(), testCase.args)
+
+			for name, want := range testCase.expected {
+				if got := lastURL.Query().Get(name); got != want {
+					t.Errorf("expected %s=%q but got %q (raw query: %s)", name, want, got, lastURL.RawQuery)
+				}
+			}
+		})
+	}
+}
