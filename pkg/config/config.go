@@ -214,9 +214,7 @@ func NewMCPServer(resources Resources, groups ...*toolsets.ToolsetGroup) *mcp.Se
 	}
 
 	serverOptions := &mcp.ServerOptions{
-		Logger:     resources.logger,
-		HasTools:   hasTools,
-		HasPrompts: hasPrompts,
+		Logger: resources.logger,
 		// The "logging" capability is deliberately not advertised. It was
 		// deprecated by SEP-2577, and this server never sent a
 		// "notifications/message" anyway, so claiming it only told clients to call
