@@ -52,6 +52,7 @@ func DefaultToolsetGroup(readOnly, allowDelete bool, engine *twapi.Engine) *tool
 	// --- projects sub-toolset ---
 	projectsWriteTools := []toolsets.ToolWrapper{
 		FileCreate(engine),
+		UploadURLCreate(engine),
 		ProjectCategoryCreate(engine),
 		ProjectCategoryUpdate(engine),
 		ProjectClone(engine),
