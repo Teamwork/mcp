@@ -57,10 +57,11 @@ const maxFileNameBytes = 200
 func attachmentRefsSchema(entity string) *jsonschema.Schema {
 	return &jsonschema.Schema{
 		Description: fmt.Sprintf(
-			"References of files to attach to the %s, as returned by %s. Each looks like "+
-				"\"tf_1a2b\" and can only be used once, so upload a file for each place it "+
-				"should go. Files are added to whatever is already attached; nothing is removed.",
-			entity, MethodFileCreate),
+			"References of files to attach to the %s, as returned by %s or %s. Each is \"tf_\" "+
+				"followed by a UUID and the file extension, and can only be used once, so reserve "+
+				"an upload for each place a file should go. Files are added to whatever is already "+
+				"attached; nothing is removed.",
+			entity, MethodUploadURLCreate, MethodFileCreate),
 		AnyOf: []*jsonschema.Schema{
 			{Type: "array", Items: &jsonschema.Schema{Type: "string"}},
 			{Type: "null"},
@@ -85,7 +86,7 @@ func FileCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 			Name: string(MethodFileCreate),
 			Description: fmt.Sprintf("Upload short text you are generating yourself, such as a plan, a "+
 				"spec or a CSV, so it can be attached to a task, comment or message. Returns a "+
-				"single-use reference like \"tf_1a2b\"; pass it in attachment_refs on %s, %s, %s or %s. "+
+				"single-use reference; pass it in attachment_refs on %s, %s, %s or %s. "+
 				"Content is sent inline as base64, which means you have to emit the whole file as text, "+
 				"so use %s instead for anything that already exists as a file — it hands back a URL to "+
 				"send the bytes to directly, and is the only safe option for a document that must stay "+
@@ -205,10 +206,10 @@ func UploadURLCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 		Tool: &mcp.Tool{
 			Name: string(MethodUploadURLCreate),
 			Description: fmt.Sprintf("Reserve an upload for a file and get back a short-lived URL to "+
-				"send its bytes to, plus a single-use reference like \"tf_1a2b\". Use this for any file "+
+				"send its bytes to, plus a single-use reference. Use this for any file "+
 				"that already exists — a PDF, an image, a signed document — because the bytes go straight "+
 				"from you to storage and are never read into the conversation. Send the file with the "+
-				"returned method, URL and headers, adding Content-Length set to size, and no "+
+				"returned method and URL, setting exactly the headers returned and no "+
 				"authorization of your own. Then pass the reference in attachment_refs on %s, %s, %s or "+
 				"%s. Prefer %s only for short text you are generating yourself.",
 				MethodTaskCreate, MethodTaskUpdate, MethodCommentCreate, MethodMessageCreate,
@@ -345,7 +346,8 @@ func ProjectFileAdd(engine *twapi.Engine) toolsets.ToolWrapper {
 						Type:      "string",
 						MinLength: new(1),
 						Description: fmt.Sprintf("The reference of an uploaded file, as returned by %s or "+
-							"%s. It looks like \"tf_1a2b\" and can only be used once.",
+							"%s. It is \"tf_\" followed by a UUID and the file extension, and can only be "+
+							"used once.",
 							MethodUploadURLCreate, MethodFileCreate),
 					},
 					"name": {
