@@ -48,6 +48,54 @@ func TestTeamUpdate(t *testing.T) {
 	})
 }
 
+// TestTeamUpdateParentReachesTheWire pins parentTeamId on the request body. The
+// endpoint reads a missing parentTeamId as "leave the hierarchy alone" and a
+// zero as "move to the top level", so an update that does not name it must
+// carry no key at all.
+func TestTeamUpdateParentReachesTheWire(t *testing.T) {
+	tests := []struct {
+		name      string
+		arguments map[string]any
+		want      any
+		absent    bool
+	}{{
+		name:      "not named",
+		arguments: map[string]any{"id": float64(123), "name": "Example"},
+		absent:    true,
+	}, {
+		name:      "moved under another team",
+		arguments: map[string]any{"id": float64(123), "parent_team_id": float64(777)},
+		want:      float64(777),
+	}, {
+		name:      "moved to the top level",
+		arguments: map[string]any{"id": float64(123), "parent_team_id": float64(0)},
+		want:      float64(0),
+	}}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mcpServer, body := mcpServerMockWithRequestBody(t, http.StatusOK, []byte(`{}`))
+			testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodTeamUpdate.String(), tt.arguments)
+
+			var payload struct {
+				Team map[string]any `json:"team"`
+			}
+			if err := json.Unmarshal(*body, &payload); err != nil {
+				t.Fatalf("failed to decode request body: %s", err)
+			}
+			got, ok := payload.Team["parentTeamId"]
+			switch {
+			case tt.absent && ok:
+				t.Errorf("expected parentTeamId to be absent from the request body, got %v", got)
+			case !tt.absent && !ok:
+				t.Errorf("expected parentTeamId in the request body, got %v", payload.Team)
+			case !tt.absent && got != tt.want:
+				t.Errorf("expected parentTeamId to be %v, got %v", tt.want, got)
+			}
+		})
+	}
+}
+
 func TestTeamDelete(t *testing.T) {
 	mcpServer := mcpServerMock(t, http.StatusOK, []byte(`{}`))
 	testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodTeamDelete.String(), map[string]any{
