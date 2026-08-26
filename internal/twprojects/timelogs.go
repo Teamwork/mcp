@@ -490,6 +490,33 @@ func TimelogList(engine *twapi.Engine) toolsets.ToolWrapper {
 							{Type: "null"},
 						},
 					},
+					"billable_type": {
+						Description: "Restrict the results to billable or non-billable timelogs. Omit, or pass all, " +
+							"to include both. For billable hours rather than the entries themselves, " +
+							"twprojects-summarize_timelogs reports them without paging.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string", Enum: []any{
+								string(projects.TimelogBillableTypeAll),
+								string(projects.TimelogBillableTypeBillable),
+								string(projects.TimelogBillableTypeNonBillable),
+							}},
+							{Type: "null"},
+						},
+					},
+					"invoiced_type": {
+						Description: "Restrict the results to timelogs that have or have not been added to an " +
+							"invoice. Omit, or pass all, to include both. Invoiced is not the same as billed: " +
+							"noninvoiced answers \"what is still to be invoiced\" only for billable time, so pass " +
+							"billable_type alongside it.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string", Enum: []any{
+								string(projects.TimelogInvoicedTypeAll),
+								string(projects.TimelogInvoicedTypeInvoiced),
+								string(projects.TimelogInvoicedTypeNonInvoiced),
+							}},
+							{Type: "null"},
+						},
+					},
 					"order_by":   timelogOrdering.orderBySchema(),
 					"order_mode": orderModeSchema(),
 					"page":       helpers.PageSchema(),
@@ -522,6 +549,18 @@ func TimelogList(engine *twapi.Engine) toolsets.ToolWrapper {
 				helpers.OptionalNumericListParam(&timelogListRequest.Filters.AssignedToCompanyIDs, "assigned_company_ids"),
 				helpers.OptionalNumericListParam(&timelogListRequest.Filters.AssignedToTeamIDs, "assigned_team_ids"),
 				helpers.OptionalNumericListParam(&timelogListRequest.Filters.DeskTicketIDs, "ticketIds"),
+				helpers.OptionalParam(&timelogListRequest.Filters.BillableType, "billable_type",
+					helpers.RestrictValues(
+						projects.TimelogBillableTypeAll,
+						projects.TimelogBillableTypeBillable,
+						projects.TimelogBillableTypeNonBillable,
+					)),
+				helpers.OptionalParam(&timelogListRequest.Filters.InvoicedType, "invoiced_type",
+					helpers.RestrictValues(
+						projects.TimelogInvoicedTypeAll,
+						projects.TimelogInvoicedTypeInvoiced,
+						projects.TimelogInvoicedTypeNonInvoiced,
+					)),
 				timelogOrdering.param(&timelogListRequest.Filters.OrderBy, &timelogListRequest.Filters.OrderMode),
 				helpers.OptionalNumericParam(&timelogListRequest.Filters.Page, "page"),
 				helpers.OptionalNumericParam(&timelogListRequest.Filters.PageSize, "page_size"),

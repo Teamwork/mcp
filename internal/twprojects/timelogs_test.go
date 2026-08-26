@@ -214,3 +214,95 @@ func TestTimelogListByTask(t *testing.T) {
 		"page_size":            float64(10),
 	})
 }
+
+// TestTimelogListBillableAndInvoicedFilters asserts both filters reach the query
+// string. The mock answers with the same body either way, so a filter that never
+// leaves the process looks exactly like a working one from the caller's side —
+// and a dropped billable filter is worse than no filter at all, since the caller
+// then reports non-billable time as billable.
+func TestTimelogListBillableAndInvoicedFilters(t *testing.T) {
+	tests := []struct {
+		name         string
+		arguments    map[string]any
+		billableType string
+		invoicedType string
+	}{{
+		name:         "billable only",
+		arguments:    map[string]any{"billable_type": "billable"},
+		billableType: "billable",
+	}, {
+		name:         "non-billable only",
+		arguments:    map[string]any{"billable_type": "nonbillable"},
+		billableType: "nonbillable",
+	}, {
+		name:         "invoiced only",
+		arguments:    map[string]any{"invoiced_type": "invoiced"},
+		invoicedType: "invoiced",
+	}, {
+		name: "billable and not yet invoiced",
+		arguments: map[string]any{
+			"billable_type": "billable",
+			"invoiced_type": "noninvoiced",
+		},
+		billableType: "billable",
+		invoicedType: "noninvoiced",
+	}, {
+		name:         "an explicit all is sent as-is",
+		arguments:    map[string]any{"billable_type": "all"},
+		billableType: "all",
+	}}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mcpServer, lastURL := testutil.ProjectsMCPServerMockWithRequestURL(t, http.StatusOK, []byte(`{}`))
+
+			testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodTimelogList.String(), tt.arguments)
+
+			query := lastURL.Query()
+			if got := query.Get("billableType"); got != tt.billableType {
+				t.Errorf("expected billableType=%q but got %q (raw query: %s)", tt.billableType, got, lastURL.RawQuery)
+			}
+			if got := query.Get("invoicedType"); got != tt.invoicedType {
+				t.Errorf("expected invoicedType=%q but got %q (raw query: %s)", tt.invoicedType, got, lastURL.RawQuery)
+			}
+		})
+	}
+}
+
+// TestTimelogListRejectsUnknownBillableAndInvoicedValues covers the enum being
+// closed. The endpoint ignores a query parameter it cannot parse, so accepting
+// "unbilled" here would silently widen the results to every entry rather than
+// failing the call.
+func TestTimelogListRejectsUnknownBillableAndInvoicedValues(t *testing.T) {
+	tests := []struct {
+		name      string
+		arguments map[string]any
+	}{{
+		name:      "billable_type outside the enum",
+		arguments: map[string]any{"billable_type": "unbilled"},
+	}, {
+		name:      "invoiced_type outside the enum",
+		arguments: map[string]any{"invoiced_type": "billed"},
+	}, {
+		name:      "a boolean instead of the enum",
+		arguments: map[string]any{"billable_type": true},
+	}}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mcpServer := mcpServerMock(t, http.StatusOK, []byte(`{}`))
+
+			testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodTimelogList.String(), tt.arguments,
+				testutil.ExecuteToolRequestWithCheckMessage(func(t *testing.T, result mcp.Result) {
+					t.Helper()
+					toolResult, ok := result.(*mcp.CallToolResult)
+					if !ok {
+						t.Fatalf("unexpected result type: %T", result)
+					}
+					if !toolResult.IsError {
+						t.Errorf("expected an error tool result but the call succeeded")
+					}
+				}))
+		})
+	}
+}
