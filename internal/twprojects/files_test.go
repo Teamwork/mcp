@@ -1,6 +1,7 @@
 package twprojects_test
 
 import (
+	"bytes"
 	"encoding/base64"
 	"encoding/json"
 	"net/http"
@@ -577,5 +578,149 @@ func TestUploadURLCreateRejectsBadInput(t *testing.T) {
 				t.Errorf("expected no request to be sent, got %d", len(*recorded))
 			}
 		})
+	}
+}
+
+func TestProjectFileAdd(t *testing.T) {
+	mcpServer, recorded := mcpServerRecordingMock(t, []testutil.ProjectsMockRoute{{
+		Match:  "/projects/777/files",
+		Method: http.MethodPost,
+		Status: http.StatusCreated,
+		Body:   []byte(`{"id":"4242"}`),
+	}}, http.StatusCreated, []byte(`{"id":"4242"}`))
+
+	var result map[string]any
+	testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodProjectFileAdd.String(), map[string]any{
+		"project_id":    777,
+		"reference":     "  tf_1a2b  ",
+		"name":          "contract.pdf",
+		"description":   "Signed original",
+		"category_name": "Contracts",
+		"private":       true,
+	},
+		testutil.ExecuteToolRequestWithCheckMessage(func(t *testing.T, message mcp.Result) {
+			t.Helper()
+			result = decodeToolJSON(t, message)
+		}),
+	)
+
+	if len(*recorded) != 1 {
+		t.Fatalf("expected one request, got %d", len(*recorded))
+	}
+
+	var body struct {
+		File struct {
+			PendingFileRef string `json:"pendingFileRef"`
+			Name           string `json:"name"`
+			Description    string `json:"description"`
+			CategoryName   string `json:"category-name"`
+			Private        bool   `json:"private"`
+		} `json:"file"`
+	}
+	if err := json.Unmarshal((*recorded)[0].Body, &body); err != nil {
+		t.Fatalf("failed to decode the request body: %s", err)
+	}
+
+	// Whitespace is the model's, not the API's, and the endpoint would reject
+	// the padded form as an unknown reference rather than as untidy.
+	if body.File.PendingFileRef != "tf_1a2b" {
+		t.Errorf("expected the trimmed reference on the wire, got %q", body.File.PendingFileRef)
+	}
+	if body.File.Name != "contract.pdf" {
+		t.Errorf("expected the name on the wire, got %q", body.File.Name)
+	}
+	if body.File.Description != "Signed original" {
+		t.Errorf("expected the description on the wire, got %q", body.File.Description)
+	}
+	if body.File.CategoryName != "Contracts" {
+		t.Errorf("expected the category name on the wire, got %q", body.File.CategoryName)
+	}
+	if !body.File.Private {
+		t.Error("expected the file to be marked private on the wire")
+	}
+
+	// The durable handle, which is the whole reason to file it here.
+	if got := result["id"]; got != float64(4242) {
+		t.Errorf("expected the created file ID, got %v", got)
+	}
+}
+
+func TestProjectFileAddRejectsBlankReference(t *testing.T) {
+	mcpServer, recorded := mcpServerRecordingMock(t, nil, http.StatusCreated, []byte(`{"id":"1"}`))
+
+	testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodProjectFileAdd.String(), map[string]any{
+		"project_id": 777,
+		"reference":  "   ",
+	},
+		testutil.ExecuteToolRequestWithCheckMessage(func(t *testing.T, result mcp.Result) {
+			t.Helper()
+			assertErrorResultContains(t, result, "must not be empty")
+		}),
+	)
+
+	if len(*recorded) != 0 {
+		t.Errorf("expected no request to be sent, got %d", len(*recorded))
+	}
+}
+
+// TestTaskAttachmentFileIDsReachTheWire covers the half that makes a filed
+// document worth having: an identifier survives being used, so the same file
+// reaches more than one task. The mocks reply the same either way, so this has
+// to assert on the encoded body.
+func TestTaskAttachmentFileIDsReachTheWire(t *testing.T) {
+	mcpServer, recorded := mcpServerRecordingMock(t, nil, http.StatusCreated, []byte(`{"task":{"id":1}}`))
+
+	testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodTaskCreate.String(), map[string]any{
+		"tasklist_id":         123,
+		"name":                "Countersign the contract",
+		"attachment_file_ids": []any{4242, 4243},
+		"attachment_refs":     []any{"tf_A"},
+	})
+
+	if len(*recorded) == 0 {
+		t.Fatal("expected the task to be created")
+	}
+
+	var body struct {
+		Attachments struct {
+			Files []struct {
+				ID int64 `json:"id"`
+			} `json:"files"`
+			PendingFiles []struct {
+				Reference string `json:"reference"`
+			} `json:"pendingFiles"`
+		} `json:"attachments"`
+	}
+	if err := json.Unmarshal((*recorded)[0].Body, &body); err != nil {
+		t.Fatalf("failed to decode the request body: %s", err)
+	}
+
+	if len(body.Attachments.Files) != 2 {
+		t.Fatalf("expected two file attachments, got %d", len(body.Attachments.Files))
+	}
+	if body.Attachments.Files[0].ID != 4242 || body.Attachments.Files[1].ID != 4243 {
+		t.Errorf("expected the file IDs on the wire, got %+v", body.Attachments.Files)
+	}
+	// The two forms are independent, so naming one must not drop the other.
+	if len(body.Attachments.PendingFiles) != 1 || body.Attachments.PendingFiles[0].Reference != "tf_A" {
+		t.Errorf("expected the pending reference alongside, got %+v", body.Attachments.PendingFiles)
+	}
+}
+
+// TestTaskAttachmentsOmittedWithoutEither pins that adding the second parameter
+// did not start sending an empty attachments object on every task.
+func TestTaskAttachmentsOmittedWithoutEither(t *testing.T) {
+	mcpServer, recorded := mcpServerRecordingMock(t, nil, http.StatusCreated, []byte(`{"task":{"id":1}}`))
+
+	testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodTaskCreate.String(), map[string]any{
+		"tasklist_id": 123,
+		"name":        "No attachments here",
+	})
+
+	if len(*recorded) == 0 {
+		t.Fatal("expected the task to be created")
+	}
+	if bytes.Contains((*recorded)[0].Body, []byte(`"attachments"`)) {
+		t.Errorf("expected no attachments key, got %s", (*recorded)[0].Body)
 	}
 }
