@@ -365,8 +365,10 @@ func MilestoneGet(engine *twapi.Engine) toolsets.ToolWrapper {
 func MilestoneList(engine *twapi.Engine) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
-			Name:        string(MethodMilestoneList),
-			Description: "List milestones. Scope by project_id or omit for site-wide.",
+			Name: string(MethodMilestoneList),
+			Description: "List milestones. Scope by project_id or omit for site-wide. Completed milestones are " +
+				"included by default; pass show_completed false to see only the outstanding ones. Use due_after " +
+				"and due_before to bound the deadline instead of listing everything and filtering afterwards.",
 			Annotations: &mcp.ToolAnnotations{
 				Title:           "List Milestones",
 				ReadOnlyHint:    true,
@@ -396,13 +398,28 @@ func MilestoneList(engine *twapi.Engine) toolsets.ToolWrapper {
 					},
 					"tag_ids":        helpers.TagIDsFilterSchema("milestones"),
 					"match_all_tags": helpers.MatchAllTagsSchema(),
-					"order_by":       milestoneOrdering.orderBySchema(),
-					"order_mode":     orderModeSchema(),
-					"page":           helpers.PageSchema(),
-					"page_size":      helpers.PageSizeSchema(),
-					"verbose":        helpers.VerboseSchema(),
-					"count_only":     helpers.CountOnlySchema("milestones"),
-					"fields":         helpers.FieldsSchema[projects.Milestone]("milestone"),
+					"due_after": helpers.DateFilterSchema(
+						"Only include milestones with a deadline on or after this date.",
+					),
+					"due_before": helpers.DateFilterSchema(
+						"Only include milestones with a deadline on or before this date.",
+					),
+					"show_completed": {
+						Description: "If false, only return milestones that are not completed yet. Included by default, " +
+							"unlike the task and tasklist lists.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "boolean"},
+							{Type: "null"},
+						},
+						Default: []byte(`true`),
+					},
+					"order_by":   milestoneOrdering.orderBySchema(),
+					"order_mode": orderModeSchema(),
+					"page":       helpers.PageSchema(),
+					"page_size":  helpers.PageSizeSchema(),
+					"verbose":    helpers.VerboseSchema(),
+					"count_only": helpers.CountOnlySchema("milestones"),
+					"fields":     helpers.FieldsSchema[projects.Milestone]("milestone"),
 				},
 				Required: []string{},
 			},
@@ -417,11 +434,15 @@ func MilestoneList(engine *twapi.Engine) toolsets.ToolWrapper {
 			}
 			verbose := true
 			var countOnly bool
+			var showCompleted *bool
 			err := helpers.ParamGroup(arguments,
 				helpers.OptionalNumericParam(&milestoneListRequest.Path.ProjectID, "project_id"),
 				helpers.OptionalParam(&milestoneListRequest.Filters.SearchTerm, "search_term"),
 				helpers.OptionalNumericListParam(&milestoneListRequest.Filters.TagIDs, "tag_ids"),
 				helpers.OptionalPointerParam(&milestoneListRequest.Filters.MatchAllTags, "match_all_tags"),
+				helpers.OptionalDatePointerParam(&milestoneListRequest.Filters.DueAfter, "due_after"),
+				helpers.OptionalDatePointerParam(&milestoneListRequest.Filters.DueBefore, "due_before"),
+				helpers.OptionalPointerParam(&showCompleted, "show_completed"),
 				milestoneOrdering.param(&milestoneListRequest.Filters.OrderBy, &milestoneListRequest.Filters.OrderMode),
 				helpers.OptionalNumericParam(&milestoneListRequest.Filters.Page, "page"),
 				helpers.OptionalNumericParam(&milestoneListRequest.Filters.PageSize, "page_size"),
@@ -431,6 +452,15 @@ func MilestoneList(engine *twapi.Engine) toolsets.ToolWrapper {
 			)
 			if err != nil {
 				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
+			}
+
+			// The endpoint returns milestones in every state, so hiding the completed
+			// ones means asking for the incomplete ones by name. Only an explicit false
+			// narrows the list: unset leaves the endpoint's own default in place.
+			if showCompleted != nil && !*showCompleted {
+				milestoneListRequest.Filters.Statuses = []projects.MilestoneStatus{
+					projects.MilestoneStatusIncomplete,
+				}
 			}
 
 			if !verbose && len(milestoneListRequest.Filters.Fields.Milestones) == 0 {
