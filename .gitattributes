@@ -1,0 +1,10 @@
+# The generated documentation page inlines cmd/docs-gen/assets, and inlines the
+# SVGs percent-encoded into a data URI. A CRLF survives that encoding as a
+# literal %0D%0A, which no line-ending normalisation can reach, so a page
+# regenerated on Windows differs from one regenerated on Linux and the golden
+# test in cmd/docs-gen fails for a reason that is invisible in the diff.
+#
+# Checking these out verbatim keeps the page reproducible on every platform.
+cmd/docs-gen/assets/* text eol=lf
+docs/index.html text eol=lf
+docs/tool-reference.md text eol=lf
