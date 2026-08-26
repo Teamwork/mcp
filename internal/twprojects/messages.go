@@ -168,13 +168,6 @@ func MessageUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 							{Type: "null"},
 						},
 					},
-					"project_id": {
-						Description: "The ID of the project to create the message in.",
-						AnyOf: []*jsonschema.Schema{
-							{Type: "integer"},
-							{Type: "null"},
-						},
-					},
 					"body": {
 						Description: "The body of the message.",
 						AnyOf: []*jsonschema.Schema{

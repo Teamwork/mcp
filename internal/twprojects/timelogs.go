@@ -190,7 +190,7 @@ func TimelogUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
 			Name:        string(MethodTimelogUpdate),
-			Description: "Update timelog.",
+			Description: "Update timelog. It can also be moved to another project or task.",
 			Annotations: &mcp.ToolAnnotations{
 				Title:           "Update Timelog",
 				DestructiveHint: new(false),
@@ -249,16 +249,26 @@ func TimelogUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 						},
 					},
 					"project_id": {
-						Description: "Project the timelog is logged against. Provide exactly one of project_id or task_id.",
+						Description: "Move the timelog to this project. The API takes the project from the task " +
+							"whenever the timelog is logged against one, so pass clear_task alongside it to move a " +
+							"timelog off its task.",
 						AnyOf: []*jsonschema.Schema{
 							{Type: "integer"},
 							{Type: "null"},
 						},
 					},
 					"task_id": {
-						Description: "Task the timelog is logged against. Provide exactly one of project_id or task_id.",
+						Description: "Move the timelog to this task, and with it to the task's own project.",
 						AnyOf: []*jsonschema.Schema{
 							{Type: "integer"},
+							{Type: "null"},
+						},
+					},
+					"clear_task": {
+						Description: "Set to true to detach the timelog from its task, leaving it logged against " +
+							"the project. Cannot be combined with task_id.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "boolean"},
 							{Type: "null"},
 						},
 					},
@@ -281,8 +291,13 @@ func TimelogUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 			if err := json.Unmarshal(request.Params.Arguments, &arguments); err != nil {
 				return helpers.NewToolResultTextError("failed to decode request: %s", err.Error()), nil
 			}
+			var taskID *int64
+			var clearTask *bool
 			err := helpers.ParamGroup(arguments,
 				helpers.RequiredNumericParam(&timelogUpdateRequest.Path.ID, "id"),
+				helpers.OptionalNumericPointerParam(&timelogUpdateRequest.ProjectID, "project_id"),
+				helpers.OptionalNumericPointerParam(&taskID, "task_id"),
+				helpers.OptionalPointerParam(&clearTask, "clear_task"),
 				helpers.OptionalPointerParam(&timelogUpdateRequest.Description, "description"),
 				helpers.OptionalDatePointerParam(&timelogUpdateRequest.Date, "date"),
 				helpers.OptionalTimeOnlyPointerParam(&timelogUpdateRequest.Time, "time"),
@@ -295,6 +310,15 @@ func TimelogUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 			)
 			if err != nil {
 				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
+			}
+
+			switch {
+			case clearTask != nil && *clearTask && taskID != nil:
+				return helpers.NewToolResultTextError("clear_task cannot be combined with task_id"), nil
+			case clearTask != nil && *clearTask:
+				timelogUpdateRequest.TaskID = twapi.NullInt64()
+			case taskID != nil:
+				timelogUpdateRequest.TaskID = twapi.NewNullableInt64(*taskID)
 			}
 
 			_, err = projects.TimelogUpdate(ctx, engine, timelogUpdateRequest)

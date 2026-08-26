@@ -205,7 +205,8 @@ func TeamUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 						},
 					},
 					"parent_team_id": {
-						Description: "The ID of the parent team. This is used to create a hierarchy of teams.",
+						Description: "The ID of the parent team, which places this team in a hierarchy. " +
+							"Pass 0 to move the team back to the top level.",
 						AnyOf: []*jsonschema.Schema{
 							{Type: "integer"},
 							{Type: "null"},
@@ -248,6 +249,7 @@ func TeamUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 				helpers.OptionalPointerParam(&teamUpdateRequest.Name, "name"),
 				helpers.OptionalPointerParam(&teamUpdateRequest.Handle, "handle"),
 				helpers.OptionalPointerParam(&teamUpdateRequest.Description, "description"),
+				helpers.OptionalNumericPointerParam(&teamUpdateRequest.ParentTeamID, "parent_team_id"),
 				helpers.OptionalNumericPointerParam(&teamUpdateRequest.CompanyID, "company_id"),
 				helpers.OptionalNumericPointerParam(&teamUpdateRequest.ProjectID, "project_id"),
 				helpers.OptionalCustomNumericListParam(&teamUpdateRequest.UserIDs, "user_ids"),

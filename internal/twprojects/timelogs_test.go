@@ -1,10 +1,12 @@
 package twprojects_test
 
 import (
+	"encoding/json"
 	"net/http"
 	"strings"
 	"testing"
 
+	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/teamwork/mcp/internal/testutil"
 	"github.com/teamwork/mcp/internal/twprojects"
 )
@@ -42,6 +44,91 @@ func TestTimelogUpdate(t *testing.T) {
 		"user_id":     float64(789),
 		"tag_ids":     []float64{10, 11, 12},
 	})
+}
+
+// TestTimelogUpdateMoveReachesTheWire pins the move parameters on the request
+// body. The endpoint takes the project from the task whenever the timelog has
+// one, and reads a taskId of null as "detach", so an update naming neither must
+// carry neither key.
+func TestTimelogUpdateMoveReachesTheWire(t *testing.T) {
+	tests := []struct {
+		name      string
+		arguments map[string]any
+		want      map[string]any
+		absent    []string
+	}{{
+		name:      "neither named",
+		arguments: map[string]any{"id": float64(123), "description": "Example"},
+		absent:    []string{"projectId", "taskId"},
+	}, {
+		name:      "moved to a project",
+		arguments: map[string]any{"id": float64(123), "project_id": float64(777)},
+		want:      map[string]any{"projectId": float64(777)},
+		absent:    []string{"taskId"},
+	}, {
+		name:      "moved to a task",
+		arguments: map[string]any{"id": float64(123), "task_id": float64(456)},
+		want:      map[string]any{"taskId": float64(456)},
+		absent:    []string{"projectId"},
+	}, {
+		name: "detached from its task",
+		arguments: map[string]any{
+			"id":         float64(123),
+			"project_id": float64(777),
+			"clear_task": true,
+		},
+		want: map[string]any{"projectId": float64(777), "taskId": nil},
+	}}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mcpServer, body := mcpServerMockWithRequestBody(t, http.StatusOK, []byte(`{}`))
+			testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodTimelogUpdate.String(), tt.arguments)
+
+			var payload struct {
+				Timelog map[string]any `json:"timelog"`
+			}
+			if err := json.Unmarshal(*body, &payload); err != nil {
+				t.Fatalf("failed to decode request body: %s", err)
+			}
+			for key, expected := range tt.want {
+				got, ok := payload.Timelog[key]
+				if !ok {
+					t.Errorf("expected %s in the request body, got %v", key, payload.Timelog)
+					continue
+				}
+				if got != expected {
+					t.Errorf("expected %s to be %v, got %v", key, expected, got)
+				}
+			}
+			for _, key := range tt.absent {
+				if got, ok := payload.Timelog[key]; ok {
+					t.Errorf("expected %s to be absent from the request body, got %v", key, got)
+				}
+			}
+		})
+	}
+}
+
+// TestTimelogUpdateClearTaskRejectsATaskID pins that the two ways to set the
+// task are not combinable: honouring one of them silently would move the
+// timelog somewhere the caller did not name.
+func TestTimelogUpdateClearTaskRejectsATaskID(t *testing.T) {
+	mcpServer := mcpServerMock(t, http.StatusOK, []byte(`{}`))
+	testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodTimelogUpdate.String(), map[string]any{
+		"id":         float64(123),
+		"task_id":    float64(456),
+		"clear_task": true,
+	}, testutil.ExecuteToolRequestWithCheckMessage(func(t *testing.T, result mcp.Result) {
+		t.Helper()
+		toolResult, ok := result.(*mcp.CallToolResult)
+		if !ok {
+			t.Fatalf("unexpected result type: %T", result)
+		}
+		if !toolResult.IsError {
+			t.Error("expected clear_task combined with task_id to be an error tool result")
+		}
+	}))
 }
 
 func TestTimelogDelete(t *testing.T) {
