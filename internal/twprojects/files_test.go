@@ -368,3 +368,214 @@ func TestMessageCreateSendsAttachments(t *testing.T) {
 		t.Errorf("unexpected references in body %q", string(*requestBody))
 	}
 }
+
+// uploadURLCreateMock answers the reservation and fails the test if anything
+// else is sent: the point of the tool is that the contents never come here.
+func uploadURLCreateMock(t *testing.T, presignedURL string) (*mcp.Server, *[]testutil.ProjectsRecordedRequest) {
+	t.Helper()
+
+	return mcpServerRecordingMock(t, []testutil.ProjectsMockRoute{{
+		Match:  "pendingfiles/presignedurl",
+		Method: http.MethodGet,
+		Status: http.StatusOK,
+		Body:   []byte(`{"ref":"tf_1a2b","url":"` + presignedURL + `"}`),
+	}}, http.StatusOK, nil)
+}
+
+// decodeToolJSON reads the JSON a tool handed back, so a test can assert on
+// what the caller actually receives rather than only on what went to the wire.
+func decodeToolJSON(t *testing.T, result mcp.Result) map[string]any {
+	t.Helper()
+
+	toolResult, ok := result.(*mcp.CallToolResult)
+	if !ok {
+		t.Fatalf("unexpected result type: %T", result)
+	}
+	if toolResult.IsError {
+		t.Fatalf("unexpected error result: %+v", toolResult)
+	}
+	if len(toolResult.Content) == 0 {
+		t.Fatal("expected content in the tool result")
+	}
+	text, ok := toolResult.Content[0].(*mcp.TextContent)
+	if !ok {
+		t.Fatalf("unexpected content type: %T", toolResult.Content[0])
+	}
+
+	var decoded map[string]any
+	if err := json.Unmarshal([]byte(text.Text), &decoded); err != nil {
+		t.Fatalf("failed to decode the tool result: %s", err)
+	}
+	return decoded
+}
+
+func TestUploadURLCreate(t *testing.T) {
+	// Signed headers include the canned ACL, and the signature carries a
+	// readable deadline, so the tool has both to report.
+	const presignedURL = "https://storage.example.com/tf_1a2b.pdf?" +
+		"X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIAEXAMPLE&" +
+		"X-Amz-Date=20260826T120000Z&X-Amz-Expires=600&" +
+		"X-Amz-SignedHeaders=host%3Bx-amz-acl&X-Amz-Signature=deadbeef"
+
+	mcpServer, recorded := uploadURLCreateMock(t, presignedURL)
+
+	var result map[string]any
+	testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodUploadURLCreate.String(), map[string]any{
+		"name": "contract.pdf",
+		"size": 204800,
+	},
+		testutil.ExecuteToolRequestWithCheckMessage(func(t *testing.T, message mcp.Result) {
+			t.Helper()
+			result = decodeToolJSON(t, message)
+		}),
+	)
+
+	// The whole point: one request, and it carries no file. A second request
+	// would mean the contents came through this server after all.
+	if len(*recorded) != 1 {
+		t.Fatalf("expected only the reservation, got %d requests", len(*recorded))
+	}
+	reserve := (*recorded)[0]
+	if reserve.Method != http.MethodGet {
+		t.Errorf("expected the reservation to be a GET, got %s", reserve.Method)
+	}
+	if got := reserve.URL.Query().Get("fileName"); got != "contract.pdf" {
+		t.Errorf("expected the reservation to name contract.pdf, got %q", got)
+	}
+	// The signature covers this number, so an upload of any other length fails.
+	if got := reserve.URL.Query().Get("fileSize"); got != "204800" {
+		t.Errorf("expected the reservation to declare 204800 bytes, got %q", got)
+	}
+
+	if got := result["reference"]; got != "tf_1a2b" {
+		t.Errorf("expected the reference from the reservation, got %v", got)
+	}
+	if got := result["upload_url"]; got != presignedURL {
+		t.Errorf("expected the pre-signed URL unchanged, got %v", got)
+	}
+	if got := result["method"]; got != http.MethodPut {
+		t.Errorf("expected a PUT, got %v", got)
+	}
+	if got := result["expires_at"]; got != "2026-08-26T12:10:00Z" {
+		t.Errorf("expected the deadline read from the signature, got %v", got)
+	}
+
+	headers, ok := result["headers"].(map[string]any)
+	if !ok {
+		t.Fatalf("expected headers in the result, got %T", result["headers"])
+	}
+	// Signed into this URL, so the caller must repeat it.
+	if got := headers["X-Amz-Acl"]; got != "public-read" {
+		t.Errorf("expected the canned ACL, got %v", got)
+	}
+	// A chunked body is rejected by the storage service, so the length has to
+	// travel with the rest even though the signature does not cover it.
+	if got := headers["Content-Length"]; got != "204800" {
+		t.Errorf("expected the content length among the headers, got %v", got)
+	}
+	if headers["Content-Type"] == nil || headers["Content-Type"] == "" {
+		t.Error("expected a content type among the headers")
+	}
+	// A second authorization mechanism is refused by the storage service.
+	for key := range headers {
+		if strings.EqualFold(key, "Authorization") {
+			t.Error("expected no authorization among the headers")
+		}
+	}
+}
+
+// TestUploadURLCreateOmitsUnsignedACL is the other half of the ACL rule: which
+// headers to send is decided by the URL, and repeating an unsigned x-amz-* one
+// fails the upload just as surely as leaving a signed one out.
+func TestUploadURLCreateOmitsUnsignedACL(t *testing.T) {
+	const presignedURL = "https://storage.example.com/tf_1a2b.pdf?" +
+		"X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-SignedHeaders=host&X-Amz-Signature=deadbeef"
+
+	mcpServer, _ := uploadURLCreateMock(t, presignedURL)
+
+	var result map[string]any
+	testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodUploadURLCreate.String(), map[string]any{
+		"name": "contract.pdf",
+		"size": 1024,
+	},
+		testutil.ExecuteToolRequestWithCheckMessage(func(t *testing.T, message mcp.Result) {
+			t.Helper()
+			result = decodeToolJSON(t, message)
+		}),
+	)
+
+	headers, ok := result["headers"].(map[string]any)
+	if !ok {
+		t.Fatalf("expected headers in the result, got %T", result["headers"])
+	}
+	if got, present := headers["X-Amz-Acl"]; present {
+		t.Errorf("expected no canned ACL when it is not signed, got %v", got)
+	}
+	// Nothing in the URL says when it lapses, and guessing would be worse than
+	// staying quiet.
+	if got, present := result["expires_at"]; present {
+		t.Errorf("expected no deadline when the URL does not carry one, got %v", got)
+	}
+}
+
+func TestUploadURLCreateSanitizesFileName(t *testing.T) {
+	const presignedURL = "https://storage.example.com/tf_1a2b.pdf?" +
+		"X-Amz-SignedHeaders=host&X-Amz-Signature=deadbeef"
+
+	mcpServer, recorded := uploadURLCreateMock(t, presignedURL)
+	testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodUploadURLCreate.String(), map[string]any{
+		"name": `C:\Users\someone\contract.pdf`,
+		"size": 1024,
+	})
+
+	if len(*recorded) == 0 {
+		t.Fatal("expected the reservation to be sent")
+	}
+	if got := (*recorded)[0].URL.Query().Get("fileName"); got != "contract.pdf" {
+		t.Errorf("expected fileName %q, got %q", "contract.pdf", got)
+	}
+}
+
+func TestUploadURLCreateRejectsBadInput(t *testing.T) {
+	tests := []struct {
+		name      string
+		arguments map[string]any
+		want      string
+	}{{
+		// The schema's minimum catches these before the handler runs, which is
+		// why the handler's own check is unreachable from a validating client
+		// and kept anyway for one that skips validation.
+		name:      "no size",
+		arguments: map[string]any{"name": "contract.pdf", "size": 0},
+		want:      "size",
+	}, {
+		name:      "negative size",
+		arguments: map[string]any{"name": "contract.pdf", "size": -1},
+		want:      "size",
+	}, {
+		name:      "name is a path",
+		arguments: map[string]any{"name": "../..", "size": 1024},
+		want:      "invalid name",
+	}}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			const presignedURL = "https://storage.example.com/tf_1a2b.pdf?" +
+				"X-Amz-SignedHeaders=host&X-Amz-Signature=deadbeef"
+
+			mcpServer, recorded := uploadURLCreateMock(t, presignedURL)
+			testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodUploadURLCreate.String(), tt.arguments,
+				testutil.ExecuteToolRequestWithCheckMessage(func(t *testing.T, result mcp.Result) {
+					t.Helper()
+					assertErrorResultContains(t, result, tt.want)
+				}),
+			)
+
+			// Bad input is caught here, so nothing is reserved for a file that
+			// is never going to be uploaded.
+			if len(*recorded) != 0 {
+				t.Errorf("expected no request to be sent, got %d", len(*recorded))
+			}
+		})
+	}
+}

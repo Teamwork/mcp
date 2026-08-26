@@ -6,7 +6,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"path"
+	"strconv"
 	"strings"
+	"time"
 
 	"github.com/google/jsonschema-go/jsonschema"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
@@ -22,7 +24,8 @@ import (
 // The naming convention for methods follows a pattern described here:
 // https://github.com/github/github-mcp-server/issues/333
 const (
-	MethodFileCreate toolsets.Method = "twprojects-create_file"
+	MethodFileCreate      toolsets.Method = "twprojects-create_file"
+	MethodUploadURLCreate toolsets.Method = "twprojects-create_upload_url"
 )
 
 // maxAttachmentBytes caps the decoded size of an inline attachment.
@@ -79,11 +82,15 @@ func FileCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
 			Name: string(MethodFileCreate),
-			Description: fmt.Sprintf("Upload a file so it can be attached to a task, comment or message. "+
-				"Returns a single-use reference like \"tf_1a2b\"; pass it in attachment_refs on %s, %s, "+
-				"%s or %s. Content is sent inline as base64, so this suits text you generated, such as "+
-				"plans, specs or CSV, rather than large binaries.",
-				MethodTaskCreate, MethodTaskUpdate, MethodCommentCreate, MethodMessageCreate),
+			Description: fmt.Sprintf("Upload short text you are generating yourself, such as a plan, a "+
+				"spec or a CSV, so it can be attached to a task, comment or message. Returns a "+
+				"single-use reference like \"tf_1a2b\"; pass it in attachment_refs on %s, %s, %s or %s. "+
+				"Content is sent inline as base64, which means you have to emit the whole file as text, "+
+				"so use %s instead for anything that already exists as a file — it hands back a URL to "+
+				"send the bytes to directly, and is the only safe option for a document that must stay "+
+				"byte-for-byte identical.",
+				MethodTaskCreate, MethodTaskUpdate, MethodCommentCreate, MethodMessageCreate,
+				MethodUploadURLCreate),
 			Annotations: &mcp.ToolAnnotations{
 				Title: "Create File",
 				// The contents go straight to storage rather than through the API,
@@ -172,6 +179,129 @@ func FileCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 					pendingFile.Ref, MethodTaskCreate, MethodTaskUpdate,
 					MethodCommentCreate, MethodMessageCreate),
 			})
+		},
+	}
+}
+
+// uploadURLCreateResult is what the tool hands back. It is everything the
+// caller needs to send the contents itself; nothing further is required of this
+// server between the reservation and the attachment.
+type uploadURLCreateResult struct {
+	Reference string            `json:"reference"`
+	Name      string            `json:"name"`
+	Size      int64             `json:"size"`
+	Method    string            `json:"method"`
+	UploadURL string            `json:"upload_url"`
+	Headers   map[string]string `json:"headers"`
+	ExpiresAt string            `json:"expires_at,omitempty"`
+	Usage     string            `json:"usage"`
+}
+
+// UploadURLCreate reserves space for a file and hands back where to send it, so
+// the contents never pass through this server or the model.
+func UploadURLCreate(engine *twapi.Engine) toolsets.ToolWrapper {
+	return toolsets.ToolWrapper{
+		Tool: &mcp.Tool{
+			Name: string(MethodUploadURLCreate),
+			Description: fmt.Sprintf("Reserve an upload for a file and get back a short-lived URL to "+
+				"send its bytes to, plus a single-use reference like \"tf_1a2b\". Use this for any file "+
+				"that already exists — a PDF, an image, a signed document — because the bytes go straight "+
+				"from you to storage and are never read into the conversation. Send the file with the "+
+				"returned method, URL and headers, adding Content-Length set to size, and no "+
+				"authorization of your own. Then pass the reference in attachment_refs on %s, %s, %s or "+
+				"%s. Prefer %s only for short text you are generating yourself.",
+				MethodTaskCreate, MethodTaskUpdate, MethodCommentCreate, MethodMessageCreate,
+				MethodFileCreate),
+			Annotations: &mcp.ToolAnnotations{
+				Title: "Create Upload URL",
+				// Nothing is destroyed by reserving space, and the URL addresses
+				// Teamwork.com's own storage for the caller's own account, so the
+				// world here is as closed as it is for the upload itself.
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
+			},
+			InputSchema: &jsonschema.Schema{
+				Type: "object",
+				Properties: map[string]*jsonschema.Schema{
+					"name": {
+						Type:      "string",
+						MinLength: new(1),
+						Description: "The file name, including its extension, for example \"contract.pdf\". " +
+							"Teamwork.com works out how to display the file from the extension, so a name " +
+							"without one is harder to open. Any directory part is removed.",
+					},
+					"size": {
+						Type:    "integer",
+						Minimum: new(1.0),
+						Description: "The exact size of the file in bytes. The reservation is signed against " +
+							"this number, so an upload of any other length is rejected.",
+					},
+				},
+				Required: []string{"name", "size"},
+			},
+		},
+		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+			var arguments map[string]any
+			if err := json.Unmarshal(request.Params.Arguments, &arguments); err != nil {
+				return helpers.NewToolResultTextError("failed to decode request: %s", err.Error()), nil
+			}
+
+			var name string
+			var size int64
+			if err := helpers.ParamGroup(arguments,
+				helpers.RequiredParam(&name, "name"),
+				helpers.RequiredNumericParam(&size, "size"),
+			); err != nil {
+				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
+			}
+
+			name, err := sanitizeFileName(name)
+			if err != nil {
+				return helpers.NewToolResultTextError("invalid name: %s", err.Error()), nil
+			}
+			if size <= 0 {
+				return helpers.NewToolResultTextError(
+					"size must be greater than zero, so there is something to upload"), nil
+			}
+
+			presigned, err := projects.PendingFilePresignedURL(ctx, engine,
+				projects.NewPendingFilePresignedURLRequest(name, size))
+			if err != nil {
+				return helpers.HandleAPIError(err, "failed to reserve the upload")
+			}
+
+			// The rules for the PUT come from the SDK rather than from a second
+			// guess here: the signature covers the headers it lists, and only the
+			// storage service would notice one wrong.
+			plan, err := projects.NewPendingFileUploadPlan(presigned.URL, name, "")
+			if err != nil {
+				return helpers.NewToolResultTextError("failed to describe the upload: %s", err.Error()), nil
+			}
+
+			headers := make(map[string]string, len(plan.Headers)+1)
+			for key := range plan.Headers {
+				headers[key] = plan.Headers.Get(key)
+			}
+			// Not one of the signed headers, but the storage service rejects a
+			// chunked body, so the caller has to send it.
+			headers["Content-Length"] = strconv.FormatInt(size, 10)
+
+			result := uploadURLCreateResult{
+				Reference: string(presigned.Ref),
+				Name:      name,
+				Size:      size,
+				Method:    plan.Method,
+				UploadURL: plan.URL,
+				Headers:   headers,
+				Usage: fmt.Sprintf("Send the bytes with %s to upload_url using exactly these headers, "+
+					"then pass %q in attachment_refs on %s, %s, %s or %s.",
+					plan.Method, presigned.Ref, MethodTaskCreate, MethodTaskUpdate,
+					MethodCommentCreate, MethodMessageCreate),
+			}
+			if !plan.ExpiresAt.IsZero() {
+				result.ExpiresAt = plan.ExpiresAt.UTC().Format(time.RFC3339)
+			}
+			return helpers.NewToolResultJSON(result)
 		},
 	}
 }
