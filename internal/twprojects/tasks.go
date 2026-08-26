@@ -152,9 +152,10 @@ func TaskCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 							{Type: "null"},
 						},
 					},
-					"assignees":       helpers.UserGroupsSchema("Assignees for the task.", false),
-					"tag_ids":         helpers.TagIDsAssociateSchema("task"),
-					"attachment_refs": attachmentRefsSchema("task"),
+					"assignees":           helpers.UserGroupsSchema("Assignees for the task.", false),
+					"tag_ids":             helpers.TagIDsAssociateSchema("task"),
+					"attachment_refs":     attachmentRefsSchema("task"),
+					"attachment_file_ids": attachmentFileIDsSchema("task"),
 					"predecessors": {
 						Description: "Task dependencies that must be completed before this task can start.",
 						AnyOf: []*jsonschema.Schema{
@@ -393,8 +394,9 @@ func TaskUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 							{Type: "null"},
 						},
 					},
-					"tag_ids":         helpers.TagIDsAssociateSchema("task"),
-					"attachment_refs": attachmentRefsSchema("task"),
+					"tag_ids":             helpers.TagIDsAssociateSchema("task"),
+					"attachment_refs":     attachmentRefsSchema("task"),
+					"attachment_file_ids": attachmentFileIDsSchema("task"),
 					"predecessors": {
 						Description: "Task dependencies that must be completed before this task can start.",
 						AnyOf: []*jsonschema.Schema{

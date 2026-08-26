@@ -26,6 +26,7 @@ import (
 const (
 	MethodFileCreate      toolsets.Method = "twprojects-create_file"
 	MethodUploadURLCreate toolsets.Method = "twprojects-create_upload_url"
+	MethodProjectFileAdd  toolsets.Method = "twprojects-add_project_file"
 )
 
 // maxAttachmentBytes caps the decoded size of an inline attachment.
@@ -306,6 +307,130 @@ func UploadURLCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 	}
 }
 
+// projectFileAddResult is what the tool hands back. ID is the durable handle: a
+// reference is spent once, this can be attached as often as it is needed.
+type projectFileAddResult struct {
+	ID    int64  `json:"id"`
+	Usage string `json:"usage"`
+}
+
+// ProjectFileAdd stores an uploaded file in a project's files area, which is
+// what turns a single-use reference into a file that can be attached more than
+// once.
+func ProjectFileAdd(engine *twapi.Engine) toolsets.ToolWrapper {
+	return toolsets.ToolWrapper{
+		Tool: &mcp.Tool{
+			Name: string(MethodProjectFileAdd),
+			Description: fmt.Sprintf("Store an uploaded file in a project's files area, where people "+
+				"find it outside any one task or comment. Upload it first with %s, then pass the "+
+				"reference here. Returns a numeric file ID which, unlike a reference, survives being "+
+				"used: pass it in attachment_file_ids on %s or %s to attach the same file to as many "+
+				"tasks as needed. Attaching a reference to a task, comment or message already files it "+
+				"here, so use this tool to store a file on its own, to describe or categorise it, or "+
+				"when it has to reach more than one place.",
+				MethodUploadURLCreate, MethodTaskCreate, MethodTaskUpdate),
+			Annotations: &mcp.ToolAnnotations{
+				Title:           "Add Project File",
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
+			},
+			InputSchema: &jsonschema.Schema{
+				Type: "object",
+				Properties: map[string]*jsonschema.Schema{
+					"project_id": {
+						Type:        "integer",
+						Description: "The ID of the project whose files area will hold the file.",
+					},
+					"reference": {
+						Type:      "string",
+						MinLength: new(1),
+						Description: fmt.Sprintf("The reference of an uploaded file, as returned by %s or "+
+							"%s. It looks like \"tf_1a2b\" and can only be used once.",
+							MethodUploadURLCreate, MethodFileCreate),
+					},
+					"name": {
+						Description: "Override the name the file was uploaded with, including its extension.",
+						AnyOf:       []*jsonschema.Schema{{Type: "string"}, {Type: "null"}},
+					},
+					"description": {
+						Description: "A description of the file.",
+						AnyOf:       []*jsonschema.Schema{{Type: "string"}, {Type: "null"}},
+					},
+					"category_id": {
+						Description: "File it under an existing file category. Wins over category_name.",
+						AnyOf:       []*jsonschema.Schema{{Type: "integer"}, {Type: "null"}},
+					},
+					"category_name": {
+						Description: "File it under a category with this name, creating one when the " +
+							"project has none. Ignored when category_id is given.",
+						AnyOf: []*jsonschema.Schema{{Type: "string"}, {Type: "null"}},
+					},
+					"tag_ids": helpers.TagIDsAssociateSchema("file"),
+					"private": {
+						Description: "Hide the file from client users.",
+						AnyOf:       []*jsonschema.Schema{{Type: "boolean"}, {Type: "null"}},
+					},
+					"auto_new_version": {
+						Description: "Store it as a new version of an existing file with the same name in " +
+							"the project, rather than as a separate file.",
+						AnyOf: []*jsonschema.Schema{{Type: "boolean"}, {Type: "null"}},
+					},
+					"notify_current_user": {
+						Description: "Notify the user adding the file. Defaults to false.",
+						AnyOf:       []*jsonschema.Schema{{Type: "boolean"}, {Type: "null"}},
+					},
+				},
+				Required: []string{"project_id", "reference"},
+			},
+		},
+		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+			var arguments map[string]any
+			if err := json.Unmarshal(request.Params.Arguments, &arguments); err != nil {
+				return helpers.NewToolResultTextError("failed to decode request: %s", err.Error()), nil
+			}
+
+			var fileCreateRequest projects.FileCreateRequest
+			var reference string
+			// TagIDs is a LegacyNumericList, which the numeric list binder cannot
+			// infer through, so it is bound as its underlying type and converted.
+			var tagIDs []int64
+			if err := helpers.ParamGroup(arguments,
+				helpers.RequiredNumericParam(&fileCreateRequest.Path.ProjectID, "project_id"),
+				helpers.RequiredParam(&reference, "reference"),
+				helpers.OptionalPointerParam(&fileCreateRequest.Name, "name"),
+				helpers.OptionalPointerParam(&fileCreateRequest.Description, "description"),
+				helpers.OptionalNumericPointerParam(&fileCreateRequest.CategoryID, "category_id"),
+				helpers.OptionalPointerParam(&fileCreateRequest.CategoryName, "category_name"),
+				helpers.OptionalNumericListParam(&tagIDs, "tag_ids"),
+				helpers.OptionalPointerParam(&fileCreateRequest.Private, "private"),
+				helpers.OptionalPointerParam(&fileCreateRequest.AutoNewVersion, "auto_new_version"),
+				helpers.OptionalPointerParam(&fileCreateRequest.NotifyCurrentUser, "notify_current_user"),
+			); err != nil {
+				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
+			}
+			fileCreateRequest.TagIDs = projects.LegacyNumericList(tagIDs)
+
+			// A reference surrounded by whitespace is the model's, not the API's,
+			// and the endpoint would reject it as unknown rather than as untidy.
+			fileCreateRequest.PendingFileRef = projects.PendingFileRef(strings.TrimSpace(reference))
+			if fileCreateRequest.PendingFileRef == "" {
+				return helpers.NewToolResultTextError("reference must not be empty"), nil
+			}
+
+			file, err := projects.FileCreate(ctx, engine, fileCreateRequest)
+			if err != nil {
+				return helpers.HandleAPIError(err, "failed to add the file to the project")
+			}
+
+			return helpers.NewToolResultJSON(projectFileAddResult{
+				ID: int64(file.ID),
+				Usage: fmt.Sprintf("Pass %d in attachment_file_ids on %s or %s. Unlike a reference, "+
+					"it can be used more than once.", file.ID, MethodTaskCreate, MethodTaskUpdate),
+			})
+		},
+	}
+}
+
 // parseAttachmentRefs reads the attachment references shared by the tools that
 // can attach a file. It returns nil when the caller named none, so that the
 // request omits the field entirely rather than sending an empty set.
@@ -329,23 +454,62 @@ func parseAttachmentRefs(arguments map[string]any) ([]projects.PendingFileRef, *
 	return cleaned, nil
 }
 
-// parseTaskAttachments reads the attachment references for the task tools,
-// which take the structured form rather than a plain list.
+// attachmentFileIDsSchema returns the schema for the file identifier parameter,
+// which is what a caller uses to attach a file that already exists.
+//
+// It is a separate parameter rather than a value attachment_refs also accepts,
+// because the two are not interchangeable: a reference is spent by the first
+// attachment and an identifier is not. Telling them apart by the "tf_" prefix
+// would work today and encode a guess about the API's identifier format that
+// even the SDK declines to make.
+func attachmentFileIDsSchema(entity string) *jsonschema.Schema {
+	return &jsonschema.Schema{
+		Description: fmt.Sprintf(
+			"IDs of files already in a project's files area to attach to the %s, as returned by "+
+				"%s. Unlike a reference these can be used repeatedly, so this is how one file "+
+				"reaches several tasks. Files are added to whatever is already attached; nothing "+
+				"is removed.",
+			entity, MethodProjectFileAdd),
+		AnyOf: []*jsonschema.Schema{
+			{Type: "array", Items: &jsonschema.Schema{Type: "integer"}},
+			{Type: "null"},
+		},
+	}
+}
+
+// parseTaskAttachments reads the attachments for the task tools, which take the
+// structured form rather than a plain list, and are the only ones that can
+// attach a file that already exists as well as a freshly uploaded one.
 func parseTaskAttachments(arguments map[string]any) (*projects.TaskAttachments, *mcp.CallToolResult) {
 	refs, toolResult := parseAttachmentRefs(arguments)
 	if toolResult != nil {
 		return nil, toolResult
 	}
-	if len(refs) == 0 {
+
+	var fileIDs []int64
+	if err := helpers.ParamGroup(arguments,
+		helpers.OptionalNumericListParam(&fileIDs, "attachment_file_ids"),
+	); err != nil {
+		return nil, helpers.NewToolResultTextError("invalid attachment_file_ids: %s", err.Error())
+	}
+
+	if len(refs) == 0 && len(fileIDs) == 0 {
 		return nil, nil
 	}
 
-	attachments := projects.TaskAttachments{
-		PendingFiles: make([]projects.TaskAttachmentPendingFile, 0, len(refs)),
+	var attachments projects.TaskAttachments
+	if len(refs) > 0 {
+		attachments.PendingFiles = make([]projects.TaskAttachmentPendingFile, 0, len(refs))
+		for _, ref := range refs {
+			attachments.PendingFiles = append(attachments.PendingFiles,
+				projects.TaskAttachmentPendingFile{Reference: ref})
+		}
 	}
-	for _, ref := range refs {
-		attachments.PendingFiles = append(attachments.PendingFiles,
-			projects.TaskAttachmentPendingFile{Reference: ref})
+	if len(fileIDs) > 0 {
+		attachments.Files = make([]projects.TaskAttachmentFile, 0, len(fileIDs))
+		for _, fileID := range fileIDs {
+			attachments.Files = append(attachments.Files, projects.TaskAttachmentFile{ID: fileID})
+		}
 	}
 	return &attachments, nil
 }
