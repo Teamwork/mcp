@@ -66,16 +66,19 @@ func CalendarEventList(engine *twapi.Engine) toolsets.ToolWrapper {
 						Description: "The ID of the calendar to list events from.",
 					},
 					"started_after_date": {
-						Description: "Filter events that start after this date (format: YYYY-MM-DD).",
-						Examples:    []any{"2023-01-01"},
+						Description: "Only include events starting on or after this day, which is itself " +
+							"included (format: YYYY-MM-DD).",
+						Examples: []any{"2023-01-01"},
 						AnyOf: []*jsonschema.Schema{
 							{Type: "string", Format: "date"},
 							{Type: "null"},
 						},
 					},
 					"ended_before_date": {
-						Description: "Filter events that end before this date (format: YYYY-MM-DD).",
-						Examples:    []any{"2023-12-31"},
+						Description: "Only include events ending before this day starts, so the day named " +
+							"here is itself excluded — pass the day after the last one you want " +
+							"(format: YYYY-MM-DD). Note the asymmetry with started_after_date.",
+						Examples: []any{"2023-12-31"},
 						AnyOf: []*jsonschema.Schema{
 							{Type: "string", Format: "date"},
 							{Type: "null"},

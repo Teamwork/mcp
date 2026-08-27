@@ -481,7 +481,8 @@ func CommentList(engine *twapi.Engine) toolsets.ToolWrapper {
 					},
 					"search_term": helpers.SearchTermSchema("comments", "name"),
 					"updated_after": helpers.DateTimeFilterSchema(
-						"Filter comments updated after. Defaults to the last 3 months.",
+						"Only include comments edited strictly after this moment; the boundary itself does " +
+							"not match. Defaults to the last 3 months.",
 					),
 					"order_by":   commentOrdering.orderBySchema(),
 					"order_mode": orderModeSchema(),

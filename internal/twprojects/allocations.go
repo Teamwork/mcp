@@ -738,9 +738,11 @@ func AllocationList(engine *twapi.Engine) toolsets.ToolWrapper {
 						},
 					},
 					"updated_after": helpers.DateTimeFilterSchema(
-						"Only return allocations updated after this moment."),
+						"Only return allocations updated strictly after this moment; the boundary itself " +
+							"does not match."),
 					"deleted_after": helpers.DateTimeFilterSchema(
-						"Only return allocations deleted after this moment. Pair it with show_deleted, which is " +
+						"Only return allocations deleted at or after this moment; the boundary itself " +
+							"matches, unlike updated_after. Pair it with show_deleted, which is " +
 							"what switches the results to deleted allocations."),
 					"show_deleted": {
 						Description: "Return ONLY deleted allocations instead of the active ones — this replaces " +

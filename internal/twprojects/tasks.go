@@ -1032,8 +1032,10 @@ func TaskList(engine *twapi.Engine) toolsets.ToolWrapper {
 					},
 					"tag_ids":        helpers.TagIDsFilterSchema("tasks"),
 					"match_all_tags": helpers.MatchAllTagsSchema(),
-					"created_after":  helpers.DateTimeFilterSchema("Filter tasks created after."),
-					"created_before": helpers.DateTimeFilterSchema("Filter tasks created before."),
+					"created_after": helpers.DateTimeFilterSchema(
+						"Only include tasks created at or after this moment; the boundary itself matches."),
+					"created_before": helpers.DateTimeFilterSchema(
+						"Only include tasks created at or before this moment; the boundary itself matches."),
 					"created_by_user_ids": {
 						Description: "Filter tasks by creator.",
 						AnyOf: []*jsonschema.Schema{
@@ -1041,21 +1043,31 @@ func TaskList(engine *twapi.Engine) toolsets.ToolWrapper {
 							{Type: "null"},
 						},
 					},
-					"updated_after":    helpers.DateTimeFilterSchema("Filter tasks updated after."),
-					"updated_before":   helpers.DateTimeFilterSchema("Filter tasks updated before."),
-					"completed_after":  helpers.DateTimeFilterSchema("Filter tasks completed after."),
-					"completed_before": helpers.DateTimeFilterSchema("Filter tasks completed before."),
+					"updated_after": helpers.DateTimeFilterSchema(
+						"Only include tasks updated strictly after this moment; the boundary itself does not match."),
+					"updated_before": helpers.DateTimeFilterSchema(
+						"Only include tasks updated strictly before this moment; the boundary itself does not match."),
+					"completed_after": helpers.DateTimeFilterSchema(
+						"Only include tasks completed at or after this moment; the boundary itself matches. " +
+							"Setting it narrows the result to completed tasks."),
+					"completed_before": helpers.DateTimeFilterSchema(
+						"Only include tasks completed at or before this moment; the boundary itself matches. " +
+							"Setting it narrows the result to completed tasks."),
 					"due_after": {
-						Description: "Filter tasks due after.",
-						Examples:    []any{"2023-01-01"},
+						Description: "Only include tasks due after this date, excluding the day itself — " +
+							"unless due_before is set too, which makes both bounds inclusive. A task with " +
+							"no due date is matched on its milestone's.",
+						Examples: []any{"2023-01-01"},
 						AnyOf: []*jsonschema.Schema{
 							{Type: "string", Format: "date"},
 							{Type: "null"},
 						},
 					},
 					"due_before": {
-						Description: "Filter tasks due before.",
-						Examples:    []any{"2023-12-31"},
+						Description: "Only include tasks due before this date, excluding the day itself — " +
+							"unless due_after is set too, which makes both bounds inclusive. A task with " +
+							"no due date is matched on its milestone's.",
+						Examples: []any{"2023-12-31"},
 						AnyOf: []*jsonschema.Schema{
 							{Type: "string", Format: "date"},
 							{Type: "null"},
