@@ -39,6 +39,20 @@ func TestVocabularyPublishesWhatItAccepts(t *testing.T) {
 			)
 		},
 		wants: []any{"good", "ok", "bad", "not_set"},
+	}, {
+		name: "search types",
+		enum: enumOf(t, searchTypeVocabulary.arraySchema("")),
+		bind: func(name string) error {
+			var target []projects.SearchRequestType
+			return searchTypeVocabulary.listParam(&target, "types")(
+				map[string]any{"types": []any{name}},
+			)
+		},
+		wants: []any{
+			"projects", "tasks", "tasklists", "milestones", "messages", "notebooks", "links",
+			"comments", "taskcomments", "milestonecomments", "filecomments", "linkcomments",
+			"notebookcomments", "timelogs", "users", "teams", "companies",
+		},
 	}}
 
 	for _, tt := range tests {

@@ -21,7 +21,8 @@ func TestSearch(t *testing.T) {
 		"include_completed_items": true,
 		"updated_after":           "2023-01-01T00:00:00Z",
 		"extended_search":         true,
-		"include":                 []any{"tasks", "projects"},
+		"types":                   []any{"tasks", "projects"},
+		"sideload":                []any{"tasks", "projects"},
 		"include_highlights":      true,
 		"cursor":                  "c858b04ba8b066bcb4f83727c23de6e9238de642",
 		"limit":                   float64(10),
@@ -103,18 +104,80 @@ func TestSearchDefaultSideloads(t *testing.T) {
 	}
 }
 
-// TestSearchIncludeNarrowsSideloads guards that `include` replaces the
-// default sideload list rather than adding to it.
-func TestSearchIncludeNarrowsSideloads(t *testing.T) {
+// TestSearchSideloadNarrowsSideloads guards that `sideload` replaces the
+// default sideload list rather than adding to it, and that it stays out of the
+// type filter: narrowing what is expanded must not narrow what is found.
+func TestSearchSideloadNarrowsSideloads(t *testing.T) {
 	mcpServer, lastURL := testutil.ProjectsMCPServerMockWithRequestURL(t, http.StatusOK, []byte(`{}`))
 	testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodSearch.String(), map[string]any{
 		"search_term": "test",
-		"include":     []any{"tasks", "projects"},
+		"sideload":    []any{"tasks", "projects"},
 	})
 
-	if got := lastURL.Query().Get("include"); got != "tasks,projects" {
+	query := lastURL.Query()
+	if got := query.Get("include"); got != "tasks,projects" {
 		t.Errorf("expected include=%q but got %q", "tasks,projects", got)
 	}
+	if query.Has("types") {
+		t.Errorf("expected sideload to leave types unset but got %q", query.Get("types"))
+	}
+}
+
+// TestSearchTypesFilterReachesTheWire pins the filter the tool exists to
+// expose: `include` is a sideload selector, so before `types` there was no way
+// to restrict which records were found, and a caller narrowing `include` got
+// hits of every other type back as nameless stubs. The mocks answer the same
+// body either way, so only the query string shows it.
+func TestSearchTypesFilterReachesTheWire(t *testing.T) {
+	mcpServer, lastURL := testutil.ProjectsMCPServerMockWithRequestURL(t, http.StatusOK, []byte(`{}`))
+	testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodSearch.String(), map[string]any{
+		"search_term": "test",
+		"types":       []any{"tasks", "projects"},
+	})
+
+	query := lastURL.Query()
+	if got := query.Get("types"); got != "tasks,projects" {
+		t.Errorf("expected types=%q but got %q", "tasks,projects", got)
+	}
+	if query.Has("type") {
+		t.Errorf("expected no singular type parameter but got %q", query.Get("type"))
+	}
+	// the sideloads stay at their default, so every hit can still be named
+	want := "comments,companies,links,messages,milestones,notebooks,projects,tasklists,tasks,teams,timelogs,users"
+	if got := query.Get("include"); got != want {
+		t.Errorf("expected include=%q but got %q", want, got)
+	}
+}
+
+// TestSearchOmittedTypesSearchesEveryType guards the default: an unset filter
+// sends nothing, so the endpoint keeps searching every type.
+func TestSearchOmittedTypesSearchesEveryType(t *testing.T) {
+	mcpServer, lastURL := testutil.ProjectsMCPServerMockWithRequestURL(t, http.StatusOK, []byte(`{}`))
+	testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodSearch.String(), map[string]any{
+		"search_term": "test",
+	})
+
+	if lastURL.Query().Has("types") {
+		t.Errorf("expected types to be unset but got %q", lastURL.Query().Get("types"))
+	}
+}
+
+// TestSearchTypesRejectsUnknownType guards that a misspelled type fails loudly
+// instead of silently widening the search to everything.
+func TestSearchTypesRejectsUnknownType(t *testing.T) {
+	mcpServer := mcpServerMock(t, http.StatusOK, []byte(`{}`))
+	testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodSearch.String(), map[string]any{
+		"search_term": "test",
+		"types":       []any{"task"},
+	}, testutil.ExecuteToolRequestWithCheckMessage(func(t *testing.T, result mcp.Result) {
+		toolResult, ok := result.(*mcp.CallToolResult)
+		if !ok {
+			t.Fatalf("unexpected result type: %T", result)
+		}
+		if !toolResult.IsError {
+			t.Errorf("expected an error for an unknown types value")
+		}
+	}))
 }
 
 // TestSearchVerboseDefaultSendsNoSparseFields pins that the default keeps the
@@ -153,13 +216,13 @@ func TestSearchVerboseFalseRequestsMinimalFields(t *testing.T) {
 	}
 }
 
-// TestSearchIncludeRejectsUnknownType guards that a misspelled entity type
+// TestSearchSideloadRejectsUnknownType guards that a misspelled entity type
 // fails loudly instead of being silently ignored.
-func TestSearchIncludeRejectsUnknownType(t *testing.T) {
+func TestSearchSideloadRejectsUnknownType(t *testing.T) {
 	mcpServer := mcpServerMock(t, http.StatusOK, []byte(`{}`))
 	testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodSearch.String(), map[string]any{
 		"search_term": "test",
-		"include":     []any{"task"},
+		"sideload":    []any{"task"},
 	}, testutil.ExecuteToolRequestWithCheckMessage(func(t *testing.T, result mcp.Result) {
 		toolResult, ok := result.(*mcp.CallToolResult)
 		if !ok {

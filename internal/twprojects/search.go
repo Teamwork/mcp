@@ -25,8 +25,8 @@ const (
 )
 
 // searchSideloads is every sideload the SDK models, and the default when the
-// caller does not narrow `include`. The API also accepts files and
-// fileversions, but the SDK does not model those sideloads yet.
+// caller does not narrow `sideload`. The API also accepts calendarevents, files
+// and fileversions, but the SDK does not model those sideloads yet.
 var searchSideloads = []projects.SearchRequestSideload{
 	projects.SearchRequestSideloadComments,
 	projects.SearchRequestSideloadCompanies,
@@ -41,6 +41,30 @@ var searchSideloads = []projects.SearchRequestSideload{
 	projects.SearchRequestSideloadTimelogs,
 	projects.SearchRequestSideloadUsers,
 }
+
+// searchTypeVocabulary is the entity-type filter of the search endpoint: the
+// parameter callers reach for when they narrow `sideload` instead. Only the
+// types the response can sideload are published — a hit of any other type
+// arrives as a bare {id, type} pair naming nothing the caller can read.
+var searchTypeVocabulary = newVocabulary(
+	projects.SearchRequestTypeProjects,
+	projects.SearchRequestTypeTasks,
+	projects.SearchRequestTypeTasklists,
+	projects.SearchRequestTypeMilestones,
+	projects.SearchRequestTypeMessages,
+	projects.SearchRequestTypeNotebooks,
+	projects.SearchRequestTypeLinks,
+	projects.SearchRequestTypeComments,
+	projects.SearchRequestTypeTaskComments,
+	projects.SearchRequestTypeMilestoneComments,
+	projects.SearchRequestTypeFileComments,
+	projects.SearchRequestTypeLinkComments,
+	projects.SearchRequestTypeNotebookComments,
+	projects.SearchRequestTypeTimelogs,
+	projects.SearchRequestTypeUsers,
+	projects.SearchRequestTypeTeams,
+	projects.SearchRequestTypeCompanies,
+)
 
 // searchTruncatedFields maps each sideload section to its free-form content
 // fields and the tool that returns the full record. Note the comment sideload
@@ -114,15 +138,16 @@ func withSearchHighlightsSchema(schema *jsonschema.Schema) {
 
 // Search lists searches in Teamwork.com.
 func Search(engine *twapi.Engine) toolsets.ToolWrapper {
-	searchIncludeEnum := make([]any, len(searchSideloads))
+	searchSideloadEnum := make([]any, len(searchSideloads))
 	for i, sideload := range searchSideloads {
-		searchIncludeEnum[i] = string(sideload)
+		searchSideloadEnum[i] = string(sideload)
 	}
 
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
 			Name: string(MethodSearch),
-			Description: "Cross-entity keyword search across projects, tasks, files, messages, and more. " +
+			Description: "Cross-entity keyword search across projects, tasks, messages, comments, users and more; " +
+				"restrict which entity types are searched with types. " +
 				"Long content fields in the sideloaded records are truncated at " +
 				strconv.Itoa(contentTruncationLimit) + " characters and marked where they are cut; " +
 				"the marker names the tool that returns the full record. Completed items are excluded " +
@@ -177,15 +202,20 @@ func Search(engine *twapi.Engine) toolsets.ToolWrapper {
 							{Type: "null"},
 						},
 					},
-					"include": {
-						Description: "Entity types to return as full records in the response sideloads. " +
-							"Defaults to all supported types; narrow it to the types of interest to keep the response small.",
+					"types": searchTypeVocabulary.arraySchema(
+						"Entity types to search. Only records of these types are found. " +
+							"Omit it to search every type."),
+					"sideload": {
+						Description: "Which of the matched records are expanded into full records under the " +
+							"response's included section. It never changes which records are found — use types " +
+							"for that. Defaults to every type listed; a hit whose type is left out comes back " +
+							"as a bare {id, type} pair with no name.",
 						AnyOf: []*jsonschema.Schema{
 							{
 								Type: "array",
 								Items: &jsonschema.Schema{
 									Type: "string",
-									Enum: searchIncludeEnum,
+									Enum: searchSideloadEnum,
 								},
 							},
 							{Type: "null"},
@@ -227,7 +257,8 @@ func Search(engine *twapi.Engine) toolsets.ToolWrapper {
 				helpers.OptionalTimeParam(&searchRequest.Filters.UpdatedAfter, "updated_after"),
 				helpers.OptionalPointerParam(&searchRequest.Filters.ExtendedSearch, "extended_search"),
 				helpers.OptionalPointerParam(&searchRequest.Filters.IncludeHighlights, "include_highlights"),
-				helpers.OptionalListParam(&searchRequest.Filters.Include, "include",
+				searchTypeVocabulary.listParam(&searchRequest.Filters.Types, "types"),
+				helpers.OptionalListParam(&searchRequest.Filters.Include, "sideload",
 					helpers.RestrictValues(searchSideloads...)),
 				helpers.OptionalParam(&searchRequest.Filters.Cursor, "cursor"),
 				helpers.OptionalNumericParam(&searchRequest.Filters.Limit, "limit"),
