@@ -94,7 +94,7 @@ func MilestoneCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 						Description: "The due date of the milestone (format: YYYYMMDD). " +
 							"Used for related tasks without their own due date.",
 					},
-					"assignees": helpers.UserGroupsSchema("Assignees for the milestone.", true),
+					"assignees": helpers.UserGroupsSchemaWithoutJobRoles("Assignees for the milestone.", true),
 					"tasklist_ids": {
 						Description: "Tasklists to associate with the milestone.",
 						AnyOf: []*jsonschema.Schema{
@@ -129,11 +129,7 @@ func MilestoneCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 			if _, ok := arguments["assignees"]; !ok {
 				return helpers.NewToolResultTextError("missing required parameter: assignees"), nil
 			}
-			assignees, toolResult := parseLegacyUserGroups(
-				arguments,
-				"assignees",
-				"assignees",
-			)
+			assignees, toolResult := parseMilestoneAssignees(arguments)
 			if toolResult != nil {
 				return toolResult, nil
 			}
@@ -194,7 +190,7 @@ func MilestoneUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 							{Type: "null"},
 						},
 					},
-					"assignees": helpers.UserGroupsSchema("Assignees for the milestone.", false),
+					"assignees": helpers.UserGroupsSchemaWithoutJobRoles("Assignees for the milestone.", false),
 					"tasklist_ids": {
 						Description: "Tasklists to associate with the milestone.",
 						AnyOf: []*jsonschema.Schema{
@@ -226,11 +222,7 @@ func MilestoneUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
 			}
 
-			if assignees, toolResult := parseLegacyUserGroups(
-				arguments,
-				"assignees",
-				"assignees",
-			); toolResult != nil {
+			if assignees, toolResult := parseMilestoneAssignees(arguments); toolResult != nil {
 				return toolResult, nil
 			} else if assignees != nil {
 				milestoneUpdateRequest.Assignees = assignees
@@ -503,4 +495,23 @@ func MilestoneList(engine *twapi.Engine) toolsets.ToolWrapper {
 			return result, nil
 		},
 	}
+}
+
+// parseMilestoneAssignees parses the assignees parameter and rejects job roles.
+// The milestone endpoints have no job-role assignee: a job-role-only list is
+// answered with 422 on create, and on update it is accepted, answered 200 and
+// leaves the assignees untouched, while one sent alongside a user is dropped
+// from both. The schema no longer advertises job_role_ids, but the SDK validates
+// only the schema, so a caller that ignores it has to be told here.
+func parseMilestoneAssignees(arguments map[string]any) (*projects.LegacyUserGroups, *mcp.CallToolResult) {
+	assignees, toolResult := parseLegacyUserGroups(arguments, "assignees", "assignees")
+	if toolResult != nil {
+		return nil, toolResult
+	}
+	if assignees != nil && len(assignees.JobRoleIDs) > 0 {
+		return nil, helpers.NewToolResultTextError(
+			"invalid assignees: milestones cannot be assigned to job roles; " +
+				"use user_ids, company_ids and/or team_ids")
+	}
+	return assignees, nil
 }

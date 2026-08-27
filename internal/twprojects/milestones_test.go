@@ -2,8 +2,10 @@ package twprojects_test
 
 import (
 	"net/http"
+	"strings"
 	"testing"
 
+	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/teamwork/mcp/internal/testutil"
 	"github.com/teamwork/mcp/internal/twprojects"
 )
@@ -142,4 +144,91 @@ func TestMilestoneListShowCompleted(t *testing.T) {
 			}
 		})
 	}
+}
+
+// TestMilestoneAssigneesRejectJobRoles pins both halves of the job-role gap. The
+// milestone endpoints have no job-role assignee: create answers a job-role-only
+// list with 422 "Invalid milestone assignees", and update accepts it, answers 200
+// and leaves the assignees as they were — so a caller is told an assignment
+// happened when none did. A job role sent alongside a user is dropped from both
+// without a word. The schema therefore must not offer job_role_ids, and the
+// handler must reject one anyway, since the SDK validates the schema and a schema
+// with no additionalProperties: false still lets the property through.
+func TestMilestoneAssigneesRejectJobRoles(t *testing.T) {
+	methods := []string{
+		twprojects.MethodMilestoneCreate.String(),
+		twprojects.MethodMilestoneUpdate.String(),
+	}
+
+	t.Run("schema does not advertise job_role_ids", func(t *testing.T) {
+		schemas := toolInputSchemas(t)
+		for _, method := range methods {
+			schema, ok := schemas[method]
+			if !ok {
+				t.Fatalf("%s is not registered", method)
+			}
+			assignees, ok := schema.Properties["assignees"]
+			if !ok {
+				t.Fatalf("%s has no assignees parameter", method)
+			}
+			// The update tool wraps the object in AnyOf with null.
+			object := assignees
+			if object.Type != "object" {
+				for _, branch := range assignees.AnyOf {
+					if branch.Type == "object" {
+						object = branch
+						break
+					}
+				}
+			}
+			if object.Type != "object" {
+				t.Fatalf("%s assignees has no object branch", method)
+			}
+			if _, ok := object.Properties["job_role_ids"]; ok {
+				t.Errorf("%s advertises assignees.job_role_ids, which the endpoint refuses", method)
+			}
+			if _, ok := object.Properties["user_ids"]; !ok {
+				t.Errorf("%s dropped assignees.user_ids", method)
+			}
+		}
+	})
+
+	t.Run("handler rejects a job role sent anyway", func(t *testing.T) {
+		for _, method := range methods {
+			mcpServer, requestBody := testutil.ProjectsMCPServerMockWithRequestBody(t,
+				http.StatusCreated, []byte(`{"milestoneId":"123"}`))
+			testutil.ExecuteToolRequest(t, mcpServer, method, map[string]any{
+				"name":       "Example",
+				"id":         float64(123),
+				"project_id": float64(123),
+				"due_date":   "20231231",
+				"assignees": map[string]any{
+					"user_ids":     []float64{1},
+					"job_role_ids": []float64{2},
+				},
+			}, testutil.ExecuteToolRequestWithCheckMessage(func(t *testing.T, result mcp.Result) {
+				t.Helper()
+
+				toolResult, ok := result.(*mcp.CallToolResult)
+				if !ok {
+					t.Fatalf("unexpected result type: %T", result)
+				}
+				if !toolResult.IsError {
+					t.Fatalf("%s accepted a job-role assignee", method)
+				}
+				textContent, ok := toolResult.Content[0].(*mcp.TextContent)
+				if !ok {
+					t.Fatalf("unexpected content type: %T", toolResult.Content[0])
+				}
+				if !strings.Contains(textContent.Text, "job roles") {
+					t.Errorf("%s error does not name job roles: %q", method, textContent.Text)
+				}
+			}))
+			// Rejected locally, so nothing is sent: a request here means the user
+			// half was applied while the job role was silently dropped.
+			if len(*requestBody) > 0 {
+				t.Errorf("%s sent a request despite the job-role assignee: %s", method, *requestBody)
+			}
+		}
+	})
 }

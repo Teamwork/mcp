@@ -19,6 +19,7 @@ var indirectlyBoundParams = map[string][]string{
 	"attachment_file_ids": {"parseTaskAttachments"},
 	"options":             {"parseCustomFieldOptions"},
 	"field_values":        {"buildRecordFieldValues"},
+	"assignees":           {"parseMilestoneAssignees"},
 }
 
 // TestEveryToolParameterIsBound fails when a tool advertises a parameter its

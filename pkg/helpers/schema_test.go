@@ -165,6 +165,68 @@ func TestUserGroupsSchema(t *testing.T) {
 	})
 }
 
+func TestUserGroupsSchemaWithoutJobRoles(t *testing.T) {
+	t.Parallel()
+
+	t.Run("required", func(t *testing.T) {
+		got := helpers.UserGroupsSchemaWithoutJobRoles("Assignees for the milestone.", true)
+		if got.Type != "object" {
+			t.Errorf("required schema type = %q, want object", got.Type)
+		}
+		if _, ok := got.Properties["job_role_ids"]; ok {
+			t.Error("required schema advertises job_role_ids, which the endpoint refuses")
+		}
+		for _, key := range []string{"user_ids", "company_ids", "team_ids"} {
+			prop, ok := got.Properties[key]
+			if !ok {
+				t.Errorf("required schema missing %q", key)
+				continue
+			}
+			if prop.Items == nil || prop.Items.Type != "integer" {
+				t.Errorf("required schema %q items = %+v, want integer", key, prop.Items)
+			}
+		}
+		// MaxProperties has to come down with the dropped property, or three
+		// groups plus a stray job_role_ids still passes validation.
+		if got.MaxProperties == nil || *got.MaxProperties != 3 {
+			t.Errorf("required schema MaxProperties = %v, want 3", got.MaxProperties)
+		}
+		if len(got.AnyOf) != 3 {
+			t.Fatalf("required schema AnyOf len = %d, want 3", len(got.AnyOf))
+		}
+		for _, branch := range got.AnyOf {
+			if len(branch.Required) == 1 && branch.Required[0] == "job_role_ids" {
+				t.Error("required schema AnyOf still offers a job_role_ids-only branch")
+			}
+		}
+	})
+
+	t.Run("optional", func(t *testing.T) {
+		got := helpers.UserGroupsSchemaWithoutJobRoles("Assignees for the milestone.", false)
+		if len(got.AnyOf) != 2 {
+			t.Fatalf("optional schema AnyOf len = %d, want 2", len(got.AnyOf))
+		}
+		if _, ok := got.AnyOf[0].Properties["job_role_ids"]; ok {
+			t.Error("optional schema advertises job_role_ids, which the endpoint refuses")
+		}
+		if got.AnyOf[1].Type != "null" {
+			t.Errorf("optional schema AnyOf[1].Type = %q, want null", got.AnyOf[1].Type)
+		}
+	})
+
+	// The two helpers must not drift into sharing state: the job-role variant is
+	// still the one every other assignee parameter uses.
+	t.Run("job roles still offered by UserGroupsSchema", func(t *testing.T) {
+		got := helpers.UserGroupsSchema("Assignees for the task.", true)
+		if _, ok := got.Properties["job_role_ids"]; !ok {
+			t.Error("UserGroupsSchema dropped job_role_ids, which tasks accept")
+		}
+		if got.MaxProperties == nil || *got.MaxProperties != 4 {
+			t.Errorf("UserGroupsSchema MaxProperties = %v, want 4", got.MaxProperties)
+		}
+	})
+}
+
 func TestDateTimeFilterSchema(t *testing.T) {
 	t.Parallel()
 
