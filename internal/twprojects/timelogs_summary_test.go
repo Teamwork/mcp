@@ -352,3 +352,118 @@ func TestSummarizeTimelogsPlanGate403(t *testing.T) {
 		"end_date":   "2026-07-31",
 	}, expectToolError(t, ""))
 }
+
+func TestSummarizeTimelogsByTask(t *testing.T) {
+	body := []byte(`{
+		"meta": {"page": {"hasMore": false}},
+		"time": {"tasks": [
+			{"loggedTime": 240, "billableTime": 240, "nonBillableTime": 0, "billedTime": 60,
+			 "estimatedTime": 0, "task": {"id": 777, "type": "tasks"}},
+			{"loggedTime": 90, "billableTime": 0, "nonBillableTime": 90, "billedTime": 0,
+			 "estimatedTime": 0, "task": {"id": 778, "type": "tasks"}}
+		]},
+		"included": {"tasks": {
+			"777": {"id": 777, "name": "Write the release notes"},
+			"778": {"id": 778, "name": "Review the release notes"}
+		}}
+	}`)
+
+	mcpServer := mcpServerMock(t, http.StatusOK, body)
+	testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodSummarizeTimelogs.String(), map[string]any{
+		"start_date": "2026-07-01",
+		"end_date":   "2026-07-31",
+		"group_by":   "task",
+	}, testutil.ExecuteToolRequestWithCheckMessage(func(t *testing.T, result mcp.Result) {
+		res := decodeSummary(t, result)
+
+		if res.Scope.GroupBy != "task" {
+			t.Errorf("expected groupBy task, got %q", res.Scope.GroupBy)
+		}
+		if len(res.Groups) != 2 {
+			t.Fatalf("expected 2 groups, got %d", len(res.Groups))
+		}
+		if res.Groups[0].ID != 777 || res.Groups[0].Name != "Write the release notes" {
+			t.Errorf("group[0] name join wrong: %+v", res.Groups[0])
+		}
+		if res.Groups[1].ID != 778 || res.Groups[1].Name != "Review the release notes" {
+			t.Errorf("group[1] name join wrong: %+v", res.Groups[1])
+		}
+		if res.Groups[0].LoggedMinutes != 240 || res.Groups[0].LoggedHours != 4 {
+			t.Errorf("group[0] logged wrong: %d min / %v h", res.Groups[0].LoggedMinutes, res.Groups[0].LoggedHours)
+		}
+		// unbilledBillable = billable - billed = 240 - 60 = 180.
+		if res.Groups[0].UnbilledBillableMinutes != 180 {
+			t.Errorf("group[0] unbilledBillable wrong: %d", res.Groups[0].UnbilledBillableMinutes)
+		}
+		if res.Totals.LoggedMinutes != 330 || res.Totals.LoggedHours != 5.5 {
+			t.Errorf("totals logged wrong: %d min / %v h", res.Totals.LoggedMinutes, res.Totals.LoggedHours)
+		}
+		assertReconciles(t, res)
+	}))
+}
+
+// TestSummarizeTimelogsGroupByReachesTheWire pins the request each group_by
+// value builds. The mocks reply with the same body whatever the query string, so
+// a dimension, report variant or sideload that never reaches the API looks
+// identical to a working one.
+func TestSummarizeTimelogsGroupByReachesTheWire(t *testing.T) {
+	tests := []struct {
+		groupBy    string
+		path       string
+		reportType string
+		include    string
+		fieldsKey  string
+		fields     string
+	}{{
+		groupBy:    "user",
+		path:       "/projects/api/v3/time/report/user.json",
+		reportType: "userloggedtime",
+		include:    "users",
+		fieldsKey:  "fields[users]",
+		fields:     "id,firstName,lastName",
+	}, {
+		groupBy:    "project",
+		path:       "/projects/api/v3/time/report/project.json",
+		reportType: "projecttime",
+		include:    "projects",
+		fieldsKey:  "fields[projects]",
+		fields:     "id,name",
+	}, {
+		groupBy:    "task",
+		path:       "/projects/api/v3/time/report/task.json",
+		reportType: "loggedtime",
+		include:    "tasks",
+		fieldsKey:  "fields[tasks]",
+		fields:     "id,name",
+	}}
+
+	for _, tt := range tests {
+		t.Run(tt.groupBy, func(t *testing.T) {
+			body := []byte(`{"meta": {"page": {"hasMore": false}}, "time": {}, "included": {}}`)
+			mcpServer, lastURL := testutil.ProjectsMCPServerMockWithRequestURL(t, http.StatusOK, body)
+
+			testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodSummarizeTimelogs.String(), map[string]any{
+				"start_date": "2026-07-01",
+				"end_date":   "2026-07-31",
+				"group_by":   tt.groupBy,
+			})
+
+			if lastURL.Path != tt.path {
+				t.Errorf("expected path %q, got %q", tt.path, lastURL.Path)
+			}
+			query := lastURL.Query()
+			if got := query.Get("type"); got != tt.groupBy {
+				t.Errorf("expected type=%s, got %q", tt.groupBy, got)
+			}
+			if got := query.Get("reportType"); got != tt.reportType {
+				t.Errorf("expected reportType=%s, got %q", tt.reportType, got)
+			}
+			if got := query.Get("include"); got != tt.include {
+				t.Errorf("expected include=%s, got %q", tt.include, got)
+			}
+			if got := query.Get(tt.fieldsKey); got != tt.fields {
+				t.Errorf("expected %s=%s, got %q", tt.fieldsKey, tt.fields, got)
+			}
+		})
+	}
+}
