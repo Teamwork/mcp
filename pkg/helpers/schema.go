@@ -173,38 +173,45 @@ func MatchAllTagsSchema() *jsonschema.Schema {
 // the helper is used as a branch of an outer schema that already carries a
 // description).
 func UserGroupsSchema(description string, required bool) *jsonschema.Schema {
+	return userGroupsSchema(description, required, true)
+}
+
+// UserGroupsSchemaWithoutJobRoles is UserGroupsSchema minus job_role_ids, for an
+// endpoint that has no job-role assignee. Advertising one there costs the caller
+// a failed call: the milestone endpoints answer a job-role-only assignee list
+// with 422 "Invalid milestone assignees" on create, and on update accept it,
+// answer 200 and leave the assignees untouched.
+func UserGroupsSchemaWithoutJobRoles(description string, required bool) *jsonschema.Schema {
+	return userGroupsSchema(description, required, false)
+}
+
+func userGroupsSchema(description string, required, jobRoles bool) *jsonschema.Schema {
+	idList := func() *jsonschema.Schema {
+		return &jsonschema.Schema{
+			Type:     "array",
+			Items:    &jsonschema.Schema{Type: "integer"},
+			MinItems: new(1),
+		}
+	}
 	obj := &jsonschema.Schema{
 		Type: "object",
 		Properties: map[string]*jsonschema.Schema{
-			"user_ids": {
-				Type:     "array",
-				Items:    &jsonschema.Schema{Type: "integer"},
-				MinItems: new(1),
-			},
-			"company_ids": {
-				Type:     "array",
-				Items:    &jsonschema.Schema{Type: "integer"},
-				MinItems: new(1),
-			},
-			"team_ids": {
-				Type:     "array",
-				Items:    &jsonschema.Schema{Type: "integer"},
-				MinItems: new(1),
-			},
-			"job_role_ids": {
-				Type:     "array",
-				Items:    &jsonschema.Schema{Type: "integer"},
-				MinItems: new(1),
-			},
+			"user_ids":    idList(),
+			"company_ids": idList(),
+			"team_ids":    idList(),
 		},
 		MinProperties: new(1),
-		MaxProperties: new(4),
+		MaxProperties: new(3),
 		AnyOf: []*jsonschema.Schema{
 			{Required: []string{"user_ids"}},
 			{Required: []string{"company_ids"}},
 			{Required: []string{"team_ids"}},
-			{Required: []string{"job_role_ids"}},
 		},
+	}
+	if jobRoles {
+		obj.Properties["job_role_ids"] = idList()
+		obj.MaxProperties = new(4)
+		obj.AnyOf = append(obj.AnyOf, &jsonschema.Schema{Required: []string{"job_role_ids"}})
 	}
 	if required {
 		obj.Description = description
