@@ -56,12 +56,12 @@ func UsersWorkload(engine *twapi.Engine) toolsets.ToolWrapper {
 					"start_date": {
 						Type:        "string",
 						Format:      "date",
-						Description: "Start of the workload period.",
+						Description: "Start of the workload period; the boundary day itself is included.",
 					},
 					"end_date": {
 						Type:        "string",
 						Format:      "date",
-						Description: "End of the workload period.",
+						Description: "End of the workload period; the boundary day itself is included.",
 					},
 					"user_ids": {
 						Description: "Filter workload by user.",

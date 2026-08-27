@@ -714,7 +714,10 @@ func ProjectList(engine *twapi.Engine) toolsets.ToolWrapper {
 							{Type: "null"},
 						},
 					},
-					"updated_after":            helpers.DateTimeFilterSchema("Filter projects updated after."),
+					"updated_after": helpers.DateTimeFilterSchema(
+						"Only include projects whose last activity is strictly after this moment; the " +
+							"boundary itself does not match. Any activity in the project counts, not just " +
+							"edits to the project record."),
 					"search_term":              helpers.SearchTermSchema("projects", "name or description"),
 					"tag_ids":                  helpers.TagIDsFilterSchema("projects"),
 					"match_all_tags":           helpers.MatchAllTagsSchema(),

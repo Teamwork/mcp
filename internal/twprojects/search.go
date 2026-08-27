@@ -159,7 +159,9 @@ func Search(engine *twapi.Engine) toolsets.ToolWrapper {
 							{Type: "null"},
 						},
 					},
-					"updated_after": helpers.DateTimeFilterSchema("Only include items updated after this date."),
+					"updated_after": helpers.DateTimeFilterSchema(
+						"Only include items updated strictly after this moment; the boundary itself does " +
+							"not match."),
 					"extended_search": {
 						Description: "Whether to perform an extended search, which includes items updated more than 5 years ago.",
 						AnyOf: []*jsonschema.Schema{

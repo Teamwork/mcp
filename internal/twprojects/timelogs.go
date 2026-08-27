@@ -460,8 +460,11 @@ func TimelogList(engine *twapi.Engine) toolsets.ToolWrapper {
 					},
 					"tag_ids":        helpers.TagIDsFilterSchema("timelogs"),
 					"match_all_tags": helpers.MatchAllTagsSchema(),
-					"start_date":     helpers.DateTimeFilterSchema("Start of the timelog window."),
-					"end_date":       helpers.DateTimeFilterSchema("End of the timelog window."),
+					"start_date": helpers.DateTimeFilterSchema(
+						"Start of the timelog window; the boundary itself is included."),
+					"end_date": helpers.DateTimeFilterSchema(
+						"End of the timelog window; the boundary itself is included, and a plain date " +
+							"covers that whole day."),
 					"assigned_user_ids": {
 						Description: "Filter timelogs by assigned user.",
 						AnyOf: []*jsonschema.Schema{

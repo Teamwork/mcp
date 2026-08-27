@@ -69,8 +69,11 @@ func ActivityList(engine *twapi.Engine) toolsets.ToolWrapper {
 							{Type: "null"},
 						},
 					},
-					"start_date": helpers.DateTimeFilterSchema("Start of the activity window."),
-					"end_date":   helpers.DateTimeFilterSchema("End of the activity window."),
+					"start_date": helpers.DateTimeFilterSchema(
+						"Start of the activity window; the boundary itself is included."),
+					"end_date": helpers.DateTimeFilterSchema(
+						"End of the activity window; the boundary itself is included, and a plain date " +
+							"covers that whole day."),
 					"log_item_types": {
 						Description: "Filter activities by item types.",
 						AnyOf: []*jsonschema.Schema{
