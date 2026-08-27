@@ -166,14 +166,15 @@ func SummarizeTimelogs(engine *twapi.Engine) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
 			Name: string(MethodSummarizeTimelogs),
-			Description: "Deterministic, complete time-tracking totals for a date window, grouped by user or " +
-				"project. Returns every group in one call with exact minute sums and 2-decimal hours — no " +
+			Description: "Deterministic, complete time-tracking totals for a date window, grouped by user, " +
+				"project or task. Returns every group in one call with exact minute sums and 2-decimal hours — no " +
 				"pagination for the caller, any model tier. Use this instead of twprojects-list_timelogs whenever " +
 				"the question is about totals, sums, or breakdowns (e.g. \"how many hours did X log\", \"time per " +
 				"project this month\", billable vs billed vs unbilled); use list_timelogs only when you need the " +
 				"individual timelog entries. Minutes are exact and authoritative; hours are minutes ÷ 60 rounded " +
 				"to 2 decimals. unbilledBillable = billable − billed. The sum of the group columns equals the " +
-				"totals block exactly (reconcile in minutes, not hours).",
+				"totals block exactly (reconcile in minutes, not hours). Task rows exclude time logged directly " +
+				"on a project and never include subtask time, so never add totals across group_by values.",
 			Annotations: &mcp.ToolAnnotations{
 				Title:           "Summarize Timelogs",
 				ReadOnlyHint:    true,
@@ -194,10 +195,11 @@ func SummarizeTimelogs(engine *twapi.Engine) toolsets.ToolWrapper {
 						Description: "Inclusive end of the report window (YYYY-MM-DD).",
 					},
 					"group_by": {
-						Type:        "string",
-						Enum:        []any{"user", "project"},
-						Default:     []byte(`"user"`),
-						Description: "Dimension to group totals by. Defaults to user.",
+						Type:    "string",
+						Enum:    []any{"user", "project", "task"},
+						Default: []byte(`"user"`),
+						Description: "Dimension to group totals by. Defaults to user. Grouping by task returns a row " +
+							"per task with time in the window, so add filters for a busy account.",
 					},
 					"project_ids":     timelogSummaryIDListSchema("Filter to timelogs on these projects."),
 					"user_ids":        timelogSummaryIDListSchema("Filter to timelogs logged for these users."),
@@ -252,7 +254,7 @@ func SummarizeTimelogs(engine *twapi.Engine) toolsets.ToolWrapper {
 			err := helpers.ParamGroup(arguments,
 				helpers.RequiredDateParam(&startDate, "start_date"),
 				helpers.RequiredDateParam(&endDate, "end_date"),
-				helpers.OptionalParam(&groupBy, "group_by", helpers.RestrictValues("user", "project")),
+				helpers.OptionalParam(&groupBy, "group_by", helpers.RestrictValues("user", "project", "task")),
 				helpers.OptionalNumericListParam(&projectIDs, "project_ids"),
 				helpers.OptionalNumericListParam(&userIDs, "user_ids"),
 				helpers.OptionalNumericListParam(&taskIDs, "task_ids"),
@@ -288,6 +290,12 @@ func SummarizeTimelogs(engine *twapi.Engine) toolsets.ToolWrapper {
 				dimension = projects.TimeReportTypeProject
 				reportType = projects.TimeReportReportTypeProjectLoggedTime
 				sideload = projects.TimeReportSideloadProjects
+			case "task":
+				dimension = projects.TimeReportTypeTask
+				// The logged-time variant drops tasks carrying only an
+				// estimate; otherwise they arrive as rows of zeros.
+				reportType = projects.TimeReportReportTypeLoggedTime
+				sideload = projects.TimeReportSideloadTasks
 			default: // "user"
 				dimension = projects.TimeReportTypeUser
 				reportType = projects.TimeReportReportTypeUserLoggedTime
@@ -315,6 +323,9 @@ func SummarizeTimelogs(engine *twapi.Engine) toolsets.ToolWrapper {
 			}
 			timeReportRequest.Filters.Fields.Projects = []projects.ProjectField{
 				projects.ProjectFieldID, projects.ProjectFieldName,
+			}
+			timeReportRequest.Filters.Fields.Tasks = []projects.TaskField{
+				projects.TaskFieldID, projects.TaskFieldName,
 			}
 
 			// The time report API silently scopes rows to what the caller is
@@ -359,6 +370,15 @@ func SummarizeTimelogs(engine *twapi.Engine) toolsets.ToolWrapper {
 						var name string
 						if p, ok := response.Included.Projects[strconv.FormatInt(id, 10)]; ok {
 							name = strings.TrimSpace(p.Name)
+						}
+						accumulate(id, name, row.TimeReportColumns)
+					}
+				case "task":
+					for _, row := range response.TimeReport.Tasks {
+						id := row.Task.ID
+						var name string
+						if task, ok := response.Included.Tasks[strconv.FormatInt(id, 10)]; ok {
+							name = strings.TrimSpace(task.Name)
 						}
 						accumulate(id, name, row.TimeReportColumns)
 					}
