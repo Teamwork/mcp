@@ -263,7 +263,7 @@ func nearMissSuggestions(ctx context.Context, engine *twapi.Engine, searchTerm s
 	searchRequest.Filters.Limit = suggestionSearchLimit
 	searchRequest.Filters.Include = suggestionSideloads
 	searchRequest.Filters.Fields = suggestionFields
-	// Filters.Type is deliberately left unset. The type the caller listed is the
+	// Filters.Types is deliberately left unset. The type the caller listed is the
 	// one that just came back empty, so the lookup wants every other type the
 	// term matches, and each hit reports its own.
 	//
