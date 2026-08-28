@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 
 	"github.com/google/jsonschema-go/jsonschema"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
@@ -223,8 +224,32 @@ func WorkflowStageDelete(engine *twapi.Engine) toolsets.ToolWrapper {
 	}
 }
 
+// workflowStageTaskMoveMaxTasks bounds the fan-out. The stage's own bulk
+// endpoint would take the whole list in one request, but its permission check is
+// not the one the board applies, so each task costs a request of its own and a
+// longer list would outlive this one.
+const workflowStageTaskMoveMaxTasks = 50
+
 // WorkflowStageTaskMove moves tasks to a specific stage within a workflow in
 // Teamwork.com.
+//
+// One request per task, through PATCH
+// /projects/api/v3/tasks/{id}/workflows/{workflowId}.json -- the route the board
+// itself uses when a card is dragged, which checks the task's own edit
+// permission.
+//
+// The stage's bulk route (POST /workflows/{id}/stages/{id}/tasks.json) moves the
+// whole list in one request, but checks permission to edit the *workflow*, and
+// what that costs depends on the workflow. A project-specific one falls back to
+// the project's view-tasks-and-milestones permission and usually passes. A
+// workflow that is not project-specific has only the site-level "can edit
+// workflows" to fall back on -- implied for an owner-company administrator,
+// granted explicitly to nobody else, and never inferred from any project
+// permission -- so batching answered 403 "access denied" for every
+// non-administrator there, on a move the same user could make by dragging the
+// card. Verified against a live installation: as a non-admin account user with
+// the project's add-tasks permission, the bulk route answers 403 and this one
+// 204 for the same task and stage.
 func WorkflowStageTaskMove(engine *twapi.Engine) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
@@ -249,14 +274,15 @@ func WorkflowStageTaskMove(engine *twapi.Engine) toolsets.ToolWrapper {
 					"task_ids": {
 						Type:  "array",
 						Items: &jsonschema.Schema{Type: "integer"},
-						Description: "The IDs of the tasks to move. At least one is needed; all of them " +
-							"move in a single call.",
+						Description: "The IDs of the tasks to move. At least one is needed; each is " +
+							"appended to the end of the stage in the order given. The workflow must be " +
+							"attached to the project the task belongs to.",
 					},
 				},
 				// task_ids is deliberately absent from Required. The SDK validates
 				// the schema before the handler runs, so requiring it would reject
 				// clients still sending the scalar task_id this tool advertised
-				// before it could move a set, and the handler could never see them.
+				// before it took a set, and the handler could never see them.
 				Required: []string{"workflow_id", "stage_id"},
 			},
 		},
@@ -266,11 +292,12 @@ func WorkflowStageTaskMove(engine *twapi.Engine) toolsets.ToolWrapper {
 				return helpers.NewToolResultTextError("failed to decode request: %s", err.Error()), nil
 			}
 
-			var moveRequest projects.WorkflowStageTasksMoveRequest
+			var workflowID, stageID int64
+			var taskIDs []int64
 			if err := helpers.ParamGroup(arguments,
-				helpers.RequiredNumericParam(&moveRequest.Path.WorkflowID, "workflow_id"),
-				helpers.RequiredNumericParam(&moveRequest.Path.StageID, "stage_id"),
-				helpers.OptionalNumericListParam(&moveRequest.TaskIDs, "task_ids"),
+				helpers.RequiredNumericParam(&workflowID, "workflow_id"),
+				helpers.RequiredNumericParam(&stageID, "stage_id"),
+				helpers.OptionalNumericListParam(&taskIDs, "task_ids"),
 			); err != nil {
 				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
 			}
@@ -279,7 +306,7 @@ func WorkflowStageTaskMove(engine *twapi.Engine) toolsets.ToolWrapper {
 			// Clients holding a cached tool list still send it, so it is accepted
 			// but no longer advertised, to keep one way of saying this in the
 			// schema.
-			if len(moveRequest.TaskIDs) == 0 {
+			if len(taskIDs) == 0 {
 				var legacyTaskID int64
 				if err := helpers.ParamGroup(arguments,
 					helpers.OptionalNumericParam(&legacyTaskID, "task_id"),
@@ -287,22 +314,53 @@ func WorkflowStageTaskMove(engine *twapi.Engine) toolsets.ToolWrapper {
 					return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
 				}
 				if legacyTaskID > 0 {
-					moveRequest.TaskIDs = []int64{legacyTaskID}
+					taskIDs = []int64{legacyTaskID}
 				}
 			}
-			if len(moveRequest.TaskIDs) == 0 {
+			if len(taskIDs) == 0 {
 				return helpers.NewToolResultTextError("task_ids must contain at least one task ID"), nil
 			}
+			if len(taskIDs) > workflowStageTaskMoveMaxTasks {
+				return helpers.NewToolResultTextError("task_ids accepts at most %d tasks, got %d",
+					workflowStageTaskMoveMaxTasks, len(taskIDs)), nil
+			}
 
-			_, err := projects.WorkflowStageTasksMove(ctx, engine, moveRequest)
-			if err != nil {
-				return helpers.HandleAPIError(err, "failed to move tasks to workflow stage")
+			seen := make(map[int64]bool, len(taskIDs))
+			targets := make([]int64, 0, len(taskIDs))
+			for _, id := range taskIDs {
+				if !seen[id] {
+					seen[id] = true
+					targets = append(targets, id)
+				}
 			}
-			if len(moveRequest.TaskIDs) == 1 {
-				return helpers.NewToolResultText("Task moved to workflow stage successfully"), nil
+
+			var moved []int64
+			var failures []string
+			for _, id := range targets {
+				moveRequest := projects.NewWorkflowStageTaskMoveRequest(workflowID, stageID, id)
+				if _, err := projects.WorkflowStageTaskMove(ctx, engine, moveRequest); err != nil {
+					failures = append(failures, fmt.Sprintf("task %d: %s", id, err.Error()))
+					continue
+				}
+				moved = append(moved, id)
 			}
-			return helpers.NewToolResultText("%d tasks moved to workflow stage successfully",
-				len(moveRequest.TaskIDs)), nil
+
+			if len(failures) == 0 {
+				if len(moved) == 1 {
+					return helpers.NewToolResultText("Task moved to workflow stage successfully"), nil
+				}
+				return helpers.NewToolResultText("%d tasks moved to workflow stage successfully", len(moved)), nil
+			}
+
+			var report strings.Builder
+			fmt.Fprintf(&report, "Moved %d of %d tasks to workflow stage %d.", len(moved), len(targets), stageID)
+			if len(moved) > 0 {
+				fmt.Fprintf(&report, "\nMoved: %s.", joinTaskIDs(moved))
+			}
+			for _, failure := range failures {
+				fmt.Fprintf(&report, "\nFailed: %s.", failure)
+			}
+			return helpers.NewToolResultTextError("%s", report.String()), nil
 		},
 	}
 }
