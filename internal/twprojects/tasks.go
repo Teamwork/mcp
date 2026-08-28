@@ -113,6 +113,25 @@ func TaskCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 						Type:        "integer",
 						Description: "Tasklist ID. Use twprojects-list_tasklists to find one.",
 					},
+					"workflow_id": {
+						Description: "The ID of the workflow to place the new task in a stage of. Required " +
+							"together with stage_id, and must be a workflow attached to the task's own project: " +
+							"another one is ignored and the task lands in the backlog, with nothing in the " +
+							"response saying so. Use twprojects-list_workflows to find one.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "integer"},
+							{Type: "null"},
+						},
+					},
+					"stage_id": {
+						Description: "The ID of the workflow stage to place the new task in. Required together " +
+							"with workflow_id. Omit both to leave the task in the workflow's backlog. Use " +
+							"twprojects-list_workflow_stages to find one.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "integer"},
+							{Type: "null"},
+						},
+					},
 					"description": {
 						Description: "The description of the task. Support for plain text and Markdown formatting.",
 						AnyOf: []*jsonschema.Schema{
@@ -209,9 +228,20 @@ func TaskCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 				helpers.OptionalNumericPointerParam(&taskCreateRequest.EstimatedMinutes, "estimated_minutes"),
 				helpers.OptionalNumericPointerParam(&taskCreateRequest.ParentTaskID, "parent_task_id"),
 				helpers.OptionalNumericListParam(&taskCreateRequest.TagIDs, "tag_ids"),
+				helpers.OptionalNumericPointerParam(&taskCreateRequest.Workflows.WorkflowID, "workflow_id"),
+				helpers.OptionalNumericPointerParam(&taskCreateRequest.Workflows.StageID, "stage_id"),
 			)
 			if err != nil {
 				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
+			}
+
+			// The endpoint drops a stage that arrives without its workflow, and a
+			// workflow without a stage means the backlog it would have used anyway.
+			// Either alone is a caller mistake worth saying out loud, since the
+			// response reports neither.
+			if (taskCreateRequest.Workflows.WorkflowID == nil) != (taskCreateRequest.Workflows.StageID == nil) {
+				return helpers.NewToolResultTextError(
+					"workflow_id and stage_id must be provided together"), nil
 			}
 
 			if assignees, toolResult := parseUserGroups(
