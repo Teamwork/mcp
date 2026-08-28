@@ -36,10 +36,20 @@ const timelogSummaryPageSize = 500
 // totals — the caller is told to narrow the window or add filters.
 const timelogSummaryMaxPages = 10
 
-// timelogSummaryColumns holds the ten time aggregate columns shared by the
-// totals block and every group row. Minutes are exact integers (authoritative,
-// always reconcile); hours are minutes ÷ 60 rounded to two decimals, for
-// narration and rate math.
+// timelogSummaryGroupBys lists the group_by values in published order.
+var timelogSummaryGroupBys = []string{"user", "project", "task", "day", "week", "month"}
+
+// timelogSummaryPeriods maps period group_by values onto the totals endpoint's
+// buckets. A group_by absent from it is an entity dimension.
+var timelogSummaryPeriods = map[string]projects.TimeReportGroupBy{
+	"day":   projects.TimeReportGroupByDay,
+	"week":  projects.TimeReportGroupByWeek,
+	"month": projects.TimeReportGroupByMonth,
+}
+
+// timelogSummaryColumns holds the ten aggregate columns shared by the totals
+// block and every row. Minutes are authoritative; hours are minutes ÷ 60
+// rounded to two decimals.
 type timelogSummaryColumns struct {
 	LoggedMinutes           int64   `json:"loggedMinutes"`
 	LoggedHours             float64 `json:"loggedHours"`
@@ -60,24 +70,34 @@ type timelogSummaryScope struct {
 	EndDate   string `json:"endDate"`
 }
 
-// timelogSummaryTotals is the roll-up across every group.
+// timelogSummaryTotals is the roll-up across every row.
 type timelogSummaryTotals struct {
 	timelogSummaryColumns
 	GroupCount int64 `json:"groupCount"`
 }
 
-// timelogSummaryGroup is one grouped row (a user or a project).
+// timelogSummaryGroup is one entity row (a user, a project or a task).
 type timelogSummaryGroup struct {
 	ID   int64  `json:"id"`
 	Name string `json:"name"`
 	timelogSummaryColumns
 }
 
-// timelogSummaryResult is the full tool response.
+// timelogSummaryPeriod is one period row (a day, a week or a month). Both
+// dates are inclusive; a day has StartDate equal to EndDate.
+type timelogSummaryPeriod struct {
+	StartDate string `json:"startDate"`
+	EndDate   string `json:"endDate"`
+	timelogSummaryColumns
+}
+
+// timelogSummaryResult is the full tool response. Exactly one of Groups and
+// Periods carries rows, matching the group_by dimension; the other is empty.
 type timelogSummaryResult struct {
-	Scope  timelogSummaryScope   `json:"scope"`
-	Totals timelogSummaryTotals  `json:"totals"`
-	Groups []timelogSummaryGroup `json:"groups"`
+	Scope   timelogSummaryScope    `json:"scope"`
+	Totals  timelogSummaryTotals   `json:"totals"`
+	Groups  []timelogSummaryGroup  `json:"groups"`
+	Periods []timelogSummaryPeriod `json:"periods"`
 }
 
 // timelogSummaryAccumulator sums the raw minute columns of the underlying time
@@ -94,6 +114,13 @@ func (a *timelogSummaryAccumulator) add(c projects.TimeReportColumns) {
 	a.billable += c.BillableTime
 	a.nonBillable += c.NonBillableTime
 	a.billed += c.BilledTime
+}
+
+func (a *timelogSummaryAccumulator) merge(other timelogSummaryAccumulator) {
+	a.logged += other.logged
+	a.billable += other.billable
+	a.nonBillable += other.nonBillable
+	a.billed += other.billed
 }
 
 // columns projects the accumulated minutes into the published column set,
@@ -118,6 +145,19 @@ func (a timelogSummaryAccumulator) columns() timelogSummaryColumns {
 // minutesToHours converts exact minutes to hours rounded to two decimals.
 func minutesToHours(minutes int64) float64 {
 	return math.Round(float64(minutes)/60*100) / 100
+}
+
+// timelogSummaryFilters carries the caller's filters, which both endpoints
+// take under the same names.
+type timelogSummaryFilters struct {
+	projectIDs      []int64
+	userIDs         []int64
+	taskIDs         []int64
+	tasklistIDs     []int64
+	companyIDs      []int64
+	teamIDs         []int64
+	timelogTagIDs   []int64
+	includeArchived bool
 }
 
 var timelogSummaryOutputSchema *jsonschema.Schema
@@ -145,6 +185,11 @@ func init() {
 	if err != nil {
 		panic(fmt.Sprintf("failed to generate JSON schema for timelogSummaryResult: %v", err))
 	}
+
+	properties := timelogSummaryOutputSchema.Properties
+	properties["groups"].Description = "Entity rows; empty for a day, week or month grouping."
+	properties["periods"].Description = "Period rows, chronological; empty for an entity grouping."
+	properties["totals"].Properties["groupCount"].Description = "Number of rows returned."
 }
 
 // timelogSummaryIDListSchema returns the schema for an optional integer-ID list
@@ -159,22 +204,34 @@ func timelogSummaryIDListSchema(description string) *jsonschema.Schema {
 	}
 }
 
-// SummarizeTimelogs returns deterministic, complete time aggregates grouped by
-// user or project for a required date window, paginating the underlying time
-// report internally so a single call yields every group.
+// timelogSummaryOrderingSchema notes the period exclusion on the parameter
+// itself, since a model reading one parameter never sees another's text.
+func timelogSummaryOrderingSchema(schema *jsonschema.Schema) *jsonschema.Schema {
+	schema.Description += " Rejected for day, week and month: period rows are chronological."
+	return schema
+}
+
+// SummarizeTimelogs returns complete time aggregates for a date window: entity
+// rows from the grouped time report, period rows from the report totals.
 func SummarizeTimelogs(engine *twapi.Engine) toolsets.ToolWrapper {
+	groupByEnum := make([]any, len(timelogSummaryGroupBys))
+	for i, value := range timelogSummaryGroupBys {
+		groupByEnum[i] = value
+	}
+
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
 			Name: string(MethodSummarizeTimelogs),
-			Description: "Deterministic, complete time-tracking totals for a date window, grouped by user, " +
-				"project or task. Returns every group in one call with exact minute sums and 2-decimal hours — no " +
-				"pagination for the caller, any model tier. Use this instead of twprojects-list_timelogs whenever " +
-				"the question is about totals, sums, or breakdowns (e.g. \"how many hours did X log\", \"time per " +
-				"project this month\", billable vs billed vs unbilled); use list_timelogs only when you need the " +
-				"individual timelog entries. Minutes are exact and authoritative; hours are minutes ÷ 60 rounded " +
-				"to 2 decimals. unbilledBillable = billable − billed. The sum of the group columns equals the " +
-				"totals block exactly (reconcile in minutes, not hours). Task rows exclude time logged directly " +
-				"on a project and never include subtask time, so never add totals across group_by values.",
+			Description: "Complete time totals for a date window, grouped by user, project or task (rows in " +
+				"groups) or by day, week or month (rows in periods). One call returns every row, in exact " +
+				"minutes and hours to 2 decimals. Prefer it over twprojects-list_timelogs for any total, sum " +
+				"or breakdown; list_timelogs is for individual entries. Minutes are authoritative, " +
+				"unbilledBillable = billable − billed, and rows sum to totals. One dimension per call: for " +
+				"hours per user per week, call once per user with user_ids. Task rows omit project-level and " +
+				"subtask time, so never add totals across group_by values. Period rows cover every period in " +
+				"order, zeros included, first and last clipped to the window; weeks follow the caller's " +
+				"start-of-week setting, so buckets can differ per user, and a weekend-only week with no time " +
+				"is dropped.",
 			Annotations: &mcp.ToolAnnotations{
 				Title:           "Summarize Timelogs",
 				ReadOnlyHint:    true,
@@ -196,10 +253,10 @@ func SummarizeTimelogs(engine *twapi.Engine) toolsets.ToolWrapper {
 					},
 					"group_by": {
 						Type:    "string",
-						Enum:    []any{"user", "project", "task"},
+						Enum:    groupByEnum,
 						Default: []byte(`"user"`),
-						Description: "Dimension to group totals by. Defaults to user. Grouping by task returns a row " +
-							"per task with time in the window, so add filters for a busy account.",
+						Description: "Dimension to group by. Defaults to user. user, project and task fill " +
+							"groups; day, week and month fill periods. Filter a task grouping on a busy account.",
 					},
 					"project_ids":     timelogSummaryIDListSchema("Filter to timelogs on these projects."),
 					"user_ids":        timelogSummaryIDListSchema("Filter to timelogs logged for these users."),
@@ -216,14 +273,11 @@ func SummarizeTimelogs(engine *twapi.Engine) toolsets.ToolWrapper {
 						},
 						Default: []byte(`false`),
 					},
-					// Ordering reaches the report request, not the fold below.
-					// The handler walks every page and errors rather than
-					// truncating, so the vocabulary cannot change which groups
-					// are returned — only the order they are returned in, which
-					// the fold preserves by first sighting. That is what makes
-					// "the five users who logged the most" a single call.
-					"order_by":   timeReportOrdering.orderBySchema(),
-					"order_mode": orderModeSchema(),
+					// Ordering reaches the report request. The handler errors
+					// rather than truncating, so it changes the order of the
+					// rows, never which rows come back.
+					"order_by":   timelogSummaryOrderingSchema(timeReportOrdering.orderBySchema()),
+					"order_mode": timelogSummaryOrderingSchema(orderModeSchema()),
 				},
 				Required: []string{"start_date", "end_date"},
 			},
@@ -236,41 +290,33 @@ func SummarizeTimelogs(engine *twapi.Engine) toolsets.ToolWrapper {
 			}
 
 			var (
-				startDate       twapi.Date
-				endDate         twapi.Date
-				groupBy         = "user"
-				projectIDs      []int64
-				userIDs         []int64
-				taskIDs         []int64
-				tasklistIDs     []int64
-				companyIDs      []int64
-				teamIDs         []int64
-				timelogTagIDs   []int64
-				includeArchived bool
-				orderBy         projects.TimeReportOrderBy
-				orderMode       twapi.OrderMode
+				startDate twapi.Date
+				endDate   twapi.Date
+				groupBy   = "user"
+				filters   timelogSummaryFilters
+				orderBy   projects.TimeReportOrderBy
+				orderMode twapi.OrderMode
 			)
 
 			err := helpers.ParamGroup(arguments,
 				helpers.RequiredDateParam(&startDate, "start_date"),
 				helpers.RequiredDateParam(&endDate, "end_date"),
-				helpers.OptionalParam(&groupBy, "group_by", helpers.RestrictValues("user", "project", "task")),
-				helpers.OptionalNumericListParam(&projectIDs, "project_ids"),
-				helpers.OptionalNumericListParam(&userIDs, "user_ids"),
-				helpers.OptionalNumericListParam(&taskIDs, "task_ids"),
-				helpers.OptionalNumericListParam(&tasklistIDs, "tasklist_ids"),
-				helpers.OptionalNumericListParam(&companyIDs, "company_ids"),
-				helpers.OptionalNumericListParam(&teamIDs, "team_ids"),
-				helpers.OptionalNumericListParam(&timelogTagIDs, "timelog_tag_ids"),
+				helpers.OptionalParam(&groupBy, "group_by", helpers.RestrictValues(timelogSummaryGroupBys...)),
+				helpers.OptionalNumericListParam(&filters.projectIDs, "project_ids"),
+				helpers.OptionalNumericListParam(&filters.userIDs, "user_ids"),
+				helpers.OptionalNumericListParam(&filters.taskIDs, "task_ids"),
+				helpers.OptionalNumericListParam(&filters.tasklistIDs, "tasklist_ids"),
+				helpers.OptionalNumericListParam(&filters.companyIDs, "company_ids"),
+				helpers.OptionalNumericListParam(&filters.teamIDs, "team_ids"),
+				helpers.OptionalNumericListParam(&filters.timelogTagIDs, "timelog_tag_ids"),
 				timeReportOrdering.param(&orderBy, &orderMode),
-				helpers.OptionalParam(&includeArchived, "include_archived_projects"),
+				helpers.OptionalParam(&filters.includeArchived, "include_archived_projects"),
 			)
 			if err != nil {
 				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
 			}
 
-			// Reject a reversed window. An empty window (no logs in range) is a
-			// valid query that returns zeros, so only start > end is an error.
+			// An empty window is valid and returns zeros, so only start > end fails.
 			if time.Time(startDate).After(time.Time(endDate)) {
 				return helpers.NewToolResultTextError(
 					"invalid parameters: start_date (%s) must be on or before end_date (%s)",
@@ -278,171 +324,299 @@ func SummarizeTimelogs(engine *twapi.Engine) toolsets.ToolWrapper {
 				), nil
 			}
 
-			// Map group_by to the report's grouping dimension, the precanned
-			// reportType variant, and the sideload used to resolve group names.
-			var (
-				dimension  projects.TimeReportType
-				reportType projects.TimeReportReportType
-				sideload   projects.TimeReportSideload
-			)
-			switch groupBy {
-			case "project":
-				dimension = projects.TimeReportTypeProject
-				reportType = projects.TimeReportReportTypeProjectLoggedTime
-				sideload = projects.TimeReportSideloadProjects
-			case "task":
-				dimension = projects.TimeReportTypeTask
-				// The logged-time variant drops tasks carrying only an
-				// estimate; otherwise they arrive as rows of zeros.
-				reportType = projects.TimeReportReportTypeLoggedTime
-				sideload = projects.TimeReportSideloadTasks
-			default: // "user"
-				dimension = projects.TimeReportTypeUser
-				reportType = projects.TimeReportReportTypeUserLoggedTime
-				sideload = projects.TimeReportSideloadUsers
-			}
+			// The API silently omits time on projects the caller cannot see, so
+			// totals reflect the caller's own visibility. Accepted (decided).
 
-			timeReportRequest := projects.NewTimeReportListRequest(dimension, startDate, endDate)
-			timeReportRequest.Filters.ReportType = reportType
-			timeReportRequest.Filters.ProjectIDs = projectIDs
-			timeReportRequest.Filters.UserIDs = userIDs
-			timeReportRequest.Filters.TaskIDs = taskIDs
-			timeReportRequest.Filters.TasklistIDs = tasklistIDs
-			timeReportRequest.Filters.CompanyIDs = companyIDs
-			timeReportRequest.Filters.TeamIDs = teamIDs
-			timeReportRequest.Filters.TimelogTagIDs = timelogTagIDs
-			timeReportRequest.Filters.IncludeArchivedProjects = &includeArchived
-			timeReportRequest.Filters.Include = []projects.TimeReportSideload{sideload}
-			timeReportRequest.Filters.OrderBy = orderBy
-			timeReportRequest.Filters.OrderMode = orderMode
-			timeReportRequest.Filters.Page = 1
-			timeReportRequest.Filters.PageSize = timelogSummaryPageSize
-			// Only the fields needed to join group names are requested.
-			timeReportRequest.Filters.Fields.Users = []projects.UserField{
-				projects.UserFieldID, projects.UserFieldFirstName, projects.UserFieldLastName,
-			}
-			timeReportRequest.Filters.Fields.Projects = []projects.ProjectField{
-				projects.ProjectFieldID, projects.ProjectFieldName,
-			}
-			timeReportRequest.Filters.Fields.Tasks = []projects.TaskField{
-				projects.TaskFieldID, projects.TaskFieldName,
-			}
-
-			// The time report API silently scopes rows to what the caller is
-			// permitted to see: time on projects the caller cannot access is
-			// omitted server-side rather than raising an error. This is accepted
-			// with no runtime mitigation (decided) — totals reflect the caller's
-			// own visibility.
-
-			// Accumulate rows across pages. The report is grouped server-side, so
-			// a group id normally appears once, but rows are still folded into a
-			// keyed map (preserving first-seen order) to stay correct even if a
-			// group were ever split across pages.
-			order := make([]int64, 0)
-			byID := make(map[int64]*timelogSummaryAccumulator)
-			names := make(map[int64]string)
-
-			accumulate := func(id int64, name string, cols projects.TimeReportColumns) {
-				acc, ok := byID[id]
-				if !ok {
-					acc = &timelogSummaryAccumulator{}
-					byID[id] = acc
-					order = append(order, id)
-				}
-				acc.add(cols)
-				if name != "" {
-					names[id] = name
-				}
-			}
-
-			page := 0
-			for {
-				response, err := projects.TimeReportList(ctx, engine, timeReportRequest)
-				if err != nil {
-					return helpers.HandleAPIError(err, "failed to summarize timelogs")
-				}
-				page++
-
-				switch groupBy {
-				case "project":
-					for _, row := range response.TimeReport.Projects {
-						id := row.Project.ID
-						var name string
-						if p, ok := response.Included.Projects[strconv.FormatInt(id, 10)]; ok {
-							name = strings.TrimSpace(p.Name)
-						}
-						accumulate(id, name, row.TimeReportColumns)
-					}
-				case "task":
-					for _, row := range response.TimeReport.Tasks {
-						id := row.Task.ID
-						var name string
-						if task, ok := response.Included.Tasks[strconv.FormatInt(id, 10)]; ok {
-							name = strings.TrimSpace(task.Name)
-						}
-						accumulate(id, name, row.TimeReportColumns)
-					}
-				default: // "user"
-					for _, row := range response.TimeReport.Users {
-						id := row.User.ID
-						var name string
-						if u, ok := response.Included.Users[strconv.FormatInt(id, 10)]; ok {
-							name = strings.TrimSpace(u.FirstName + " " + u.LastName)
-						}
-						accumulate(id, name, row.TimeReportColumns)
-					}
-				}
-
-				next := response.Iterate()
-				if next == nil {
-					break
-				}
-				if page >= timelogSummaryMaxPages {
+			if period, ok := timelogSummaryPeriods[groupBy]; ok {
+				// Period rows are chronological; an ordering would do nothing.
+				if orderBy != "" || orderMode != "" {
 					return helpers.NewToolResultTextError(
-						"time report exceeded the %d-page limit (page size %d) and would return partial totals; "+
-							"narrow the date window or add filters (e.g. project_ids, user_ids, team_ids) and try again",
-						timelogSummaryMaxPages, timelogSummaryPageSize,
+						"invalid parameters: order_by and order_mode are not accepted when group_by is %s",
+						groupBy,
 					), nil
 				}
-				timeReportRequest = *next
+				return summarizeTimelogsByPeriod(ctx, engine, groupBy, period, startDate, endDate, filters)
 			}
-
-			// Build grouped rows and totals from the same minute sums, so the
-			// group columns reconcile against the totals block exactly in minutes.
-			var totals timelogSummaryAccumulator
-			groups := make([]timelogSummaryGroup, 0, len(order))
-			for _, id := range order {
-				acc := byID[id]
-				name := names[id]
-				if name == "" {
-					// Sideload entry missing (or blank): fall back to a synthetic
-					// name so the row is never dropped.
-					name = fmt.Sprintf("%s %d", groupBy, id)
-				}
-				groups = append(groups, timelogSummaryGroup{
-					ID:                    id,
-					Name:                  name,
-					timelogSummaryColumns: acc.columns(),
-				})
-				totals.logged += acc.logged
-				totals.billable += acc.billable
-				totals.nonBillable += acc.nonBillable
-				totals.billed += acc.billed
-			}
-
-			result := timelogSummaryResult{
-				Scope: timelogSummaryScope{
-					GroupBy:   groupBy,
-					StartDate: startDate.String(),
-					EndDate:   endDate.String(),
-				},
-				Totals: timelogSummaryTotals{
-					timelogSummaryColumns: totals.columns(),
-					GroupCount:            int64(len(groups)),
-				},
-				Groups: groups,
-			}
-			return helpers.NewToolResultJSON(result)
+			return summarizeTimelogsByEntity(ctx, engine, groupBy, startDate, endDate, filters, orderBy, orderMode)
 		},
 	}
+}
+
+// summarizeTimelogsByPeriod answers a period group_by through the report
+// totals. The endpoint keys buckets by day of year or month number with no
+// year, so the window goes one calendar year per request.
+func summarizeTimelogsByPeriod(
+	ctx context.Context,
+	engine *twapi.Engine,
+	groupBy string,
+	period projects.TimeReportGroupBy,
+	startDate, endDate twapi.Date,
+	filters timelogSummaryFilters,
+) (*mcp.CallToolResult, error) {
+	var rows []timelogSummaryPeriodRow
+	for _, window := range calendarYearWindows(startDate, endDate) {
+		totalsRequest := projects.NewTimeReportTotalsRequest(period, window.start, window.end)
+		totalsRequest.Filters.ProjectIDs = filters.projectIDs
+		totalsRequest.Filters.UserIDs = filters.userIDs
+		totalsRequest.Filters.TaskIDs = filters.taskIDs
+		totalsRequest.Filters.TasklistIDs = filters.tasklistIDs
+		totalsRequest.Filters.CompanyIDs = filters.companyIDs
+		totalsRequest.Filters.TeamIDs = filters.teamIDs
+		totalsRequest.Filters.TimelogTagIDs = filters.timelogTagIDs
+		totalsRequest.Filters.IncludeArchivedProjects = &filters.includeArchived
+
+		response, err := projects.TimeReportTotals(ctx, engine, totalsRequest)
+		if err != nil {
+			return helpers.HandleAPIError(err, "failed to summarize timelogs")
+		}
+		for _, entry := range response.Dates {
+			row := timelogSummaryPeriodRow{start: time.Time(entry.StartDate), end: time.Time(entry.EndDate)}
+			row.acc.add(entry.TimeReportColumns)
+			rows = appendPeriodRow(rows, period, row)
+		}
+	}
+
+	// Summed from the rows, not read off the responses, so they reconcile.
+	var totals timelogSummaryAccumulator
+	periods := make([]timelogSummaryPeriod, 0, len(rows))
+	for _, row := range rows {
+		totals.merge(row.acc)
+		periods = append(periods, timelogSummaryPeriod{
+			StartDate:             twapi.Date(row.start).String(),
+			EndDate:               twapi.Date(row.end).String(),
+			timelogSummaryColumns: row.acc.columns(),
+		})
+	}
+
+	return helpers.NewToolResultJSON(timelogSummaryResult{
+		Scope: timelogSummaryScope{
+			GroupBy:   groupBy,
+			StartDate: startDate.String(),
+			EndDate:   endDate.String(),
+		},
+		Totals: timelogSummaryTotals{
+			timelogSummaryColumns: totals.columns(),
+			GroupCount:            int64(len(periods)),
+		},
+		Groups:  []timelogSummaryGroup{},
+		Periods: periods,
+	})
+}
+
+// timelogSummaryPeriodRow is a period row before projection, kept as dates and
+// raw minutes so a row split across requests can be merged.
+type timelogSummaryPeriodRow struct {
+	start time.Time
+	end   time.Time
+	acc   timelogSummaryAccumulator
+}
+
+// dateWindow is an inclusive date range.
+type dateWindow struct {
+	start twapi.Date
+	end   twapi.Date
+}
+
+// calendarYearWindows splits an inclusive window at every 1 January.
+func calendarYearWindows(startDate, endDate twapi.Date) []dateWindow {
+	start, end := time.Time(startDate), time.Time(endDate)
+	var windows []dateWindow
+	for year := start.Year(); year <= end.Year(); year++ {
+		window := dateWindow{start: startDate, end: endDate}
+		if year > start.Year() {
+			window.start = twapi.Date(time.Date(year, time.January, 1, 0, 0, 0, 0, start.Location()))
+		}
+		if year < end.Year() {
+			window.end = twapi.Date(time.Date(year, time.December, 31, 0, 0, 0, 0, end.Location()))
+		}
+		windows = append(windows, window)
+	}
+	return windows
+}
+
+// appendPeriodRow appends row, merging it into the previous one when both are
+// halves of a week the 1 January split cut in two: previous ends 31 December,
+// this one starts 1 January, and together they span under seven days — so a
+// full week ending 31 December never merges. Days and months never straddle it.
+func appendPeriodRow(
+	rows []timelogSummaryPeriodRow,
+	period projects.TimeReportGroupBy,
+	row timelogSummaryPeriodRow,
+) []timelogSummaryPeriodRow {
+	if period == projects.TimeReportGroupByWeek && len(rows) > 0 {
+		last := &rows[len(rows)-1]
+		endsYear := last.end.Month() == time.December && last.end.Day() == 31
+		continues := row.start.Year() == last.end.Year()+1 && row.start.YearDay() == 1
+		if endsYear && continues && row.end.Sub(last.start) < 7*24*time.Hour {
+			last.end = row.end
+			last.acc.merge(row.acc)
+			return rows
+		}
+	}
+	return append(rows, row)
+}
+
+// summarizeTimelogsByEntity answers an entity group_by, paginating the grouped
+// time report internally.
+func summarizeTimelogsByEntity(
+	ctx context.Context,
+	engine *twapi.Engine,
+	groupBy string,
+	startDate, endDate twapi.Date,
+	filters timelogSummaryFilters,
+	orderBy projects.TimeReportOrderBy,
+	orderMode twapi.OrderMode,
+) (*mcp.CallToolResult, error) {
+	// Map group_by to the report's grouping dimension, the precanned
+	// reportType variant, and the sideload used to resolve group names.
+	var (
+		dimension  projects.TimeReportType
+		reportType projects.TimeReportReportType
+		sideload   projects.TimeReportSideload
+	)
+	switch groupBy {
+	case "project":
+		dimension = projects.TimeReportTypeProject
+		reportType = projects.TimeReportReportTypeProjectLoggedTime
+		sideload = projects.TimeReportSideloadProjects
+	case "task":
+		dimension = projects.TimeReportTypeTask
+		// The logged-time variant drops tasks carrying only an
+		// estimate; otherwise they arrive as rows of zeros.
+		reportType = projects.TimeReportReportTypeLoggedTime
+		sideload = projects.TimeReportSideloadTasks
+	default: // "user"
+		dimension = projects.TimeReportTypeUser
+		reportType = projects.TimeReportReportTypeUserLoggedTime
+		sideload = projects.TimeReportSideloadUsers
+	}
+
+	timeReportRequest := projects.NewTimeReportListRequest(dimension, startDate, endDate)
+	timeReportRequest.Filters.ReportType = reportType
+	timeReportRequest.Filters.ProjectIDs = filters.projectIDs
+	timeReportRequest.Filters.UserIDs = filters.userIDs
+	timeReportRequest.Filters.TaskIDs = filters.taskIDs
+	timeReportRequest.Filters.TasklistIDs = filters.tasklistIDs
+	timeReportRequest.Filters.CompanyIDs = filters.companyIDs
+	timeReportRequest.Filters.TeamIDs = filters.teamIDs
+	timeReportRequest.Filters.TimelogTagIDs = filters.timelogTagIDs
+	timeReportRequest.Filters.IncludeArchivedProjects = &filters.includeArchived
+	timeReportRequest.Filters.Include = []projects.TimeReportSideload{sideload}
+	timeReportRequest.Filters.OrderBy = orderBy
+	timeReportRequest.Filters.OrderMode = orderMode
+	timeReportRequest.Filters.Page = 1
+	timeReportRequest.Filters.PageSize = timelogSummaryPageSize
+	// Only the fields needed to join group names are requested.
+	timeReportRequest.Filters.Fields.Users = []projects.UserField{
+		projects.UserFieldID, projects.UserFieldFirstName, projects.UserFieldLastName,
+	}
+	timeReportRequest.Filters.Fields.Projects = []projects.ProjectField{
+		projects.ProjectFieldID, projects.ProjectFieldName,
+	}
+	timeReportRequest.Filters.Fields.Tasks = []projects.TaskField{
+		projects.TaskFieldID, projects.TaskFieldName,
+	}
+
+	// Folded into a keyed map in first-seen order: the report groups
+	// server-side, but this stays correct if a group ever spans two pages.
+	order := make([]int64, 0)
+	byID := make(map[int64]*timelogSummaryAccumulator)
+	names := make(map[int64]string)
+
+	accumulate := func(id int64, name string, cols projects.TimeReportColumns) {
+		acc, ok := byID[id]
+		if !ok {
+			acc = &timelogSummaryAccumulator{}
+			byID[id] = acc
+			order = append(order, id)
+		}
+		acc.add(cols)
+		if name != "" {
+			names[id] = name
+		}
+	}
+
+	page := 0
+	for {
+		response, err := projects.TimeReportList(ctx, engine, timeReportRequest)
+		if err != nil {
+			return helpers.HandleAPIError(err, "failed to summarize timelogs")
+		}
+		page++
+
+		switch groupBy {
+		case "project":
+			for _, row := range response.TimeReport.Projects {
+				id := row.Project.ID
+				var name string
+				if p, ok := response.Included.Projects[strconv.FormatInt(id, 10)]; ok {
+					name = strings.TrimSpace(p.Name)
+				}
+				accumulate(id, name, row.TimeReportColumns)
+			}
+		case "task":
+			for _, row := range response.TimeReport.Tasks {
+				id := row.Task.ID
+				var name string
+				if task, ok := response.Included.Tasks[strconv.FormatInt(id, 10)]; ok {
+					name = strings.TrimSpace(task.Name)
+				}
+				accumulate(id, name, row.TimeReportColumns)
+			}
+		default: // "user"
+			for _, row := range response.TimeReport.Users {
+				id := row.User.ID
+				var name string
+				if u, ok := response.Included.Users[strconv.FormatInt(id, 10)]; ok {
+					name = strings.TrimSpace(u.FirstName + " " + u.LastName)
+				}
+				accumulate(id, name, row.TimeReportColumns)
+			}
+		}
+
+		next := response.Iterate()
+		if next == nil {
+			break
+		}
+		if page >= timelogSummaryMaxPages {
+			return helpers.NewToolResultTextError(
+				"time report exceeded the %d-page limit (page size %d) and would return partial totals; "+
+					"narrow the date window or add filters (e.g. project_ids, user_ids, team_ids) and try again",
+				timelogSummaryMaxPages, timelogSummaryPageSize,
+			), nil
+		}
+		timeReportRequest = *next
+	}
+
+	// Rows and totals come from the same minute sums, so they reconcile.
+	var totals timelogSummaryAccumulator
+	groups := make([]timelogSummaryGroup, 0, len(order))
+	for _, id := range order {
+		acc := byID[id]
+		name := names[id]
+		if name == "" {
+			// Sideload missing or blank: name it rather than drop the row.
+			name = fmt.Sprintf("%s %d", groupBy, id)
+		}
+		groups = append(groups, timelogSummaryGroup{
+			ID:                    id,
+			Name:                  name,
+			timelogSummaryColumns: acc.columns(),
+		})
+		totals.merge(*acc)
+	}
+
+	return helpers.NewToolResultJSON(timelogSummaryResult{
+		Scope: timelogSummaryScope{
+			GroupBy:   groupBy,
+			StartDate: startDate.String(),
+			EndDate:   endDate.String(),
+		},
+		Totals: timelogSummaryTotals{
+			timelogSummaryColumns: totals.columns(),
+			GroupCount:            int64(len(groups)),
+		},
+		Groups:  groups,
+		Periods: []timelogSummaryPeriod{},
+	})
 }

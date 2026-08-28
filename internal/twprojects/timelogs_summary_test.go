@@ -42,6 +42,11 @@ type tlResult struct {
 		Name string `json:"name"`
 		tlCols
 	} `json:"groups"`
+	Periods []struct {
+		StartDate string `json:"startDate"`
+		EndDate   string `json:"endDate"`
+		tlCols
+	} `json:"periods"`
 }
 
 // decodeSummary extracts and decodes the summarize_timelogs JSON payload from a
@@ -97,13 +102,20 @@ func expectToolError(t *testing.T, want string) testutil.ExecuteToolRequestOptio
 	})
 }
 
-// assertReconciles asserts that the per-group columns sum to the totals block
-// exactly, in minutes (minutes are the authoritative values).
+// assertReconciles asserts that the row columns (groups or periods) sum to the
+// totals block exactly, in minutes (minutes are the authoritative values).
 func assertReconciles(t *testing.T, res tlResult) {
 	t.Helper()
 
 	var logged, billable, nonBillable, billed, unbilled int64
+	rows := make([]tlCols, 0, len(res.Groups)+len(res.Periods))
 	for _, g := range res.Groups {
+		rows = append(rows, g.tlCols)
+	}
+	for _, p := range res.Periods {
+		rows = append(rows, p.tlCols)
+	}
+	for _, g := range rows {
 		logged += g.LoggedMinutes
 		billable += g.BillableMinutes
 		nonBillable += g.NonBillableMinutes
@@ -125,8 +137,8 @@ func assertReconciles(t *testing.T, res tlResult) {
 	if unbilled != res.Totals.UnbilledBillableMinutes {
 		t.Errorf("unbilled-billable minutes: Σgroups=%d totals=%d", unbilled, res.Totals.UnbilledBillableMinutes)
 	}
-	if int64(len(res.Groups)) != res.Totals.GroupCount {
-		t.Errorf("groupCount=%d but %d groups returned", res.Totals.GroupCount, len(res.Groups))
+	if int64(len(rows)) != res.Totals.GroupCount {
+		t.Errorf("groupCount=%d but %d rows returned", res.Totals.GroupCount, len(rows))
 	}
 }
 
@@ -466,4 +478,280 @@ func TestSummarizeTimelogsGroupByReachesTheWire(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestSummarizeTimelogsByWeek(t *testing.T) {
+	// Opens mid-week: first period clipped to two days, second all zeros.
+	body := []byte(`{
+		"loggedTime": 1560, "billableTime": 1200, "nonBillableTime": 360, "billedTime": 240, "estimatedTime": 0,
+		"dates": [
+			{"startDate": "2026-08-01", "endDate": "2026-08-02", "loggedTime": 810, "billableTime": 600,
+			 "nonBillableTime": 210, "billedTime": 120, "estimatedTime": 0},
+			{"startDate": "2026-08-03", "endDate": "2026-08-09", "loggedTime": 0, "billableTime": 0,
+			 "nonBillableTime": 0, "billedTime": 0, "estimatedTime": 0},
+			{"startDate": "2026-08-10", "endDate": "2026-08-16", "loggedTime": 750, "billableTime": 600,
+			 "nonBillableTime": 150, "billedTime": 120, "estimatedTime": 0}
+		]
+	}`)
+
+	mcpServer := mcpServerMock(t, http.StatusOK, body)
+	testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodSummarizeTimelogs.String(), map[string]any{
+		"start_date": "2026-08-01",
+		"end_date":   "2026-08-16",
+		"group_by":   "week",
+	}, testutil.ExecuteToolRequestWithCheckMessage(func(t *testing.T, result mcp.Result) {
+		res := decodeSummary(t, result)
+
+		if res.Scope.GroupBy != "week" {
+			t.Errorf("expected groupBy week, got %q", res.Scope.GroupBy)
+		}
+		if len(res.Groups) != 0 {
+			t.Errorf("expected no groups for a period grouping, got %d", len(res.Groups))
+		}
+		if len(res.Periods) != 3 {
+			t.Fatalf("expected 3 periods, got %d", len(res.Periods))
+		}
+		// Chronological order and the clipped window are kept.
+		if res.Periods[0].StartDate != "2026-08-01" || res.Periods[0].EndDate != "2026-08-02" {
+			t.Errorf("period[0] window wrong: %+v", res.Periods[0])
+		}
+		if res.Periods[0].LoggedMinutes != 810 || res.Periods[0].LoggedHours != 13.5 {
+			t.Errorf("period[0] logged wrong: %d min / %v h", res.Periods[0].LoggedMinutes, res.Periods[0].LoggedHours)
+		}
+		// unbilledBillable = billable - billed = 600 - 120 = 480.
+		if res.Periods[0].UnbilledBillableMinutes != 480 {
+			t.Errorf("period[0] unbilledBillable wrong: %d", res.Periods[0].UnbilledBillableMinutes)
+		}
+		if res.Periods[1].LoggedMinutes != 0 || res.Periods[1].StartDate != "2026-08-03" {
+			t.Errorf("empty period must be kept as zeros: %+v", res.Periods[1])
+		}
+		if res.Totals.LoggedMinutes != 1560 || res.Totals.LoggedHours != 26 {
+			t.Errorf("totals logged wrong: %d min / %v h", res.Totals.LoggedMinutes, res.Totals.LoggedHours)
+		}
+		if res.Totals.GroupCount != 3 {
+			t.Errorf("expected groupCount 3, got %d", res.Totals.GroupCount)
+		}
+		assertReconciles(t, res)
+	}))
+}
+
+func TestSummarizeTimelogsByPeriodEmptyWindowReturnsZeros(t *testing.T) {
+	body := []byte(`{"loggedTime": 0, "billableTime": 0, "nonBillableTime": 0, "billedTime": 0,
+		"estimatedTime": 0, "dates": []}`)
+
+	mcpServer := mcpServerMock(t, http.StatusOK, body)
+	testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodSummarizeTimelogs.String(), map[string]any{
+		"start_date": "2026-07-01",
+		"end_date":   "2026-07-31",
+		"group_by":   "month",
+	}, testutil.ExecuteToolRequestWithCheckMessage(func(t *testing.T, result mcp.Result) {
+		res := decodeSummary(t, result)
+
+		if len(res.Periods) != 0 || len(res.Groups) != 0 {
+			t.Errorf("expected no rows, got %d periods and %d groups", len(res.Periods), len(res.Groups))
+		}
+		if res.Totals.GroupCount != 0 || res.Totals.LoggedMinutes != 0 {
+			t.Errorf("expected zero totals, got %+v", res.Totals)
+		}
+	}))
+}
+
+func TestSummarizeTimelogsByPeriodRejectsOrdering(t *testing.T) {
+	for _, args := range []map[string]any{
+		{"order_by": "loggedtime"},
+		{"order_mode": "desc"},
+	} {
+		mcpServer := mcpServerMock(t, http.StatusOK, []byte(`{"dates": []}`))
+		request := map[string]any{
+			"start_date": "2026-07-01",
+			"end_date":   "2026-07-31",
+			"group_by":   "day",
+		}
+		for key, value := range args {
+			request[key] = value
+		}
+		testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodSummarizeTimelogs.String(), request,
+			expectToolError(t, "not accepted when group_by is day"))
+	}
+}
+
+func TestSummarizeTimelogsByPeriodPlanGate403(t *testing.T) {
+	body := []byte(`{"errors": [{"detail": "You do not have permission to view this report."}]}`)
+
+	mcpServer := mcpServerMock(t, http.StatusForbidden, body)
+	testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodSummarizeTimelogs.String(), map[string]any{
+		"start_date": "2026-07-01",
+		"end_date":   "2026-07-31",
+		"group_by":   "week",
+	}, expectToolError(t, ""))
+}
+
+// TestSummarizeTimelogsPeriodGroupByReachesTheWire pins the totals request each
+// period value builds; the mocks reply the same body either way.
+func TestSummarizeTimelogsPeriodGroupByReachesTheWire(t *testing.T) {
+	for _, groupBy := range []string{"day", "week", "month"} {
+		t.Run(groupBy, func(t *testing.T) {
+			body := []byte(`{"loggedTime": 0, "billableTime": 0, "nonBillableTime": 0, "billedTime": 0,
+				"estimatedTime": 0, "dates": []}`)
+			mcpServer, urls := testutil.ProjectsMCPServerMockWithRequestURLs(t, http.StatusOK, body)
+
+			testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodSummarizeTimelogs.String(), map[string]any{
+				"start_date":                "2026-01-05",
+				"end_date":                  "2026-08-16",
+				"group_by":                  groupBy,
+				"project_ids":               []float64{1, 2},
+				"user_ids":                  []float64{3},
+				"task_ids":                  []float64{4},
+				"tasklist_ids":              []float64{5},
+				"company_ids":               []float64{6},
+				"team_ids":                  []float64{7},
+				"timelog_tag_ids":           []float64{8, 9},
+				"include_archived_projects": true,
+			})
+
+			if len(*urls) != 1 {
+				t.Fatalf("expected a single request to the totals endpoint, got %d", len(*urls))
+			}
+			lastURL := (*urls)[0]
+			if lastURL.Path != "/projects/api/v3/time/report/totals.json" {
+				t.Errorf("expected the totals path, got %q", lastURL.Path)
+			}
+			query := lastURL.Query()
+			want := map[string]string{
+				"groupBy":                 groupBy,
+				"startDate":               "2026-01-05",
+				"endDate":                 "2026-08-16",
+				"projectIds":              "1,2",
+				"userIds":                 "3",
+				"taskIds":                 "4",
+				"tasklistIds":             "5",
+				"companyIds":              "6",
+				"teamIds":                 "7",
+				"timelogTagIds":           "8,9",
+				"includeArchivedProjects": "true",
+			}
+			for key, value := range want {
+				if got := query.Get(key); got != value {
+					t.Errorf("expected %s=%s, got %q", key, value, got)
+				}
+			}
+			for _, key := range []string{"type", "reportType", "include", "page", "pageSize", "orderBy", "orderMode"} {
+				if _, ok := query[key]; ok {
+					t.Errorf("expected %s to be absent from the totals request, got %q", key, query.Get(key))
+				}
+			}
+		})
+	}
+}
+
+// TestSummarizeTimelogsPeriodSplitsTheWindowPerCalendarYear pins one request
+// per calendar year, clipped to the caller's window. The endpoint buckets by
+// day of year or month number, so one multi-year request would fold years.
+func TestSummarizeTimelogsPeriodSplitsTheWindowPerCalendarYear(t *testing.T) {
+	body := []byte(`{"loggedTime": 0, "billableTime": 0, "nonBillableTime": 0, "billedTime": 0,
+		"estimatedTime": 0, "dates": []}`)
+	mcpServer, urls := testutil.ProjectsMCPServerMockWithRequestURLs(t, http.StatusOK, body)
+
+	testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodSummarizeTimelogs.String(), map[string]any{
+		"start_date": "2024-11-15",
+		"end_date":   "2026-02-10",
+		"group_by":   "month",
+	})
+
+	want := [][2]string{
+		{"2024-11-15", "2024-12-31"},
+		{"2025-01-01", "2025-12-31"},
+		{"2026-01-01", "2026-02-10"},
+	}
+	if len(*urls) != len(want) {
+		t.Fatalf("expected %d requests, one per calendar year, got %d", len(want), len(*urls))
+	}
+	for i, window := range want {
+		query := (*urls)[i].Query()
+		if query.Get("startDate") != window[0] || query.Get("endDate") != window[1] {
+			t.Errorf("request %d: expected window %s to %s, got %s to %s",
+				i, window[0], window[1], query.Get("startDate"), query.Get("endDate"))
+		}
+		if query.Get("groupBy") != "month" {
+			t.Errorf("request %d: expected groupBy=month, got %q", i, query.Get("groupBy"))
+		}
+	}
+}
+
+// TestSummarizeTimelogsWeekSplitByNewYearIsMerged pins that the two halves of
+// a week cut by the 1 January split come back as one row.
+func TestSummarizeTimelogsWeekSplitByNewYearIsMerged(t *testing.T) {
+	year2025 := []byte(`{"loggedTime": 0, "billableTime": 0, "nonBillableTime": 0, "billedTime": 0,
+		"estimatedTime": 0, "dates": [
+			{"startDate": "2025-12-22", "endDate": "2025-12-28", "loggedTime": 300, "billableTime": 300,
+			 "nonBillableTime": 0, "billedTime": 0, "estimatedTime": 0},
+			{"startDate": "2025-12-29", "endDate": "2025-12-31", "loggedTime": 120, "billableTime": 60,
+			 "nonBillableTime": 60, "billedTime": 60, "estimatedTime": 0}
+		]}`)
+	year2026 := []byte(`{"loggedTime": 0, "billableTime": 0, "nonBillableTime": 0, "billedTime": 0,
+		"estimatedTime": 0, "dates": [
+			{"startDate": "2026-01-01", "endDate": "2026-01-04", "loggedTime": 180, "billableTime": 120,
+			 "nonBillableTime": 60, "billedTime": 0, "estimatedTime": 0},
+			{"startDate": "2026-01-05", "endDate": "2026-01-11", "loggedTime": 60, "billableTime": 0,
+			 "nonBillableTime": 60, "billedTime": 0, "estimatedTime": 0}
+		]}`)
+
+	mcpServer := testutil.ProjectsMCPServerSequencedMock(t, http.StatusOK, year2025, year2026)
+	testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodSummarizeTimelogs.String(), map[string]any{
+		"start_date": "2025-12-22",
+		"end_date":   "2026-01-11",
+		"group_by":   "week",
+	}, testutil.ExecuteToolRequestWithCheckMessage(func(t *testing.T, result mcp.Result) {
+		res := decodeSummary(t, result)
+
+		if len(res.Periods) != 3 {
+			t.Fatalf("expected 3 weeks after merging the split one, got %d: %+v", len(res.Periods), res.Periods)
+		}
+		merged := res.Periods[1]
+		if merged.StartDate != "2025-12-29" || merged.EndDate != "2026-01-04" {
+			t.Errorf("expected the split week to span 2025-12-29 to 2026-01-04, got %s to %s",
+				merged.StartDate, merged.EndDate)
+		}
+		// 120 + 180 logged, 60 + 120 billable, 60 billed → 120 unbilled billable.
+		if merged.LoggedMinutes != 300 || merged.BillableMinutes != 180 || merged.UnbilledBillableMinutes != 120 {
+			t.Errorf("merged week columns wrong: %+v", merged)
+		}
+		if res.Periods[0].EndDate != "2025-12-28" || res.Periods[2].StartDate != "2026-01-05" {
+			t.Errorf("neighbouring weeks must be left alone: %+v", res.Periods)
+		}
+		if res.Totals.LoggedMinutes != 660 || res.Totals.GroupCount != 3 {
+			t.Errorf("totals wrong: %+v", res.Totals)
+		}
+		assertReconciles(t, res)
+	}))
+}
+
+func TestSummarizeTimelogsFullWeekEndingOnNewYearsEveIsNotMerged(t *testing.T) {
+	year2025 := []byte(`{"loggedTime": 0, "billableTime": 0, "nonBillableTime": 0, "billedTime": 0,
+		"estimatedTime": 0, "dates": [
+			{"startDate": "2025-12-25", "endDate": "2025-12-31", "loggedTime": 300, "billableTime": 300,
+			 "nonBillableTime": 0, "billedTime": 0, "estimatedTime": 0}
+		]}`)
+	year2026 := []byte(`{"loggedTime": 0, "billableTime": 0, "nonBillableTime": 0, "billedTime": 0,
+		"estimatedTime": 0, "dates": [
+			{"startDate": "2026-01-01", "endDate": "2026-01-07", "loggedTime": 60, "billableTime": 0,
+			 "nonBillableTime": 60, "billedTime": 0, "estimatedTime": 0}
+		]}`)
+
+	mcpServer := testutil.ProjectsMCPServerSequencedMock(t, http.StatusOK, year2025, year2026)
+	testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodSummarizeTimelogs.String(), map[string]any{
+		"start_date": "2025-12-25",
+		"end_date":   "2026-01-07",
+		"group_by":   "week",
+	}, testutil.ExecuteToolRequestWithCheckMessage(func(t *testing.T, result mcp.Result) {
+		res := decodeSummary(t, result)
+
+		if len(res.Periods) != 2 {
+			t.Fatalf("expected 2 separate weeks, got %d: %+v", len(res.Periods), res.Periods)
+		}
+		if res.Periods[0].EndDate != "2025-12-31" || res.Periods[1].StartDate != "2026-01-01" {
+			t.Errorf("full weeks must not be merged: %+v", res.Periods)
+		}
+		assertReconciles(t, res)
+	}))
 }
