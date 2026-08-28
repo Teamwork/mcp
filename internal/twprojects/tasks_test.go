@@ -628,11 +628,8 @@ func TestTaskListShowCompletedReachesTheWire(t *testing.T) {
 	}
 }
 
-// TestTaskCreateWorkflowPlacementReachesTheWire covers the whole point of the
-// parameters: a task created straight into a stage saves the follow-up
-// move_task_to_workflow_stage call, and that call is the one that used to be
-// refused for non-administrators. The mocks answer the same body either way, so
-// only the request shows whether the placement travelled.
+// The mocks answer the same body either way, so only the request shows whether
+// the placement travelled.
 func TestTaskCreateWorkflowPlacementReachesTheWire(t *testing.T) {
 	tests := []struct {
 		name      string
@@ -648,8 +645,8 @@ func TestTaskCreateWorkflowPlacementReachesTheWire(t *testing.T) {
 		},
 		want: &struct{ WorkflowID, StageID int64 }{123, 456},
 	}, {
-		// A "workflows" object on every unrelated create would be a payload
-		// change for callers that never mention a workflow.
+		// Sending one on every create would change the payload for callers that
+		// never mention a workflow.
 		name: "omitted when not asked for",
 		arguments: map[string]any{
 			"name":        "Test Task",
@@ -674,7 +671,7 @@ func TestTaskCreateWorkflowPlacementReachesTheWire(t *testing.T) {
 				t.Fatalf("failed to decode request body %q: %v", string(*requestBody), err)
 			}
 
-			// The endpoint reads "workflows" beside "task", never inside it.
+			// Read beside "task", never inside it.
 			if _, ok := payload.Task["workflows"]; ok {
 				t.Errorf("workflows must sit beside task, not inside it (body %q)", string(*requestBody))
 			}
@@ -697,9 +694,7 @@ func TestTaskCreateWorkflowPlacementReachesTheWire(t *testing.T) {
 	}
 }
 
-// TestTaskCreateWorkflowPlacementNeedsBothIDs guards against the silent half of
-// the endpoint's behaviour: a stage with no workflow is dropped, and the task
-// lands in the backlog with a 201 that looks like success.
+// Either ID alone is dropped, and the 201 looks like success.
 func TestTaskCreateWorkflowPlacementNeedsBothIDs(t *testing.T) {
 	for _, arguments := range []map[string]any{
 		{"name": "Test Task", "tasklist_id": float64(777), "stage_id": float64(456)},

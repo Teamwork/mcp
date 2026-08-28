@@ -235,10 +235,8 @@ func TaskCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
 			}
 
-			// The endpoint drops a stage that arrives without its workflow, and a
-			// workflow without a stage means the backlog it would have used anyway.
-			// Either alone is a caller mistake worth saying out loud, since the
-			// response reports neither.
+			// The endpoint drops either ID sent alone and still answers 201, so
+			// say it here rather than let the placement vanish.
 			if (taskCreateRequest.Workflows.WorkflowID == nil) != (taskCreateRequest.Workflows.StageID == nil) {
 				return helpers.NewToolResultTextError(
 					"workflow_id and stage_id must be provided together"), nil

@@ -224,32 +224,18 @@ func WorkflowStageDelete(engine *twapi.Engine) toolsets.ToolWrapper {
 	}
 }
 
-// workflowStageTaskMoveMaxTasks bounds the fan-out. The stage's own bulk
-// endpoint would take the whole list in one request, but its permission check is
-// not the one the board applies, so each task costs a request of its own and a
-// longer list would outlive this one.
+// One request per task, so a longer list would outlive this one.
 const workflowStageTaskMoveMaxTasks = 50
 
 // WorkflowStageTaskMove moves tasks to a specific stage within a workflow in
 // Teamwork.com.
 //
-// One request per task, through PATCH
-// /projects/api/v3/tasks/{id}/workflows/{workflowId}.json -- the route the board
-// itself uses when a card is dragged, which checks the task's own edit
-// permission.
-//
-// The stage's bulk route (POST /workflows/{id}/stages/{id}/tasks.json) moves the
-// whole list in one request, but checks permission to edit the *workflow*, and
-// what that costs depends on the workflow. A project-specific one falls back to
-// the project's view-tasks-and-milestones permission and usually passes. A
-// workflow that is not project-specific has only the site-level "can edit
-// workflows" to fall back on -- implied for an owner-company administrator,
-// granted explicitly to nobody else, and never inferred from any project
-// permission -- so batching answered 403 "access denied" for every
-// non-administrator there, on a move the same user could make by dragging the
-// card. Verified against a live installation: as a non-admin account user with
-// the project's add-tasks permission, the bulk route answers 403 and this one
-// 204 for the same task and stage.
+// One request per task, through the route the board uses when a card is dragged:
+// PATCH /projects/api/v3/tasks/{id}/workflows/{workflowId}.json, which checks
+// the task's edit permission. The stage's bulk route takes the whole list at
+// once but checks permission to edit the workflow, which on a global workflow
+// only an administrator has -- it answered 403 for everyone else. Do not trade
+// the requests back for the array.
 func WorkflowStageTaskMove(engine *twapi.Engine) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
@@ -279,10 +265,9 @@ func WorkflowStageTaskMove(engine *twapi.Engine) toolsets.ToolWrapper {
 							"attached to the project the task belongs to.",
 					},
 				},
-				// task_ids is deliberately absent from Required. The SDK validates
-				// the schema before the handler runs, so requiring it would reject
-				// clients still sending the scalar task_id this tool advertised
-				// before it took a set, and the handler could never see them.
+				// Not Required: the SDK validates the schema before the handler
+				// runs, so requiring it would reject clients still sending the
+				// scalar task_id, unseen.
 				Required: []string{"workflow_id", "stage_id"},
 			},
 		},
@@ -302,10 +287,8 @@ func WorkflowStageTaskMove(engine *twapi.Engine) toolsets.ToolWrapper {
 				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
 			}
 
-			// This tool advertised a scalar task_id before it could move a set.
-			// Clients holding a cached tool list still send it, so it is accepted
-			// but no longer advertised, to keep one way of saying this in the
-			// schema.
+			// Accepted but no longer advertised, for clients holding the old
+			// tool list.
 			if len(taskIDs) == 0 {
 				var legacyTaskID int64
 				if err := helpers.ParamGroup(arguments,
