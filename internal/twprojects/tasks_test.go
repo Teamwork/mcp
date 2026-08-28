@@ -627,3 +627,95 @@ func TestTaskListShowCompletedReachesTheWire(t *testing.T) {
 		})
 	}
 }
+
+// TestTaskCreateWorkflowPlacementReachesTheWire covers the whole point of the
+// parameters: a task created straight into a stage saves the follow-up
+// move_task_to_workflow_stage call, and that call is the one that used to be
+// refused for non-administrators. The mocks answer the same body either way, so
+// only the request shows whether the placement travelled.
+func TestTaskCreateWorkflowPlacementReachesTheWire(t *testing.T) {
+	tests := []struct {
+		name      string
+		arguments map[string]any
+		want      *struct{ WorkflowID, StageID int64 }
+	}{{
+		name: "placed in a stage",
+		arguments: map[string]any{
+			"name":        "Test Task",
+			"tasklist_id": float64(777),
+			"workflow_id": float64(123),
+			"stage_id":    float64(456),
+		},
+		want: &struct{ WorkflowID, StageID int64 }{123, 456},
+	}, {
+		// A "workflows" object on every unrelated create would be a payload
+		// change for callers that never mention a workflow.
+		name: "omitted when not asked for",
+		arguments: map[string]any{
+			"name":        "Test Task",
+			"tasklist_id": float64(777),
+		},
+	}}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mcpServer, requestBody := mcpServerMockWithRequestBody(t, http.StatusCreated,
+				[]byte(`{"task":{"id":12345}}`))
+			testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodTaskCreate.String(), tt.arguments)
+
+			var payload struct {
+				Task      map[string]any `json:"task"`
+				Workflows *struct {
+					WorkflowID int64 `json:"workflowId"`
+					StageID    int64 `json:"stageId"`
+				} `json:"workflows"`
+			}
+			if err := json.Unmarshal(*requestBody, &payload); err != nil {
+				t.Fatalf("failed to decode request body %q: %v", string(*requestBody), err)
+			}
+
+			// The endpoint reads "workflows" beside "task", never inside it.
+			if _, ok := payload.Task["workflows"]; ok {
+				t.Errorf("workflows must sit beside task, not inside it (body %q)", string(*requestBody))
+			}
+
+			switch {
+			case tt.want == nil && payload.Workflows != nil:
+				t.Errorf("expected no workflows block, got %+v (body %q)",
+					*payload.Workflows, string(*requestBody))
+			case tt.want != nil && payload.Workflows == nil:
+				t.Fatalf("expected a workflows block (body %q)", string(*requestBody))
+			case tt.want != nil:
+				if payload.Workflows.WorkflowID != tt.want.WorkflowID {
+					t.Errorf("expected workflowId %d, got %d", tt.want.WorkflowID, payload.Workflows.WorkflowID)
+				}
+				if payload.Workflows.StageID != tt.want.StageID {
+					t.Errorf("expected stageId %d, got %d", tt.want.StageID, payload.Workflows.StageID)
+				}
+			}
+		})
+	}
+}
+
+// TestTaskCreateWorkflowPlacementNeedsBothIDs guards against the silent half of
+// the endpoint's behaviour: a stage with no workflow is dropped, and the task
+// lands in the backlog with a 201 that looks like success.
+func TestTaskCreateWorkflowPlacementNeedsBothIDs(t *testing.T) {
+	for _, arguments := range []map[string]any{
+		{"name": "Test Task", "tasklist_id": float64(777), "stage_id": float64(456)},
+		{"name": "Test Task", "tasklist_id": float64(777), "workflow_id": float64(123)},
+	} {
+		mcpServer := mcpServerMock(t, http.StatusCreated, []byte(`{"task":{"id":12345}}`))
+		testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodTaskCreate.String(), arguments,
+			testutil.ExecuteToolRequestWithCheckMessage(func(t *testing.T, result mcp.Result) {
+				toolResult, ok := result.(*mcp.CallToolResult)
+				if !ok {
+					t.Fatalf("unexpected result type: %T", result)
+				}
+				if !toolResult.IsError {
+					t.Errorf("expected an error for %v, got success", arguments)
+				}
+			}),
+		)
+	}
+}
