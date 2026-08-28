@@ -2,8 +2,8 @@ package twprojects_test
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
-	"slices"
 	"testing"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
@@ -37,7 +37,11 @@ func TestWorkflowStageDelete(t *testing.T) {
 	})
 }
 
-func TestWorkflowStageTaskMove(t *testing.T) {
+// TestWorkflowStageTaskMoveUsesTheBoardRoute pins the transport, not just the
+// outcome. The stage's bulk route would move the whole list in one request, but
+// it is gated on permission to edit the workflow rather than the task, so every
+// non-administrator got a 403 for a move they can perform by dragging the card.
+func TestWorkflowStageTaskMoveUsesTheBoardRoute(t *testing.T) {
 	mcpServer, recorded := mcpServerRecordingMock(t, nil, http.StatusNoContent, []byte(``))
 	testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodWorkflowStageTaskMove.String(), map[string]any{
 		"workflow_id": float64(123),
@@ -45,27 +49,33 @@ func TestWorkflowStageTaskMove(t *testing.T) {
 		"task_ids":    []float64{789, 790, 791},
 	})
 
-	// The whole set has to travel in one request; looping the single-task
-	// endpoint instead is the call amplification this tool exists to avoid.
-	if len(*recorded) != 1 {
-		t.Fatalf("expected a single HTTP request, got %d", len(*recorded))
+	if len(*recorded) != 3 {
+		t.Fatalf("expected one HTTP request per task, got %d", len(*recorded))
 	}
-	entry := (*recorded)[0]
-	if entry.Method != http.MethodPost {
-		t.Errorf("expected POST, got %s", entry.Method)
-	}
-	if want := "/projects/api/v3/workflows/123/stages/456/tasks.json"; entry.URL.Path != want {
-		t.Errorf("expected path %s, got %s", want, entry.URL.Path)
-	}
+	for i, want := range []int64{789, 790, 791} {
+		entry := (*recorded)[i]
+		if entry.Method != http.MethodPatch {
+			t.Errorf("request %d: expected PATCH, got %s", i, entry.Method)
+		}
+		wantPath := fmt.Sprintf("/projects/api/v3/tasks/%d/workflows/123.json", want)
+		if entry.URL.Path != wantPath {
+			t.Errorf("request %d: expected path %s, got %s", i, wantPath, entry.URL.Path)
+		}
 
-	var payload struct {
-		TaskIDs []int64 `json:"taskIds"`
-	}
-	if err := json.Unmarshal(entry.Body, &payload); err != nil {
-		t.Fatalf("failed to decode request body %q: %v", string(entry.Body), err)
-	}
-	if want := []int64{789, 790, 791}; !slices.Equal(payload.TaskIDs, want) {
-		t.Errorf("expected taskIds %v, got %v (body %q)", want, payload.TaskIDs, string(entry.Body))
+		var payload struct {
+			StageID           int64 `json:"stageId"`
+			PositionAfterTask int64 `json:"positionAfterTask"`
+		}
+		if err := json.Unmarshal(entry.Body, &payload); err != nil {
+			t.Fatalf("request %d: failed to decode body %q: %v", i, string(entry.Body), err)
+		}
+		if payload.StageID != 456 {
+			t.Errorf("request %d: expected stageId 456, got %d", i, payload.StageID)
+		}
+		// -1 appends to the end of the stage, so the tasks keep the order given.
+		if payload.PositionAfterTask != -1 {
+			t.Errorf("request %d: expected positionAfterTask -1, got %d", i, payload.PositionAfterTask)
+		}
 	}
 }
 
@@ -83,14 +93,8 @@ func TestWorkflowStageTaskMoveAcceptsLegacyTaskID(t *testing.T) {
 	if len(*recorded) != 1 {
 		t.Fatalf("expected a single HTTP request, got %d", len(*recorded))
 	}
-	var payload struct {
-		TaskIDs []int64 `json:"taskIds"`
-	}
-	if err := json.Unmarshal((*recorded)[0].Body, &payload); err != nil {
-		t.Fatalf("failed to decode request body: %v", err)
-	}
-	if want := []int64{789}; !slices.Equal(payload.TaskIDs, want) {
-		t.Errorf("expected taskIds %v, got %v", want, payload.TaskIDs)
+	if want := "/projects/api/v3/tasks/789/workflows/123.json"; (*recorded)[0].URL.Path != want {
+		t.Errorf("expected path %s, got %s", want, (*recorded)[0].URL.Path)
 	}
 }
 
