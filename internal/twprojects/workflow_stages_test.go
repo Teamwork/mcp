@@ -37,10 +37,8 @@ func TestWorkflowStageDelete(t *testing.T) {
 	})
 }
 
-// TestWorkflowStageTaskMoveUsesTheBoardRoute pins the transport, not just the
-// outcome. The stage's bulk route would move the whole list in one request, but
-// it is gated on permission to edit the workflow rather than the task, so every
-// non-administrator got a 403 for a move they can perform by dragging the card.
+// Pins the transport, not the outcome: the bulk route answers 204 too, but 403s
+// for non-administrators.
 func TestWorkflowStageTaskMoveUsesTheBoardRoute(t *testing.T) {
 	mcpServer, recorded := mcpServerRecordingMock(t, nil, http.StatusNoContent, []byte(``))
 	testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodWorkflowStageTaskMove.String(), map[string]any{
@@ -72,16 +70,14 @@ func TestWorkflowStageTaskMoveUsesTheBoardRoute(t *testing.T) {
 		if payload.StageID != 456 {
 			t.Errorf("request %d: expected stageId 456, got %d", i, payload.StageID)
 		}
-		// -1 appends to the end of the stage, so the tasks keep the order given.
+		// -1 appends, so the tasks keep the order given.
 		if payload.PositionAfterTask != -1 {
 			t.Errorf("request %d: expected positionAfterTask -1, got %d", i, payload.PositionAfterTask)
 		}
 	}
 }
 
-// TestWorkflowStageTaskMoveAcceptsLegacyTaskID covers clients still holding the
-// tool list from before this tool took a set. The scalar is no longer
-// advertised, but dropping it would break them mid-session.
+// Clients holding the tool list from before this tool took a set.
 func TestWorkflowStageTaskMoveAcceptsLegacyTaskID(t *testing.T) {
 	mcpServer, recorded := mcpServerRecordingMock(t, nil, http.StatusNoContent, []byte(``))
 	testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodWorkflowStageTaskMove.String(), map[string]any{
