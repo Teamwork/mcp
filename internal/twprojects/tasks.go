@@ -75,6 +75,38 @@ var taskOrdering = newOrdering("tasks",
 	projects.TaskOrderByParentTask,
 )
 
+// taskDateFilters is the vocabulary of the endpoint's taskFilter parameter: the
+// scheduling states the task UI puts in front of users, which is why callers
+// ask for them by those words. Publishing them is what keeps a model from
+// reading a whole project and comparing dates itself.
+//
+// Every value is a statement about dates, and only about dates. The endpoint's
+// `all` and `completed` are not: they switch completed work on, which
+// show_completed and only_completed already own, and each one replaced the date
+// filter rather than combining with it. TaskDateFilterNewTaskDefaults is absent
+// too — it selects the per-project new-task template rows, not work anybody
+// asked about — and so is TaskDateFilterCreated, which restricts no date on its
+// own and only means something alongside a created-date filter this tool does
+// not expose.
+var taskDateFilters = newVocabulary(
+	projects.TaskDateFilterAnytime,
+	projects.TaskDateFilterOverdue,
+	projects.TaskDateFilterToday,
+	projects.TaskDateFilterTomorrow,
+	projects.TaskDateFilterYesterday,
+	projects.TaskDateFilterThisWeek,
+	projects.TaskDateFilterUpcoming,
+	projects.TaskDateFilterStarted,
+	projects.TaskDateFilterWithin7,
+	projects.TaskDateFilterWithin14,
+	projects.TaskDateFilterWithin30,
+	projects.TaskDateFilterWithin365,
+	projects.TaskDateFilterNoDate,
+	projects.TaskDateFilterNoDueDate,
+	projects.TaskDateFilterNoStartDate,
+	projects.TaskDateFilterHasDate,
+)
+
 func init() {
 	var err error
 
@@ -1026,7 +1058,9 @@ func TaskList(engine *twapi.Engine) toolsets.ToolWrapper {
 			Description: "List tasks with structured filters (tasklist_id, project_id, or site-wide). " +
 				"For keyword search use search. Completed tasks and tasks in completed tasklists are " +
 				"excluded unless show_completed is true, so an empty result may mean the matching work " +
-				"is already done rather than missing.",
+				"is already done rather than missing. Ask for \"late\", \"overdue\", \"due today\", " +
+				"\"started\" or \"upcoming\" work through date_filter, and leave people out through " +
+				"exclude_assignee_user_ids, rather than reading rows and filtering them yourself.",
 			Annotations: &mcp.ToolAnnotations{
 				Title:           "List Tasks",
 				ReadOnlyHint:    true,
@@ -1058,6 +1092,16 @@ func TaskList(engine *twapi.Engine) toolsets.ToolWrapper {
 							{Type: "null"},
 						},
 					},
+					"exclude_assignee_user_ids": {
+						Description: "Leave out tasks assigned to any of these users. A task is dropped when any " +
+							"one of the listed users is assigned to it, even when it also carries assignees you " +
+							"did not exclude. A user reached only through a team, company or job-role assignment " +
+							"on the task is not matched. Combines with assignee_user_ids and every other filter.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "array", Items: &jsonschema.Schema{Type: "integer"}},
+							{Type: "null"},
+						},
+					},
 					"tag_ids":        helpers.TagIDsFilterSchema("tasks"),
 					"match_all_tags": helpers.MatchAllTagsSchema(),
 					"created_after": helpers.DateTimeFilterSchema(
@@ -1081,6 +1125,33 @@ func TaskList(engine *twapi.Engine) toolsets.ToolWrapper {
 					"completed_before": helpers.DateTimeFilterSchema(
 						"Only include tasks completed at or before this moment; the boundary itself matches. " +
 							"Setting it narrows the result to completed tasks."),
+					"date_filter": taskDateFilters.schema(
+						"Where the task's dates fall relative to today, in your own timezone. This is the " +
+							"filter for \"late\", \"overdue\", \"due today\", \"started\" and \"upcoming\"; " +
+							"omit it for no date restriction. overdue: due before today and not completed — this " +
+							"is \"late\", and it never returns completed tasks whatever show_completed says. " +
+							"today: due today, without adding the overdue ones. thisweek: the calendar week " +
+							"containing today, the days of it already past included. upcoming: due today or " +
+							"later. started: the start date has arrived and the due date has not passed — start " +
+							"date on or before today, and either no due date at all or one falling today or " +
+							"later. within7, within14, within30, within365: due between today and that many days " +
+							"from today, both days included. nodate: no start date, no due date and no " +
+							"milestone. anytime: no date restriction, what the endpoint applies when this is " +
+							"omitted. Completed tasks stay hidden unless show_completed is true, and overdue " +
+							"never returns one even then; for completed work alone use only_completed, which " +
+							"combines with any value here except overdue. A task with no due date of its own is " +
+							"matched on its milestone's."),
+					"start_after": {
+						Description: "Only include tasks whose own start date falls on or after this date; the " +
+							"day itself matches. A task with no start date never matches — there is no " +
+							"milestone fallback. There is no upper bound on the start date, so for work that " +
+							"has already begun use date_filter=started instead.",
+						Examples: []any{"2023-01-01"},
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string", Format: "date"},
+							{Type: "null"},
+						},
+					},
 					"due_after": {
 						Description: "Only include tasks due after this date, excluding the day itself — " +
 							"unless due_before is set too, which makes both bounds inclusive. A task with " +
@@ -1109,6 +1180,16 @@ func TaskList(engine *twapi.Engine) toolsets.ToolWrapper {
 							{Type: "null"},
 						},
 						Default: []byte(`false`),
+					},
+					"only_completed": {
+						Description: "If true, return only completed tasks. It combines with every other " +
+							"filter, date_filter included — except date_filter=overdue, which never matches a " +
+							"completed task and so returns nothing. Tasks in completed tasklists still need " +
+							"show_completed.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "boolean"},
+							{Type: "null"},
+						},
 					},
 					"only_unassigned": {
 						Description: "If true, only return tasks that have no assignee.",
@@ -1155,6 +1236,8 @@ func TaskList(engine *twapi.Engine) toolsets.ToolWrapper {
 				helpers.OptionalNumericParam(&taskListRequest.Path.ProjectID, "project_id"),
 				helpers.OptionalParam(&taskListRequest.Filters.SearchTerm, "search_term"),
 				helpers.OptionalNumericListParam(&taskListRequest.Filters.AssigneeUserIDs, "assignee_user_ids"),
+				helpers.OptionalNumericListParam(&taskListRequest.Filters.ExcludeAssigneeUserIDs,
+					"exclude_assignee_user_ids"),
 				helpers.OptionalNumericListParam(&taskListRequest.Filters.TagIDs, "tag_ids"),
 				helpers.OptionalPointerParam(&taskListRequest.Filters.MatchAllTags, "match_all_tags"),
 				taskOrdering.param(&taskListRequest.Filters.OrderBy, &taskListRequest.Filters.OrderMode),
@@ -1171,9 +1254,12 @@ func TaskList(engine *twapi.Engine) toolsets.ToolWrapper {
 				helpers.OptionalTimePointerParam(&taskListRequest.Filters.CompletedAfter, "completed_after"),
 				helpers.OptionalTimePointerParam(&taskListRequest.Filters.CompletedBefore, "completed_before",
 					helpers.EndOfDay()),
+				taskDateFilters.param(&taskListRequest.Filters.DateFilter, "date_filter"),
+				helpers.OptionalDatePointerParam(&taskListRequest.Filters.StartAfter, "start_after"),
 				helpers.OptionalDatePointerParam(&taskListRequest.Filters.DueAfter, "due_after"),
 				helpers.OptionalDatePointerParam(&taskListRequest.Filters.DueBefore, "due_before"),
 				helpers.OptionalPointerParam(&showCompleted, "show_completed"),
+				helpers.OptionalPointerParam(&taskListRequest.Filters.OnlyCompleted, "only_completed"),
 				helpers.OptionalPointerParam(&taskListRequest.Filters.OnlyUnassigned, "only_unassigned"),
 				helpers.OptionalPointerParam(&taskListRequest.Filters.OnlyUnplanned, "only_unplanned"),
 				helpers.OptionalParam(&verbose, "verbose"),
@@ -1189,8 +1275,8 @@ func TaskList(engine *twapi.Engine) toolsets.ToolWrapper {
 				// the completed entries of the related-task lists a row carries. Callers
 				// asking to see completed work expect all of them, and a caller who asked
 				// to hide it would not expect completed IDs in `subTaskIds`.
-				taskListRequest.Filters.IncludeCompletedTasks = showCompleted
-				taskListRequest.Filters.IncludeTasksFromCompletedTasklists = showCompleted
+				taskListRequest.Filters.IncludeCompleted = showCompleted
+				taskListRequest.Filters.IncludeCompletedTasklists = showCompleted
 				taskListRequest.Filters.IncludeCompletedPredecessors = *showCompleted
 			}
 			if countOnly {
