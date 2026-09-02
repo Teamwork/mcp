@@ -69,6 +69,21 @@ func ActivityList(engine *twapi.Engine) toolsets.ToolWrapper {
 							{Type: "null"},
 						},
 					},
+					"user_ids": {
+						Description: "Filter activities by the users who created them.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "array", Items: &jsonschema.Schema{Type: "integer"}},
+							{Type: "null"},
+						},
+					},
+					"exclude_user_ids": {
+						Description: "Exclude activities created by these users. Pass the current user's ID to drop their own " +
+							"activity from the feed.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "array", Items: &jsonschema.Schema{Type: "integer"}},
+							{Type: "null"},
+						},
+					},
 					"start_date": helpers.DateTimeFilterSchema(
 						"Start of the activity window; the boundary itself is included."),
 					"end_date": helpers.DateTimeFilterSchema(
@@ -146,6 +161,8 @@ func ActivityList(engine *twapi.Engine) toolsets.ToolWrapper {
 				helpers.OptionalTimeParam(&activityListRequest.Filters.EndDate, "end_date", helpers.EndOfDay()),
 				helpers.OptionalListParam(&activityListRequest.Filters.LogItemTypes, "log_item_types"),
 				helpers.OptionalNumericListParam(&activityListRequest.Filters.ItemIDs, "item_ids"),
+				helpers.OptionalNumericListParam(&activityListRequest.Filters.UserIDs, "user_ids"),
+				helpers.OptionalNumericListParam(&activityListRequest.Filters.ExcludeUserIDs, "exclude_user_ids"),
 				activityOrdering.param(&activityListRequest.Filters.OrderBy, &activityListRequest.Filters.OrderMode),
 				helpers.OptionalNumericParam(&activityListRequest.Filters.Page, "page"),
 				helpers.OptionalNumericParam(&activityListRequest.Filters.PageSize, "page_size"),
@@ -156,7 +173,6 @@ func ActivityList(engine *twapi.Engine) toolsets.ToolWrapper {
 			if err != nil {
 				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
 			}
-
 			if !verbose && len(activityListRequest.Filters.Fields.Activities) == 0 {
 				activityListRequest.Filters.Fields.Activities = []projects.ActivityField{
 					projects.ActivityFieldID,

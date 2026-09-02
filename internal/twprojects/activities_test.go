@@ -77,17 +77,30 @@ func TestActivityListByProject(t *testing.T) {
 	})
 }
 
-// TestActivityListItemIDsReachTheWire pins the item_ids filter on the query
-// string: the mock replies with the same canned body whether or not the filter
-// is forwarded, so a dropped argument is otherwise invisible.
-func TestActivityListItemIDsReachTheWire(t *testing.T) {
-	mcpServer, lastURL := testutil.ProjectsMCPServerMockWithRequestURL(t, http.StatusOK, []byte(`{}`))
-	testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodActivityList.String(), map[string]any{
-		"item_ids":       []any{float64(777), float64(12345)},
-		"log_item_types": []any{"task"},
-	})
+// TestActivityListIDFiltersReachTheWire pins the ID filters on the query
+// string: the mock replies with the same canned body whether or not a filter is
+// forwarded, so a dropped argument is otherwise invisible.
+func TestActivityListIDFiltersReachTheWire(t *testing.T) {
+	tests := []struct {
+		param string
+		query string
+	}{
+		{param: "item_ids", query: "itemIds"},
+		{param: "user_ids", query: "userIds"},
+		{param: "exclude_user_ids", query: "excludeUserIds"},
+	}
 
-	if got, want := lastURL.Query().Get("itemIds"), "777,12345"; got != want {
-		t.Errorf("expected itemIds=%q in request query but got %q (raw query: %s)", want, got, lastURL.RawQuery)
+	for _, tt := range tests {
+		t.Run(tt.param, func(t *testing.T) {
+			mcpServer, lastURL := testutil.ProjectsMCPServerMockWithRequestURL(t, http.StatusOK, []byte(`{}`))
+			testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodActivityList.String(), map[string]any{
+				tt.param:         []any{float64(777), float64(12345)},
+				"log_item_types": []any{"task"},
+			})
+
+			if got, want := lastURL.Query().Get(tt.query), "777,12345"; got != want {
+				t.Errorf("expected %s=%q in request query but got %q (raw query: %s)", tt.query, want, got, lastURL.RawQuery)
+			}
+		})
 	}
 }
