@@ -88,6 +88,9 @@ var fieldsToolCases = []fieldsToolCase{{
 	method:     twprojects.MethodProjectList.String(),
 	attributes: attributesOf[projects.ProjectField, projects.Project],
 }, {
+	method:     twprojects.MethodProjectStatusUpdateList.String(),
+	attributes: attributesOf[projects.ProjectStatusUpdateField, projects.ProjectStatusUpdate],
+}, {
 	method:     twprojects.MethodSkillList.String(),
 	attributes: attributesOf[projects.SkillField, projects.Skill],
 }, {
