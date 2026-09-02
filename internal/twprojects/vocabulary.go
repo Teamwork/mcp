@@ -55,19 +55,58 @@ func newNamedVocabulary[T comparable](names []string, values []T) vocabulary[T] 
 	return vocabulary[T]{names: names, values: values}
 }
 
-// arraySchema returns the schema of a filter accepting any number of the
-// vocabulary's values.
-func (v vocabulary[T]) arraySchema(description string) *jsonschema.Schema {
+// enum returns the published names as a schema enum.
+func (v vocabulary[T]) enum() []any {
 	enum := make([]any, len(v.names))
 	for i, name := range v.names {
 		enum[i] = name
 	}
+	return enum
+}
+
+// arraySchema returns the schema of a filter accepting any number of the
+// vocabulary's values.
+func (v vocabulary[T]) arraySchema(description string) *jsonschema.Schema {
 	return &jsonschema.Schema{
 		Description: description,
 		AnyOf: []*jsonschema.Schema{
-			{Type: "array", Items: &jsonschema.Schema{Type: "string", Enum: enum}},
+			{Type: "array", Items: &jsonschema.Schema{Type: "string", Enum: v.enum()}},
 			{Type: "null"},
 		},
+	}
+}
+
+// schema returns the schema of a filter accepting one of the vocabulary's
+// values.
+func (v vocabulary[T]) schema(description string) *jsonschema.Schema {
+	return &jsonschema.Schema{
+		Description: description,
+		AnyOf: []*jsonschema.Schema{
+			{Type: "string", Enum: v.enum()},
+			{Type: "null"},
+		},
+	}
+}
+
+// param binds the named filter into target, translating the published name into
+// the value the API expects. An unknown name is rejected here as well as by the
+// schema, for the clients that skip validation.
+func (v vocabulary[T]) param(target *T, key string) helpers.ParamFunc {
+	return func(params map[string]any) error {
+		var name string
+		if err := helpers.OptionalParam(&name, key)(params); err != nil {
+			return err
+		}
+		if name == "" {
+			return nil
+		}
+		i := slices.Index(v.names, name)
+		if i < 0 {
+			return fmt.Errorf("value %q is not allowed for %s, must be one of %s",
+				name, key, strings.Join(v.names, ", "))
+		}
+		*target = v.values[i]
+		return nil
 	}
 }
 

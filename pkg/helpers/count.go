@@ -150,7 +150,7 @@ func countOnlyRequest[R twapi.HTTPRequester](requester R) (R, error) {
 	// Per-row work the count throws away, plus the cursor paging that would
 	// override the single row above. All optional, and none of them selects which
 	// rows match, so clearing them cannot move the count. Include* filters are
-	// left alone: IncludeCompletedTasks reads like a sideload but is a filter.
+	// left alone: IncludeCompleted reads like a sideload but is a filter.
 	for _, name := range []string{"Include", "Fields", "Cursor", "Limit"} {
 		if field := filters.FieldByName(name); field.IsValid() && field.CanSet() {
 			field.Set(reflect.Zero(field.Type()))
