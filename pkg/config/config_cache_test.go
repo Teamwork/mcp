@@ -2,6 +2,7 @@ package config
 
 import (
 	"context"
+	"encoding/json"
 	"io"
 	"log/slog"
 	"testing"
@@ -89,9 +90,25 @@ func TestCapabilitiesOmitLogging(t *testing.T) {
 	defer clientSession.Close() //nolint:errcheck
 
 	capabilities := clientSession.InitializeResult().Capabilities
-	if capabilities.Logging != nil { //nolint:staticcheck // asserting the deprecated capability is absent
+
+	// The logging half is asserted on the marshalled capabilities rather than on
+	// ServerCapabilities.Logging. Reading that field needs a nolint directive for
+	// staticcheck, which reports the deprecation, and nolintlint then fails the
+	// build wherever staticcheck does not report it — a property of the analysis
+	// environment rather than of this server. The key on the wire is what a
+	// client reads anyway.
+	encoded, err := json.Marshal(capabilities)
+	if err != nil {
+		t.Fatalf("failed to encode the server capabilities: %v", err)
+	}
+	var advertised map[string]any
+	if err := json.Unmarshal(encoded, &advertised); err != nil {
+		t.Fatalf("failed to decode the server capabilities: %v", err)
+	}
+	if _, ok := advertised["logging"]; ok {
 		t.Error("server advertises the deprecated logging capability, want it omitted")
 	}
+
 	if capabilities.Tools == nil {
 		t.Error("server does not advertise the tools capability, want it advertised")
 	}
