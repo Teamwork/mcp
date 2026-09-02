@@ -214,6 +214,82 @@ func TestAllocationGet(t *testing.T) {
 	})
 }
 
+// TestAllocationColorCarriesTheLeadingSign pins the one field whose spelling
+// depends on which path answered. The endpoint sends six bare digits; the SDK
+// models the colour as a twapi.HexColor, which restores the "#" when it
+// re-encodes the typed response. So the verbose get returns "#3c8f7c" while the
+// list and the sparse-fieldset get, both of which stream the body untouched,
+// return "3c8f7c".
+func TestAllocationColorCarriesTheLeadingSign(t *testing.T) {
+	tests := []struct {
+		name   string
+		method string
+		args   map[string]any
+		body   string
+		row    string
+		want   string
+	}{{
+		name:   "verbose get re-encodes the typed colour",
+		method: twprojects.MethodAllocationGet.String(),
+		args:   map[string]any{"id": float64(12345)},
+		body:   `{"allocation":` + allocationBody + `}`,
+		row:    "allocation",
+		want:   "#3c8f7c",
+	}, {
+		name:   "a sparse get streams the body",
+		method: twprojects.MethodAllocationGet.String(),
+		args:   map[string]any{"id": float64(12345), "fields": []any{"color"}},
+		body:   `{"allocation":` + allocationBody + `}`,
+		row:    "allocation",
+		want:   "3c8f7c",
+	}, {
+		name:   "the list streams the body",
+		method: twprojects.MethodAllocationList.String(),
+		body:   `{"allocations":[` + allocationBody + `]}`,
+		row:    "allocations",
+		want:   "3c8f7c",
+	}}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mcpServer := mcpServerMock(t, http.StatusOK, []byte(tt.body))
+			testutil.ExecuteToolRequest(t, mcpServer, tt.method, tt.args,
+				testutil.ExecuteToolRequestWithCheckMessage(func(t *testing.T, result mcp.Result) {
+					t.Helper()
+					testutil.CheckMessage(t, result)
+
+					toolResult, ok := result.(*mcp.CallToolResult)
+					if !ok {
+						t.Fatalf("unexpected result type: %T", result)
+					}
+					content, ok := toolResult.Content[0].(*mcp.TextContent)
+					if !ok {
+						t.Fatalf("unexpected content type: %T", toolResult.Content[0])
+					}
+
+					var decoded map[string]any
+					if err := json.Unmarshal([]byte(content.Text), &decoded); err != nil {
+						t.Fatalf("failed to decode the response: %s", err)
+					}
+					row, ok := decoded[tt.row].(map[string]any)
+					if !ok {
+						rows, ok := decoded[tt.row].([]any)
+						if !ok || len(rows) == 0 {
+							t.Fatalf("no %s in the response: %s", tt.row, content.Text)
+						}
+						if row, ok = rows[0].(map[string]any); !ok {
+							t.Fatalf("unexpected %s row: %s", tt.row, content.Text)
+						}
+					}
+					if got := row["color"]; got != tt.want {
+						t.Errorf("expected color %q but got %v", tt.want, got)
+					}
+				}),
+			)
+		})
+	}
+}
+
 // TestAllocationGetSideloads pins the sideloads a verbose read asks for, and
 // that financialDetails is only among them when the caller opts in: it is
 // permission-gated money data, so it must not ride along by default.

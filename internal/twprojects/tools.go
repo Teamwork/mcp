@@ -92,6 +92,7 @@ func DefaultToolsetGroup(readOnly, allowDelete bool, engine *twapi.Engine) *tool
 			ProjectCategoryList(engine),
 			ProjectGet(engine),
 			ProjectList(engine),
+			ProjectStatusUpdateList(engine),
 			ProjectTemplateList(engine),
 			CustomFieldGet(engine),
 			CustomFieldList(engine),

@@ -94,6 +94,12 @@ var orderingToolCases = []orderingToolCase{{
 }, {
 	method: twprojects.MethodProjectList.String(),
 }, {
+	// The only tool whose SDK constructor pins an order rather than leaving it to
+	// the endpoint, so the omission reaches the wire as date/desc.
+	method:         twprojects.MethodProjectStatusUpdateList.String(),
+	sdkDefaultBy:   "date",
+	sdkDefaultMode: "desc",
+}, {
 	method:        twprojects.MethodSkillList.String(),
 	orderModeOnly: true,
 }, {

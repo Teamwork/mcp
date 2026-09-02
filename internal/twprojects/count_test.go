@@ -45,6 +45,7 @@ var countOnlyToolCases = []struct {
 	{method: twprojects.MethodProjectBudgetList.String()},
 	{method: twprojects.MethodProjectCategoryList.String()},
 	{method: twprojects.MethodProjectList.String()},
+	{method: twprojects.MethodProjectStatusUpdateList.String()},
 	{method: twprojects.MethodSkillList.String()},
 	{method: twprojects.MethodTagList.String()},
 	{method: twprojects.MethodTaskList.String()},

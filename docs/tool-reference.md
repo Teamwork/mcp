@@ -55,6 +55,7 @@ Project, category, template, member, custom field, and custom item (user-defined
 |---|---|---|---|---|
 | Project Category | ✓ | ✓ | ✓ | ✓ |
 | Project | ✓ | ✓ | ✓ | ✓ |
+| Project Update | — | — | ✓ | — |
 | Project Template | ✓ | — | ✓ | — |
 | Custom Field | ✓ | ✓ | ✓ | ✓ |
 | Custom Field Value | ✓ | ✓ | ✓ | ✓ |
