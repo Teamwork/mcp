@@ -231,17 +231,32 @@ func userGroupsSchema(description string, required, jobRoles bool) *jsonschema.S
 // before the handler runs, so parseNotify (twprojects) can only coerce what
 // the schema allows. false = notify nobody. true = followers and the default
 // when withFollowers (comments), otherwise an alias for "all", the default.
+//
+// The description opens by telling the caller to omit it, because the parameter
+// is a trap in the one shape a model reaches for most. On the wire notify is a
+// single value, so a supplied one *replaces* the default recipients instead of
+// widening them: asked to comment and let one person know, a model sets notify
+// to that person alone and every follower the default would have notified is
+// dropped, silently — the response says nothing about who was told. Omitting the
+// parameter is not the same as omitting the field, which is why the advice is
+// safe to give: the handlers substitute their own default (followers for
+// comments, "all" elsewhere), where the API left to itself notifies nobody.
 func NotifySchema(description string, withFollowers bool) *jsonschema.Schema {
 	defaultValue := json.RawMessage(`"all"`)
+	defaultRecipients := "all project members"
 	boolDescription := `true is the same as "all": notify all project members. false notifies nobody.`
 	boolPhrase := `, the boolean true as an alias for "all"`
 	if withFollowers {
 		defaultValue = json.RawMessage(`true`)
+		defaultRecipients = "every follower of the related entity"
 		boolDescription = "true notifies all followers of the entity this comment is related to. " +
 			"false notifies nobody."
 		boolPhrase = ", the boolean true to notify all followers of the related entity"
 	}
-	description += ` Accepts the string "all" to notify all project members` + boolPhrase +
+	description += " Omit it unless the user named who to notify: the default notifies " + defaultRecipients +
+		", and a value here replaces that set rather than adding to it, so a narrower one silently drops " +
+		"everyone else who would have been told." +
+		` Accepts the string "all" to notify all project members` + boolPhrase +
 		`, the boolean false to notify nobody, a plain array of user IDs (e.g. [123, 456]), ` +
 		`or an object selecting user_ids, company_ids, team_ids and/or job_role_ids ` +
 		`(e.g. {"user_ids": [123, 456]}).`
