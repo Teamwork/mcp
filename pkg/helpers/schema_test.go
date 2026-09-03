@@ -1,6 +1,7 @@
 package helpers_test
 
 import (
+	"slices"
 	"strings"
 	"testing"
 
@@ -225,6 +226,68 @@ func TestUserGroupsSchemaWithoutJobRoles(t *testing.T) {
 			t.Errorf("UserGroupsSchema MaxProperties = %v, want 4", got.MaxProperties)
 		}
 	})
+}
+
+func TestNotifySchema(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name          string
+		withFollowers bool
+		wantDefault   string
+		wantRecipient string
+	}{
+		{
+			name:          "project members",
+			wantDefault:   `"all"`,
+			wantRecipient: "all project members",
+		},
+		{
+			name:          "followers",
+			withFollowers: true,
+			wantDefault:   "true",
+			wantRecipient: "every follower of the related entity",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			got := helpers.NotifySchema("Who to notify.", tt.withFollowers)
+			if !strings.HasPrefix(got.Description, "Who to notify. ") {
+				t.Errorf("NotifySchema description = %q, want the caller's text first", got.Description)
+			}
+			if string(got.Default) != tt.wantDefault {
+				t.Errorf("NotifySchema Default = %q, want %s", string(got.Default), tt.wantDefault)
+			}
+			// Advertising the shapes is not enough. A supplied value replaces the
+			// default recipients, so a model that fills the parameter in to notify
+			// one person drops every follower it was never asked to drop - and the
+			// response says nothing about it. The description has to say so, and
+			// has to name the default it would be replacing.
+			wantPhrases := []string{
+				"Omit it unless",
+				tt.wantRecipient,
+				"replaces that set rather than adding to it",
+			}
+			for _, want := range wantPhrases {
+				if !strings.Contains(got.Description, want) {
+					t.Errorf("NotifySchema description missing %q: %q", want, got.Description)
+				}
+			}
+			// Every shape parseNotify coerces has to be advertised here, or SDK
+			// validation rejects it before the handler can coerce anything.
+			var types []string
+			for _, branch := range got.AnyOf {
+				types = append(types, branch.Type)
+			}
+			for _, want := range []string{"string", "boolean", "array", "object", "null"} {
+				if !slices.Contains(types, want) {
+					t.Errorf("NotifySchema AnyOf missing a %s branch, got %v", want, types)
+				}
+			}
+		})
+	}
 }
 
 func TestDateTimeFilterSchema(t *testing.T) {
