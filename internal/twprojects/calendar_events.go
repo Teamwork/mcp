@@ -50,8 +50,9 @@ func CalendarEventList(engine *twapi.Engine) toolsets.ToolWrapper {
 		Tool: &mcp.Tool{
 			Name: string(MethodCalendarEventList),
 			Description: "List events from a calendar, including time-blocking events that link a calendar slot to " +
-				"a Teamwork project, task or timelog. Use twprojects-list_calendars to find the calendar ID; the " +
-				"calendar of type 'blocked_time' holds the account's time-blocking events.",
+				"a Teamwork project, task or timelog. Omit calendar_id to read the calling user's own calendar. " +
+				"Use twprojects-list_calendars to name a different one; the calendar of type 'blocked_time' holds " +
+				"the account's time-blocking events.",
 			Annotations: &mcp.ToolAnnotations{
 				Title:           "List Calendar Events",
 				ReadOnlyHint:    true,
@@ -62,8 +63,14 @@ func CalendarEventList(engine *twapi.Engine) toolsets.ToolWrapper {
 				Type: "object",
 				Properties: map[string]*jsonschema.Schema{
 					"calendar_id": {
-						Type:        "integer",
-						Description: "The ID of the calendar to list events from.",
+						Description: "The ID of the calendar to list events from. Omit it for the calling " +
+							"user's own calendar: the connected Google or Outlook calendar when there is one, " +
+							"otherwise the calendar of type 'blocked_time'. Every event reports the calendar it " +
+							"came from.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "integer"},
+							{Type: "null"},
+						},
 					},
 					"started_after_date": {
 						Description: "Only include events starting on or after this day, which is itself " +
@@ -103,7 +110,7 @@ func CalendarEventList(engine *twapi.Engine) toolsets.ToolWrapper {
 					"verbose":    helpers.VerboseSchema(),
 					"fields":     helpers.FieldsSchema[projects.CalendarEvent]("calendar event"),
 				},
-				Required: []string{"calendar_id"},
+				Required: []string{},
 			},
 			OutputSchema: helpers.WithOptionalFields(calendarEventListOutputSchema),
 		},
@@ -116,7 +123,7 @@ func CalendarEventList(engine *twapi.Engine) toolsets.ToolWrapper {
 			}
 			verbose := true
 			err := helpers.ParamGroup(arguments,
-				helpers.RequiredNumericParam(&calendarEventListRequest.Path.CalendarID, "calendar_id"),
+				helpers.OptionalNumericParam(&calendarEventListRequest.Path.CalendarID, "calendar_id"),
 				helpers.OptionalDateParam(&calendarEventListRequest.Filters.StartedAfterDate, "started_after_date"),
 				helpers.OptionalDateParam(&calendarEventListRequest.Filters.EndedBeforeDate, "ended_before_date"),
 				calendarEventOrdering.param(&calendarEventListRequest.Filters.OrderBy, &calendarEventListRequest.Filters.OrderMode),
@@ -127,6 +134,13 @@ func CalendarEventList(engine *twapi.Engine) toolsets.ToolWrapper {
 			)
 			if err != nil {
 				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
+			}
+			if calendarEventListRequest.Path.CalendarID == 0 {
+				calendarID, result, err := defaultCalendarID(ctx, engine)
+				if result != nil || err != nil {
+					return result, err
+				}
+				calendarEventListRequest.Path.CalendarID = calendarID
 			}
 			switch {
 			case len(calendarEventListRequest.Filters.Fields.Events) > 0:
@@ -165,6 +179,9 @@ func CalendarEventList(engine *twapi.Engine) toolsets.ToolWrapper {
 					projects.CalendarEventFieldSummary,
 					projects.CalendarEventFieldStart,
 					projects.CalendarEventFieldEnd,
+					// keep the calendar, so a caller that named none can still see
+					// which one answered.
+					projects.CalendarEventFieldCalendar,
 				}
 			}
 
@@ -199,4 +216,52 @@ func CalendarEventList(engine *twapi.Engine) toolsets.ToolWrapper {
 			return result, nil
 		},
 	}
+}
+
+// defaultCalendarID resolves the calendar to list events from when the caller
+// named none, saving the twprojects-list_calendars round trip.
+//
+// The calendars endpoint is scoped to the authenticated user, and a site allows
+// one calendar integration at a time, so a connected Google or Outlook calendar
+// is unambiguous when it exists. Time blocking is the fallback, since that is
+// where an account's own events live without an integration.
+//
+// A non-nil result is the caller's answer: either the lookup failed, or nothing
+// could be picked and the candidates are reported so the model can name one.
+func defaultCalendarID(ctx context.Context, engine *twapi.Engine) (int64, *mcp.CallToolResult, error) {
+	calendarListRequest := projects.NewCalendarListRequest()
+	calendarListRequest.Filters.PageSize = 250 // one page holds a user's calendars
+	calendarListRequest.Filters.Fields.Calendars = []projects.CalendarField{
+		projects.CalendarFieldID,
+		projects.CalendarFieldName,
+		projects.CalendarFieldType,
+	}
+	calendars, err := projects.CalendarList(ctx, engine, calendarListRequest)
+	if err != nil {
+		result, err := helpers.HandleAPIError(err, "failed to list calendars")
+		return 0, result, err
+	}
+
+	var blockedTime int64
+	for _, calendar := range calendars.Calendars {
+		switch calendar.Type {
+		case projects.CalendarTypeGoogle, projects.CalendarTypeOutlook:
+			return calendar.ID, nil, nil
+		case projects.CalendarTypeBlockedTime:
+			blockedTime = calendar.ID
+		}
+	}
+	switch {
+	case blockedTime > 0:
+		return blockedTime, nil, nil
+	case len(calendars.Calendars) == 1:
+		return calendars.Calendars[0].ID, nil, nil
+	}
+
+	candidates, err := json.Marshal(calendars.Calendars)
+	if err != nil {
+		return 0, nil, fmt.Errorf("failed to encode calendars: %w", err)
+	}
+	return 0, helpers.NewToolResultTextError("no calendar to default to, set calendar_id to one of: %s",
+		string(candidates)), nil
 }
