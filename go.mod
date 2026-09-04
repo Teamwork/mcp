@@ -5,7 +5,7 @@ go 1.27.0
 require (
 	github.com/DataDog/dd-trace-go/contrib/net/http/v2 v2.9.2
 	github.com/DataDog/dd-trace-go/v2 v2.10.1
-	github.com/getsentry/sentry-go v0.48.0
+	github.com/getsentry/sentry-go v0.49.0
 	github.com/getsentry/sentry-go/slog v0.48.0
 	github.com/google/jsonschema-go v0.4.3
 	github.com/google/uuid v1.6.0
