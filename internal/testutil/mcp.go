@@ -34,6 +34,14 @@ type (
 	// ProjectsMCPServerRecordingMock.
 	ProjectsRecordedRequest = pkgtestutil.RecordedRequest
 
+	// ChatMockRoute pairs a substring match against the request URL path with
+	// the status and body to return when it matches.
+	ChatMockRoute = pkgtestutil.MockRoute
+
+	// ChatRecordedRequest is one HTTP request captured by
+	// ChatMCPServerRecordingMock.
+	ChatRecordedRequest = pkgtestutil.RecordedRequest
+
 	// ToolRequest represents a tool request for testing.
 	ToolRequest = pkgtestutil.ToolRequest
 
@@ -182,6 +190,25 @@ func ChatMCPServerMock(t *testing.T, status int, response []byte) *mcp.Server {
 	t.Helper()
 	engine := pkgtestutil.EngineMock(status, response)
 	return pkgtestutil.MCPServer(t, twchat.DefaultToolsetGroup(false, engine))
+}
+
+// ChatMCPServerRecordingMock is like ChatMCPServerMock but answers per-path
+// routes and records every request in order, with a fallback for anything the
+// routes miss.
+//
+// The direct-message tools make more than one call — they identify the
+// authenticated user before resolving a conversation — so a single canned body
+// cannot drive them, and only the recorded requests show that a rejected call
+// sent nothing to the pair or message routes.
+func ChatMCPServerRecordingMock(
+	t *testing.T,
+	routes []ChatMockRoute,
+	fallbackStatus int,
+	fallbackBody []byte,
+) (*mcp.Server, *[]ChatRecordedRequest) {
+	t.Helper()
+	engine, recorded := pkgtestutil.RecordingEngineMock(routes, fallbackStatus, fallbackBody)
+	return pkgtestutil.MCPServer(t, twchat.DefaultToolsetGroup(false, engine)), recorded
 }
 
 // DeskMCPServerMock creates a mock MCP server for twdesk testing. It injects the
