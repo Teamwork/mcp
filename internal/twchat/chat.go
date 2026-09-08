@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/google/jsonschema-go/jsonschema"
@@ -105,6 +106,96 @@ func redactSensitive(v any) {
 			redactSensitive(item)
 		}
 	}
+}
+
+// chatID decodes a Teamwork Chat identifier, which the API renders as a JSON
+// number on some payloads and as a string on others (a sent message answers
+// {"id":"789","message":{"id":789}}). A missing or null value decodes as 0.
+type chatID int64
+
+// UnmarshalJSON accepts both the number and the string form.
+func (c *chatID) UnmarshalJSON(b []byte) error {
+	raw := strings.Trim(strings.TrimSpace(string(b)), `"`)
+	if raw == "" || raw == "null" {
+		*c = 0
+		return nil
+	}
+	parsed, err := strconv.ParseInt(raw, 10, 64)
+	if err != nil {
+		return fmt.Errorf("failed to decode chat identifier %s: %w", b, err)
+	}
+	*c = chatID(parsed)
+	return nil
+}
+
+// currentUserID resolves the authenticated chat user's own ID from
+// GET /chat/v7/me. It follows pairConversationID's convention: a non-nil
+// *mcp.CallToolResult is the caller's return value, and a non-nil error is an
+// internal failure.
+func currentUserID(ctx context.Context, engine *twapi.Engine) (int64, *mcp.CallToolResult, error) {
+	const label = "failed to identify the current chat user"
+
+	resp, err := twapi.ExecuteRaw(ctx, engine, currentUserGetRequest{})
+	if err != nil {
+		result, handleErr := helpers.HandleAPIError(err, label)
+		return 0, result, handleErr
+	}
+	defer func() {
+		_ = resp.Body.Close()
+	}()
+	if resp.StatusCode < http.StatusOK || resp.StatusCode >= http.StatusMultipleChoices {
+		result, handleErr := helpers.HandleAPIError(twapi.NewHTTPError(resp, label), label)
+		return 0, result, handleErr
+	}
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return 0, nil, fmt.Errorf("failed to read response body: %w", err)
+	}
+	// The payload nests the identity under "account"; both the account itself
+	// and an embedded "user" object can carry the ID, so prefer the inner one
+	// and fall back to the outer.
+	var parsed struct {
+		Account struct {
+			ID   chatID `json:"id"`
+			User struct {
+				ID chatID `json:"id"`
+			} `json:"user"`
+		} `json:"account"`
+	}
+	if err := json.Unmarshal(body, &parsed); err != nil {
+		return 0, nil, fmt.Errorf("failed to decode current chat user response: %w", err)
+	}
+	if id := parsed.Account.User.ID; id != 0 {
+		return int64(id), nil, nil
+	}
+	if id := parsed.Account.ID; id != 0 {
+		return int64(id), nil, nil
+	}
+	// Returning 0 here would silently disable the self-target guard on a
+	// payload change, so report it instead of letting the send through.
+	return 0, helpers.NewToolResultTextError(
+		"%s: the response carried no user id", label), nil
+}
+
+// rejectSelfTarget reports a tool-level error when userID is the authenticated
+// user, so a DM tool cannot open a conversation with, or message, the caller
+// themself. It returns (nil, nil) when the target is somebody else.
+//
+// It costs one extra request, and it has to run before the pair conversation is
+// resolved: that route creates the conversation as a side effect, so checking
+// afterwards would leave a self-conversation behind on every rejected call.
+func rejectSelfTarget(ctx context.Context, engine *twapi.Engine, userID int64) (*mcp.CallToolResult, error) {
+	currentID, errResult, err := currentUserID(ctx, engine)
+	if err != nil || errResult != nil {
+		return errResult, err
+	}
+	if currentID == userID {
+		return helpers.NewToolResultTextError(
+			"user %d is the authenticated user, and these tools do not message the caller themself. "+
+				"Use list_people to find the person you want to reach.", userID), nil
+	}
+	return nil, nil
 }
 
 // CurrentUserGet returns the current authenticated Teamwork Chat user.
@@ -401,13 +492,15 @@ func DMGetOrCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 				OpenWorldHint:   new(false),
 			},
 			Description: "Get the 1:1 direct-message conversation with a person, creating it if it does not " +
-				"exist yet. Returns the conversation (use its id with send_message). Use list_people to find user_id.",
+				"exist yet. Returns the conversation (use its id with send_message). Use list_people to find " +
+				"user_id. The authenticated user cannot be the target: naming your own user id is rejected.",
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
 				Properties: map[string]*jsonschema.Schema{
 					"user_id": {
-						Type:        "integer",
-						Description: "The ID of the person to get the direct-message conversation with.",
+						Type: "integer",
+						Description: "The ID of the person to get the direct-message conversation with. Must be " +
+							"somebody other than the authenticated user; see get_current_user.",
 					},
 				},
 				Required: []string{"user_id"},
@@ -418,7 +511,12 @@ func DMGetOrCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 			if err != nil {
 				return helpers.NewToolResultTextError("%v", err), nil
 			}
-			req := pairConversationGetRequest{UserID: int64(arguments.GetInt("user_id", 0))}
+			userID := int64(arguments.GetInt("user_id", 0))
+			if errResult, err := rejectSelfTarget(ctx, engine, userID); err != nil || errResult != nil {
+				return errResult, err
+			}
+
+			req := pairConversationGetRequest{UserID: userID}
 			return execute(ctx, engine, req, "failed to resolve direct message conversation")
 		},
 	}
@@ -436,13 +534,16 @@ func SendDM(engine *twapi.Engine) toolsets.ToolWrapper {
 				OpenWorldHint:   new(false),
 			},
 			Description: "Send a direct message to a person, resolving (or creating) the 1:1 conversation " +
-				"automatically. Requires user_id and body. Use list_people to find user_id.",
+				"automatically. Requires user_id and body. Use list_people to find user_id. The authenticated " +
+				"user cannot be the recipient: naming your own user id is rejected and nothing is sent, so " +
+				"report a summary in the conversation instead of messaging yourself in chat.",
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
 				Properties: map[string]*jsonschema.Schema{
 					"user_id": {
-						Type:        "integer",
-						Description: "The ID of the person to send the direct message to.",
+						Type: "integer",
+						Description: "The ID of the person to send the direct message to. Must be somebody other " +
+							"than the authenticated user; see get_current_user.",
 					},
 					"body": {
 						Type:        "string",
@@ -461,6 +562,13 @@ func SendDM(engine *twapi.Engine) toolsets.ToolWrapper {
 			body := arguments.GetString("body", "")
 			if body == "" {
 				return helpers.NewToolResultTextError("body is required"), nil
+			}
+
+			// Refuse a self-DM before resolving the conversation: the pair route
+			// creates one as a side effect, so a later check would leave a
+			// self-conversation behind on every rejected call.
+			if errResult, err := rejectSelfTarget(ctx, engine, userID); err != nil || errResult != nil {
+				return errResult, err
 			}
 
 			// Resolve (or create) the 1:1 conversation, then post the message to it.
