@@ -80,6 +80,7 @@ func TestTicketSearch(t *testing.T) {
 		"userIDs":        nil,
 		"createdAfter":   nil,
 		"createdBefore":  nil,
+		"omitMerged":     nil,
 		"page":           float64(1),
 		"pageSize":       float64(10),
 		"orderBy":        nil,
@@ -109,6 +110,7 @@ func TestTicketSearchForwardsPaginationAndFields(t *testing.T) {
 		"userIDs":        nil,
 		"createdAfter":   nil,
 		"createdBefore":  nil,
+		"omitMerged":     nil,
 		"page":           float64(3),
 		"pageSize":       float64(200),
 		"orderBy":        "createdAt",
@@ -163,6 +165,7 @@ func TestTicketSearchDefaultsPaginationWithoutOrdering(t *testing.T) {
 		"userIDs":        nil,
 		"createdAfter":   nil,
 		"createdBefore":  nil,
+		"omitMerged":     nil,
 		"page":           nil,
 		"pageSize":       nil,
 		"orderBy":        nil,
@@ -243,6 +246,7 @@ func TestTicketSearchForwardsCreatedDateRange(t *testing.T) {
 				"userIDs":        nil,
 				"createdAfter":   tt.createdAfter,
 				"createdBefore":  tt.createdBefore,
+				"omitMerged":     nil,
 				"page":           nil,
 				"pageSize":       nil,
 				"orderBy":        nil,
@@ -293,6 +297,7 @@ func TestTicketSearchRejectsInvalidCreatedDate(t *testing.T) {
 		"userIDs":        nil,
 		"createdAfter":   "last tuesday",
 		"createdBefore":  nil,
+		"omitMerged":     nil,
 		"page":           nil,
 		"pageSize":       nil,
 		"orderBy":        nil,
@@ -432,6 +437,167 @@ func TestTicketTaskLinkRejectsNonPositiveIDs(t *testing.T) {
 						t.Errorf("error should name the offending parameter, got %q", textContent.Text)
 					}
 				}))
+		})
+	}
+}
+
+// searchArgs returns a fully populated twdesk-search_tickets argument map, so a
+// test can override only the parameter it is about. Every parameter is required
+// by the strict-mode schema, so none may be left out.
+func searchArgs(overrides map[string]any) map[string]any {
+	args := map[string]any{
+		"search": nil, "inboxIDs": nil, "customerIDs": nil, "companyIDs": nil,
+		"tagIDs": nil, "statusIDs": nil, "priorityIDs": nil, "userIDs": nil,
+		"createdAfter": nil, "createdBefore": nil, "omitMerged": nil,
+		"page": nil, "pageSize": nil, "orderBy": nil, "orderDirection": nil,
+		"fields": nil,
+	}
+	for key, value := range overrides {
+		args[key] = value
+	}
+	return args
+}
+
+// searchResultText runs a search and hands the tool's text content to check.
+func searchResultText(t *testing.T, mcpServer *mcp.Server, args map[string]any, check func(*testing.T, string)) {
+	t.Helper()
+
+	testutil.ExecuteToolRequest(t, mcpServer, twdesk.MethodTicketSearch.String(), args,
+		testutil.ExecuteToolRequestWithCheckMessage(func(t *testing.T, result mcp.Result) {
+			t.Helper()
+
+			toolResult, ok := result.(*mcp.CallToolResult)
+			if !ok {
+				t.Fatalf("unexpected result type: %T", result)
+			}
+			if len(toolResult.Content) == 0 {
+				t.Fatal("tool result should carry content")
+			}
+			textContent, ok := toolResult.Content[0].(*mcp.TextContent)
+			if !ok {
+				t.Fatalf("unexpected content type: %T", toolResult.Content[0])
+			}
+			check(t, textContent.Text)
+		}),
+	)
+}
+
+// TestTicketSearchOmitMergedReachesTheWire pins the merged-ticket exclusion on
+// the query string. Merged is not a ticket status, so statusIDs cannot express
+// it and a caller asked to leave merged tickets out has no other parameter to
+// reach for. The mock answers the same body either way.
+func TestTicketSearchOmitMergedReachesTheWire(t *testing.T) {
+	for _, tt := range []struct {
+		name       string
+		omitMerged any
+		want       string
+	}{
+		{name: "requested", omitMerged: true, want: "true"},
+		{name: "declined", omitMerged: false, want: "false"},
+		{name: "omitted", omitMerged: nil, want: "false"},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			mcpServer, lastRequestURL, cleanup := testutil.DeskMCPServerMockWithRequestURL(t,
+				http.StatusOK, []byte(`{"tickets":[]}`))
+			defer cleanup()
+
+			testutil.ExecuteToolRequest(t, mcpServer, twdesk.MethodTicketSearch.String(),
+				searchArgs(map[string]any{"omitMerged": tt.omitMerged}))
+
+			requestURL := lastRequestURL()
+			if got := requestURL.Query().Get("omitMerged"); got != tt.want {
+				t.Errorf("query parameter \"omitMerged\": got %q, want %q", got, tt.want)
+			}
+		})
+	}
+}
+
+// TestTicketSearchAppliesFieldsToTheResponse pins the sparse fieldset being
+// applied here rather than by the endpoint. /search/tickets.json ignores the
+// fields query parameter and answers with the whole record — including one
+// reference object per activity, message, file and timelog the ticket has —
+// so a page of them is large enough to be truncated before it reaches the
+// caller, which is indistinguishable from a page that returned nothing.
+func TestTicketSearchAppliesFieldsToTheResponse(t *testing.T) {
+	// The body the endpoint answers with whatever fields was asked for.
+	body := []byte(`{"tickets":[{"id":123,"subject":"Ticket 1","previewText":"a long preview",` +
+		`"activities":[{"id":1},{"id":2}],"messages":[{"id":3}],"createdAt":"2026-06-01T00:00:00Z"}],` +
+		`"included":{"messages":null},"pagination":{"records":10000,"pageSize":10,"pages":10000,` +
+		`"page":1,"hasMorePages":true}}`)
+
+	mcpServer, cleanup := mcpServerMock(t, http.StatusOK, body)
+	defer cleanup()
+
+	searchResultText(t, mcpServer, searchArgs(map[string]any{
+		"fields": []string{"subject", "createdAt"},
+	}), func(t *testing.T, text string) {
+		t.Helper()
+
+		for _, want := range []string{`"subject"`, `"createdAt"`, `"id"`} {
+			if !strings.Contains(text, want) {
+				t.Errorf("selected attribute %s should be returned, got %q", want, text)
+			}
+		}
+		// id is always kept so a row stays addressable by twdesk-get_ticket.
+		for _, unwanted := range []string{"activities", "messages", "previewText", "included"} {
+			if strings.Contains(text, unwanted) {
+				t.Errorf("unselected attribute %q should be dropped, got %q", unwanted, text)
+			}
+		}
+	})
+}
+
+// TestTicketSearchRejectsAnUnknownField keeps the published vocabulary and the
+// handler in step: a name the schema does not list is refused rather than
+// silently returning a row with nothing but its id.
+func TestTicketSearchRejectsAnUnknownField(t *testing.T) {
+	mcpServer, cleanup := mcpServerMock(t, http.StatusOK, []byte(`{"tickets":[]}`))
+	defer cleanup()
+
+	testutil.ExecuteToolRequest(t, mcpServer, twdesk.MethodTicketSearch.String(),
+		searchArgs(map[string]any{"fields": []string{"id", "nosuchattribute"}}),
+		testutil.ExecuteToolRequestWithCheckMessage(func(t *testing.T, result mcp.Result) {
+			t.Helper()
+
+			toolResult, ok := result.(*mcp.CallToolResult)
+			if !ok {
+				t.Fatalf("unexpected result type: %T", result)
+			}
+			if !toolResult.IsError {
+				t.Fatal("an unknown ticket attribute should be an error, not a silently dropped selection")
+			}
+		}),
+	)
+}
+
+// TestTicketSearchFieldsCarryTheID pins the sparse fieldset the request itself
+// carries. The selection is applied locally as well, but it is forwarded so the
+// smaller body is won on the wire wherever the endpoint reads the parameter —
+// and an endpoint that reads it and was handed the caller's list verbatim
+// answers rows with no identifier, which nothing downstream can put back. The
+// mock answers the same body either way.
+func TestTicketSearchFieldsCarryTheID(t *testing.T) {
+	for _, tt := range []struct {
+		name   string
+		fields any
+		want   string
+	}{
+		{name: "id appended", fields: []string{"subject", "createdAt"}, want: "subject,createdAt,id"},
+		{name: "id not duplicated", fields: []string{"id", "subject"}, want: "id,subject"},
+		{name: "no selection sends nothing", fields: nil, want: ""},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			mcpServer, lastRequestURL, cleanup := testutil.DeskMCPServerMockWithRequestURL(t,
+				http.StatusOK, []byte(`{"tickets":[]}`))
+			defer cleanup()
+
+			testutil.ExecuteToolRequest(t, mcpServer, twdesk.MethodTicketSearch.String(),
+				searchArgs(map[string]any{"fields": tt.fields}))
+
+			requestURL := lastRequestURL()
+			if got := requestURL.Query().Get("fields"); got != tt.want {
+				t.Errorf("query parameter \"fields\": got %q, want %q", got, tt.want)
+			}
 		})
 	}
 }
