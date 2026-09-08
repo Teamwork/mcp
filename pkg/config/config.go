@@ -22,6 +22,7 @@ import (
 	"github.com/modelcontextprotocol/go-sdk/jsonrpc"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	desksdk "github.com/teamwork/desksdkgo/client"
+	"github.com/teamwork/mcp/pkg/helpers"
 	"github.com/teamwork/mcp/pkg/logsafe"
 	"github.com/teamwork/mcp/pkg/network"
 	"github.com/teamwork/mcp/pkg/presigned"
@@ -50,6 +51,10 @@ const (
 	// protocolVersionWithoutPing is the first protocol version that removed the
 	// "ping" method (SEP-2577). See keepalivePingGate.
 	protocolVersionWithoutPing = "2026-07-28"
+
+	// strictSchemaUserAgent is the client served OpenAI strict-mode input
+	// schemas instead of the published ones. See wantsStrictSchemas.
+	strictSchemaUserAgent = "openai-mcp"
 
 	// namespaceSeparator divides a tool's namespace from its action, as in
 	// "twprojects-get_task". See namespaceTable.allows.
@@ -301,6 +306,12 @@ func NewMCPServer(resources Resources, groups ...*toolsets.ToolsetGroup) *mcp.Se
 			// clients that truncate the tool list at a fixed size to keep the most
 			// useful tools. Tools not in the preferred list follow alphabetically.
 			orderTools(listToolsResult.Tools)
+
+			// The published shape stays the default: it is what every other
+			// client, and Vertex AI, needs.
+			if wantsStrictSchemas(ctx) {
+				listToolsResult.Tools = helpers.StrictTools(listToolsResult.Tools)
+			}
 			return listToolsResult, nil
 		}
 	})
@@ -313,6 +324,23 @@ func NewMCPServer(resources Resources, groups ...*toolsets.ToolsetGroup) *mcp.Se
 	}
 
 	return mcpServer
+}
+
+// wantsStrictSchemas reports whether to answer with OpenAI strict-mode schemas.
+//
+// The User-Agent is the only OpenAI signal on tools/list: the X-Openai-* headers
+// ride on tools/call and initialize only, and clientInfo arrives on initialize,
+// which a stateless server cannot tie to a later tools/list (no Mcp-Session-Id).
+//
+// A User-Agent is client-supplied, so the fallback is benign — anything
+// unrecognised gets the published schema.
+func wantsStrictSchemas(ctx context.Context) bool {
+	info, ok := request.InfoFromContext(ctx)
+	if !ok {
+		return false
+	}
+	userAgent := strings.ToLower(info.RemoteHeader("User-Agent"))
+	return strings.HasPrefix(userAgent, strictSchemaUserAgent)
 }
 
 // namespaceTable maps a tool-name prefix to the OAuth scope that grants access

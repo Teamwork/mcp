@@ -24,6 +24,12 @@ func pageSizeMaximum(t *testing.T, tool toolsets.ToolWrapper) *float64 {
 	if !ok {
 		return nil
 	}
+	// An optional parameter is a plain typed schema now that the null branch is
+	// gone (helpers.DropNullBranches). The anyOf fallback stays for a parameter
+	// that genuinely composes several branches.
+	if pageSize.Type == "integer" {
+		return pageSize.Maximum
+	}
 	for _, branch := range pageSize.AnyOf {
 		if branch.Type == "integer" {
 			return branch.Maximum

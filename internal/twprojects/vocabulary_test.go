@@ -142,10 +142,12 @@ func TestNewNamedVocabularyRejectsMismatchedLengths(t *testing.T) {
 }
 
 // enumOf reads the enum back out of the array schema a vocabulary publishes.
+// The schema itself is checked first: an optional parameter carries no null
+// branch to wrap it any more (helpers.DropNullBranches).
 func enumOf(t *testing.T, schema *jsonschema.Schema) []any {
 	t.Helper()
 
-	for _, branch := range schema.AnyOf {
+	for _, branch := range append([]*jsonschema.Schema{schema}, schema.AnyOf...) {
 		if branch.Type == "array" && branch.Items != nil {
 			return branch.Items.Enum
 		}

@@ -278,3 +278,142 @@ func TestScopes(t *testing.T) {
 		})
 	}
 }
+
+// TestDropNullArguments covers the argument-side half: the published schema no
+// longer accepts a null, so the key is dropped before validation.
+func TestDropNullArguments(t *testing.T) {
+	schema := &jsonschema.Schema{
+		Type:     "object",
+		Required: []string{"id"},
+		Properties: map[string]*jsonschema.Schema{
+			"id":          {Type: "integer"},
+			"page":        {Type: "integer"},
+			"search_term": {Type: "string"},
+			"nullable":    {Types: []string{"string", "null"}},
+			"tag_ids":     {Type: "array", Items: &jsonschema.Schema{Type: "integer"}},
+			"assignees": {
+				Type: "object",
+				Properties: map[string]*jsonschema.Schema{
+					"user_ids": {Type: "array", Items: &jsonschema.Schema{Type: "integer"}},
+				},
+			},
+		},
+	}
+
+	args := map[string]any{
+		"id":          nil,           // required: kept, so validation names it
+		"page":        nil,           // optional: dropped
+		"search_term": "website",     // untouched
+		"nullable":    nil,           // schema accepts null: kept
+		"tag_ids":     []any{1, nil}, // inside an array: kept
+		"assignees":   map[string]any{"user_ids": nil},
+	}
+
+	if !dropNullArguments(schema, args) {
+		t.Fatal("expected dropNullArguments to report a change")
+	}
+	if _, ok := args["page"]; ok {
+		t.Error("page was not dropped")
+	}
+	if _, ok := args["id"]; !ok {
+		t.Error("id is required, so its null must be left for validation to report")
+	}
+	if _, ok := args["nullable"]; !ok {
+		t.Error("nullable accepts null, so its value must be left alone")
+	}
+	if got := args["search_term"]; got != "website" {
+		t.Errorf("search_term = %#v, want it untouched", got)
+	}
+	if tagIDs, ok := args["tag_ids"].([]any); !ok || len(tagIDs) != 2 {
+		t.Errorf("tag_ids = %#v, want the array length preserved", args["tag_ids"])
+	}
+	assignees, ok := args["assignees"].(map[string]any)
+	if !ok {
+		t.Fatalf("assignees = %#v, want an object", args["assignees"])
+	}
+	if _, ok := assignees["user_ids"]; ok {
+		t.Error("a null nested in an object was not dropped")
+	}
+}
+
+// TestNormalizeInputSchemasOnRegistration checks the schema is rewritten as the
+// tool enters a Toolset, so every reader sees the same shape.
+func TestNormalizeInputSchemasOnRegistration(t *testing.T) {
+	toolset := NewToolset("twprojects-tasks", "Tasks").AddReadTools(ToolWrapper{
+		Tool: &mcp.Tool{
+			Name:        "twprojects-list_tasks",
+			Annotations: &mcp.ToolAnnotations{ReadOnlyHint: true},
+			InputSchema: &jsonschema.Schema{
+				Type:     "object",
+				Required: []string{"page"},
+				Properties: map[string]*jsonschema.Schema{
+					"page": nullableInteger(),
+				},
+			},
+		},
+		Handler: func(context.Context, *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+			return &mcp.CallToolResult{}, nil
+		},
+	})
+
+	tools := toolset.GetAvailableTools()
+	if len(tools) != 1 {
+		t.Fatalf("got %d tools, want 1", len(tools))
+	}
+	schema, ok := tools[0].Tool.InputSchema.(*jsonschema.Schema)
+	if !ok {
+		t.Fatalf("input schema is %T, want *jsonschema.Schema", tools[0].Tool.InputSchema)
+	}
+	page := schema.Properties["page"]
+	if page.AnyOf != nil {
+		t.Errorf("page anyOf = %v, want the null branch collapsed away", page.AnyOf)
+	}
+	if page.Type != "integer" {
+		t.Errorf("page type = %q, want integer", page.Type)
+	}
+	if len(schema.Required) != 0 {
+		t.Errorf("required = %v, want page dropped along with its null branch", schema.Required)
+	}
+}
+
+// TestWithInputValidationAcceptsExplicitNulls is the end-to-end guarantee for
+// the clients the null branches were added for: an explicit null still
+// validates and reaches the handler as an absent key.
+func TestWithInputValidationAcceptsExplicitNulls(t *testing.T) {
+	schema := &jsonschema.Schema{
+		Type: "object",
+		Properties: map[string]*jsonschema.Schema{
+			"project_id": nullableInteger(),
+			"verbose":    nullableBoolean(),
+		},
+	}
+	tool := &mcp.Tool{Name: "twprojects-list_tasklists", InputSchema: schema}
+	// Publish it the way a Toolset would.
+	normalizeInputSchemas([]ToolWrapper{{Tool: tool}})
+
+	var received map[string]any
+	wrapped := withInputValidation(tool, func(_ context.Context, req *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		received = map[string]any{}
+		if err := json.Unmarshal(req.Params.Arguments, &received); err != nil {
+			t.Fatalf("handler could not decode arguments: %v", err)
+		}
+		return &mcp.CallToolResult{}, nil
+	})
+
+	req := &mcp.CallToolRequest{Params: &mcp.CallToolParamsRaw{
+		Arguments: json.RawMessage(`{"project_id":911218,"verbose":null}`),
+	}}
+	res, err := wrapped(context.Background(), req)
+	if err != nil {
+		t.Fatalf("wrapped handler returned error: %v", err)
+	}
+	if res.IsError {
+		t.Fatalf("an explicit null must still validate, got: %+v", res.Content)
+	}
+	if received["project_id"] != float64(911218) {
+		t.Errorf("handler received project_id = %#v, want float64(911218)", received["project_id"])
+	}
+	if _, ok := received["verbose"]; ok {
+		t.Errorf("handler received verbose = %#v, want the key absent", received["verbose"])
+	}
+}

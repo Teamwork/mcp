@@ -269,11 +269,13 @@ func TestSparseFieldsSchemaEnumMatchesValidator(t *testing.T) {
 }
 
 // fieldsSchemaEnum reads the names enumerated by a `fields` schema, from the
-// array branch's item schema where a client looks for them.
+// array item schema where a client looks for them. The schema itself is checked
+// first: an optional parameter carries no null branch to wrap it any more
+// (helpers.DropNullBranches).
 func fieldsSchemaEnum(t *testing.T, schema *jsonschema.Schema) []string {
 	t.Helper()
 
-	for _, branch := range schema.AnyOf {
+	for _, branch := range append([]*jsonschema.Schema{schema}, schema.AnyOf...) {
 		if branch.Type != "array" {
 			continue
 		}
