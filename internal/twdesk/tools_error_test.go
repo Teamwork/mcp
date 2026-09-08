@@ -41,7 +41,7 @@ func TestAPIFailuresAreToolResults(t *testing.T) {
 			args: map[string]any{
 				"search": "anything", "inboxIDs": nil, "customerIDs": nil, "companyIDs": nil,
 				"tagIDs": nil, "statusIDs": nil, "priorityIDs": nil, "userIDs": nil,
-				"createdAfter": nil, "createdBefore": nil,
+				"createdAfter": nil, "createdBefore": nil, "omitMerged": nil,
 				"page": nil, "pageSize": nil, "orderBy": nil, "orderDirection": nil, "fields": nil,
 			},
 		},

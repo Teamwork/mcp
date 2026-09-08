@@ -3,8 +3,11 @@ package twdesk
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/url"
+	"slices"
+	"strings"
 	"time"
 
 	"github.com/google/jsonschema-go/jsonschema"
@@ -105,6 +108,112 @@ func ticketSearchService(
 	)
 }
 
+// ticketSearchFieldNames is the sparse-fieldset vocabulary for a ticket: the
+// JSON attributes the SDK's own ticket model marshals to. Publishing it as an
+// enum is what lets a caller name the handful of attributes it wants; without
+// it the caller has to guess, and the parameter's only documented example
+// ("id", "name") is not even a ticket attribute.
+var ticketSearchFieldNames = helpers.SparseFieldNames[string, deskmodels.Ticket]()
+
+// ticketSearchFieldsSchema is sparseFieldsSchema for the ticket search
+// endpoint, which — unlike the Desk list endpoints — ignores the fields query
+// parameter and answers with the whole record whatever is asked for. The
+// selection is therefore applied to the response by this server, which the
+// description says because the distinction is visible to a caller in one way:
+// it saves the caller's context, not Desk's work.
+func ticketSearchFieldsSchema() *jsonschema.Schema {
+	enum := make([]any, 0, len(ticketSearchFieldNames))
+	for _, name := range ticketSearchFieldNames {
+		enum = append(enum, name)
+	}
+	return &jsonschema.Schema{
+		Description: "The attributes to return for each ticket, from the listed names. " +
+			"Omit to receive the whole record, which carries every activity, message, file and timelog " +
+			"identifier the ticket has and is large enough that a full page of them may be truncated " +
+			"before it reaches you. Name the attributes you need. \"id\" is always returned.",
+		AnyOf: []*jsonschema.Schema{
+			{Type: "array", Items: &jsonschema.Schema{Type: "string", Enum: enum}},
+			{Type: "null"},
+		},
+	}
+}
+
+// ticketSearchSelection is the sparse fieldset the search request carries: the
+// caller's selection, validated against the published vocabulary, with "id"
+// appended so a row stays addressable by twdesk-get_ticket.
+//
+// Appending id is what makes the selection safe to send. The parameter is
+// forwarded rather than only applied locally so that the smaller body is won on
+// the wire wherever the endpoint reads it — but an endpoint that reads it and
+// was handed ["subject"] answers rows that carry no identifier at all, and
+// nothing downstream can put one back.
+func ticketSearchSelection(arguments helpers.ToolArguments) ([]string, error) {
+	selected := arguments.GetStringSlice("fields", nil)
+	if len(selected) == 0 {
+		return nil, nil
+	}
+
+	fields := make([]string, 0, len(selected)+1)
+	for _, field := range selected {
+		if !slices.Contains(ticketSearchFieldNames, field) {
+			return nil, fmt.Errorf("unknown ticket attribute %q in fields", field)
+		}
+		if !slices.Contains(fields, field) {
+			fields = append(fields, field)
+		}
+	}
+	if !slices.Contains(fields, "id") {
+		fields = append(fields, "id")
+	}
+	return fields, nil
+}
+
+// trimTicketFields reduces every ticket in a search response to the named
+// attributes, plus "id" so each row stays addressable by twdesk-get_ticket.
+//
+// This is done here because /search/tickets.json ignores the fields parameter:
+// it is forwarded (harmless if the endpoint ever starts reading it) but the
+// response comes back complete, and a ticket carries one reference object per
+// activity, message, file and timelog it has ever had. A hundred of those rows
+// is far past what a client will pass on intact, so a caller asking for a page
+// of subjects was served a page that arrived truncated — which reads as the
+// page being empty rather than as the rows being too big.
+//
+// The included block is dropped: the search endpoint is never sent an includes
+// parameter, so every one of its keys is null.
+func trimTicketFields(response *deskmodels.TicketsResponse, fields []string) (map[string]any, error) {
+	keep := make(map[string]bool, len(fields)+1)
+	keep["id"] = true
+	for _, field := range fields {
+		keep[field] = true
+	}
+
+	encoded, err := json.Marshal(response.Tickets)
+	if err != nil {
+		return nil, err
+	}
+	var rows []map[string]any
+	if err := json.Unmarshal(encoded, &rows); err != nil {
+		return nil, err
+	}
+	for _, row := range rows {
+		for key := range row {
+			if !keep[key] {
+				delete(row, key)
+			}
+		}
+	}
+	if rows == nil {
+		rows = []map[string]any{}
+	}
+
+	return map[string]any{
+		"tickets":    rows,
+		"pagination": response.Pagination,
+		"meta":       response.Meta,
+	}, nil
+}
+
 // TicketSearch uses the search API to find tickets in Teamwork Desk
 func TicketSearch(httpClient *http.Client) toolsets.ToolWrapper {
 	properties := map[string]*jsonschema.Schema{
@@ -172,8 +281,21 @@ func TicketSearch(httpClient *http.Client) toolsets.ToolWrapper {
 			"Filter by ticket creation date: only tickets created on or before this day. " +
 				"This search filters by whole days, so a time of day is ignored.",
 		),
+		"omitMerged": {
+			Description: "If true, exclude tickets that have been merged into another ticket. " +
+				"Merged tickets are not a status, so they cannot be filtered out with statusIDs. " +
+				"Defaults to false, which returns them alongside the rest.",
+			AnyOf: []*jsonschema.Schema{
+				{Type: "boolean"},
+				{Type: "null"},
+			},
+			Default: []byte(`false`),
+		},
 	}
 	properties = searchPaginationOptions(properties)
+	// The shared sparse-fieldset schema documents neither the ticket attribute
+	// names nor that the selection is applied here rather than by the endpoint.
+	properties["fields"] = ticketSearchFieldsSchema()
 
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
@@ -185,7 +307,12 @@ func TicketSearch(httpClient *http.Client) toolsets.ToolWrapper {
 				OpenWorldHint:   new(false),
 			},
 			Description: "Search tickets. Filter by inbox, customer, company, tag, status, priority, user, " +
-				"or creation date range.",
+				"or creation date range. Name the attributes you need in fields: a ticket returned whole " +
+				"carries every activity, message, file and timelog identifier it has, and a full page of " +
+				"those is large enough to be truncated in transit. The record and page totals saturate at " +
+				"10000: a search reporting exactly that many has 10000 or more, and asking for a page " +
+				"past the 10000th result is rejected rather than answered empty, so narrow the filters " +
+				"instead of paging deeper.",
 			InputSchema: &jsonschema.Schema{
 				Type:                 "object",
 				AdditionalProperties: falseSchema(),
@@ -193,7 +320,7 @@ func TicketSearch(httpClient *http.Client) toolsets.ToolWrapper {
 				Required: append(paginationRequiredKeys(),
 					"search", "inboxIDs", "customerIDs", "companyIDs",
 					"tagIDs", "statusIDs", "priorityIDs", "userIDs",
-					"createdAfter", "createdBefore",
+					"createdAfter", "createdBefore", "omitMerged",
 				),
 			},
 		},
@@ -229,6 +356,7 @@ func TicketSearch(httpClient *http.Client) toolsets.ToolWrapper {
 			if arguments.GetIntSlice("userIDs", nil) != nil {
 				filter.Agents = helpers.IntSliceToInt64(arguments.GetIntSlice("userIDs", nil))
 			}
+			filter.OmitMerged = arguments.GetBool("omitMerged", false)
 
 			// The creation-date window is bound here rather than onto
 			// filter.StartDate/EndDate so that the value the endpoint receives is
@@ -242,6 +370,11 @@ func TicketSearch(httpClient *http.Client) toolsets.ToolWrapper {
 				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
 			}
 
+			fields, err := ticketSearchSelection(arguments)
+			if err != nil {
+				return helpers.NewToolResultTextError("%v", err), nil
+			}
+
 			// Encode the filter the same way the SDK's Search does, then add the
 			// pagination, ordering and sparse fieldset the filter struct cannot
 			// carry. See ticketSearchService.
@@ -250,6 +383,9 @@ func TicketSearch(httpClient *http.Client) toolsets.ToolWrapper {
 				return helpers.NewToolResultTextError("failed to encode ticket search filter: %s", err.Error()), nil
 			}
 			setSearchPagination(&params, arguments)
+			if len(fields) > 0 {
+				params.Set("fields", strings.Join(fields, ","))
+			}
 
 			if createdAfter != nil {
 				params.Set("startDate", createdAfter.Format(time.DateOnly))
@@ -262,7 +398,14 @@ func TicketSearch(httpClient *http.Client) toolsets.ToolWrapper {
 			if err != nil {
 				return helpers.HandleAPIError(err, "failed to search tickets")
 			}
-			return helpers.NewToolResultJSON(tickets)
+			if len(fields) == 0 {
+				return helpers.NewToolResultJSON(tickets)
+			}
+			trimmed, err := trimTicketFields(tickets, fields)
+			if err != nil {
+				return helpers.NewToolResultTextError("failed to encode tickets: %s", err.Error()), nil
+			}
+			return helpers.NewToolResultJSON(trimmed)
 		},
 	}
 }
