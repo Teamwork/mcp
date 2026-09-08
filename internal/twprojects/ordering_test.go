@@ -158,14 +158,14 @@ func orderingSchemas(t *testing.T) map[string]map[string]*jsonschema.Schema {
 	return declared
 }
 
-// enumOf pulls the string enum out of the AnyOf branch that carries it. Every
-// ordering parameter is published as {AnyOf: [{string, enum}, {null}]} — the
-// null branch is what lets an OpenAI strict-mode client, which must send every
-// property, leave the ordering unset.
+// enumOf pulls the string enum off an ordering parameter. An optional parameter
+// is published as a plain {string, enum} now that the null branch is gone
+// (helpers.DropNullBranches), so the schema itself is checked first; the AnyOf
+// branches are still searched for a parameter that genuinely composes several.
 func enumOf(t *testing.T, schema *jsonschema.Schema) []string {
 	t.Helper()
 
-	for _, branch := range schema.AnyOf {
+	for _, branch := range append([]*jsonschema.Schema{schema}, schema.AnyOf...) {
 		if branch.Type != "string" || branch.Enum == nil {
 			continue
 		}

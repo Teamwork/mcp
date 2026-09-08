@@ -9,6 +9,7 @@ import (
 	"github.com/google/jsonschema-go/jsonschema"
 	"github.com/teamwork/mcp/internal/testutil"
 	"github.com/teamwork/mcp/internal/twdesk"
+	"github.com/teamwork/mcp/pkg/helpers"
 )
 
 // TestAllToolsJSONSchemaValidation tests that all twdesk tools generate valid JSON schemas
@@ -88,37 +89,118 @@ func isArrayType(s *jsonschema.Schema) bool {
 	return slices.Contains(s.Types, "array")
 }
 
-// TestToolInputSchemasOpenAIStrictMode verifies that all twdesk tools satisfy
-// OpenAI strict mode requirements:
-//   - Every property (including optional nullable ones) is listed in `required`
-//   - The top-level object schema has `additionalProperties: false`
+// TestToolInputSchemasOpenAIStrictMode verifies the two shapes a tool is served
+// in, which are opposites and cannot be one document:
+//
+//   - published: no null type anywhere, or Vertex AI (Gemini Enterprise)
+//     rejects the whole tool list;
+//   - the strict variant derived for OpenAI: every property required,
+//     additionalProperties false, optional properties nullable — enums
+//     included, or the widened type is unreachable.
 func TestToolInputSchemasOpenAIStrictMode(t *testing.T) {
 	group := twdesk.DefaultToolsetGroup(false, &http.Client{})
 
 	for method, ts := range group.Toolsets {
 		for _, tool := range ts.GetAvailableTools() {
 			name := tool.Tool.Name
-			schema, ok := tool.Tool.InputSchema.(*jsonschema.Schema)
+			published, ok := tool.Tool.InputSchema.(*jsonschema.Schema)
 			if !ok {
 				t.Errorf("toolset %s tool %s: InputSchema is not *jsonschema.Schema", method, name)
 				continue
 			}
-
-			// Every property must appear in required.
-			requiredSet := make(map[string]bool, len(schema.Required))
-			for _, r := range schema.Required {
-				requiredSet[r] = true
+			for _, path := range nullTypeNodes(published, "InputSchema") {
+				t.Errorf("toolset %s tool %s: published schema declares the null type at %s, "+
+					"which Vertex AI cannot parse", method, name, path)
 			}
-			for propName := range schema.Properties {
-				if !requiredSet[propName] {
-					t.Errorf("toolset %s tool %s: property %q not in required", method, name, propName)
-				}
-			}
-
-			// Top-level schema must have additionalProperties: false.
-			if schema.AdditionalProperties == nil {
-				t.Errorf("toolset %s tool %s: missing additionalProperties: false", method, name)
+			for _, issue := range strictModeIssues(helpers.StrictSchema(published), published, "InputSchema") {
+				t.Errorf("toolset %s tool %s: strict variant %s", method, name, issue)
 			}
 		}
 	}
+}
+
+// nullTypeNodes reports every node declaring the null type, in either form.
+func nullTypeNodes(s *jsonschema.Schema, path string) []string {
+	if s == nil {
+		return nil
+	}
+	var found []string
+	if s.Type == "null" || slices.Contains(s.Types, "null") {
+		found = append(found, path)
+	}
+	for name, property := range s.Properties {
+		found = append(found, nullTypeNodes(property, fmt.Sprintf("%s/properties/%s", path, name))...)
+	}
+	found = append(found, nullTypeNodes(s.Items, path+"/items")...)
+	for i, branch := range s.AnyOf {
+		found = append(found, nullTypeNodes(branch, fmt.Sprintf("%s/anyOf/%d", path, i))...)
+	}
+	return found
+}
+
+// strictModeIssues reports every strict-mode requirement a schema fails,
+// comparing against the published one it came from.
+func strictModeIssues(strict, published *jsonschema.Schema, path string) []string {
+	if strict == nil {
+		return nil
+	}
+	var issues []string
+	if strict.Default != nil {
+		issues = append(issues, path+" keeps a default, which strict mode does not accept")
+	}
+	if len(strict.Properties) == 0 {
+		return append(issues, strictModeIssues(strict.Items, publishedItems(published), path+"/items")...)
+	}
+	if strict.AdditionalProperties == nil {
+		issues = append(issues, path+" is missing additionalProperties: false")
+	}
+	for name, property := range strict.Properties {
+		propertyPath := fmt.Sprintf("%s/properties/%s", path, name)
+		if !slices.Contains(strict.Required, name) {
+			issues = append(issues, propertyPath+" is not in required")
+		}
+		// Optional in the published schema, so it must accept null.
+		if published != nil && !slices.Contains(published.Required, name) {
+			if !acceptsNullType(property) {
+				issues = append(issues, propertyPath+" is optional but cannot be null")
+			}
+			if property.Enum != nil && !slices.Contains(property.Enum, nil) {
+				issues = append(issues, propertyPath+" is a nullable enum that does not permit null")
+			}
+		}
+		issues = append(issues, strictModeIssues(property, publishedProperty(published, name), propertyPath)...)
+	}
+	return issues
+}
+
+// acceptsNullType reports whether s permits null. An untyped schema does.
+func acceptsNullType(s *jsonschema.Schema) bool {
+	if s == nil {
+		return true
+	}
+	if s.Type == "null" || slices.Contains(s.Types, "null") {
+		return true
+	}
+	for _, branches := range [][]*jsonschema.Schema{s.AnyOf, s.OneOf} {
+		for _, branch := range branches {
+			if acceptsNullType(branch) {
+				return true
+			}
+		}
+	}
+	return s.Type == "" && len(s.Types) == 0 && len(s.AnyOf) == 0 && len(s.OneOf) == 0
+}
+
+func publishedProperty(s *jsonschema.Schema, name string) *jsonschema.Schema {
+	if s == nil {
+		return nil
+	}
+	return s.Properties[name]
+}
+
+func publishedItems(s *jsonschema.Schema) *jsonschema.Schema {
+	if s == nil {
+		return nil
+	}
+	return s.Items
 }

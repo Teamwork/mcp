@@ -14,6 +14,7 @@ import (
 
 	"github.com/google/jsonschema-go/jsonschema"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
+	"github.com/teamwork/mcp/pkg/helpers"
 )
 
 var (
@@ -300,10 +301,14 @@ func withInputValidation(tool *mcp.Tool, handler mcp.ToolHandler) mcp.ToolHandle
 				return newInputValidationError("invalid arguments JSON: %s", err.Error()), nil
 			}
 		}
-		// Repair arguments from clients that serialize values as strings before
-		// validating (see coerceStringValues). When anything changes, re-marshal
-		// so the handler receives the coerced values too.
-		if coerceStringValues(schema, args) {
+		// Repair stringified values and drop explicit nulls before validating
+		// (coerceStringValues, dropNullArguments). Both run — neither subsumes
+		// the other. Re-marshal so the handler sees the repairs too.
+		changed := coerceStringValues(schema, args)
+		if dropNullArguments(schema, args) {
+			changed = true
+		}
+		if changed {
 			raw, err := json.Marshal(args)
 			if err != nil {
 				return newInputValidationError("invalid arguments: %s", err.Error()), nil
@@ -383,6 +388,69 @@ func coerceStringValues(schema *jsonschema.Schema, value any) bool {
 	default:
 		return false
 	}
+}
+
+// dropNullArguments removes optional arguments explicitly set to null before
+// validation. The published schema no longer accepts a null there (see
+// helpers.DropNullBranches), and an absent key means the same thing, so clients
+// that send null for unset parameters keep working.
+//
+// Nulls are kept on a required property (so validation names it), on a schema
+// that genuinely accepts null, and inside an array (dropping an element would
+// change its length).
+//
+// Returns true if anything was removed. Mutates the map in place.
+func dropNullArguments(schema *jsonschema.Schema, value any) bool {
+	if schema == nil {
+		return false
+	}
+	switch v := value.(type) {
+	case map[string]any:
+		obj := objectBranch(schema)
+		if obj == nil {
+			return false
+		}
+		var changed bool
+		for key, sub := range v {
+			propSchema, ok := obj.Properties[key]
+			if !ok {
+				continue
+			}
+			if sub == nil {
+				if slices.Contains(obj.Required, key) || acceptsNull(propSchema) {
+					continue
+				}
+				delete(v, key)
+				changed = true
+				continue
+			}
+			if dropNullArguments(propSchema, sub) {
+				changed = true
+			}
+		}
+		return changed
+	case []any:
+		items := arrayItems(schema)
+		if items == nil {
+			return false
+		}
+		var changed bool
+		for _, sub := range v {
+			if dropNullArguments(items, sub) {
+				changed = true
+			}
+		}
+		return changed
+	default:
+		return false
+	}
+}
+
+// acceptsNull reports whether schema permits null, including via its branches.
+func acceptsNull(schema *jsonschema.Schema) bool {
+	types := make(map[string]bool)
+	collectTypes(schema, types)
+	return types["null"]
 }
 
 // coerceStringValue converts a string to the type declared by schema, returning
@@ -593,7 +661,7 @@ func (t *Toolset) AddWriteTools(tools ...ToolWrapper) *Toolset {
 		}
 	}
 	if !t.readOnly {
-		t.writeTools = append(t.writeTools, tools...)
+		t.writeTools = append(t.writeTools, normalizeInputSchemas(tools)...)
 	}
 	return t
 }
@@ -606,8 +674,24 @@ func (t *Toolset) AddReadTools(tools ...ToolWrapper) *Toolset {
 			panic(fmt.Sprintf("tool (%s) must be annotated as read-only", tool.Tool.Name))
 		}
 	}
-	t.readTools = append(t.readTools, tools...)
+	t.readTools = append(t.readTools, normalizeInputSchemas(tools)...)
 	return t
+}
+
+// normalizeInputSchemas drops the null branches from each tool's published
+// input schema (see helpers.DropNullBranches). It runs where tools enter a
+// Toolset, not at registration, so tools/list, the generated docs and the tests
+// all see the same shape.
+func normalizeInputSchemas(tools []ToolWrapper) []ToolWrapper {
+	for _, tool := range tools {
+		if tool.Tool == nil {
+			continue
+		}
+		if schema, ok := tool.Tool.InputSchema.(*jsonschema.Schema); ok {
+			helpers.DropNullBranches(schema)
+		}
+	}
+	return tools
 }
 
 // ToolsetGroup is a collection of Toolsets that can be enabled or disabled as a

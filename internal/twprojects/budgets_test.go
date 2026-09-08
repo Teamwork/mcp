@@ -94,8 +94,11 @@ func TestProjectBudgetListStatusEnumMatchesAPI(t *testing.T) {
 		t.Fatal("status property missing from input schema")
 	}
 
+	// The schema itself carries the enum now that the null branch is gone
+	// (helpers.DropNullBranches); the branches are still searched in case the
+	// parameter grows into a genuine composition.
 	var got []any
-	for _, branch := range property.AnyOf {
+	for _, branch := range append([]*jsonschema.Schema{property}, property.AnyOf...) {
 		if branch.Enum != nil {
 			got = branch.Enum
 		}
