@@ -53,3 +53,91 @@ func TestWantsStrictSchemasWithoutRequestInfo(t *testing.T) {
 		t.Error("a context with no request info must not select strict schemas")
 	}
 }
+
+// TestWantsVertexSchemas pins the Gemini Enterprise trigger. Its User-Agent is a
+// bare python-httpx and its clientInfo is generic, so the Integration
+// Connectors header is the only marker — and unlike OpenAI's, it is present on
+// tools/list.
+func TestWantsVertexSchemas(t *testing.T) {
+	tests := []struct {
+		name    string
+		headers map[string]string
+		want    bool
+	}{
+		{
+			name:    "gemini enterprise",
+			headers: map[string]string{"X-Integration-Connectors-Dapper-Trace-Id": "abc123"},
+			want:    true,
+		},
+		{
+			name: "gemini enterprise, with its generic user agent",
+			headers: map[string]string{
+				"User-Agent": "python-httpx/0.27.0",
+				"X-Integration-Connectors-Dapper-Trace-Id": "abc123",
+			},
+			want: true,
+		},
+		{name: "a bare python client is not enough", headers: map[string]string{"User-Agent": "python-httpx/0.27.0"}},
+		{name: "claude", headers: map[string]string{"User-Agent": "Claude-User"}},
+		{name: "openai", headers: map[string]string{"User-Agent": "openai-mcp/1.0.0"}},
+		{name: "no headers"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			r := httptest.NewRequest(http.MethodPost, "/", nil)
+			for name, value := range tt.headers {
+				r.Header.Set(name, value)
+			}
+			ctx := request.WithInfo(r.Context(), request.NewInfo(r))
+			if got := wantsVertexSchemas(ctx); got != tt.want {
+				t.Errorf("wantsVertexSchemas() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+// TestVariantTriggersDoNotOverlap keeps each client on its own variant: the two
+// rewrites are opposites, so a request matching both would get whichever the
+// switch in NewMCPServer happens to test first.
+func TestVariantTriggersDoNotOverlap(t *testing.T) {
+	tests := []struct {
+		name              string
+		headers           map[string]string
+		strict, vertexAll bool
+	}{
+		{
+			name:    "openai does not match vertex",
+			headers: map[string]string{"User-Agent": "openai-mcp/1.0.0"},
+			strict:  true,
+		},
+		{
+			name: "gemini does not match strict",
+			headers: map[string]string{
+				"User-Agent": "python-httpx/0.27.0",
+				"X-Integration-Connectors-Dapper-Trace-Id": "abc123",
+			},
+			vertexAll: true,
+		},
+		{
+			name:    "claude matches neither",
+			headers: map[string]string{"User-Agent": "Claude-User"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			r := httptest.NewRequest(http.MethodPost, "/", nil)
+			for name, value := range tt.headers {
+				r.Header.Set(name, value)
+			}
+			ctx := request.WithInfo(r.Context(), request.NewInfo(r))
+			if got := wantsStrictSchemas(ctx); got != tt.strict {
+				t.Errorf("wantsStrictSchemas() = %v, want %v", got, tt.strict)
+			}
+			if got := wantsVertexSchemas(ctx); got != tt.vertexAll {
+				t.Errorf("wantsVertexSchemas() = %v, want %v", got, tt.vertexAll)
+			}
+		})
+	}
+}
