@@ -123,6 +123,22 @@ func init() {
 	helpers.WithMetaWebLinkSchema(taskListOutputSchema)
 }
 
+// taskNotifySchema returns the schema for the "notify" parameter of the task
+// create and update tools. Unlike the comment, message and link tools, the task
+// endpoints take no recipient list: notifications go to the task's assignees
+// and followers, and the flag only says whether they are sent at all.
+func taskNotifySchema() *jsonschema.Schema {
+	return &jsonschema.Schema{
+		Description: "Whether to notify the task's assignees and followers, which sends them an email. " +
+			"Defaults to true. Set it to false for bulk or housekeeping changes nobody needs to hear about.",
+		AnyOf: []*jsonschema.Schema{
+			{Type: "boolean"},
+			{Type: "null"},
+		},
+		Default: []byte(`true`),
+	}
+}
+
 // TaskCreate creates a task in Teamwork.com.
 func TaskCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{
@@ -234,6 +250,7 @@ func TaskCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 					"change_followers":   helpers.UserGroupsSchema("Followers of any task changes.", false),
 					"comment_followers":  helpers.UserGroupsSchema("Followers of any task comments.", false),
 					"complete_followers": helpers.UserGroupsSchema("Followers of any task completions.", false),
+					"notify":             taskNotifySchema(),
 				},
 				Required: []string{"name", "tasklist_id"},
 			},
@@ -262,6 +279,7 @@ func TaskCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 				helpers.OptionalNumericListParam(&taskCreateRequest.TagIDs, "tag_ids"),
 				helpers.OptionalNumericPointerParam(&taskCreateRequest.Workflows.WorkflowID, "workflow_id"),
 				helpers.OptionalNumericPointerParam(&taskCreateRequest.Workflows.StageID, "stage_id"),
+				helpers.OptionalParam(&taskCreateRequest.Options.Notify, "notify"),
 			)
 			if err != nil {
 				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
@@ -484,6 +502,7 @@ func TaskUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 					"change_followers":   helpers.UserGroupsSchema("Followers of any task changes.", false),
 					"comment_followers":  helpers.UserGroupsSchema("Followers of any task comments.", false),
 					"complete_followers": helpers.UserGroupsSchema("Followers of any task completions.", false),
+					"notify":             taskNotifySchema(),
 				},
 				Required: []string{"id"},
 			},
@@ -511,6 +530,7 @@ func TaskUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 				helpers.OptionalNumericPointerParam(&taskUpdateRequest.EstimatedMinutes, "estimated_minutes"),
 				helpers.OptionalNumericPointerParam(&taskUpdateRequest.ParentTaskID, "parent_task_id"),
 				helpers.OptionalNumericListParam(&taskUpdateRequest.TagIDs, "tag_ids"),
+				helpers.OptionalParam(&taskUpdateRequest.Options.Notify, "notify"),
 			)
 			if err != nil {
 				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
