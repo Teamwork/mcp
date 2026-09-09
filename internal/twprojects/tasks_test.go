@@ -714,3 +714,62 @@ func TestTaskCreateWorkflowPlacementNeedsBothIDs(t *testing.T) {
 		)
 	}
 }
+
+// The mocks answer the same body whatever the flag, so read it off the request.
+func TestTaskNotifyReachesTheWire(t *testing.T) {
+	tests := []struct {
+		name   string
+		notify any
+		want   bool
+	}{
+		{name: "omitted notifies", want: true},
+		{name: "explicitly enabled", notify: true, want: true},
+		{name: "disabled sends no email", notify: false, want: false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			for _, tool := range []struct {
+				method    string
+				status    int
+				arguments map[string]any
+			}{{
+				method: twprojects.MethodTaskCreate.String(),
+				status: http.StatusCreated,
+				arguments: map[string]any{
+					"name":        "Test Task",
+					"tasklist_id": float64(777),
+				},
+			}, {
+				method: twprojects.MethodTaskUpdate.String(),
+				status: http.StatusOK,
+				arguments: map[string]any{
+					"id":   float64(12345),
+					"name": "Test Task",
+				},
+			}} {
+				method, arguments := tool.method, tool.arguments
+				if tt.notify != nil {
+					arguments["notify"] = tt.notify
+				}
+
+				mcpServer, requestBody := mcpServerMockWithRequestBody(t, tool.status,
+					[]byte(`{"task":{"id":12345}}`))
+				testutil.ExecuteToolRequest(t, mcpServer, method, arguments)
+
+				var payload struct {
+					Options struct {
+						Notify bool `json:"notify"`
+					} `json:"taskOptions"`
+				}
+				if err := json.Unmarshal(*requestBody, &payload); err != nil {
+					t.Fatalf("%s: failed to decode request body %q: %v", method, string(*requestBody), err)
+				}
+				if payload.Options.Notify != tt.want {
+					t.Errorf("%s: expected taskOptions.notify %t, got %t (body %q)",
+						method, tt.want, payload.Options.Notify, string(*requestBody))
+				}
+			}
+		})
+	}
+}
