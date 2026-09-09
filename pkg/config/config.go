@@ -56,6 +56,10 @@ const (
 	// schemas instead of the published ones. See wantsStrictSchemas.
 	strictSchemaUserAgent = "openai-mcp"
 
+	// vertexSchemaHeader marks a Gemini Enterprise request. See
+	// wantsVertexSchemas.
+	vertexSchemaHeader = "X-Integration-Connectors-Dapper-Trace-Id"
+
 	// namespaceSeparator divides a tool's namespace from its action, as in
 	// "twprojects-get_task". See namespaceTable.allows.
 	namespaceSeparator = "-"
@@ -307,10 +311,13 @@ func NewMCPServer(resources Resources, groups ...*toolsets.ToolsetGroup) *mcp.Se
 			// useful tools. Tools not in the preferred list follow alphabetically.
 			orderTools(listToolsResult.Tools)
 
-			// The published shape stays the default: it is what every other
-			// client, and Vertex AI, needs.
-			if wantsStrictSchemas(ctx) {
+			// The published shape stays the default; the two variants below are
+			// mutually exclusive, and each is a copy.
+			switch {
+			case wantsStrictSchemas(ctx):
 				listToolsResult.Tools = helpers.StrictTools(listToolsResult.Tools)
+			case wantsVertexSchemas(ctx):
+				listToolsResult.Tools = helpers.VertexTools(listToolsResult.Tools)
 			}
 			return listToolsResult, nil
 		}
@@ -341,6 +348,23 @@ func wantsStrictSchemas(ctx context.Context) bool {
 	}
 	userAgent := strings.ToLower(info.RemoteHeader("User-Agent"))
 	return strings.HasPrefix(userAgent, strictSchemaUserAgent)
+}
+
+// wantsVertexSchemas reports whether to answer with Vertex-safe schemas.
+//
+// Gemini Enterprise reaches us through Google's Integration Connectors, which
+// stamps every request — tools/list included — with vertexSchemaHeader. Its
+// User-Agent is a bare "python-httpx/..." and its clientInfo is a generic
+// {"name":"mcp"}, so neither identifies it.
+//
+// The header is Google-internal rather than documented, so the fallback is
+// benign: without it a client gets the published schema.
+func wantsVertexSchemas(ctx context.Context) bool {
+	info, ok := request.InfoFromContext(ctx)
+	if !ok {
+		return false
+	}
+	return info.RemoteHeader(vertexSchemaHeader) != ""
 }
 
 // namespaceTable maps a tool-name prefix to the OAuth scope that grants access
