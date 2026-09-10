@@ -1000,6 +1000,10 @@ func TaskGet(engine *twapi.Engine) toolsets.ToolWrapper {
 			var taskGetRequest projects.TaskGetRequest
 			taskGetRequest.Filters.IncludeRelatedTasks = true
 
+			// This endpoint serves a deleted task with 200, so without this the tool
+			// answers one as an ordinary task and the model has no way to tell.
+			taskGetRequest.Filters.HideDeleted = true
+
 			// The related-task filter reports *active* subtasks, dependencies and
 			// predecessors only, so a task whose subtasks are all done answers with an
 			// empty subTaskIds — indistinguishable from a task that never had any. The
@@ -1036,9 +1040,12 @@ func TaskGet(engine *twapi.Engine) toolsets.ToolWrapper {
 				// back, with the two completed-work flags it gates, when the selection
 				// names either attribute.
 				relatedTasks := taskFieldsNeedRelatedTasks(taskGetRequest.Fields.Task)
-				taskGetRequest.Filters = projects.TaskRequestFilters{
-					IncludeRelatedTasks:          relatedTasks,
-					IncludeCompletedPredecessors: relatedTasks,
+				taskGetRequest.Filters = projects.TaskGetRequestFilters{
+					TaskRequestFilters: projects.TaskRequestFilters{
+						IncludeRelatedTasks:          relatedTasks,
+						IncludeCompletedPredecessors: relatedTasks,
+					},
+					HideDeleted: true,
 				}
 				return helpers.NewRawToolResult(ctx, engine, taskGetRequest, "failed to get task",
 					helpers.WebLinkerWithIDPathBuilder("/app/tasks"),
