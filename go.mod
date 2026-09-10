@@ -14,7 +14,7 @@ require (
 	github.com/sonh/qs v0.7.0
 	github.com/teamwork/desksdkgo v1.1.1
 	github.com/teamwork/spacessdkgo v0.0.0-20260518181558-a6af69d00abb
-	github.com/teamwork/twapi-go-sdk v1.29.1
+	github.com/teamwork/twapi-go-sdk v1.29.2
 )
 
 require (
@@ -84,7 +84,7 @@ require (
 	golang.org/x/mod v0.37.0 // indirect
 	golang.org/x/oauth2 v0.36.0 // indirect
 	golang.org/x/sync v0.22.0 // indirect
-	golang.org/x/sys v0.47.0 // indirect
+	golang.org/x/sys v0.48.0 // indirect
 	golang.org/x/text v0.40.0 // indirect
 	golang.org/x/time v0.15.0 // indirect
 	golang.org/x/xerrors v0.0.0-20240903120638-7835f813f4da // indirect

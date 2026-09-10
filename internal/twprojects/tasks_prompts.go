@@ -48,7 +48,10 @@ func TaskSkillsAndRolesPrompt(engine *twapi.Engine) toolsets.ServerPrompt {
 				return nil, fmt.Errorf("task ID must be a positive integer")
 			}
 
-			taskResponse, err := projects.TaskGet(ctx, engine, projects.NewTaskGetRequest(taskID))
+			taskGetRequest := projects.NewTaskGetRequest(taskID)
+			taskGetRequest.Filters.HideDeleted = true
+
+			taskResponse, err := projects.TaskGet(ctx, engine, taskGetRequest)
 			if err != nil {
 				return nil, fmt.Errorf("failed to get task: %w", err)
 			}

@@ -513,6 +513,30 @@ func TestTaskGetCarriesCompletedWork(t *testing.T) {
 	}
 }
 
+// TestTaskGetHidesDeletedTasks pins hideDeleted on both branches of the get.
+// The endpoint serves a deleted task with 200 by default, so without the
+// parameter the tool hands one back as an ordinary task and nothing in the
+// response says it is gone. The sparse branch rebuilds the filters from
+// scratch, which is where the flag is easiest to drop.
+//
+// Asserted on the query string, because the mock replies with the same canned
+// body whether the parameter is sent or not.
+func TestTaskGetHidesDeletedTasks(t *testing.T) {
+	for name, args := range map[string]map[string]any{
+		"full":   {"id": float64(777)},
+		"sparse": {"id": float64(777), "fields": []any{"name"}},
+	} {
+		t.Run(name, func(t *testing.T) {
+			mcpServer, lastURL := testutil.ProjectsMCPServerMockWithRequestURL(t, http.StatusOK, []byte(`{}`))
+			testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodTaskGet.String(), args)
+
+			if got := lastURL.Query().Get("hideDeleted"); got != "true" {
+				t.Errorf("expected hideDeleted=true but got %q (raw query: %s)", got, lastURL.RawQuery)
+			}
+		})
+	}
+}
+
 // TestTaskSparseFieldsSubTaskIDsCarryRelatedTasks covers subTaskIds the way
 // TestSparseFieldsPredecessorsCarryRelatedTasks covers predecessors: the API
 // leaves it empty unless the request also asks for related tasks, and empty
