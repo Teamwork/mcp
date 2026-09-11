@@ -37,6 +37,7 @@ var countOnlyToolCases = []struct {
 	{method: twprojects.MethodCustomItemList.String(), args: map[string]any{"project_id": float64(123)}},
 	{method: twprojects.MethodCustomItemFieldList.String(), args: map[string]any{"custom_item_id": float64(123)}},
 	{method: twprojects.MethodCustomItemRecordList.String(), args: map[string]any{"custom_item_id": float64(123)}},
+	{method: twprojects.MethodFileList.String()},
 	{method: twprojects.MethodJobRoleList.String()},
 	{method: twprojects.MethodMessageList.String()},
 	{method: twprojects.MethodMessageReplyList.String()},

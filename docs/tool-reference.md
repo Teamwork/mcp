@@ -14,6 +14,7 @@ Comments, notebooks, milestones, tags, and activity feeds in Teamwork.com.
 |---|---|---|---|---|
 | Activity | — | — | ✓ | — |
 | Comment | ✓ | ✓ | ✓ | ✓ |
+| File | — | ✓ | ✓ | — |
 | Milestone | ✓ | ✓ | ✓ | ✓ |
 | Notebook | ✓ | ✓ | ✓ | ✓ |
 | Tag | ✓ | ✓ | ✓ | ✓ |
@@ -21,7 +22,7 @@ Comments, notebooks, milestones, tags, and activity feeds in Teamwork.com.
 | Message Reply | ✓ | ✓ | ✓ | ✓ |
 | Link | ✓ | ✓ | ✓ | ✓ |
 
-**Other actions:** `count_milestones`, `search`
+**Other actions:** `count_milestones`, `download_file`, `search`
 
 ### People — `twprojects-people`
 
