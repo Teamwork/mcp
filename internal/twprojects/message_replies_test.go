@@ -135,7 +135,8 @@ func TestMessageReplyList(t *testing.T) {
 // TestMessageReplyGetKeepsAttachments pins that the typed round-trip keeps the file relationships the
 // response carries: the ID in them is what twprojects-download_file takes.
 func TestMessageReplyGetKeepsAttachments(t *testing.T) {
-	mcpServer := mcpServerMock(t, http.StatusOK, []byte(`{"messageReply":{"id":123,"attachments":[{"id":555,"type":"files"}]}}`))
+	mcpServer := mcpServerMock(t, http.StatusOK,
+		[]byte(`{"messageReply":{"id":123,"attachments":[{"id":555,"type":"files"}]}}`))
 	testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodMessageReplyGet.String(), map[string]any{
 		"id": float64(123),
 	}, testutil.ExecuteToolRequestWithCheckMessage(func(t *testing.T, result mcp.Result) {

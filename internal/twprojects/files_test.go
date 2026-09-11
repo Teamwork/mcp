@@ -962,7 +962,6 @@ func TestFileDownloadFallsBackToTheExtension(t *testing.T) {
 func TestFileDownloadRefusesOversizedFiles(t *testing.T) {
 	// Declared size first: the body is never read when the server announces it
 	// does not fit.
-	mcpServer := fileDownloadMock(t, "application/zip", `attachment; filename="big.zip"`, nil)
 	engineTooBig := twapi.NewEngine(testutil.ProjectsSessionMock{},
 		twapi.WithMiddleware(func(twapi.HTTPClient) twapi.HTTPClient {
 			return twapi.HTTPClientFunc(func(*http.Request) (*http.Response, error) {
@@ -973,7 +972,7 @@ func TestFileDownloadRefusesOversizedFiles(t *testing.T) {
 			})
 		}),
 	)
-	mcpServer = pkgtestutil.MCPServer(t, twprojects.DefaultToolsetGroup(false, true, engineTooBig))
+	mcpServer := pkgtestutil.MCPServer(t, twprojects.DefaultToolsetGroup(false, true, engineTooBig))
 
 	testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodFileDownload.String(),
 		map[string]any{"id": float64(12345)},
