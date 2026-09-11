@@ -96,7 +96,10 @@ func (lrt *LoggingRoundTripper) RoundTrip(r *http.Request) (*http.Response, erro
 
 	var loggedResponseBody string
 	if resp.Body != nil {
-		if contentType := resp.Header.Get("Content-Type"); !logsafe.IsTextualContentType(contentType) {
+		// A download's body is the customer's file too, fetched from storage
+		// under a content type that is the file's own.
+		contentType := resp.Header.Get("Content-Type")
+		if toStorage || !logsafe.IsTextualContentType(contentType) {
 			loggedResponseBody = logsafe.ElidedBody(resp.ContentLength, contentType)
 		} else {
 			respBody, err := io.ReadAll(resp.Body)

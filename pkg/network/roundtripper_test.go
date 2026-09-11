@@ -112,6 +112,39 @@ func TestRoundTripRedactsPresignedURLInResponse(t *testing.T) {
 	}
 }
 
+func TestRoundTripElidesPresignedDownload(t *testing.T) {
+	// A download is the upload in reverse: the body arrives from storage under
+	// the file's own content type, so a CSV or markdown file looks loggable.
+	request, err := http.NewRequest(http.MethodGet, presignedUploadURL, nil)
+	if err != nil {
+		t.Fatalf("failed to build the request: %v", err)
+	}
+
+	response := newResponse("text/markdown", "# Plan\n\nConfidential notes")
+	roundTripper, logged := logging(&stubTransport{response: response})
+	resp, err := roundTripper.RoundTrip(request)
+	if err != nil {
+		t.Fatalf("round trip failed: %v", err)
+	}
+
+	output := logged.String()
+	if strings.Contains(output, "Confidential") {
+		t.Errorf("expected the downloaded body to be elided, got %q", output)
+	}
+	if !strings.Contains(output, "elided") {
+		t.Errorf("expected an elision marker in the log, got %q", output)
+	}
+
+	// Eliding is a logging decision: the body still has to reach the caller.
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		t.Fatalf("failed to read the body: %v", err)
+	}
+	if !strings.Contains(string(body), "Confidential") {
+		t.Errorf("expected the body to reach the caller intact, got %q", body)
+	}
+}
+
 func TestRoundTripStillLogsAPIBodies(t *testing.T) {
 	request, err := http.NewRequest(http.MethodPost,
 		"https://example.com/projects/api/v3/tasks.json", strings.NewReader(`{"task":{"name":"example"}}`))

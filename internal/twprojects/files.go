@@ -5,10 +5,14 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"io"
+	"mime"
+	"net/http"
 	"path"
 	"strconv"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	"github.com/google/jsonschema-go/jsonschema"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
@@ -27,6 +31,9 @@ const (
 	MethodFileCreate      toolsets.Method = "twprojects-create_file"
 	MethodUploadURLCreate toolsets.Method = "twprojects-create_upload_url"
 	MethodProjectFileAdd  toolsets.Method = "twprojects-add_project_file"
+	MethodFileGet         toolsets.Method = "twprojects-get_file"
+	MethodFileList        toolsets.Method = "twprojects-list_files"
+	MethodFileDownload    toolsets.Method = "twprojects-download_file"
 )
 
 // maxAttachmentBytes caps the decoded size of an inline attachment.
@@ -553,4 +560,507 @@ func sanitizeFileName(name string) (string, error) {
 		name = stem + extension
 	}
 	return name, nil
+}
+
+// maxDownloadBytes caps the content twprojects-download_file returns inline.
+//
+// The content travels back inside the JSON-RPC response, base64-encoded when it
+// is not text, and everything the client keeps of it lands in the model's
+// context. Ten megabytes is already well past what any client passes on
+// intact; the cap exists so a request for a large archive fails with a result
+// the caller can act on instead of a response nothing downstream can hold.
+const maxDownloadBytes = 10 << 20
+
+var (
+	fileGetOutputSchema      *jsonschema.Schema
+	fileListOutputSchema     *jsonschema.Schema
+	fileDownloadOutputSchema *jsonschema.Schema
+)
+
+// fileOrdering is the order-by vocabulary of the files list endpoint.
+var fileOrdering = newOrdering("files",
+	projects.FileOrderByName,
+	projects.FileOrderByProjectName,
+	projects.FileOrderByCategoryName,
+	projects.FileOrderByDateUploaded,
+	projects.FileOrderBySize,
+	projects.FileOrderByID,
+)
+
+// fileDownloadResult describes the content twprojects-download_file returns
+// beside it. It exists to generate the published output schema.
+type fileDownloadResult struct {
+	// Name is the file name the server suggests for the content.
+	Name string `json:"name"`
+
+	// MIMEType is the media type of the content.
+	MIMEType string `json:"mimeType"`
+
+	// Size is the number of bytes in the content.
+	Size int64 `json:"size"`
+}
+
+func init() {
+	var err error
+
+	// generate the output schemas only once
+	fileGetOutputSchema, err = jsonschema.For[projects.FileGetResponse](
+		helpers.WithDateTypeSchema(&jsonschema.ForOptions{}),
+	)
+	if err != nil {
+		panic(fmt.Sprintf("failed to generate JSON schema for FileGetResponse: %v", err))
+	}
+	helpers.WithMetaWebLinkSchema(fileGetOutputSchema)
+	fileListOutputSchema, err = jsonschema.For[projects.FileListResponse](
+		helpers.WithDateTypeSchema(&jsonschema.ForOptions{}),
+	)
+	if err != nil {
+		panic(fmt.Sprintf("failed to generate JSON schema for FileListResponse: %v", err))
+	}
+	helpers.WithMetaWebLinkSchema(fileListOutputSchema)
+	fileDownloadOutputSchema, err = jsonschema.For[fileDownloadResult](&jsonschema.ForOptions{})
+	if err != nil {
+		panic(fmt.Sprintf("failed to generate JSON schema for fileDownloadResult: %v", err))
+	}
+}
+
+// FileGet retrieves a file's details in Teamwork.com.
+func FileGet(engine *twapi.Engine) toolsets.ToolWrapper {
+	return toolsets.ToolWrapper{
+		Tool: &mcp.Tool{
+			Name: string(MethodFileGet),
+			Description: fmt.Sprintf("Get a file's details: name, size, uploader, version history, the tasks, "+
+				"messages and comments it is attached to, and its downloadURL. The downloadURL needs the "+
+				"caller's own Teamwork session, so hand it to a signed-in user rather than fetching it; use %s "+
+				"to read the content here.", MethodFileDownload),
+			Annotations: &mcp.ToolAnnotations{
+				Title:           "Get File",
+				ReadOnlyHint:    true,
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
+			},
+			InputSchema: &jsonschema.Schema{
+				Type: "object",
+				Properties: map[string]*jsonschema.Schema{
+					"id": {
+						Type:        "integer",
+						Description: "The ID of the file to get.",
+					},
+					"version": {
+						Description: "The version number whose details, size and downloadURL are returned. Omit for " +
+							"the latest version.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "integer", Minimum: new(1.0)},
+							{Type: "null"},
+						},
+					},
+					"include_versions": {
+						Description: "Whether to include the file's whole version history under versions. " +
+							"Defaults to false.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "boolean"},
+							{Type: "null"},
+						},
+					},
+					"fields": helpers.FieldsSchema[projects.File]("file"),
+				},
+				Required: []string{"id"},
+			},
+			OutputSchema: helpers.WithOptionalFields(fileGetOutputSchema),
+		},
+		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+			var fileGetRequest projects.FileGetRequest
+
+			// The uploader is the one relation a reader of a file always wants
+			// resolved to a name.
+			fileGetRequest.Include = []projects.FileRequestSideload{
+				projects.FileRequestSideloadUsers,
+			}
+
+			var arguments map[string]any
+			if err := json.Unmarshal(request.Params.Arguments, &arguments); err != nil {
+				return helpers.NewToolResultTextError("failed to decode request: %s", err.Error()), nil
+			}
+			err := helpers.ParamGroup(arguments,
+				helpers.RequiredNumericParam(&fileGetRequest.Path.ID, "id"),
+				helpers.OptionalNumericParam(&fileGetRequest.Version, "version"),
+				helpers.OptionalParam(&fileGetRequest.IncludeVersions, "include_versions"),
+				helpers.OptionalFieldsParam[projects.File](&fileGetRequest.Fields.File, "fields"),
+			)
+			if err != nil {
+				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
+			}
+
+			if len(fileGetRequest.Fields.File) > 0 {
+				// A selection names what the caller wants; the sideload would return
+				// the bulk it exists to avoid.
+				fileGetRequest.Include = nil
+				return helpers.NewRawToolResult(ctx, engine, fileGetRequest, "failed to get file",
+					helpers.WebLinkerWithIDPathBuilder("/app/files"),
+				)
+			}
+
+			file, err := projects.FileGet(ctx, engine, fileGetRequest)
+			if err != nil {
+				return helpers.HandleAPIError(err, "failed to get file")
+			}
+
+			encoded, err := json.Marshal(file)
+			if err != nil {
+				return nil, err
+			}
+			return &mcp.CallToolResult{
+				Content: []mcp.Content{
+					&mcp.TextContent{
+						Text: string(helpers.WebLinker(ctx, encoded,
+							helpers.WebLinkerWithIDPathBuilder("/app/files"),
+						)),
+					},
+				},
+				StructuredContent: helpers.StructuredWebLinker(ctx, file,
+					helpers.WebLinkerWithIDPathBuilder("/app/files"),
+				),
+			}, nil
+		},
+	}
+}
+
+// FileList lists files in Teamwork.com.
+func FileList(engine *twapi.Engine) toolsets.ToolWrapper {
+	return toolsets.ToolWrapper{
+		Tool: &mcp.Tool{
+			Name: string(MethodFileList),
+			Description: fmt.Sprintf("List the files in a project's files area, or across every project when no "+
+				"project_id is given. Files attached to tasks, comments and messages live there too, so task_id "+
+				"answers \"what is attached to this task\". Deleted files are left out unless show_deleted is "+
+				"true. Each row carries a downloadURL that needs the caller's own Teamwork session; use %s to "+
+				"read the content here.", MethodFileDownload),
+			Annotations: &mcp.ToolAnnotations{
+				Title:           "List Files",
+				ReadOnlyHint:    true,
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
+			},
+			InputSchema: &jsonschema.Schema{
+				Type: "object",
+				Properties: map[string]*jsonschema.Schema{
+					"project_id": {
+						Description: "The ID of the project whose files area to list. Omit to list files across " +
+							"every project the caller can access.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "integer"},
+							{Type: "null"},
+						},
+					},
+					"task_id": {
+						Description: "Only files attached to this task.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "integer"},
+							{Type: "null"},
+						},
+					},
+					"ids": {
+						Description: "Only files with these IDs.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "array", Items: &jsonschema.Schema{Type: "integer"}},
+							{Type: "null"},
+						},
+					},
+					"category_id": {
+						Description: "Only files in this file category.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "integer"},
+							{Type: "null"},
+						},
+					},
+					"tag_ids": {
+						Description: "Only files carrying any of these tags.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "array", Items: &jsonschema.Schema{Type: "integer"}},
+							{Type: "null"},
+						},
+					},
+					"user_ids": {
+						Description: "Only files uploaded by these users.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "array", Items: &jsonschema.Schema{Type: "integer"}},
+							{Type: "null"},
+						},
+					},
+					"search_term": {
+						Description: "Only files whose name contains this term. Set search_all_fields to also match " +
+							"the extension, the category, the original name and the uploader's name.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "string"},
+							{Type: "null"},
+						},
+					},
+					"search_all_fields": {
+						Description: "Whether search_term also matches the file extension, the file category, the " +
+							"original file name and the name of the latest uploader. Defaults to false.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "boolean"},
+							{Type: "null"},
+						},
+					},
+					"uploaded_after": helpers.DateFilterSchema("Only files whose selected version was uploaded on " +
+						"or after this day (YYYY-MM-DD). The day itself is included."),
+					"uploaded_before": helpers.DateFilterSchema("Only files whose selected version was uploaded " +
+						"before this day (YYYY-MM-DD). The bound is the first instant of the day, so files " +
+						"uploaded during it are excluded; name the following day to include it."),
+					"updated_after": helpers.DateTimeFilterSchema("Only files changed strictly after this instant, " +
+						"on the file or on its selected version."),
+					"show_deleted": {
+						Description: "Whether to also list deleted files. Defaults to false.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "boolean"},
+							{Type: "null"},
+						},
+					},
+					"skip_external_files": {
+						Description: "Whether to leave out files that live in a linked cloud storage provider " +
+							"(Google Drive, Dropbox, Box, OneDrive, SharePoint) and list uploads only. Defaults to " +
+							"false. A row's fileSource tells the two apart.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "boolean"},
+							{Type: "null"},
+						},
+					},
+					"order_by":   fileOrdering.orderBySchema(),
+					"order_mode": orderModeSchema(),
+					"page":       helpers.PageSchema(),
+					"page_size":  helpers.PageSizeSchema(),
+					"verbose":    helpers.VerboseSchema(),
+					"count_only": helpers.CountOnlySchema("files"),
+					"fields":     helpers.FieldsSchema[projects.File]("file"),
+				},
+				Required: []string{},
+			},
+			OutputSchema: helpers.WithCountOnlySchema(helpers.WithOptionalFields(fileListOutputSchema)),
+		},
+		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+			var fileListRequest projects.FileListRequest
+
+			var arguments map[string]any
+			if err := json.Unmarshal(request.Params.Arguments, &arguments); err != nil {
+				return helpers.NewToolResultTextError("failed to decode request: %s", err.Error()), nil
+			}
+			verbose := true
+			var countOnly bool
+			err := helpers.ParamGroup(arguments,
+				helpers.OptionalNumericParam(&fileListRequest.Path.ProjectID, "project_id"),
+				helpers.OptionalNumericParam(&fileListRequest.Filters.TaskID, "task_id"),
+				helpers.OptionalNumericListParam(&fileListRequest.Filters.IDs, "ids"),
+				helpers.OptionalNumericParam(&fileListRequest.Filters.CategoryID, "category_id"),
+				helpers.OptionalNumericListParam(&fileListRequest.Filters.TagIDs, "tag_ids"),
+				helpers.OptionalNumericListParam(&fileListRequest.Filters.UserIDs, "user_ids"),
+				helpers.OptionalParam(&fileListRequest.Filters.SearchTerm, "search_term"),
+				helpers.OptionalParam(&fileListRequest.Filters.SearchAllFields, "search_all_fields"),
+				helpers.OptionalDatePointerParam(&fileListRequest.Filters.UploadedStartDate, "uploaded_after"),
+				helpers.OptionalDatePointerParam(&fileListRequest.Filters.UploadedEndDate, "uploaded_before"),
+				helpers.OptionalTimePointerParam(&fileListRequest.Filters.UpdatedAfter, "updated_after"),
+				helpers.OptionalParam(&fileListRequest.Filters.ShowDeleted, "show_deleted"),
+				helpers.OptionalParam(&fileListRequest.Filters.SkipExternalFiles, "skip_external_files"),
+				fileOrdering.param(&fileListRequest.Filters.OrderBy, &fileListRequest.Filters.OrderMode),
+				helpers.OptionalNumericParam(&fileListRequest.Filters.Page, "page"),
+				helpers.OptionalNumericParam(&fileListRequest.Filters.PageSize, "page_size"),
+				helpers.OptionalParam(&verbose, "verbose"),
+				helpers.OptionalParam(&countOnly, "count_only"),
+				helpers.OptionalFieldsParam[projects.File](&fileListRequest.Filters.Fields.Files, "fields"),
+			)
+			if err != nil {
+				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
+			}
+
+			if countOnly {
+				return helpers.NewCountToolResult(ctx, engine, fileListRequest, "failed to count files")
+			}
+
+			switch {
+			case len(fileListRequest.Filters.Fields.Files) > 0:
+				// An explicit selection is answered as is, with no sideloads.
+			case verbose:
+				fileListRequest.Filters.Include = []projects.FileRequestSideload{
+					projects.FileRequestSideloadUsers,
+					projects.FileRequestSideloadProjects,
+				}
+			default:
+				fileListRequest.Filters.Fields.Files = []projects.FileField{
+					projects.FileFieldID,
+					projects.FileFieldDisplayName,
+					projects.FileFieldSize,
+				}
+			}
+
+			resp, err := twapi.ExecuteRaw(ctx, engine, fileListRequest)
+			if err != nil {
+				return helpers.HandleAPIError(err, "failed to list files")
+			}
+			defer func() {
+				_ = resp.Body.Close()
+			}()
+			if resp.StatusCode != http.StatusOK {
+				return helpers.HandleAPIError(twapi.NewHTTPError(resp, "failed to list files"), "failed to list files")
+			}
+			body, err := io.ReadAll(resp.Body)
+			if err != nil {
+				return nil, fmt.Errorf("failed to read response body: %w", err)
+			}
+
+			linked := helpers.WebLinker(ctx, body, helpers.WebLinkerWithIDPathBuilder("/app/files"))
+			result := &mcp.CallToolResult{
+				Content: []mcp.Content{
+					&mcp.TextContent{Text: string(linked)},
+				},
+			}
+			var structured any
+			if err := json.Unmarshal(linked, &structured); err != nil {
+				return nil, fmt.Errorf("failed to decode response: %w", err)
+			}
+			result.StructuredContent = structured
+			return result, nil
+		},
+	}
+}
+
+// FileDownload returns the content of a file in Teamwork.com.
+func FileDownload(engine *twapi.Engine) toolsets.ToolWrapper {
+	return toolsets.ToolWrapper{
+		Tool: &mcp.Tool{
+			Name: string(MethodFileDownload),
+			Description: fmt.Sprintf("Read the content of a file stored in Teamwork.com: text files come back as "+
+				"text, images as an image, and anything else as a base64 resource with its media type. Files "+
+				"over %d MB are refused; point the user at the file's downloadURL from %s instead. The file ID "+
+				"is in a task's or message reply's attachments and a comment's files (each {id, type: "+
+				"\"files\"}), or comes from %s.", maxDownloadBytes>>20, MethodFileGet, MethodFileList),
+			Annotations: &mcp.ToolAnnotations{
+				Title:           "Download File",
+				ReadOnlyHint:    true,
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
+			},
+			InputSchema: &jsonschema.Schema{
+				Type: "object",
+				Properties: map[string]*jsonschema.Schema{
+					"id": {
+						Type:        "integer",
+						Description: "The ID of the file to download.",
+					},
+					"version": {
+						Description: "The version number to download. Omit for the latest version.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "integer", Minimum: new(1.0)},
+							{Type: "null"},
+						},
+					},
+				},
+				Required: []string{"id"},
+			},
+			OutputSchema: fileDownloadOutputSchema,
+		},
+		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+			var fileDownloadRequest projects.FileDownloadRequest
+
+			var arguments map[string]any
+			if err := json.Unmarshal(request.Params.Arguments, &arguments); err != nil {
+				return helpers.NewToolResultTextError("failed to decode request: %s", err.Error()), nil
+			}
+			err := helpers.ParamGroup(arguments,
+				helpers.RequiredNumericParam(&fileDownloadRequest.Path.ID, "id"),
+				helpers.OptionalNumericParam(&fileDownloadRequest.Version, "version"),
+			)
+			if err != nil {
+				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
+			}
+
+			download, err := projects.FileDownload(ctx, engine, fileDownloadRequest)
+			if err != nil {
+				return helpers.HandleAPIError(err, "failed to download file")
+			}
+			defer func() {
+				_ = download.Body.Close()
+			}()
+
+			if download.Size > maxDownloadBytes {
+				return helpers.NewToolResultTextError("file is %d bytes, over the %d MB limit; share its downloadURL "+
+					"from %s with the user instead", download.Size, maxDownloadBytes>>20, MethodFileGet), nil
+			}
+			// One byte past the cap is enough to know the body does not fit, without
+			// holding all of it for a server that did not announce the length.
+			content, err := io.ReadAll(io.LimitReader(download.Body, maxDownloadBytes+1))
+			if err != nil {
+				return nil, fmt.Errorf("failed to read file content: %w", err)
+			}
+			if len(content) > maxDownloadBytes {
+				return helpers.NewToolResultTextError("file is over the %d MB limit; share its downloadURL from %s "+
+					"with the user instead", maxDownloadBytes>>20, MethodFileGet), nil
+			}
+
+			mimeType := downloadMIMEType(download.ContentType, download.Name)
+			result := fileDownloadResult{
+				Name:     download.Name,
+				MIMEType: mimeType,
+				Size:     int64(len(content)),
+			}
+			encoded, err := json.Marshal(result)
+			if err != nil {
+				return nil, err
+			}
+
+			var payload mcp.Content
+			switch {
+			case strings.HasPrefix(mimeType, "image/"):
+				payload = &mcp.ImageContent{Data: content, MIMEType: mimeType}
+			case isTextualMIMEType(mimeType) && utf8.Valid(content):
+				payload = &mcp.TextContent{Text: string(content)}
+			default:
+				payload = &mcp.EmbeddedResource{
+					Resource: &mcp.ResourceContents{
+						URI:      fmt.Sprintf("twprojects://files/%d", fileDownloadRequest.Path.ID),
+						MIMEType: mimeType,
+						Blob:     content,
+					},
+				}
+			}
+
+			return &mcp.CallToolResult{
+				Content: []mcp.Content{
+					&mcp.TextContent{Text: string(encoded)},
+					payload,
+				},
+				StructuredContent: result,
+			}, nil
+		},
+	}
+}
+
+// downloadMIMEType settles the media type of a download. The storage service
+// answers with the type the file was uploaded under, which is a generic
+// octet-stream for anything the uploader's client did not recognise, so the
+// file name's extension is the fallback.
+func downloadMIMEType(contentType, name string) string {
+	mimeType, _, err := mime.ParseMediaType(contentType)
+	if err == nil && mimeType != "" && mimeType != "application/octet-stream" {
+		return mimeType
+	}
+	if byExtension := mime.TypeByExtension(path.Ext(name)); byExtension != "" {
+		if parsed, _, err := mime.ParseMediaType(byExtension); err == nil {
+			return parsed
+		}
+	}
+	return "application/octet-stream"
+}
+
+// isTextualMIMEType reports whether content of the given media type is worth
+// returning as text rather than as a base64 blob.
+func isTextualMIMEType(mimeType string) bool {
+	switch {
+	case strings.HasPrefix(mimeType, "text/"):
+		return true
+	case mimeType == "application/json", mimeType == "application/xml":
+		return true
+	case strings.HasSuffix(mimeType, "+json"), strings.HasSuffix(mimeType, "+xml"):
+		return true
+	}
+	return false
 }

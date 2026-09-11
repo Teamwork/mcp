@@ -797,3 +797,29 @@ func TestTaskNotifyReachesTheWire(t *testing.T) {
 		})
 	}
 }
+
+// TestTaskGetKeepsAttachments pins that the typed round-trip keeps the file relationships the
+// response carries: the ID in them is what twprojects-download_file takes.
+func TestTaskGetKeepsAttachments(t *testing.T) {
+	mcpServer := mcpServerMock(t, http.StatusOK, []byte(`{"task":{"id":123,"attachments":[{"id":555,"type":"files"}]}}`))
+	testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodTaskGet.String(), map[string]any{
+		"id": float64(123),
+	}, testutil.ExecuteToolRequestWithCheckMessage(func(t *testing.T, result mcp.Result) {
+		testutil.CheckMessage(t, result)
+		text := result.(*mcp.CallToolResult).Content[0].(*mcp.TextContent).Text
+		var payload struct {
+			Entity struct {
+				Files []struct {
+					ID   int64  `json:"id"`
+					Type string `json:"type"`
+				} `json:"attachments"`
+			} `json:"task"`
+		}
+		if err := json.Unmarshal([]byte(text), &payload); err != nil {
+			t.Fatalf("failed to decode the response: %v", err)
+		}
+		if len(payload.Entity.Files) != 1 || payload.Entity.Files[0].ID != 555 || payload.Entity.Files[0].Type != "files" {
+			t.Errorf("expected the file relationship to survive the round-trip, got %q", text)
+		}
+	}))
+}

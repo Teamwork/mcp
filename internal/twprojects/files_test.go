@@ -11,6 +11,8 @@ import (
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/teamwork/mcp/internal/testutil"
 	"github.com/teamwork/mcp/internal/twprojects"
+	pkgtestutil "github.com/teamwork/mcp/pkg/testutil"
+	twapi "github.com/teamwork/twapi-go-sdk"
 )
 
 // presignedUploadURL is the URL the reservation step hands back. It carries the
@@ -723,4 +725,279 @@ func TestTaskAttachmentsOmittedWithoutEither(t *testing.T) {
 	if bytes.Contains((*recorded)[0].Body, []byte(`"attachments"`)) {
 		t.Errorf("expected no attachments key, got %s", (*recorded)[0].Body)
 	}
+}
+
+func TestFileListReachesTheWire(t *testing.T) {
+	mcpServer, requestURL := testutil.ProjectsMCPServerMockWithRequestURL(t, http.StatusOK, []byte(`{"files":[]}`))
+	testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodFileList.String(), map[string]any{
+		"project_id":          float64(777),
+		"task_id":             float64(12345),
+		"ids":                 []any{float64(1), float64(2)},
+		"category_id":         float64(9),
+		"tag_ids":             []any{float64(3)},
+		"user_ids":            []any{float64(4)},
+		"search_term":         "plan",
+		"search_all_fields":   true,
+		"uploaded_after":      "2026-08-01",
+		"uploaded_before":     "2026-08-31",
+		"updated_after":       "2026-08-15T10:00:00Z",
+		"show_deleted":        true,
+		"skip_external_files": true,
+		"page":                float64(2),
+		"page_size":           float64(25),
+	})
+
+	if !strings.HasSuffix(requestURL.Path, "/projects/api/v3/projects/777/files.json") {
+		t.Errorf("expected the project-scoped route, got %s", requestURL.Path)
+	}
+	query := requestURL.Query()
+	for key, want := range map[string]string{
+		"taskId":            "12345",
+		"ids":               "1,2",
+		"categoryId":        "9",
+		"tagIds":            "3",
+		"userIds":           "4",
+		"searchTerm":        "plan",
+		"searchAllFields":   "true",
+		"uploadedStartDate": "2026-08-01",
+		"uploadedEndDate":   "2026-08-31",
+		"updatedAfter":      "2026-08-15T10:00:00Z",
+		"showDeleted":       "true",
+		"skipExternalFiles": "true",
+		"page":              "2",
+		"pageSize":          "25",
+	} {
+		if got := query.Get(key); got != want {
+			t.Errorf("expected %s=%q on the query string, got %q", key, want, got)
+		}
+	}
+	// verbose is the default, and it is what sideloads the uploader and project.
+	if got := query.Get("include"); got != "users,projects" {
+		t.Errorf("expected include=users,projects, got %q", got)
+	}
+}
+
+func TestFileListUnscopedUsesTheGlobalRoute(t *testing.T) {
+	mcpServer, requestURL := testutil.ProjectsMCPServerMockWithRequestURL(t, http.StatusOK, []byte(`{"files":[]}`))
+	testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodFileList.String(), map[string]any{
+		"verbose": false,
+	})
+
+	if !strings.HasSuffix(requestURL.Path, "/projects/api/v3/files.json") {
+		t.Errorf("expected the global files route, got %s", requestURL.Path)
+	}
+	query := requestURL.Query()
+	if got := query.Get("fields[files]"); got != "id,displayName,size" {
+		t.Errorf("expected the terse field set, got %q", got)
+	}
+	if query.Has("include") {
+		t.Errorf("expected no sideloads when verbose is false, got %q", query.Get("include"))
+	}
+}
+
+func TestFileGetReachesTheWire(t *testing.T) {
+	mcpServer, requestURL := testutil.ProjectsMCPServerMockWithRequestURL(t, http.StatusOK,
+		[]byte(`{"file":{"id":12345}}`))
+	testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodFileGet.String(), map[string]any{
+		"id":               float64(12345),
+		"version":          float64(2),
+		"include_versions": true,
+	})
+
+	if !strings.HasSuffix(requestURL.Path, "/projects/api/v3/files/12345.json") {
+		t.Errorf("expected the single file route, got %s", requestURL.Path)
+	}
+	query := requestURL.Query()
+	for key, want := range map[string]string{
+		"version":     "2",
+		"getVersions": "true",
+		"include":     "users",
+	} {
+		if got := query.Get(key); got != want {
+			t.Errorf("expected %s=%q on the query string, got %q", key, want, got)
+		}
+	}
+}
+
+func TestFileGetSelectionDropsTheSideload(t *testing.T) {
+	mcpServer, requestURL := testutil.ProjectsMCPServerMockWithRequestURL(t, http.StatusOK,
+		[]byte(`{"file":{"id":12345,"displayName":"plan.md"}}`))
+	testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodFileGet.String(), map[string]any{
+		"id":     float64(12345),
+		"fields": []any{"displayName"},
+	})
+
+	query := requestURL.Query()
+	if got := query.Get("fields[files]"); got != "displayName,id" {
+		t.Errorf("expected the selection plus id, got %q", got)
+	}
+	if query.Has("include") {
+		t.Errorf("expected no sideload under a selection, got %q", query.Get("include"))
+	}
+}
+
+// fileDownloadMock answers the download route with the given body and headers,
+// as storage does once the redirect has been followed. The engine mocks build
+// their responses without headers, and the content type is what decides how the
+// tool returns the bytes, so this one sets them itself.
+func fileDownloadMock(t *testing.T, contentType, disposition string, body []byte) *mcp.Server {
+	t.Helper()
+
+	engine := twapi.NewEngine(testutil.ProjectsSessionMock{},
+		twapi.WithMiddleware(func(twapi.HTTPClient) twapi.HTTPClient {
+			return twapi.HTTPClientFunc(func(*http.Request) (*http.Response, error) {
+				resp := pkgtestutil.NewMockHTTPResponse(http.StatusOK, body)
+				resp.ContentLength = int64(len(body))
+				resp.Header.Set("Content-Type", contentType)
+				if disposition != "" {
+					resp.Header.Set("Content-Disposition", disposition)
+				}
+				return resp, nil
+			})
+		}),
+	)
+	return pkgtestutil.MCPServer(t, twprojects.DefaultToolsetGroup(false, true, engine))
+}
+
+// downloadContents runs the download tool and returns the result's content
+// blocks, failing the test on an error result.
+func downloadContents(t *testing.T, mcpServer *mcp.Server, args map[string]any) []mcp.Content {
+	t.Helper()
+
+	var contents []mcp.Content
+	testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodFileDownload.String(), args,
+		testutil.ExecuteToolRequestWithCheckMessage(func(t *testing.T, result mcp.Result) {
+			testutil.CheckMessage(t, result)
+			contents = result.(*mcp.CallToolResult).Content
+		}),
+	)
+	return contents
+}
+
+func TestFileDownloadReturnsTextAsText(t *testing.T) {
+	mcpServer := fileDownloadMock(t, "text/markdown; charset=utf-8", `attachment; filename="plan.md"`,
+		[]byte("# Plan\n"))
+	contents := downloadContents(t, mcpServer, map[string]any{"id": float64(12345)})
+
+	if len(contents) != 2 {
+		t.Fatalf("expected a description and the content, got %d blocks", len(contents))
+	}
+	description, ok := contents[0].(*mcp.TextContent)
+	if !ok {
+		t.Fatalf("expected the first block to be text, got %T", contents[0])
+	}
+	var meta struct {
+		Name     string `json:"name"`
+		MIMEType string `json:"mimeType"`
+		Size     int64  `json:"size"`
+	}
+	if err := json.Unmarshal([]byte(description.Text), &meta); err != nil {
+		t.Fatalf("failed to decode the description: %v", err)
+	}
+	if meta.Name != "plan.md" || meta.MIMEType != "text/markdown" || meta.Size != 7 {
+		t.Errorf("unexpected description %+v", meta)
+	}
+	text, ok := contents[1].(*mcp.TextContent)
+	if !ok {
+		t.Fatalf("expected the content to be text, got %T", contents[1])
+	}
+	if text.Text != "# Plan\n" {
+		t.Errorf("expected the file's text, got %q", text.Text)
+	}
+}
+
+func TestFileDownloadReturnsImagesAsImages(t *testing.T) {
+	png := []byte("\x89PNG\r\n\x1a\n")
+	mcpServer := fileDownloadMock(t, "image/png", `attachment; filename="logo.png"`, png)
+	contents := downloadContents(t, mcpServer, map[string]any{"id": float64(12345)})
+
+	if len(contents) != 2 {
+		t.Fatalf("expected a description and the content, got %d blocks", len(contents))
+	}
+	image, ok := contents[1].(*mcp.ImageContent)
+	if !ok {
+		t.Fatalf("expected the content to be an image, got %T", contents[1])
+	}
+	if image.MIMEType != "image/png" || !bytes.Equal(image.Data, png) {
+		t.Errorf("expected the PNG bytes under image/png, got %s with %d bytes", image.MIMEType, len(image.Data))
+	}
+}
+
+func TestFileDownloadReturnsBinariesAsResources(t *testing.T) {
+	pdf := []byte("%PDF-1.7\n")
+	mcpServer := fileDownloadMock(t, "application/pdf", `attachment; filename="report.pdf"`, pdf)
+	contents := downloadContents(t, mcpServer, map[string]any{"id": float64(12345), "version": float64(3)})
+
+	if len(contents) != 2 {
+		t.Fatalf("expected a description and the content, got %d blocks", len(contents))
+	}
+	resource, ok := contents[1].(*mcp.EmbeddedResource)
+	if !ok {
+		t.Fatalf("expected the content to be an embedded resource, got %T", contents[1])
+	}
+	if resource.Resource.MIMEType != "application/pdf" || !bytes.Equal(resource.Resource.Blob, pdf) {
+		t.Errorf("expected the PDF bytes under application/pdf, got %s with %d bytes",
+			resource.Resource.MIMEType, len(resource.Resource.Blob))
+	}
+	if resource.Resource.URI != "twprojects://files/12345" {
+		t.Errorf("expected the resource to be addressed by file ID, got %q", resource.Resource.URI)
+	}
+}
+
+func TestFileDownloadFallsBackToTheExtension(t *testing.T) {
+	// Storage answers with the type the file was uploaded under, which is a
+	// generic octet-stream when the uploader's client did not know better.
+	mcpServer := fileDownloadMock(t, "application/octet-stream", `attachment; filename="data.csv"`,
+		[]byte("a,b\n1,2\n"))
+	contents := downloadContents(t, mcpServer, map[string]any{"id": float64(12345)})
+
+	if len(contents) != 2 {
+		t.Fatalf("expected a description and the content, got %d blocks", len(contents))
+	}
+	if _, ok := contents[1].(*mcp.TextContent); !ok {
+		t.Errorf("expected a CSV to come back as text, got %T", contents[1])
+	}
+}
+
+func TestFileDownloadRefusesOversizedFiles(t *testing.T) {
+	// Declared size first: the body is never read when the server announces it
+	// does not fit.
+	engineTooBig := twapi.NewEngine(testutil.ProjectsSessionMock{},
+		twapi.WithMiddleware(func(twapi.HTTPClient) twapi.HTTPClient {
+			return twapi.HTTPClientFunc(func(*http.Request) (*http.Response, error) {
+				resp := pkgtestutil.NewMockHTTPResponse(http.StatusOK, nil)
+				resp.ContentLength = 11 << 20
+				resp.Header.Set("Content-Type", "application/zip")
+				return resp, nil
+			})
+		}),
+	)
+	mcpServer := pkgtestutil.MCPServer(t, twprojects.DefaultToolsetGroup(false, true, engineTooBig))
+
+	testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodFileDownload.String(),
+		map[string]any{"id": float64(12345)},
+		testutil.ExecuteToolRequestWithCheckMessage(func(t *testing.T, result mcp.Result) {
+			toolResult := result.(*mcp.CallToolResult)
+			if !toolResult.IsError {
+				t.Fatal("expected an error result for a file over the limit")
+			}
+			text := toolResult.Content[0].(*mcp.TextContent).Text
+			if !strings.Contains(text, "limit") || !strings.Contains(text, twprojects.MethodFileGet.String()) {
+				t.Errorf("expected the error to name the limit and the tool carrying the downloadURL, got %q", text)
+			}
+		}),
+	)
+}
+
+func TestFileDownloadAPIFailureIsAToolResult(t *testing.T) {
+	mcpServer := mcpServerMock(t, http.StatusNotFound, []byte(`{"errors":[{"title":"not found"}]}`))
+	testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodFileDownload.String(),
+		map[string]any{"id": float64(12345)},
+		testutil.ExecuteToolRequestWithCheckMessage(func(t *testing.T, result mcp.Result) {
+			toolResult := result.(*mcp.CallToolResult)
+			if !toolResult.IsError {
+				t.Fatal("expected a 404 to surface as an error tool result")
+			}
+		}),
+	)
 }

@@ -81,6 +81,8 @@ var orderingToolCases = []orderingToolCase{{
 	args:          map[string]any{"custom_item_id": float64(123)},
 	orderModeOnly: true,
 }, {
+	method: twprojects.MethodFileList.String(),
+}, {
 	method:        twprojects.MethodJobRoleList.String(),
 	orderModeOnly: true,
 }, {

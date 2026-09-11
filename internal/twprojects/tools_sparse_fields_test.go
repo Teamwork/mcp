@@ -61,6 +61,13 @@ var fieldsToolCases = []fieldsToolCase{{
 	args:       map[string]any{"entity": "task", "entity_id": float64(123)},
 	attributes: attributesOf[projects.CustomFieldValueField, projects.CustomFieldValue],
 }, {
+	method:     twprojects.MethodFileList.String(),
+	attributes: attributesOf[projects.FileField, projects.File],
+}, {
+	method:     twprojects.MethodFileGet.String(),
+	args:       map[string]any{"id": float64(123)},
+	attributes: attributesOf[projects.FileField, projects.File],
+}, {
 	method:     twprojects.MethodJobRoleList.String(),
 	attributes: attributesOf[projects.JobRoleField, projects.JobRole],
 }, {

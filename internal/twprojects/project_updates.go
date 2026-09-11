@@ -184,7 +184,7 @@ func ProjectStatusUpdateList(engine *twapi.Engine) toolsets.ToolWrapper {
 				// fields when both are needed.
 				filters.Fields.ProjectUpdates = []projects.ProjectStatusUpdateField{
 					projects.ProjectStatusUpdateFieldID,
-					projects.ProjectStatusUpdateFieldProjectID,
+					projects.ProjectStatusUpdateFieldProject,
 					projects.ProjectStatusUpdateFieldHealth,
 					projects.ProjectStatusUpdateFieldHealthLabel,
 					projects.ProjectStatusUpdateFieldColor,
