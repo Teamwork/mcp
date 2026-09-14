@@ -338,11 +338,16 @@ type change struct {
 
 type report struct {
 	Previous version
-	Next     version
-	Level    bumpLevel
-	Forced   bool
-	Changes  []change
-	Notes    []string
+	// PreviousTag is the tag Previous was parsed from, empty when the range
+	// starts at the beginning of history. Previous cannot carry that: it is a
+	// version, and its zero value renders as the v0.0.0 that a first release
+	// counts up from — a tag that does not exist.
+	PreviousTag string
+	Next        version
+	Level       bumpLevel
+	Forced      bool
+	Changes     []change
+	Notes       []string
 }
 
 func (r report) unclassified() []change {
@@ -374,6 +379,7 @@ func buildReport(from, to, repo string, forced bumpLevel, lookupPRs bool) (repor
 			return rep, fmt.Errorf("previous tag %q is not vMAJOR.MINOR.PATCH", from)
 		}
 		rep.Previous = prev
+		rep.PreviousTag = from
 	}
 
 	commits, err := commitsIn(from, to)
@@ -474,9 +480,14 @@ func collectChanges(commits []commit, resolve resolver, notes []string) ([]chang
 	return changes, notes
 }
 
+// outputs feeds the release workflow. previous_tag is the tag name and is
+// empty on a first release, because the workflow passes it to
+// `gh release create --notes-start-tag`, which answers 400 for a tag that does
+// not exist. Reporting the zero version there names v0.0.0 and fails the
+// release of the first tag a repository ever cuts.
 func (r report) outputs() string {
 	return fmt.Sprintf("version=%s\nprevious_tag=%s\nbump=%s\nunclassified=%d\n",
-		r.Next, r.Previous, r.Level, len(r.unclassified()))
+		r.Next, r.PreviousTag, r.Level, len(r.unclassified()))
 }
 
 func (r report) text() string {
