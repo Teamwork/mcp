@@ -77,8 +77,9 @@ Per-product server builders (this package):
 
 - **ProjectsMCPServerMock** and its `WithRequestBody` / `WithRequestURL` /
   `WithRequestURLs` / `Routed` / `Recording` / `Sequenced` variants
-- **DeskMCPServerMock**, **DeskMCPServerMockWithRequestURL**,
-  **DeskMCPServerMockWithRequest** (each returns a cleanup function)
+- **DeskMCPServerMock**, **DeskMCPServerMockWithCustomerURL**,
+  **DeskMCPServerMockWithRequestURL**, **DeskMCPServerMockWithRequest** (each
+  returns a cleanup function)
 - **SpacesMCPServerMock**, **SpacesMCPServerMockWithRequestURL** (each returns
   a cleanup function)
 - **ChatMCPServerMock**
