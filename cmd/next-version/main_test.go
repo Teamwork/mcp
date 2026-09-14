@@ -406,9 +406,10 @@ func TestRepoFromRemote(t *testing.T) {
 
 func TestReportReportsUnclassifiedChanges(t *testing.T) {
 	rep := report{
-		Previous: version{1, 28, 4},
-		Next:     version{1, 28, 5},
-		Level:    bumpPatch,
+		Previous:    version{1, 28, 4},
+		PreviousTag: "v1.28.4",
+		Next:        version{1, 28, 5},
+		Level:       bumpPatch,
 		Changes: []change{
 			{Ref: "#470", Title: "Fix: a | in a title", Prefix: "fix", Level: bumpPatch, Classified: true},
 			{Ref: "#471", Title: "Adds support for something", Level: bumpPatch},
@@ -456,5 +457,44 @@ func TestParseBump(t *testing.T) {
 	}
 	if _, err := parseBump("massive"); err == nil {
 		t.Error("want an error for an unknown bump")
+	}
+}
+
+// TestOutputsLeavePreviousTagEmptyOnAFirstRelease pins the output the release
+// workflow reads. previous_tag reaches `gh release create --notes-start-tag`,
+// which answers "HTTP 400: Invalid previous_tag parameter" for a tag that does
+// not exist — so a repository cutting its first tag has to report no previous
+// tag rather than the v0.0.0 the version counts up from. The workflow already
+// omits the flag for an empty value; it cannot tell that "v0.0.0" means the
+// same thing.
+func TestOutputsLeavePreviousTagEmptyOnAFirstRelease(t *testing.T) {
+	tests := []struct {
+		name        string
+		previousTag string
+		want        string
+	}{
+		{name: "first release", previousTag: "", want: "previous_tag=\n"},
+		{name: "later release", previousTag: "v1.2.3", want: "previous_tag=v1.2.3\n"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			previous, _ := parseVersion(tt.previousTag)
+			rep := report{
+				Previous:    previous,
+				PreviousTag: tt.previousTag,
+				Level:       bumpMinor,
+			}
+			rep.Next = rep.Previous.next(rep.Level)
+
+			if got := rep.outputs(); !strings.Contains(got, tt.want) {
+				t.Errorf("outputs() = %q, want it to carry %q", got, tt.want)
+			}
+			// The human-readable line is free to name v0.0.0; only the machine
+			// output feeds the API that rejects it.
+			if !strings.Contains(rep.text(), rep.Next.String()) {
+				t.Errorf("text() should still name the version being released, got %q", rep.text())
+			}
+		})
 	}
 }
