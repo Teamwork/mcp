@@ -2,6 +2,7 @@ package twprojects_test
 
 import (
 	"net/http"
+	"regexp"
 	"strings"
 	"testing"
 
@@ -136,6 +137,44 @@ func TestTimelogCreateResourceRead(t *testing.T) {
 	for _, field := range []string{"connect_domains", "resource_domains", "frame_domains", "redirect_domains"} {
 		if _, ok := openAICSP[field]; !ok {
 			t.Errorf("expected _meta.openai/widgetCSP to declare %q, got %#v", field, openAICSP)
+		}
+	}
+}
+
+// TestTimelogCreateAppCallsRegisteredTools guards the tool names the app calls
+// from the iframe. A name no tool answers to is refused by the host as outside
+// the app's trusted tool scope, which surfaces as a dead control in the form.
+func TestTimelogCreateAppCallsRegisteredTools(t *testing.T) {
+	mcpServer := mcpServerMock(t, http.StatusCreated, []byte(`{"timelog":{"id":123}}`))
+	clientSession := connectProjectsClientSession(t, mcpServer)
+	defer clientSession.Close() //nolint:errcheck
+
+	tools, err := clientSession.ListTools(t.Context(), nil)
+	if err != nil {
+		t.Fatalf("failed to list tools: %v", err)
+	}
+	registered := make(map[string]bool, len(tools.Tools))
+	for _, tool := range tools.Tools {
+		registered[tool.Name] = true
+	}
+
+	result, err := clientSession.ReadResource(t.Context(), &mcp.ReadResourceParams{
+		URI: "ui://teamwork/timelog-create",
+	})
+	if err != nil {
+		t.Fatalf("failed to read timelog resource: %v", err)
+	}
+	if len(result.Contents) != 1 {
+		t.Fatalf("expected exactly 1 resource content block, got %d", len(result.Contents))
+	}
+
+	called := regexp.MustCompile(`callTool\("([^"]+)"`).FindAllStringSubmatch(result.Contents[0].Text, -1)
+	if len(called) == 0 {
+		t.Fatal("expected the app to call at least one tool")
+	}
+	for _, match := range called {
+		if !registered[match[1]] {
+			t.Errorf("app calls %q, which no registered tool answers to", match[1])
 		}
 	}
 }
