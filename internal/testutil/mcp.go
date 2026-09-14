@@ -218,6 +218,24 @@ func DeskMCPServerMock(t *testing.T, status int, response []byte) (*mcp.Server, 
 	return deskMCPServer(t, pkgtestutil.HTTPServerMock(status, response))
 }
 
+// DeskMCPServerMockWithCustomerURL is like DeskMCPServerMock but also reports
+// the customer URL it injects into the request context.
+//
+// That URL is the prefix every web link is built from, so a test asserting on a
+// meta.webLink has to compare against it; the mock picks it from the test
+// server, whose address is chosen at listen time.
+func DeskMCPServerMockWithCustomerURL(
+	t *testing.T,
+	status int,
+	response []byte,
+) (*mcp.Server, string, func()) {
+	t.Helper()
+
+	testServer := pkgtestutil.HTTPServerMock(status, response)
+	mcpServer, cleanup := deskMCPServer(t, testServer)
+	return mcpServer, testServer.URL, cleanup
+}
+
 // DeskMCPServerMockWithRequestURL is like DeskMCPServerMock but also captures
 // the URL of the most recent HTTP request a tool sent, so tests can assert on
 // the query string the tool actually builds.
