@@ -13,7 +13,7 @@ require (
 	github.com/modelcontextprotocol/go-sdk v1.8.0
 	github.com/sonh/qs v0.7.0
 	github.com/teamwork/desksdkgo v1.1.1
-	github.com/teamwork/spacessdkgo v0.0.0-20260518181558-a6af69d00abb
+	github.com/teamwork/spacessdkgo v0.1.1
 	github.com/teamwork/twapi-go-sdk v1.30.0
 )
 
