@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/teamwork/mcp/pkg/helpers"
 	"github.com/teamwork/mcp/pkg/toolsets"
 )
 
@@ -29,7 +30,7 @@ func truncateContent(content string, method toolsets.Method, id any) (string, bo
 	}
 
 	var marker strings.Builder
-	fmt.Fprintf(&marker, "...[truncated — %s chars total", formatThousands(len(runes)))
+	fmt.Fprintf(&marker, "...[truncated — %s chars total", helpers.FormatThousands(len(runes)))
 	if entityID := formatEntityID(id); entityID != "" {
 		fmt.Fprintf(&marker, ", %s(id=%s) for full text", method, entityID)
 	}
@@ -50,20 +51,4 @@ func formatEntityID(id any) string {
 		return value
 	}
 	return ""
-}
-
-// formatThousands renders a non-negative count with thousands separators.
-func formatThousands(n int) string {
-	digits := strconv.Itoa(n)
-	if len(digits) <= 3 {
-		return digits
-	}
-	var formatted strings.Builder
-	for i, digit := range digits {
-		if i > 0 && (len(digits)-i)%3 == 0 {
-			formatted.WriteRune(',')
-		}
-		formatted.WriteRune(digit)
-	}
-	return formatted.String()
 }
