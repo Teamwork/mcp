@@ -280,3 +280,29 @@ func SpacesMCPServerMock(t *testing.T, status int, response []byte) (*mcp.Server
 	mcpServer := pkgtestutil.MCPServerWithCustomerURL(t, testServer.URL, group)
 	return mcpServer, testServer.Close
 }
+
+// SpacesMCPServerMockWithRequestURL is like SpacesMCPServerMock but also
+// captures the URL of the most recent HTTP request a tool sent.
+//
+// The Spaces API serves some resources on more than one version of the same
+// path, and the mock replies with the same canned body whichever one is asked
+// for, so a tool that reaches the wrong version looks identical to one that
+// does not.
+//
+// The URL is returned through an accessor rather than a pointer because the
+// capture happens on the httptest server's goroutine.
+func SpacesMCPServerMockWithRequestURL(
+	t *testing.T,
+	status int,
+	response []byte,
+) (*mcp.Server, func() url.URL, func()) {
+	t.Helper()
+
+	testServer, lastRequest := pkgtestutil.RecordingHTTPServerMock(status, response)
+	group := twspaces.DefaultToolsetGroup(false, true, testServer.Client())
+	mcpServer := pkgtestutil.MCPServerWithCustomerURL(t, testServer.URL, group)
+	return mcpServer, func() url.URL {
+		_, requestURL := lastRequest()
+		return requestURL
+	}, testServer.Close
+}

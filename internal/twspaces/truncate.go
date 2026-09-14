@@ -10,12 +10,15 @@ import (
 
 // Bounds on the number of page nodes twspaces-list_pages returns.
 //
-// GET /spaces/api/v1/spaces/{spaceId}/pages.json answers with a space's whole
-// page tree and reads neither pageSize nor pageOffset, so the cap has to be
-// applied here or there is no cap at all. Left unbounded this is the largest
-// response the server produces — a space with thousands of pages answers in
-// hundreds of kilobytes, and a few such calls fill a model's context window on
-// their own, which costs the caller the turn rather than just the tool result.
+// GET /spaces/api/v{1,2}/spaces/{spaceId}/pages.json answers with a space's
+// whole page tree and reads neither pageSize nor pageOffset, so the cap has to
+// be applied here or there is no cap at all. The v2 route answers with a second
+// tree beside the first, which is more to bound rather than less.
+//
+// Left unbounded this is the largest response the server produces — a space
+// with thousands of pages answers in hundreds of kilobytes, and a few such
+// calls fill a model's context window on their own, which costs the caller the
+// turn rather than just the tool result.
 const (
 	defaultPageTreeLimit = 100
 	maxPageTreeLimit     = 500
@@ -60,13 +63,60 @@ func capPageList(pages *spacesmodels.PagesResponse, offset, limit int) any {
 	}
 
 	capped := *pages
-	selected, kept := selectPages(pages.Pages.ChildPages, offset, limit)
-	capped.Pages.ChildPages = selected
+	window := &pageWindow{offset: offset, limit: limit}
+	capped.Pages.ChildPages = window.walk(pages.Pages.ChildPages)
 
 	return pageListResponse{
 		PagesResponse: &capped,
-		Truncated:     pageTreeMarker(total, offset, kept),
+		Truncated:     pageTreeMarker(total, offset, window.kept),
 	}
+}
+
+// pageTreeResponse is the body twspaces-list_pages returns when the caller asks
+// for private pages. The API nests both trees under a "spaceContent" key; they
+// are lifted to the top level here so `pages` stays where the open-tree
+// response already put it and `private` arrives beside it, which is the shape
+// the API itself names the two trees in. They are deliberately not merged into
+// one tree: which pages are restricted is the distinction the caller asked for,
+// and a flattened tree cannot express it.
+type pageTreeResponse struct {
+	spacesmodels.SpaceContentTree
+	Included  spacesmodels.IncludedData `json:"included,omitempty"`
+	Meta      spacesmodels.ResponseMeta `json:"meta"`
+	Truncated string                    `json:"truncated,omitempty"`
+}
+
+// capPageTrees bounds the open and private trees together, as a single window
+// in depth-first order: the open tree first, then the private one. Giving each
+// tree its own window would let a space return twice the cap, which is the
+// unbounded response the cap exists to stop coming back through the second
+// tree. A response that already fits is returned with no nodes dropped and no
+// marker, as the open-tree path does.
+func capPageTrees(content *spacesmodels.SpaceContentResponse, offset, limit int) any {
+	if content == nil {
+		return content
+	}
+	if offset < 0 {
+		offset = 0
+	}
+
+	tree := content.SpaceContent
+	response := pageTreeResponse{
+		SpaceContentTree: tree,
+		Included:         content.Included,
+		Meta:             content.Meta,
+	}
+
+	total := countPages(tree.Pages.ChildPages) + countPages(tree.Private)
+	if offset == 0 && total <= limit {
+		return response
+	}
+
+	window := &pageWindow{offset: offset, limit: limit}
+	response.Pages.ChildPages = window.walk(tree.Pages.ChildPages)
+	response.Private = window.walk(tree.Private)
+	response.Truncated = pageTreeMarker(total, offset, window.kept)
+	return response
 }
 
 // countPages counts every node in the forest, at every depth.
@@ -78,37 +128,42 @@ func countPages(nodes []spacesmodels.PageTreeNode) int {
 	return count
 }
 
-// selectPages keeps the pages whose depth-first position falls in
-// [offset, offset+limit), reporting how many that came to. A kept page whose
-// parent fell outside the window is re-attached to the nearest ancestor that is
-// inside it, so the caller still receives a tree rather than a broken one.
-func selectPages(nodes []spacesmodels.PageTreeNode, offset, limit int) ([]spacesmodels.PageTreeNode, int) {
-	var position, kept int
+// pageWindow is the cursor the cap walks a page forest with. It is a type
+// rather than a closure because the v2 response carries two trees that share
+// one window: the position and the remaining budget have to carry from the
+// first walk into the second.
+type pageWindow struct {
+	offset int
+	limit  int
 
-	var walk func([]spacesmodels.PageTreeNode) []spacesmodels.PageTreeNode
-	walk = func(nodes []spacesmodels.PageTreeNode) []spacesmodels.PageTreeNode {
-		selected := []spacesmodels.PageTreeNode{}
-		for _, node := range nodes {
-			// Decided before descending so the budget is spent in the same
-			// depth-first order the positions are numbered in.
-			include := position >= offset && kept < limit
-			position++
-			if include {
-				kept++
-			}
+	position int
+	kept     int
+}
 
-			children := walk(node.ChildPages)
-			if include {
-				node.ChildPages = children
-				selected = append(selected, node)
-			} else {
-				selected = append(selected, children...)
-			}
+// walk keeps the pages whose depth-first position falls in
+// [offset, offset+limit). A kept page whose parent fell outside the window is
+// re-attached to the nearest ancestor that is inside it, so the caller still
+// receives a tree rather than a broken one.
+func (w *pageWindow) walk(nodes []spacesmodels.PageTreeNode) []spacesmodels.PageTreeNode {
+	selected := []spacesmodels.PageTreeNode{}
+	for _, node := range nodes {
+		// Decided before descending so the budget is spent in the same
+		// depth-first order the positions are numbered in.
+		include := w.position >= w.offset && w.kept < w.limit
+		w.position++
+		if include {
+			w.kept++
 		}
-		return selected
-	}
 
-	return walk(nodes), kept
+		children := w.walk(node.ChildPages)
+		if include {
+			node.ChildPages = children
+			selected = append(selected, node)
+		} else {
+			selected = append(selected, children...)
+		}
+	}
+	return selected
 }
 
 // pageTreeMarker spells out what was dropped, in the style of twprojects'

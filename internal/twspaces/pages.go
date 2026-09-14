@@ -81,10 +81,12 @@ func PageList(httpClient *http.Client) toolsets.ToolWrapper {
 				DestructiveHint: new(false),
 				OpenWorldHint:   new(false),
 			},
-			Description: "List pages in a space as a hierarchical tree. Returns at most 100 pages per call by " +
-				"default, up to 500 with pageSize. A space with more pages than that is cut in depth-first order " +
-				"and the response carries a `truncated` marker naming the total page count, the pageOffset that " +
-				"returns the next set, and twspaces-get_page for a single page in full.",
+			Description: "List pages in a space as a hierarchical tree. Returns the space's open pages under " +
+				"`pages`; set includePrivate to also receive, under a sibling `private` key, the restricted " +
+				"pages the calling user has access to. Returns at most 100 pages per call by default, up to 500 " +
+				"with pageSize, counted across both trees. A space with more pages than that is cut in " +
+				"depth-first order and the response carries a `truncated` marker naming the total page count, " +
+				"the pageOffset that returns the next set, and twspaces-get_page for a single page in full.",
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
 				Properties: map[string]*jsonschema.Schema{
@@ -100,10 +102,21 @@ func PageList(httpClient *http.Client) toolsets.ToolWrapper {
 						},
 					},
 					"pageOffset": {
-						Description: "Number of pages to skip, counted in depth-first order (not a page number). " +
-							"Use the value the `truncated` marker names to read the next set.",
+						Description: "Number of pages to skip, counted in depth-first order (not a page number), " +
+							"across the open tree and then the private one. Use the value the `truncated` marker " +
+							"names to read the next set.",
 						AnyOf: []*jsonschema.Schema{
 							{Type: "integer", Minimum: new(0.0)},
+							{Type: "null"},
+						},
+					},
+					"includePrivate": {
+						Description: "Return the restricted pages the calling user has access to as well, under " +
+							"a `private` key beside `pages`. Defaults to false, so an unfiltered call answers " +
+							"with the open pages only and a private page is missing rather than reported as " +
+							"inaccessible. Both trees share one pageSize budget and one pageOffset.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "boolean"},
 							{Type: "null"},
 						},
 					},
@@ -120,18 +133,30 @@ func PageList(httpClient *http.Client) toolsets.ToolWrapper {
 
 			params := url.Values{}
 			setPagination(&params, arguments)
-			pages, err := client.Pages.List(ctx, int64(arguments.GetInt("spaceId", 0)), params)
+
+			spaceID := int64(arguments.GetInt("spaceId", 0))
+			// The parameters are forwarded above so the bound is won on the wire
+			// wherever the endpoint reads them, but neither route reads them
+			// today, so the cap is applied to the answer as well.
+			offset := arguments.GetInt("pageOffset", 0)
+			limit := pageTreeLimit(arguments.GetInt("pageSize", 0))
+
+			// The private pages live on a second route, which answers with both
+			// trees. It is opt-in rather than the default so the response shape
+			// every existing caller reads stays put.
+			if arguments.GetBool("includePrivate", false) {
+				content, err := client.Pages.ListWithPrivate(ctx, spaceID, params)
+				if err != nil {
+					return nil, fmt.Errorf("failed to list pages: %w", err)
+				}
+				return helpers.NewToolResultJSON(capPageTrees(content, offset, limit))
+			}
+
+			pages, err := client.Pages.List(ctx, spaceID, params)
 			if err != nil {
 				return nil, fmt.Errorf("failed to list pages: %w", err)
 			}
-
-			// The parameters are forwarded above so the bound is won on the wire
-			// wherever the endpoint reads them, but it does not read them today,
-			// so the cap is applied to the answer as well.
-			return helpers.NewToolResultJSON(capPageList(pages,
-				arguments.GetInt("pageOffset", 0),
-				pageTreeLimit(arguments.GetInt("pageSize", 0)),
-			))
+			return helpers.NewToolResultJSON(capPageList(pages, offset, limit))
 		},
 	}
 }
