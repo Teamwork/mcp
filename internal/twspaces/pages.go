@@ -81,15 +81,33 @@ func PageList(httpClient *http.Client) toolsets.ToolWrapper {
 				DestructiveHint: new(false),
 				OpenWorldHint:   new(false),
 			},
-			Description: "List pages in a space as a hierarchical tree.",
+			Description: "List pages in a space as a hierarchical tree. Returns at most 100 pages per call by " +
+				"default, up to 500 with pageSize. A space with more pages than that is cut in depth-first order " +
+				"and the response carries a `truncated` marker naming the total page count, the pageOffset that " +
+				"returns the next set, and twspaces-get_page for a single page in full.",
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
-				Properties: paginationOptions(map[string]*jsonschema.Schema{
+				Properties: map[string]*jsonschema.Schema{
 					"spaceId": {
 						Type:        "integer",
 						Description: "The ID of the space to list pages for.",
 					},
-				}),
+					"pageSize": {
+						Description: "Maximum number of pages to return (1-500). Defaults to 100.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "integer", Minimum: new(1.0), Maximum: new(float64(maxPageTreeLimit))},
+							{Type: "null"},
+						},
+					},
+					"pageOffset": {
+						Description: "Number of pages to skip, counted in depth-first order (not a page number). " +
+							"Use the value the `truncated` marker names to read the next set.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "integer", Minimum: new(0.0)},
+							{Type: "null"},
+						},
+					},
+				},
 				Required: []string{"spaceId"},
 			},
 		},
@@ -106,7 +124,14 @@ func PageList(httpClient *http.Client) toolsets.ToolWrapper {
 			if err != nil {
 				return nil, fmt.Errorf("failed to list pages: %w", err)
 			}
-			return helpers.NewToolResultJSON(pages)
+
+			// The parameters are forwarded above so the bound is won on the wire
+			// wherever the endpoint reads them, but it does not read them today,
+			// so the cap is applied to the answer as well.
+			return helpers.NewToolResultJSON(capPageList(pages,
+				arguments.GetInt("pageOffset", 0),
+				pageTreeLimit(arguments.GetInt("pageSize", 0)),
+			))
 		},
 	}
 }
