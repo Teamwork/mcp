@@ -48,6 +48,33 @@ func init() {
 	helpers.WithMetaWebLinkSchema(jobRoleListOutputSchema)
 }
 
+// jobRoleMembershipFields are the user attributes that turn a membership ID
+// into a name. A full user record per member is bulk a reader of a job role
+// never asked for.
+var jobRoleMembershipFields = []projects.UserField{
+	projects.UserFieldID,
+	projects.UserFieldFirstName,
+	projects.UserFieldLastName,
+}
+
+// jobRoleNeedsMembership reports whether a read has to request the users
+// sideload. The endpoint leaves users and primaryUsers out of the job role
+// payload entirely unless it is asked for, so membership is unreachable
+// without it — including under a field selection that names either one, which
+// otherwise comes back as an empty array. A selection naming neither does not
+// need it.
+func jobRoleNeedsMembership(fields []projects.JobRoleField) bool {
+	if len(fields) == 0 {
+		return true
+	}
+	for _, field := range fields {
+		if field == projects.JobRoleFieldUsers || field == projects.JobRoleFieldPrimaryUsers {
+			return true
+		}
+	}
+	return false
+}
+
 // JobRoleCreate creates a job role in Teamwork.com.
 func JobRoleCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{
@@ -195,8 +222,10 @@ func JobRoleDelete(engine *twapi.Engine) toolsets.ToolWrapper {
 func JobRoleGet(engine *twapi.Engine) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
-			Name:        string(MethodJobRoleGet),
-			Description: "Get job role.",
+			Name: string(MethodJobRoleGet),
+			Description: "Get job role. The people assigned to the role come back under users, and those " +
+				"holding it as their primary role under primaryUsers; both are references, resolved to " +
+				"names under included.users.",
 			Annotations: &mcp.ToolAnnotations{
 				Title:           "Get Job Role",
 				ReadOnlyHint:    true,
@@ -231,6 +260,13 @@ func JobRoleGet(engine *twapi.Engine) toolsets.ToolWrapper {
 				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
 			}
 
+			if jobRoleNeedsMembership(jobRoleGetRequest.Fields.JobRole) {
+				jobRoleGetRequest.Include = []projects.JobRoleRequestSideload{
+					projects.JobRoleRequestSideloadUsers,
+				}
+				jobRoleGetRequest.Fields.Users = jobRoleMembershipFields
+			}
+
 			if len(jobRoleGetRequest.Fields.JobRole) > 0 {
 				return helpers.NewRawToolResult(ctx, engine, jobRoleGetRequest, "failed to get job role", nil)
 			}
@@ -260,8 +296,10 @@ func JobRoleGet(engine *twapi.Engine) toolsets.ToolWrapper {
 func JobRoleList(engine *twapi.Engine) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
-			Name:        string(MethodJobRoleList),
-			Description: "List job roles.",
+			Name: string(MethodJobRoleList),
+			Description: "List job roles. A verbose row carries the people assigned to the role under " +
+				"users, and those holding it as their primary role under primaryUsers; both are " +
+				"references, resolved to names under included.users.",
 			Annotations: &mcp.ToolAnnotations{
 				Title:           "List Job Roles",
 				ReadOnlyHint:    true,
@@ -313,15 +351,30 @@ func JobRoleList(engine *twapi.Engine) toolsets.ToolWrapper {
 				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
 			}
 
-			if !verbose && len(jobRoleListRequest.Filters.Fields.JobRoles) == 0 {
+			if countOnly {
+				return helpers.NewCountToolResult(ctx, engine, jobRoleListRequest, "failed to count job roles")
+			}
+
+			switch {
+			case len(jobRoleListRequest.Filters.Fields.JobRoles) > 0:
+				// An explicit selection is answered as is, except that membership
+				// still has to be asked for to be part of it.
+
+			case verbose:
+				// Membership is the question a job role is usually read for.
+
+			default:
 				jobRoleListRequest.Filters.Fields.JobRoles = []projects.JobRoleField{
 					projects.JobRoleFieldID,
 					projects.JobRoleFieldName,
 				}
 			}
 
-			if countOnly {
-				return helpers.NewCountToolResult(ctx, engine, jobRoleListRequest, "failed to count job roles")
+			if jobRoleNeedsMembership(jobRoleListRequest.Filters.Fields.JobRoles) {
+				jobRoleListRequest.Filters.Include = []projects.JobRoleRequestSideload{
+					projects.JobRoleRequestSideloadUsers,
+				}
+				jobRoleListRequest.Filters.Fields.Users = jobRoleMembershipFields
 			}
 
 			resp, err := twapi.ExecuteRaw(ctx, engine, jobRoleListRequest)

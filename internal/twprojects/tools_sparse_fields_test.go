@@ -28,6 +28,16 @@ type fieldsToolCase struct {
 	method     string
 	args       map[string]any
 	attributes func() []string
+
+	// sideloadFields are the companion fields[...] selections a tool sends
+	// alongside the caller's own. Only a tool whose sideload survives a
+	// selection has any, which is rare: a selection normally names everything
+	// the caller wants and the sideload is dropped. Job role membership is the
+	// exception — users and primaryUsers are absent from the payload unless
+	// include=users is sent, so a selection naming either one has to carry the
+	// sideload, and narrowing it is what keeps a full user record per member
+	// out of the response.
+	sideloadFields map[string]string
 }
 
 var fieldsToolCases = []fieldsToolCase{{
@@ -68,8 +78,9 @@ var fieldsToolCases = []fieldsToolCase{{
 	args:       map[string]any{"id": float64(123)},
 	attributes: attributesOf[projects.FileField, projects.File],
 }, {
-	method:     twprojects.MethodJobRoleList.String(),
-	attributes: attributesOf[projects.JobRoleField, projects.JobRole],
+	method:         twprojects.MethodJobRoleList.String(),
+	attributes:     attributesOf[projects.JobRoleField, projects.JobRole],
+	sideloadFields: map[string]string{"users": "id,firstName,lastName"},
 }, {
 	method:     twprojects.MethodLinkList.String(),
 	attributes: attributesOf[projects.LinkField, projects.Link],
@@ -141,9 +152,10 @@ var fieldsToolCases = []fieldsToolCase{{
 	args:       map[string]any{"id": float64(123)},
 	attributes: attributesOf[projects.CompanyField, projects.Company],
 }, {
-	method:     twprojects.MethodJobRoleGet.String(),
-	args:       map[string]any{"id": float64(123)},
-	attributes: attributesOf[projects.JobRoleField, projects.JobRole],
+	method:         twprojects.MethodJobRoleGet.String(),
+	args:           map[string]any{"id": float64(123)},
+	attributes:     attributesOf[projects.JobRoleField, projects.JobRole],
+	sideloadFields: map[string]string{"users": "id,firstName,lastName"},
 }, {
 	method:     twprojects.MethodMessageGet.String(),
 	args:       map[string]any{"id": float64(123)},
@@ -317,6 +329,16 @@ func TestSparseFieldsSendSelection(t *testing.T) {
 			testutil.ExecuteToolRequest(t, mcpServer, testCase.method, argsWithFields(testCase.args, attributes...))
 
 			selections := sparseFieldsParams(lastURL.Query())
+			for entity, want := range testCase.sideloadFields {
+				got, ok := selections[entity]
+				switch {
+				case !ok:
+					t.Errorf("expected a fields[%s] sideload selection but got none", entity)
+				case got != want:
+					t.Errorf("expected fields[%s]=%q in request query but got %q", entity, want, got)
+				}
+				delete(selections, entity)
+			}
 			if len(selections) != 1 {
 				t.Fatalf("expected exactly one fields[...] selection but got %v (raw query: %s)",
 					selections, lastURL.RawQuery)
