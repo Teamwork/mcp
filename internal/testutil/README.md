@@ -79,7 +79,8 @@ Per-product server builders (this package):
   `WithRequestURLs` / `Routed` / `Recording` / `Sequenced` variants
 - **DeskMCPServerMock**, **DeskMCPServerMockWithRequestURL**,
   **DeskMCPServerMockWithRequest** (each returns a cleanup function)
-- **SpacesMCPServerMock** (returns a cleanup function)
+- **SpacesMCPServerMock**, **SpacesMCPServerMockWithRequestURL** (each returns
+  a cleanup function)
 - **ChatMCPServerMock**
 
 Re-exported from `pkg/testutil` so a product's tests need only this package:
