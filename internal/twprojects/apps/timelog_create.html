@@ -669,10 +669,11 @@
         taskHint.textContent = "Loading tasks for project " + projectID + "...";
 
         try {
-          var result = await callTool("twprojects-list_tasks_by_project", {
+          var result = await callTool("twprojects-list_tasks", {
             project_id: projectID,
             page: 1,
-            page_size: 200
+            page_size: 200,
+            fields: ["name"]
           });
 
           if (requestID !== tasksRequestID) {
