@@ -107,6 +107,16 @@ func TestTimelogCreateResourceRead(t *testing.T) {
 			t.Errorf("expected embedded HTML ui/initialize handshake to declare %s", fragment)
 		}
 	}
+	// same for the payload shapes the spec pins on the host notifications.
+	for _, fragment := range []string{
+		"params.arguments",                    // ui/notifications/tool-input
+		"(params && params.result) || params", // ui/notifications/tool-result
+		"ui/notifications/size-changed",       // flexible-dimension hosts size from this
+	} {
+		if !strings.Contains(content.Text, fragment) {
+			t.Errorf("expected embedded HTML to handle %s", fragment)
+		}
+	}
 
 	uiMetaRaw, ok := content.Meta["ui"]
 	if !ok {

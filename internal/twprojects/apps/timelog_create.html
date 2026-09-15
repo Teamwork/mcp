@@ -366,6 +366,13 @@
         });
       }
 
+      function notify(method, params) {
+        window.parent.postMessage(
+          { jsonrpc: "2.0", method: method, params: params || {} },
+          hostOrigin
+        );
+      }
+
       async function callTool(name, args) {
         var result = await request("tools/call", {
           name: name,
@@ -566,20 +573,58 @@
 
       function handleHostNotification(method, params) {
         if (method === "ui/notifications/tool-input" || method === "notifications/tool-input") {
-          applyInput((params && params.input) || {});
+          // Spec carries the arguments under "arguments"; "input" is pre-SEP.
+          applyInput((params && (params.arguments || params.input)) || {});
           return;
         }
 
         if (method === "ui/notifications/tool-result" || method === "notifications/tool-result") {
-          if (!params || !params.result) {
+          // Spec params *are* the result (content/structuredContent/_meta).
+          var result = (params && params.result) || params;
+          if (!result || !Array.isArray(result.content)) {
             return;
           }
-          if (params.result.isError) {
-            setStatus("error", resultMessage(params.result));
-            return;
-          }
-          setStatus("success", resultMessage(params.result));
+          setStatus(result.isError ? "error" : "success", resultMessage(result));
         }
+      }
+
+      // Hosts that size the iframe flexibly have no other way to learn our
+      // height (ext-apps 2026-01-26, Container Dimensions -> Host Behavior).
+      var sizeWatchStarted = false;
+
+      function watchSize() {
+        if (sizeWatchStarted) {
+          return;
+        }
+        sizeWatchStarted = true;
+
+        var lastWidth = 0;
+        var lastHeight = 0;
+        var timer = null;
+
+        function publish() {
+          timer = null;
+          var width = Math.ceil(document.documentElement.scrollWidth);
+          var height = Math.ceil(document.documentElement.scrollHeight);
+          if (width === lastWidth && height === lastHeight) {
+            return;
+          }
+          lastWidth = width;
+          lastHeight = height;
+          notify("ui/notifications/size-changed", { width: width, height: height });
+        }
+
+        function schedule() {
+          if (timer === null) {
+            timer = window.setTimeout(publish, 100);
+          }
+        }
+
+        if (typeof ResizeObserver === "function") {
+          new ResizeObserver(schedule).observe(document.documentElement);
+        }
+        window.addEventListener("resize", schedule);
+        publish();
       }
 
       async function loadProjects() {
@@ -833,10 +878,8 @@
         }, 5000);
 
         // Acknowledge — fire-and-forget, no response expected.
-        window.parent.postMessage(
-          { jsonrpc: "2.0", method: "ui/notifications/initialized", params: {} },
-          hostOrigin
-        );
+        notify("ui/notifications/initialized", {});
+        watchSize();
 
         return initResult;
       }
@@ -893,6 +936,7 @@
       initialize().then(loadProjects).catch(function (err) {
         // Fallback: if the host doesn't support ui/initialize (e.g. MCP
         // Inspector), the request will time out. Load projects anyway.
+        watchSize();
         loadProjects();
       });
     })();
