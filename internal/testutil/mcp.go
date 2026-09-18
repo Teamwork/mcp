@@ -278,6 +278,24 @@ func DeskMCPServerMockWithRequest(
 	return mcpServer, lastRequest, cleanup
 }
 
+// DeskMCPServerMockWithRequestBody is like DeskMCPServerMockWithRequest but
+// also reports the body of the most recent request.
+//
+// A write tool's parameters only show up in the body: the mock answers with the
+// same canned response whatever it is sent, so a parameter that never reaches
+// the wire looks identical to one that does.
+func DeskMCPServerMockWithRequestBody(
+	t *testing.T,
+	status int,
+	response []byte,
+) (*mcp.Server, func() (string, url.URL, []byte), func()) {
+	t.Helper()
+
+	testServer, lastRequest := pkgtestutil.RecordingHTTPServerMockWithBody(status, response)
+	mcpServer, cleanup := deskMCPServer(t, testServer)
+	return mcpServer, lastRequest, cleanup
+}
+
 // deskMCPServer wires a twdesk toolset group onto the given test server.
 func deskMCPServer(t *testing.T, testServer *httptest.Server) (*mcp.Server, func()) {
 	t.Helper()
