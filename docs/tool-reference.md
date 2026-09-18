@@ -121,11 +121,12 @@ Companies, customers, and user management in Teamwork Desk.
 
 ### Helpdocs — `twdesk-helpdocs`
 
-Help doc articles and sites in Teamwork Desk.
+Help doc articles, categories and sites in Teamwork Desk.
 
 | Resource | Create | Get | List | Update |
 |---|---|---|---|---|
 | Helpdoc Article | ✓ | ✓ | — | ✓ |
+| Helpdoc Category | — | — | ✓ | — |
 | Helpdoc Site | — | ✓ | ✓ | — |
 
 **Other actions:** `search_helpdoc_articles`

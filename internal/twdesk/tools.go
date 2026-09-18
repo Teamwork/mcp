@@ -10,7 +10,7 @@ const (
 	deskTicketsDescription   = "Tickets, messages, files, and inboxes in Teamwork Desk."
 	deskCustomersDescription = "Companies, customers, and user management in Teamwork Desk."
 	deskAdminDescription     = "Inbox configuration: priorities, statuses, types, and tags in Teamwork Desk."
-	deskHelpDocsDescription  = "Help doc articles and sites in Teamwork Desk."
+	deskHelpDocsDescription  = "Help doc articles, categories and sites in Teamwork Desk."
 )
 
 // Sub-toolset keys for twdesk. These are the valid values for the
@@ -103,6 +103,7 @@ func DefaultToolsetGroup(readOnly bool, httpClient *http.Client) *toolsets.Tools
 		AddReadTools(
 			HelpDocArticleGet(httpClient),
 			HelpDocArticleSearch(httpClient),
+			HelpDocCategoryList(httpClient),
 			HelpDocSiteGet(httpClient),
 			HelpDocSiteList(httpClient),
 		))
