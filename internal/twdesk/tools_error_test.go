@@ -71,7 +71,7 @@ func TestAPIFailuresAreToolResults(t *testing.T) {
 		{
 			name:   "get_helpdoc_article",
 			method: twdesk.MethodHelpDocArticleGet,
-			args:   map[string]any{"id": float64(42), "fields": nil},
+			args:   map[string]any{"id": float64(42), "siteID": float64(7), "fields": nil},
 		},
 		{
 			name:   "search_helpdoc_articles",

@@ -292,6 +292,43 @@ func RecordingHTTPServerMock(status int, response []byte) (*httptest.Server, fun
 	}
 }
 
+// RecordingHTTPServerMockWithBody is RecordingHTTPServerMock that also reports
+// the body of the most recent request.
+//
+// A write tool's parameters are only visible in the body it sends: the mock
+// answers with the same canned response whatever it receives, so a parameter
+// that never reaches the wire looks identical to one that does.
+func RecordingHTTPServerMockWithBody(
+	status int,
+	response []byte,
+) (*httptest.Server, func() (string, url.URL, []byte)) {
+	var mu sync.Mutex
+	var lastMethod string
+	var lastURL url.URL
+	var lastBody []byte
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		body, _ := io.ReadAll(r.Body)
+
+		mu.Lock()
+		lastMethod = r.Method
+		lastURL = *r.URL
+		lastBody = body
+		mu.Unlock()
+
+		w.WriteHeader(status)
+		if _, err := w.Write(response); err != nil {
+			slog.Error("failed to write response", "error", err.Error())
+		}
+	}))
+
+	return server, func() (string, url.URL, []byte) {
+		mu.Lock()
+		defer mu.Unlock()
+		return lastMethod, lastURL, lastBody
+	}
+}
+
 // DeskClientMock creates a Desk SDK client pointed at a test server answering
 // with the given status and body. The caller owns closing the server.
 func DeskClientMock(status int, response []byte) (*deskclient.Client, *httptest.Server) {

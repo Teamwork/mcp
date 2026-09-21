@@ -161,8 +161,8 @@ github.com/stretchr/testify v1.8.0/go.mod h1:yNjHg4UonilssWZ8iaSj1OCr/vHnekPRkoO
 github.com/stretchr/testify v1.8.1/go.mod h1:w2LPCIKwWwSfY2zedu0+kehJoqGctiVI29o6fzry7u4=
 github.com/stretchr/testify v1.11.1 h1:7s2iGBzp5EwR7/aIZr8ao5+dra3wiQyKjjFuvgVKu7U=
 github.com/stretchr/testify v1.11.1/go.mod h1:wZwfW3scLgRK+23gO65QZefKpKQRnfz6sD981Nm4B6U=
-github.com/teamwork/desksdkgo v1.1.1 h1:ivmBqxTnTYgZrjpGvWXaK9DEdFyH1qL60FSY7HMXkLU=
-github.com/teamwork/desksdkgo v1.1.1/go.mod h1:Mgvw83q8iqHr7Sm9xV1iI/T89o3ObaPU3ChMJheRzwA=
+github.com/teamwork/desksdkgo v1.1.2 h1:WZc5eZ2YARdF67Dz3MNPUg4oq+RsSmh1sD0O9wu1af4=
+github.com/teamwork/desksdkgo v1.1.2/go.mod h1:Mgvw83q8iqHr7Sm9xV1iI/T89o3ObaPU3ChMJheRzwA=
 github.com/teamwork/spacessdkgo v0.1.1 h1:Ls1NqVR+IwYbwwm55zDVDcm8frk3X1/QtD0OLegeTXE=
 github.com/teamwork/spacessdkgo v0.1.1/go.mod h1:iFWDFSM0yjGt4GPmi3gFPEBZef+GCGZxCFiFWHXSWgk=
 github.com/teamwork/twapi-go-sdk v1.31.0 h1:9RPgpEciWPPvQsQxnsDdMvyGlrTpPxE8NIZmd8zSdWo=
