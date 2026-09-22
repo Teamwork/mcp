@@ -4,6 +4,9 @@ import (
 	"encoding/json"
 	"log/slog"
 	"net/http"
+	"net/url"
+	"slices"
+	"strings"
 
 	"github.com/teamwork/mcp/pkg/config"
 	"github.com/teamwork/mcp/pkg/toolsets"
@@ -12,6 +15,37 @@ import (
 // resourceDocumentation is the guide an OAuth client is pointed at to understand
 // this authorization flow.
 const resourceDocumentation = "https://apidocs.teamwork.com/guides/teamwork/app-login-flow"
+
+// protectedResourcePath is the well-known segment RFC 9728 reserves for
+// protected-resource metadata.
+const protectedResourcePath = "/.well-known/oauth-protected-resource"
+
+// ProtectedResourceURL returns where RFC 9728 says the metadata for the given
+// resource identifier lives: the well-known segment goes between the host and
+// the resource's path, so a profile URL such as https://host/analyst is
+// described at https://host/.well-known/oauth-protected-resource/analyst.
+//
+// https://datatracker.ietf.org/doc/html/rfc9728#section-3.1
+func ProtectedResourceURL(resource string) string {
+	parsed, err := url.Parse(resource)
+	if err != nil || parsed.Host == "" {
+		// Not a URL we can take apart; keep the caller pointed somewhere rather
+		// than at an empty string.
+		return resource + protectedResourcePath
+	}
+	parsed.Path = protectedResourcePath + resourcePath(resource)
+	return parsed.String()
+}
+
+// resourcePath returns the resource identifier's path component, normalised to
+// either "" or a non-empty path with no trailing slash.
+func resourcePath(resource string) string {
+	parsed, err := url.Parse(resource)
+	if err != nil {
+		return ""
+	}
+	return strings.TrimSuffix(parsed.Path, "/")
+}
 
 // Health registers a GET/OPTIONS health check that requires no authentication.
 func Health(mux *http.ServeMux, path string) {
@@ -45,27 +79,45 @@ func ProtectedResource(mux *http.ServeMux, resources config.Resources, groups []
 		scopesSupported = []byte("[]")
 	}
 
-	body := []byte(`{
-  "resource": "` + resources.Info.MCPURL + `",
+	serve := func(resource string) http.HandlerFunc {
+		body := []byte(`{
+  "resource": "` + resource + `",
   "authorization_servers": ["` + resources.Info.APIURL + `"],
   "bearer_methods_supported": ["header"],
   "resource_documentation": "` + resourceDocumentation + `",
   "scopes_supported": ` + string(scopesSupported) + `
 }`)
 
-	mux.HandleFunc("/.well-known/oauth-protected-resource", func(w http.ResponseWriter, r *http.Request) {
-		if !allowGetOptions(w, r) {
-			return
-		}
-		w.Header().Set("Content-Type", "application/json")
-		allowCORS(w)
-		w.WriteHeader(http.StatusOK)
+		return func(w http.ResponseWriter, r *http.Request) {
+			if !allowGetOptions(w, r) {
+				return
+			}
+			w.Header().Set("Content-Type", "application/json")
+			allowCORS(w)
+			w.WriteHeader(http.StatusOK)
 
-		if r.Method == http.MethodOptions {
-			return
+			if r.Method == http.MethodOptions {
+				return
+			}
+			_, _ = w.Write(body)
 		}
-		_, _ = w.Write(body)
-	})
+	}
+
+	mux.HandleFunc(protectedResourcePath, serve(resources.Info.MCPURL))
+
+	// A client that builds the metadata URL itself, as RFC 9728 tells it to,
+	// asks for the well-known segment before the profile. Without these routes
+	// that request falls through to the MCP handler and comes back 405, which
+	// strands the client before it ever reaches the authorization server.
+	if path := resourcePath(resources.Info.MCPURL); path != "" {
+		// This server is one profile's resource, so it answers for that path.
+		mux.HandleFunc(protectedResourcePath+path, serve(resources.Info.MCPURL))
+		return
+	}
+	// This server answers for every profile it exposes as a path prefix.
+	for _, profile := range slices.Compact(slices.Sorted(slices.Values(resources.Info.MCPProfiles))) {
+		mux.HandleFunc(protectedResourcePath+"/"+profile, serve(resources.Info.MCPURL+"/"+profile))
+	}
 }
 
 // allowGetOptions rejects anything but GET and OPTIONS, reporting whether the

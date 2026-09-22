@@ -103,3 +103,120 @@ func TestHealthRejectsWrites(t *testing.T) {
 		}
 	}
 }
+
+// TestProtectedResourceRFC9728Path pins the metadata URL shape RFC 9728 tells a
+// client to build for itself: the well-known segment goes between the host and
+// the resource path. Serving only the other order answered those clients with a
+// 405 from the MCP handler, stranding them before the authorization server.
+func TestProtectedResourceRFC9728Path(t *testing.T) {
+	tests := []struct {
+		name     string
+		mcpURL   string
+		profiles []string
+		path     string
+		want     string
+	}{{
+		name:   "no profile",
+		mcpURL: "https://mcp.example.com",
+		path:   "/.well-known/oauth-protected-resource",
+		want:   "https://mcp.example.com",
+	}, {
+		name:     "server scoped to one profile",
+		mcpURL:   "https://mcp.example.com/analyst",
+		profiles: []string{"analyst"},
+		path:     "/.well-known/oauth-protected-resource/analyst",
+		want:     "https://mcp.example.com/analyst",
+	}, {
+		name:     "server exposing several profiles",
+		mcpURL:   "https://mcp.example.com",
+		profiles: []string{"analyst", "ops"},
+		path:     "/.well-known/oauth-protected-resource/ops",
+		want:     "https://mcp.example.com/ops",
+	}}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var resources config.Resources
+			resources.Info.MCPURL = tt.mcpURL
+			resources.Info.MCPProfiles = tt.profiles
+			resources.Info.APIURL = "https://example.com"
+
+			mux := http.NewServeMux()
+			mcphttp.ProtectedResource(mux, resources, nil)
+
+			server := httptest.NewServer(mux)
+			defer server.Close()
+
+			response, err := server.Client().Get(server.URL + tt.path)
+			if err != nil {
+				t.Fatalf("failed to request metadata: %v", err)
+			}
+			defer response.Body.Close() //nolint:errcheck
+
+			if response.StatusCode != http.StatusOK {
+				t.Fatalf("status = %d, want %d", response.StatusCode, http.StatusOK)
+			}
+
+			var metadata struct {
+				Resource string `json:"resource"`
+			}
+			if err := json.NewDecoder(response.Body).Decode(&metadata); err != nil {
+				t.Fatalf("metadata is not valid JSON: %v", err)
+			}
+			if metadata.Resource != tt.want {
+				t.Errorf("resource = %q, want %q", metadata.Resource, tt.want)
+			}
+		})
+	}
+}
+
+// TestProtectedResourceKeepsLegacyPath pins that the path shape this server
+// advertised before still answers, so clients that cached it keep working.
+func TestProtectedResourceKeepsLegacyPath(t *testing.T) {
+	var resources config.Resources
+	resources.Info.MCPURL = "https://mcp.example.com/analyst"
+	resources.Info.MCPProfiles = []string{"analyst"}
+	resources.Info.APIURL = "https://example.com"
+
+	mux := http.NewServeMux()
+	mcphttp.ProtectedResource(mux, resources, nil)
+
+	server := httptest.NewServer(mux)
+	defer server.Close()
+
+	// StripProfile trims the profile before the mux sees it, so this is the path
+	// the legacy URL arrives as.
+	response, err := server.Client().Get(server.URL + "/.well-known/oauth-protected-resource")
+	if err != nil {
+		t.Fatalf("failed to request metadata: %v", err)
+	}
+	defer response.Body.Close() //nolint:errcheck
+
+	if response.StatusCode != http.StatusOK {
+		t.Errorf("status = %d, want %d", response.StatusCode, http.StatusOK)
+	}
+}
+
+// TestProtectedResourceURL pins the URL the 401 challenge advertises, which must
+// be one the server actually serves.
+func TestProtectedResourceURL(t *testing.T) {
+	tests := []struct {
+		resource string
+		want     string
+	}{
+		{resource: "https://mcp.example.com", want: "https://mcp.example.com/.well-known/oauth-protected-resource"},
+		{resource: "https://mcp.example.com/", want: "https://mcp.example.com/.well-known/oauth-protected-resource"},
+		{
+			resource: "https://mcp.example.com/analyst",
+			want:     "https://mcp.example.com/.well-known/oauth-protected-resource/analyst",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.resource, func(t *testing.T) {
+			if got := mcphttp.ProtectedResourceURL(tt.resource); got != tt.want {
+				t.Errorf("ProtectedResourceURL(%q) = %q, want %q", tt.resource, got, tt.want)
+			}
+		})
+	}
+}
