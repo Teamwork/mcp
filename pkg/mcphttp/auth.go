@@ -167,6 +167,6 @@ func Auth(resources config.Resources, validator *auth.Validator, next http.Handl
 // https://datatracker.ietf.org/doc/html/rfc9728#name-www-authenticate-response
 func challenge(w http.ResponseWriter, resources config.Resources) {
 	w.Header().Set("WWW-Authenticate",
-		`Bearer resource_metadata="`+resources.Info.MCPURL+`/.well-known/oauth-protected-resource"`)
+		`Bearer resource_metadata="`+ProtectedResourceURL(resources.Info.MCPURL)+`"`)
 	http.Error(w, "Unauthorized", http.StatusUnauthorized)
 }
