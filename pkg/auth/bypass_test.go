@@ -17,10 +17,14 @@ func TestBypassMethod(t *testing.T) {
 		{method: "initialize", want: true},
 		{method: "notifications/initialized", want: true},
 		{method: "logging/setLevel", want: true},
-		{method: "tools/list", want: true},
-		{method: "resources/list", want: true},
-		{method: "resources/templates/list", want: true},
-		{method: "prompts/list", want: true},
+
+		// Listing must answer 401 so the client starts OAuth discovery. Serving it
+		// anonymously left clients believing they were connected until the first
+		// tools/call failed, with no 401 to trigger the authorization flow.
+		{method: "tools/list", want: false},
+		{method: "resources/list", want: false},
+		{method: "resources/templates/list", want: false},
+		{method: "prompts/list", want: false},
 
 		// everything else must stay authenticated
 		{method: "tools/call", want: false},
