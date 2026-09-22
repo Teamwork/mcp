@@ -220,3 +220,69 @@ func TestProtectedResourceURL(t *testing.T) {
 		})
 	}
 }
+
+// TestServerCardRedirects pins that the well-known server-card paths clients
+// probe next to the MCP endpoint reach the canonical document. Unregistered they
+// fell through to the MCP handler and answered 405.
+func TestServerCardRedirects(t *testing.T) {
+	paths := []string{
+		"/.well-known/mcp",
+		"/.well-known/mcp.json",
+		"/.well-known/mcp/server-card.json",
+	}
+
+	for _, path := range paths {
+		t.Run(path, func(t *testing.T) {
+			var resources config.Resources
+			resources.Info.MCPURL = "https://mcp.example.com"
+			resources.Info.APIURL = "https://example.com"
+
+			mux := http.NewServeMux()
+			mcphttp.ServerCard(mux, resources)
+
+			server := httptest.NewServer(mux)
+			defer server.Close()
+
+			client := server.Client()
+			client.CheckRedirect = func(*http.Request, []*http.Request) error {
+				return http.ErrUseLastResponse
+			}
+
+			response, err := client.Get(server.URL + path)
+			if err != nil {
+				t.Fatalf("failed to request server card: %v", err)
+			}
+			defer response.Body.Close() //nolint:errcheck
+
+			if response.StatusCode != http.StatusPermanentRedirect {
+				t.Errorf("status = %d, want %d", response.StatusCode, http.StatusPermanentRedirect)
+			}
+			if want := "https://example.com/.well-known/mcp.json"; response.Header.Get("Location") != want {
+				t.Errorf("Location = %q, want %q", response.Header.Get("Location"), want)
+			}
+		})
+	}
+}
+
+// TestServerCardRejectsWrites pins that the redirect sits in front of
+// authentication and so must never accept a write method.
+func TestServerCardRejectsWrites(t *testing.T) {
+	var resources config.Resources
+	resources.Info.APIURL = "https://example.com"
+
+	mux := http.NewServeMux()
+	mcphttp.ServerCard(mux, resources)
+
+	server := httptest.NewServer(mux)
+	defer server.Close()
+
+	response, err := server.Client().Post(server.URL+"/.well-known/mcp.json", "application/json", nil)
+	if err != nil {
+		t.Fatalf("failed to post: %v", err)
+	}
+	defer response.Body.Close() //nolint:errcheck
+
+	if response.StatusCode != http.StatusMethodNotAllowed {
+		t.Errorf("status = %d, want %d", response.StatusCode, http.StatusMethodNotAllowed)
+	}
+}

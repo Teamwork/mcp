@@ -147,6 +147,7 @@ func newRouter(resources config.Resources, groups []*toolsets.ToolsetGroup) *htt
 	mux.Handle("/favicon.ico", http.RedirectHandler("https://teamwork.com/favicon.ico", http.StatusPermanentRedirect))
 	mcphttp.Health(mux, "/api/health")
 	mcphttp.ProtectedResource(mux, resources, groups)
+	mcphttp.ServerCard(mux, resources)
 	mux.HandleFunc("/.well-known/openai-apps-challenge", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet && r.Method != http.MethodOptions {
 			http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)

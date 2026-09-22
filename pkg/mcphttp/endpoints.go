@@ -47,6 +47,38 @@ func resourcePath(resource string) string {
 	return strings.TrimSuffix(parsed.Path, "/")
 }
 
+// serverCardPaths are the well-known locations clients probe for an MCP server
+// card, next to the endpoint rather than on the API host where the canonical
+// document lives.
+var serverCardPaths = []string{
+	"/.well-known/mcp",
+	"/.well-known/mcp.json",
+	"/.well-known/mcp/server-card.json",
+}
+
+// ServerCard redirects the well-known server-card paths to the canonical
+// document on the API host. Redirecting rather than serving a copy keeps one
+// source of truth; without these the paths fall through to the MCP handler,
+// which answers 405 because it only accepts POST.
+func ServerCard(mux *http.ServeMux, resources config.Resources) {
+	target := resources.Info.APIURL + "/.well-known/mcp.json"
+
+	for _, path := range serverCardPaths {
+		mux.HandleFunc(path, func(w http.ResponseWriter, r *http.Request) {
+			if !allowGetOptions(w, r) {
+				return
+			}
+			allowCORS(w)
+
+			if r.Method == http.MethodOptions {
+				w.WriteHeader(http.StatusOK)
+				return
+			}
+			http.Redirect(w, r, target, http.StatusPermanentRedirect)
+		})
+	}
+}
+
 // Health registers a GET/OPTIONS health check that requires no authentication.
 func Health(mux *http.ServeMux, path string) {
 	mux.HandleFunc(path, func(w http.ResponseWriter, r *http.Request) {
