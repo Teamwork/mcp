@@ -300,10 +300,10 @@ func JobRoleSetUser(engine *twapi.Engine) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
 			Name: string(MethodJobRoleSetUser),
-			Description: "Set the job role of one or more users. Each user holds a single job role, so this " +
-				"replaces whatever role a user held before — the previous role loses them — and makes this " +
-				"one their primary role. It does not add a second role alongside an existing one. To take a " +
-				"user's role away without giving them another, use clear_user_jobrole.",
+			Description: "Set the job role of one or more users. This replaces whatever job role a user held " +
+				"before — the previous role loses them — and makes this one their primary role. It does not " +
+				"add a second role alongside an existing one. To take a user's role away without giving them " +
+				"another, use twprojects-clear_user_jobrole.",
 			Annotations: &mcp.ToolAnnotations{
 				Title:           "Set User Job Role",
 				DestructiveHint: new(true),

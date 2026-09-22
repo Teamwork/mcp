@@ -133,7 +133,7 @@ func (s *jobRolesSuite) stepSetUsersToA(ctx context.Context) error {
 }
 
 func (s *jobRolesSuite) stepVerifyOnA(ctx context.Context) error {
-	members, _, err := s.getMembership(ctx, s.jobRoleIDA)
+	members, primary, err := s.getMembership(ctx, s.jobRoleIDA)
 	if err != nil {
 		return err
 	}
@@ -141,14 +141,18 @@ func (s *jobRolesSuite) stepVerifyOnA(ctx context.Context) error {
 		if !contains(members, id) {
 			return fmt.Errorf("expected user %d in job role A membership %v after set", id, members)
 		}
+		if !contains(primary, id) {
+			return fmt.Errorf("expected user %d in job role A primaryUsers %v after set — "+
+				"set should make the role their primary one", id, primary)
+		}
 	}
-	fmt.Printf("  ✓ all users present in role A membership: %v\n", members)
+	fmt.Printf("  ✓ all users present in role A membership and primaryUsers: %v / %v\n", members, primary)
 	return nil
 }
 
-// stepMoveFirstUserToB sets the first user's role to B. Because each user holds
-// a single job role, this is the move the set tool's description promises: it
-// must remove the user from role A, which the next step asserts.
+// stepMoveFirstUserToB sets the first user's role to B. Because setting a user's
+// role replaces the one they held, this is the move the set tool's description
+// promises: it must remove the user from role A, which the next step asserts.
 func (s *jobRolesSuite) stepMoveFirstUserToB(ctx context.Context) error {
 	_, err := s.r.callToolExpectOK(ctx, "set_user_jobrole (move to B)",
 		twprojects.JobRoleSetUser(s.r.engine), map[string]any{
@@ -175,14 +179,19 @@ func (s *jobRolesSuite) stepVerifyMovedOffA(ctx context.Context) error {
 }
 
 func (s *jobRolesSuite) stepVerifyOnB(ctx context.Context) error {
-	members, _, err := s.getMembership(ctx, s.jobRoleIDB)
+	members, primary, err := s.getMembership(ctx, s.jobRoleIDB)
 	if err != nil {
 		return err
 	}
 	if !contains(members, s.userIDs[0]) {
 		return fmt.Errorf("expected user %d in role B membership %v after move", s.userIDs[0], members)
 	}
-	fmt.Printf("  ✓ user %d now present in role B membership: %v\n", s.userIDs[0], members)
+	if !contains(primary, s.userIDs[0]) {
+		return fmt.Errorf("expected user %d in role B primaryUsers %v after move — "+
+			"set should make the role their primary one", s.userIDs[0], primary)
+	}
+	fmt.Printf("  ✓ user %d now present in role B membership and primaryUsers: %v / %v\n",
+		s.userIDs[0], members, primary)
 	return nil
 }
 
