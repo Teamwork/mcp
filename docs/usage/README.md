@@ -42,15 +42,15 @@ Ask an account administrator to enable MCP under **Settings → AI**.
 
 ## Client Setup Guides
 
-| Client                           | Transport     | Guide                                                |
-|----------------------------------|---------------|------------------------------------------------------|
-| **Teamwork CLI**                 | STDIO         | [teamwork-cli.md](/docs/usage/teamwork-cli.md)       |
-| **ChatGPT**                      | HTTP          | [chat-gpt.md](/docs/usage/chat-gpt.md)             |
-| **Claude Desktop**               | STDIO         | [claude-desktop.md](/docs/usage/claude-desktop.md)   |
-| **Claude Code (CLI)**            | HTTP          | [claude-code.md](/docs/usage/claude-code.md)         |
-| **VSCode — GitHub Copilot Chat** | HTTP or STDIO | [vscode-copilot.md](/docs/usage/vscode-copilot.md)   |
-| **Gemini CLI**                   | HTTP          | [gemini-cli.md](/docs/usage/gemini-cli.md)           |
-| **n8n, Appmixer, custom**        | HTTP          | [other-platforms.md](/docs/usage/other-platforms.md) |
+| Client                                           | Transport     | Guide                                                |
+|--------------------------------------------------|---------------|------------------------------------------------------|
+| **Teamwork CLI**                                 | STDIO         | [teamwork-cli.md](/docs/usage/teamwork-cli.md)       |
+| **ChatGPT**                                      | HTTP          | [chat-gpt.md](/docs/usage/chat-gpt.md)               |
+| **Claude Desktop**                               | STDIO         | [claude-desktop.md](/docs/usage/claude-desktop.md)   |
+| **Claude Code (CLI)**                            | HTTP          | [claude-code.md](/docs/usage/claude-code.md)         |
+| **VSCode — GitHub Copilot Chat**                 | HTTP or STDIO | [vscode-copilot.md](/docs/usage/vscode-copilot.md)   |
+| **Gemini CLI**                                   | HTTP          | [gemini-cli.md](/docs/usage/gemini-cli.md)           |
+| **n8n, Appmixer, LibreChat, Grok Build, custom** | HTTP          | [other-platforms.md](/docs/usage/other-platforms.md) |
 
 ---
 

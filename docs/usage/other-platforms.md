@@ -36,7 +36,7 @@ To load only the tools relevant to a specific role, replace the base URL with on
 2. Set the base URL to `https://mcp.ai.teamwork.com`.
 3. Add the `Authorization: Bearer <token>` header to the connector authentication settings.
 
-### LibreChat
+## LibreChat
 
 1. Use the SSE endpoint: `https://mcp.ai.teamwork.com/sse`.
 2. Set the `SSE` transport method.
@@ -47,6 +47,17 @@ To load only the tools relevant to a specific role, replace the base URL with on
   - Authorization URL: `https://www.teamwork.com/launchpad/login`
   - Token URL: `https://www.teamwork.com/launchpad/v1/token.json`
 7. Set the same scopes from the Teamwork Developer App (`projects`, `desk` or `projects,desk`).
+
+## Grok Build
+
+Run the following command to add the MCP endpoint to Grok:
+
+```bash
+grok mcp add --transport http teamwork https://mcp.ai.teamwork.com \
+  --header "Authorization: Bearer <token>"
+```
+
+Documentation can be found [here](https://docs.x.ai/build/features/mcp-servers#adding-a-server).
 
 ## Custom / Programmatic
 
