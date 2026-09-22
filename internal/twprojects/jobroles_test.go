@@ -48,18 +48,17 @@ func TestJobRoleList(t *testing.T) {
 	})
 }
 
-// TestJobRoleAssignReachesTheWire pins the verb, path and body. Assign and
-// unassign share /jobroles/{id}/people.json and differ only in POST versus
-// DELETE, and the mock answers the same body either way, so the method is what
-// tells the two apart. It also asserts the user list and isPrimary land in the
-// body: a dropped list or flag looks identical to a working one otherwise.
-func TestJobRoleAssignReachesTheWire(t *testing.T) {
+// TestJobRoleSetUserReachesTheWire pins the verb, path and body. Set and clear
+// share /jobroles/{id}/people.json and differ only in POST versus DELETE, and
+// the mock answers the same body either way, so the method is what tells the two
+// apart. It also asserts the user list lands in the body: a dropped list looks
+// identical to a working one otherwise.
+func TestJobRoleSetUserReachesTheWire(t *testing.T) {
 	mcpServer, recorded := testutil.ProjectsMCPServerRecordingMock(t, nil,
 		http.StatusCreated, []byte(`{"jobRole":{"id":123}}`))
-	testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodJobRoleAssignUsers.String(), map[string]any{
+	testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodJobRoleSetUser.String(), map[string]any{
 		"job_role_id": float64(123),
 		"user_ids":    []any{float64(456), float64(777)},
-		"is_primary":  true,
 	})
 
 	if len(*recorded) != 1 {
@@ -73,8 +72,7 @@ func TestJobRoleAssignReachesTheWire(t *testing.T) {
 		t.Errorf("expected the job role people route, got %s", req.URL.Path)
 	}
 	var body struct {
-		Users     []int64 `json:"users"`
-		IsPrimary bool    `json:"isPrimary"`
+		Users []int64 `json:"users"`
 	}
 	if err := json.Unmarshal(req.Body, &body); err != nil {
 		t.Fatalf("failed to decode request body: %v", err)
@@ -82,18 +80,15 @@ func TestJobRoleAssignReachesTheWire(t *testing.T) {
 	if len(body.Users) != 2 || body.Users[0] != 456 || body.Users[1] != 777 {
 		t.Errorf("expected users [456 777] in the body, got %v", body.Users)
 	}
-	if !body.IsPrimary {
-		t.Errorf("expected isPrimary true in the body, got false")
-	}
 }
 
-// TestJobRoleUnassignReachesTheWire is the DELETE half of the shared route: the
-// verb is the only thing separating it from assign, so it is asserted here
+// TestJobRoleClearUserReachesTheWire is the DELETE half of the shared route: the
+// verb is the only thing separating it from set, so it is asserted here
 // alongside the path and the user list.
-func TestJobRoleUnassignReachesTheWire(t *testing.T) {
+func TestJobRoleClearUserReachesTheWire(t *testing.T) {
 	mcpServer, recorded := testutil.ProjectsMCPServerRecordingMock(t, nil,
 		http.StatusNoContent, nil)
-	testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodJobRoleUnassignUsers.String(), map[string]any{
+	testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodJobRoleClearUser.String(), map[string]any{
 		"job_role_id": float64(123),
 		"user_ids":    []any{float64(456)},
 	})

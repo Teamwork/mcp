@@ -10,19 +10,23 @@ import (
 )
 
 // jobRolesSuite walks the Job Role tools, focusing on the user-membership side
-// added by twprojects-assign_jobrole / unassign_jobrole: it creates a job role,
-// assigns real users to it, promotes one to primary, reads the membership back
-// through get_jobrole, then removes it again and confirms the role is empty. The
-// assign and unassign tools share a path and differ only in HTTP verb, so this
-// exercises that both reach the right endpoint end-to-end.
+// added by twprojects-set_user_jobrole / clear_user_jobrole: it creates two job
+// roles, sets users onto the first, reads the membership back through
+// get_jobrole, then moves one user to the second role and confirms the first
+// role loses them — the replacement invariant the set tool's description
+// promises, and the one thing a wire-level test cannot see. It finishes by
+// clearing every membership and confirming both roles are empty. The set and
+// clear tools share a path and differ only in HTTP verb, so this exercises that
+// both reach the right endpoint end-to-end.
 //
 // Job roles are site-level, so this suite does not touch the project named by
-// PROJECT_ID; that value is only used to keep the created role's name unique.
+// PROJECT_ID; that value is only used to keep the created role names unique.
 type jobRolesSuite struct {
 	r *runner
 
-	jobRoleID int64
-	userIDs   []int64 // users assigned during the run, in the order picked
+	jobRoleIDA int64
+	jobRoleIDB int64
+	userIDs    []int64 // users assigned during the run, in the order picked
 }
 
 func newJobRolesSuite(r *runner) suite {
@@ -32,24 +36,29 @@ func newJobRolesSuite(r *runner) suite {
 func (s *jobRolesSuite) steps() []step {
 	return []step{
 		{"LIST users via MCP — pick assignees", s.stepPickUsers},
-		{"CREATE job role via MCP", s.stepCreateJobRole},
-		{"ASSIGN users to job role via MCP", s.stepAssignUsers},
-		{"GET job role via MCP — verify membership (POST reached the wire)", s.stepVerifyAssigned},
-		{"ASSIGN first user as PRIMARY via MCP", s.stepAssignPrimary},
-		{"GET job role via MCP — verify primary membership", s.stepVerifyPrimary},
-		{"UNASSIGN users from job role via MCP", s.stepUnassignUsers},
-		{"GET job role via MCP — verify membership cleared (DELETE reached the wire)", s.stepVerifyUnassigned},
-		{"NEGATIVE: assign with empty user_ids should error clearly", s.stepNegativeEmptyUsers},
+		{"CREATE job role A via MCP", s.stepCreateJobRoleA},
+		{"CREATE job role B via MCP", s.stepCreateJobRoleB},
+		{"SET users' job role to A via MCP", s.stepSetUsersToA},
+		{"GET job role A via MCP — verify membership (POST reached the wire)", s.stepVerifyOnA},
+		{"SET first user's job role to B via MCP", s.stepMoveFirstUserToB},
+		{"GET job role A via MCP — verify first user moved off A", s.stepVerifyMovedOffA},
+		{"GET job role B via MCP — verify first user now on B", s.stepVerifyOnB},
+		{"CLEAR users from both job roles via MCP", s.stepClearUsers},
+		{"GET both job roles via MCP — verify membership cleared (DELETE reached the wire)", s.stepVerifyCleared},
+		{"NEGATIVE: set with empty user_ids should error clearly", s.stepNegativeEmptyUsers},
 	}
 }
 
 func (s *jobRolesSuite) artefacts() []string {
 	var artefacts []string
-	if s.jobRoleID != 0 {
-		artefacts = append(artefacts, fmt.Sprintf("jobRoleID = %d", s.jobRoleID))
+	if s.jobRoleIDA != 0 {
+		artefacts = append(artefacts, fmt.Sprintf("jobRoleIDA = %d", s.jobRoleIDA))
+	}
+	if s.jobRoleIDB != 0 {
+		artefacts = append(artefacts, fmt.Sprintf("jobRoleIDB = %d", s.jobRoleIDB))
 	}
 	if len(s.userIDs) > 0 {
-		artefacts = append(artefacts, fmt.Sprintf("assigned  = %v (removed unless a step failed)", s.userIDs))
+		artefacts = append(artefacts, fmt.Sprintf("assigned  = %v (cleared unless a step failed)", s.userIDs))
 	}
 	return artefacts
 }
@@ -94,95 +103,130 @@ func (s *jobRolesSuite) stepPickUsers(ctx context.Context) error {
 	return nil
 }
 
-func (s *jobRolesSuite) stepCreateJobRole(ctx context.Context) error {
-	name := fmt.Sprintf("mcp-test-jobrole-%d", s.r.projectID)
-	text, err := s.r.callToolExpectOK(ctx, "create_jobrole",
-		twprojects.JobRoleCreate(s.r.engine), map[string]any{
-			"name": name,
-		})
+func (s *jobRolesSuite) stepCreateJobRoleA(ctx context.Context) error {
+	id, err := s.createJobRole(ctx, fmt.Sprintf("mcp-test-jobrole-a-%d", s.r.projectID))
 	if err != nil {
 		return err
 	}
-	s.jobRoleID, err = extractTrailingID(text)
-	if err != nil {
-		return fmt.Errorf("extract job role id: %w", err)
-	}
-	fmt.Printf("  → captured jobRoleID=%d\n", s.jobRoleID)
+	s.jobRoleIDA = id
+	fmt.Printf("  → captured jobRoleIDA=%d\n", s.jobRoleIDA)
 	return nil
 }
 
-func (s *jobRolesSuite) stepAssignUsers(ctx context.Context) error {
-	_, err := s.r.callToolExpectOK(ctx, "assign_jobrole",
-		twprojects.JobRoleAssignUsers(s.r.engine), map[string]any{
-			"job_role_id": s.jobRoleID,
+func (s *jobRolesSuite) stepCreateJobRoleB(ctx context.Context) error {
+	id, err := s.createJobRole(ctx, fmt.Sprintf("mcp-test-jobrole-b-%d", s.r.projectID))
+	if err != nil {
+		return err
+	}
+	s.jobRoleIDB = id
+	fmt.Printf("  → captured jobRoleIDB=%d\n", s.jobRoleIDB)
+	return nil
+}
+
+func (s *jobRolesSuite) stepSetUsersToA(ctx context.Context) error {
+	_, err := s.r.callToolExpectOK(ctx, "set_user_jobrole",
+		twprojects.JobRoleSetUser(s.r.engine), map[string]any{
+			"job_role_id": s.jobRoleIDA,
 			"user_ids":    asAnyInts(s.userIDs),
-			"is_primary":  false,
 		})
 	return err
 }
 
-func (s *jobRolesSuite) stepVerifyAssigned(ctx context.Context) error {
-	members, _, err := s.getMembership(ctx)
+func (s *jobRolesSuite) stepVerifyOnA(ctx context.Context) error {
+	members, _, err := s.getMembership(ctx, s.jobRoleIDA)
 	if err != nil {
 		return err
 	}
 	for _, id := range s.userIDs {
 		if !contains(members, id) {
-			return fmt.Errorf("expected user %d in job role membership %v after assign", id, members)
+			return fmt.Errorf("expected user %d in job role A membership %v after set", id, members)
 		}
 	}
-	fmt.Printf("  ✓ all assigned users present in membership: %v\n", members)
+	fmt.Printf("  ✓ all users present in role A membership: %v\n", members)
 	return nil
 }
 
-func (s *jobRolesSuite) stepAssignPrimary(ctx context.Context) error {
-	_, err := s.r.callToolExpectOK(ctx, "assign_jobrole (primary)",
-		twprojects.JobRoleAssignUsers(s.r.engine), map[string]any{
-			"job_role_id": s.jobRoleID,
+// stepMoveFirstUserToB sets the first user's role to B. Because each user holds
+// a single job role, this is the move the set tool's description promises: it
+// must remove the user from role A, which the next step asserts.
+func (s *jobRolesSuite) stepMoveFirstUserToB(ctx context.Context) error {
+	_, err := s.r.callToolExpectOK(ctx, "set_user_jobrole (move to B)",
+		twprojects.JobRoleSetUser(s.r.engine), map[string]any{
+			"job_role_id": s.jobRoleIDB,
 			"user_ids":    asAnyInts(s.userIDs[:1]),
-			"is_primary":  true,
 		})
 	return err
 }
 
-func (s *jobRolesSuite) stepVerifyPrimary(ctx context.Context) error {
-	_, primary, err := s.getMembership(ctx)
+// stepVerifyMovedOffA is the invariant a wire-level test cannot reach: setting a
+// user's role to B removes them from A. A tool that merely added B alongside A
+// would leave the user in A here and pass every unit test unchanged.
+func (s *jobRolesSuite) stepVerifyMovedOffA(ctx context.Context) error {
+	members, _, err := s.getMembership(ctx, s.jobRoleIDA)
 	if err != nil {
 		return err
 	}
-	if !contains(primary, s.userIDs[0]) {
-		return fmt.Errorf("expected user %d in primaryUsers %v after primary assign", s.userIDs[0], primary)
+	if contains(members, s.userIDs[0]) {
+		return fmt.Errorf("user %d still in role A membership %v after being set to role B — set did not move them",
+			s.userIDs[0], members)
 	}
-	fmt.Printf("  ✓ user %d is now a primary holder: %v\n", s.userIDs[0], primary)
+	fmt.Printf("  ✓ user %d removed from role A after move to B: %v\n", s.userIDs[0], members)
 	return nil
 }
 
-func (s *jobRolesSuite) stepUnassignUsers(ctx context.Context) error {
-	_, err := s.r.callToolExpectOK(ctx, "unassign_jobrole",
-		twprojects.JobRoleUnassignUsers(s.r.engine), map[string]any{
-			"job_role_id": s.jobRoleID,
-			"user_ids":    asAnyInts(s.userIDs),
-		})
-	return err
-}
-
-func (s *jobRolesSuite) stepVerifyUnassigned(ctx context.Context) error {
-	members, _, err := s.getMembership(ctx)
+func (s *jobRolesSuite) stepVerifyOnB(ctx context.Context) error {
+	members, _, err := s.getMembership(ctx, s.jobRoleIDB)
 	if err != nil {
 		return err
 	}
-	for _, id := range s.userIDs {
-		if contains(members, id) {
-			return fmt.Errorf("user %d still in membership %v after unassign", id, members)
+	if !contains(members, s.userIDs[0]) {
+		return fmt.Errorf("expected user %d in role B membership %v after move", s.userIDs[0], members)
+	}
+	fmt.Printf("  ✓ user %d now present in role B membership: %v\n", s.userIDs[0], members)
+	return nil
+}
+
+// stepClearUsers removes every assigned user from whichever role now holds them:
+// the first user was moved to B, and any remaining users are still on A.
+func (s *jobRolesSuite) stepClearUsers(ctx context.Context) error {
+	if _, err := s.r.callToolExpectOK(ctx, "clear_user_jobrole (B)",
+		twprojects.JobRoleClearUser(s.r.engine), map[string]any{
+			"job_role_id": s.jobRoleIDB,
+			"user_ids":    asAnyInts(s.userIDs[:1]),
+		}); err != nil {
+		return err
+	}
+	if len(s.userIDs) > 1 {
+		if _, err := s.r.callToolExpectOK(ctx, "clear_user_jobrole (A)",
+			twprojects.JobRoleClearUser(s.r.engine), map[string]any{
+				"job_role_id": s.jobRoleIDA,
+				"user_ids":    asAnyInts(s.userIDs[1:]),
+			}); err != nil {
+			return err
 		}
 	}
-	fmt.Printf("  ✓ membership cleared after unassign: %v\n", members)
+	return nil
+}
+
+func (s *jobRolesSuite) stepVerifyCleared(ctx context.Context) error {
+	for _, roleID := range []int64{s.jobRoleIDA, s.jobRoleIDB} {
+		members, _, err := s.getMembership(ctx, roleID)
+		if err != nil {
+			return err
+		}
+		for _, id := range s.userIDs {
+			if contains(members, id) {
+				return fmt.Errorf("user %d still in role %d membership %v after clear", id, roleID, members)
+			}
+		}
+		fmt.Printf("  ✓ role %d membership cleared: %v\n", roleID, members)
+	}
 	return nil
 }
 
 func (s *jobRolesSuite) stepNegativeEmptyUsers(ctx context.Context) error {
-	text, isError, err := s.r.callTool(ctx, twprojects.JobRoleAssignUsers(s.r.engine), map[string]any{
-		"job_role_id": s.jobRoleID,
+	text, isError, err := s.r.callTool(ctx, twprojects.JobRoleSetUser(s.r.engine), map[string]any{
+		"job_role_id": s.jobRoleIDA,
 		"user_ids":    []any{},
 	})
 	if err != nil {
@@ -199,13 +243,28 @@ func (s *jobRolesSuite) stepNegativeEmptyUsers(ctx context.Context) error {
 // Helpers
 // ---------------------------------------------------------------------------
 
+func (s *jobRolesSuite) createJobRole(ctx context.Context, name string) (int64, error) {
+	text, err := s.r.callToolExpectOK(ctx, "create_jobrole",
+		twprojects.JobRoleCreate(s.r.engine), map[string]any{
+			"name": name,
+		})
+	if err != nil {
+		return 0, err
+	}
+	id, err := extractTrailingID(text)
+	if err != nil {
+		return 0, fmt.Errorf("extract job role id: %w", err)
+	}
+	return id, nil
+}
+
 // getMembership reads the job role and returns the user IDs under users and
 // primaryUsers. The get handler marshals the JobRoleGetResponse, so membership
 // lives under jobRole.users / jobRole.primaryUsers as {id,type} references.
-func (s *jobRolesSuite) getMembership(ctx context.Context) (members, primary []int64, err error) {
+func (s *jobRolesSuite) getMembership(ctx context.Context, roleID int64) (members, primary []int64, err error) {
 	text, err := s.r.callToolExpectOK(ctx, "get_jobrole",
 		twprojects.JobRoleGet(s.r.engine), map[string]any{
-			"id": s.jobRoleID,
+			"id": roleID,
 		})
 	if err != nil {
 		return nil, nil, err
@@ -245,15 +304,17 @@ func contains(ids []int64, want int64) bool {
 // Cleanup
 // ---------------------------------------------------------------------------
 
-// cleanup deletes the job role, which also removes any membership it still
-// carries, so a failed run mid-way does not strand assignments.
+// cleanup deletes the job roles, which also removes any membership they still
+// carry, so a failed run mid-way does not strand assignments.
 func (s *jobRolesSuite) cleanup(ctx context.Context) {
-	if s.jobRoleID == 0 {
-		return
+	for _, roleID := range []int64{s.jobRoleIDA, s.jobRoleIDB} {
+		if roleID == 0 {
+			continue
+		}
+		fmt.Printf("  delete job role %d via MCP\n", roleID)
+		s.r.callToolIgnoreError(ctx, fmt.Sprintf("delete job role %d", roleID),
+			twprojects.JobRoleDelete(s.r.engine), map[string]any{
+				"id": roleID,
+			})
 	}
-	fmt.Printf("  delete job role %d via MCP\n", s.jobRoleID)
-	s.r.callToolIgnoreError(ctx, fmt.Sprintf("delete job role %d", s.jobRoleID),
-		twprojects.JobRoleDelete(s.r.engine), map[string]any{
-			"id": s.jobRoleID,
-		})
 }

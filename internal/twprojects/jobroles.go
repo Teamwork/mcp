@@ -20,13 +20,13 @@ import (
 // The naming convention for methods follows a pattern described here:
 // https://github.com/github/github-mcp-server/issues/333
 const (
-	MethodJobRoleCreate        toolsets.Method = "twprojects-create_jobrole"
-	MethodJobRoleUpdate        toolsets.Method = "twprojects-update_jobrole"
-	MethodJobRoleDelete        toolsets.Method = "twprojects-delete_jobrole"
-	MethodJobRoleGet           toolsets.Method = "twprojects-get_jobrole"
-	MethodJobRoleList          toolsets.Method = "twprojects-list_jobroles"
-	MethodJobRoleAssignUsers   toolsets.Method = "twprojects-assign_jobrole"
-	MethodJobRoleUnassignUsers toolsets.Method = "twprojects-unassign_jobrole"
+	MethodJobRoleCreate    toolsets.Method = "twprojects-create_jobrole"
+	MethodJobRoleUpdate    toolsets.Method = "twprojects-update_jobrole"
+	MethodJobRoleDelete    toolsets.Method = "twprojects-delete_jobrole"
+	MethodJobRoleGet       toolsets.Method = "twprojects-get_jobrole"
+	MethodJobRoleList      toolsets.Method = "twprojects-list_jobroles"
+	MethodJobRoleSetUser   toolsets.Method = "twprojects-set_user_jobrole"
+	MethodJobRoleClearUser toolsets.Method = "twprojects-clear_user_jobrole"
 )
 
 var (
@@ -294,17 +294,19 @@ func JobRoleGet(engine *twapi.Engine) toolsets.ToolWrapper {
 	}
 }
 
-// JobRoleAssignUsers assigns a job role to one or more users in Teamwork.com.
-func JobRoleAssignUsers(engine *twapi.Engine) toolsets.ToolWrapper {
+// JobRoleSetUser sets a job role as the role of one or more users in
+// Teamwork.com.
+func JobRoleSetUser(engine *twapi.Engine) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
-			Name: string(MethodJobRoleAssignUsers),
-			Description: "Assign a job role to one or more users. This adds the role to the users' existing " +
-				"roles; it does not replace them. Set is_primary to also make it the primary role for the " +
-				"given users, which each user has exactly one of.",
+			Name: string(MethodJobRoleSetUser),
+			Description: "Set the job role of one or more users. Each user holds a single job role, so this " +
+				"replaces whatever role a user held before — the previous role loses them — and makes this " +
+				"one their primary role. It does not add a second role alongside an existing one. To take a " +
+				"user's role away without giving them another, use clear_user_jobrole.",
 			Annotations: &mcp.ToolAnnotations{
-				Title:           "Assign Job Role",
-				DestructiveHint: new(false),
+				Title:           "Set User Job Role",
+				DestructiveHint: new(true),
 				OpenWorldHint:   new(false),
 			},
 			InputSchema: &jsonschema.Schema{
@@ -312,20 +314,12 @@ func JobRoleAssignUsers(engine *twapi.Engine) toolsets.ToolWrapper {
 				Properties: map[string]*jsonschema.Schema{
 					"job_role_id": {
 						Type:        "integer",
-						Description: "The ID of the job role to assign.",
+						Description: "The ID of the job role to set as the users' role.",
 					},
 					"user_ids": {
 						Type:        "array",
 						Items:       &jsonschema.Schema{Type: "integer"},
-						Description: "The IDs of the users to assign the job role to.",
-					},
-					"is_primary": {
-						Description: "Whether this job role should become the primary role for the given users. " +
-							"Defaults to false.",
-						AnyOf: []*jsonschema.Schema{
-							{Type: "boolean"},
-							{Type: "null"},
-						},
+						Description: "The IDs of the users whose job role is being set.",
 					},
 				},
 				Required: []string{"job_role_id", "user_ids"},
@@ -341,7 +335,6 @@ func JobRoleAssignUsers(engine *twapi.Engine) toolsets.ToolWrapper {
 			err := helpers.ParamGroup(arguments,
 				helpers.RequiredNumericParam(&assignRequest.Path.ID, "job_role_id"),
 				helpers.OptionalNumericListParam(&assignRequest.IDs, "user_ids"),
-				helpers.OptionalParam(&assignRequest.IsPrimary, "is_primary"),
 			)
 			if err != nil {
 				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
@@ -352,22 +345,22 @@ func JobRoleAssignUsers(engine *twapi.Engine) toolsets.ToolWrapper {
 
 			_, err = projects.UserAssignJobRole(ctx, engine, assignRequest)
 			if err != nil {
-				return helpers.HandleAPIError(err, "failed to assign job role")
+				return helpers.HandleAPIError(err, "failed to set user job role")
 			}
-			return helpers.NewToolResultText("Job role assigned successfully"), nil
+			return helpers.NewToolResultText("User job role set successfully"), nil
 		},
 	}
 }
 
-// JobRoleUnassignUsers removes a job role from one or more users in Teamwork.com.
-func JobRoleUnassignUsers(engine *twapi.Engine) toolsets.ToolWrapper {
+// JobRoleClearUser removes a job role from one or more users in Teamwork.com.
+func JobRoleClearUser(engine *twapi.Engine) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
-			Name:        string(MethodJobRoleUnassignUsers),
-			Description: "Remove a job role from one or more users.",
+			Name:        string(MethodJobRoleClearUser),
+			Description: "Remove a job role from one or more users, leaving them with no job role.",
 			Annotations: &mcp.ToolAnnotations{
-				Title:           "Unassign Job Role",
-				DestructiveHint: new(false),
+				Title:           "Clear User Job Role",
+				DestructiveHint: new(true),
 				OpenWorldHint:   new(false),
 			},
 			InputSchema: &jsonschema.Schema{
@@ -406,9 +399,9 @@ func JobRoleUnassignUsers(engine *twapi.Engine) toolsets.ToolWrapper {
 
 			_, err = projects.UserUnassignJobRole(ctx, engine, unassignRequest)
 			if err != nil {
-				return helpers.HandleAPIError(err, "failed to unassign job role")
+				return helpers.HandleAPIError(err, "failed to clear user job role")
 			}
-			return helpers.NewToolResultText("Job role unassigned successfully"), nil
+			return helpers.NewToolResultText("User job role cleared successfully"), nil
 		},
 	}
 }
