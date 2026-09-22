@@ -1,6 +1,7 @@
 package twprojects_test
 
 import (
+	"encoding/json"
 	"net/http"
 	"strings"
 	"testing"
@@ -45,6 +46,72 @@ func TestJobRoleList(t *testing.T) {
 		"page":        float64(1),
 		"page_size":   float64(10),
 	})
+}
+
+// TestJobRoleSetUserReachesTheWire pins the verb, path and body. Set and clear
+// share /jobroles/{id}/people.json and differ only in POST versus DELETE, and
+// the mock answers the same body either way, so the method is what tells the two
+// apart. It also asserts the user list lands in the body: a dropped list looks
+// identical to a working one otherwise.
+func TestJobRoleSetUserReachesTheWire(t *testing.T) {
+	mcpServer, recorded := testutil.ProjectsMCPServerRecordingMock(t, nil,
+		http.StatusCreated, []byte(`{"jobRole":{"id":123}}`))
+	testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodJobRoleSetUser.String(), map[string]any{
+		"job_role_id": float64(123),
+		"user_ids":    []any{float64(456), float64(777)},
+	})
+
+	if len(*recorded) != 1 {
+		t.Fatalf("expected a single request, got %d", len(*recorded))
+	}
+	req := (*recorded)[0]
+	if req.Method != http.MethodPost {
+		t.Errorf("expected POST, got %s", req.Method)
+	}
+	if !strings.HasSuffix(req.URL.Path, "/projects/api/v3/jobroles/123/people.json") {
+		t.Errorf("expected the job role people route, got %s", req.URL.Path)
+	}
+	var body struct {
+		Users []int64 `json:"users"`
+	}
+	if err := json.Unmarshal(req.Body, &body); err != nil {
+		t.Fatalf("failed to decode request body: %v", err)
+	}
+	if len(body.Users) != 2 || body.Users[0] != 456 || body.Users[1] != 777 {
+		t.Errorf("expected users [456 777] in the body, got %v", body.Users)
+	}
+}
+
+// TestJobRoleClearUserReachesTheWire is the DELETE half of the shared route: the
+// verb is the only thing separating it from set, so it is asserted here
+// alongside the path and the user list.
+func TestJobRoleClearUserReachesTheWire(t *testing.T) {
+	mcpServer, recorded := testutil.ProjectsMCPServerRecordingMock(t, nil,
+		http.StatusNoContent, nil)
+	testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodJobRoleClearUser.String(), map[string]any{
+		"job_role_id": float64(123),
+		"user_ids":    []any{float64(456)},
+	})
+
+	if len(*recorded) != 1 {
+		t.Fatalf("expected a single request, got %d", len(*recorded))
+	}
+	req := (*recorded)[0]
+	if req.Method != http.MethodDelete {
+		t.Errorf("expected DELETE, got %s", req.Method)
+	}
+	if !strings.HasSuffix(req.URL.Path, "/projects/api/v3/jobroles/123/people.json") {
+		t.Errorf("expected the job role people route, got %s", req.URL.Path)
+	}
+	var body struct {
+		Users []int64 `json:"users"`
+	}
+	if err := json.Unmarshal(req.Body, &body); err != nil {
+		t.Fatalf("failed to decode request body: %v", err)
+	}
+	if len(body.Users) != 1 || body.Users[0] != 456 {
+		t.Errorf("expected users [456] in the body, got %v", body.Users)
+	}
 }
 
 // TestJobRoleGetRequestsMembership pins the sideload the get depends on. The

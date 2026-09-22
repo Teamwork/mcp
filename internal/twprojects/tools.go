@@ -152,6 +152,8 @@ func DefaultToolsetGroup(readOnly, allowDelete bool, engine *twapi.Engine) *tool
 		CompanyUpdate(engine),
 		JobRoleCreate(engine),
 		JobRoleUpdate(engine),
+		JobRoleSetUser(engine),
+		JobRoleClearUser(engine),
 		SkillCreate(engine),
 		SkillUpdate(engine),
 		TeamCreate(engine),

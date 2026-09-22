@@ -38,6 +38,8 @@ Users, companies, teams, skills, and job roles in Teamwork.com.
 | User | ✓ | ✓ | ✓ | ✓ |
 | Current User (me) | — | ✓ | — | — |
 
+**Other actions:** `clear_user_jobrole`, `set_user_jobrole`
+
 ### Planning — `twprojects-planning`
 
 Resource scheduling in Teamwork.com: allocations, which commit a person's time to a project, and the workload view of the time their assigned tasks are estimated to take. The two are separate planes of planning and are not summed.

@@ -20,11 +20,13 @@ import (
 // The naming convention for methods follows a pattern described here:
 // https://github.com/github/github-mcp-server/issues/333
 const (
-	MethodJobRoleCreate toolsets.Method = "twprojects-create_jobrole"
-	MethodJobRoleUpdate toolsets.Method = "twprojects-update_jobrole"
-	MethodJobRoleDelete toolsets.Method = "twprojects-delete_jobrole"
-	MethodJobRoleGet    toolsets.Method = "twprojects-get_jobrole"
-	MethodJobRoleList   toolsets.Method = "twprojects-list_jobroles"
+	MethodJobRoleCreate    toolsets.Method = "twprojects-create_jobrole"
+	MethodJobRoleUpdate    toolsets.Method = "twprojects-update_jobrole"
+	MethodJobRoleDelete    toolsets.Method = "twprojects-delete_jobrole"
+	MethodJobRoleGet       toolsets.Method = "twprojects-get_jobrole"
+	MethodJobRoleList      toolsets.Method = "twprojects-list_jobroles"
+	MethodJobRoleSetUser   toolsets.Method = "twprojects-set_user_jobrole"
+	MethodJobRoleClearUser toolsets.Method = "twprojects-clear_user_jobrole"
 )
 
 var (
@@ -288,6 +290,118 @@ func JobRoleGet(engine *twapi.Engine) toolsets.ToolWrapper {
 				},
 				StructuredContent: jobRole,
 			}, nil
+		},
+	}
+}
+
+// JobRoleSetUser sets a job role as the role of one or more users in
+// Teamwork.com.
+func JobRoleSetUser(engine *twapi.Engine) toolsets.ToolWrapper {
+	return toolsets.ToolWrapper{
+		Tool: &mcp.Tool{
+			Name: string(MethodJobRoleSetUser),
+			Description: "Set the job role of one or more users. This replaces whatever job role a user held " +
+				"before — the previous role loses them — and makes this one their primary role. It does not " +
+				"add a second role alongside an existing one. To take a user's role away without giving them " +
+				"another, use twprojects-clear_user_jobrole.",
+			Annotations: &mcp.ToolAnnotations{
+				Title:           "Set User Job Role",
+				DestructiveHint: new(true),
+				OpenWorldHint:   new(false),
+			},
+			InputSchema: &jsonschema.Schema{
+				Type: "object",
+				Properties: map[string]*jsonschema.Schema{
+					"job_role_id": {
+						Type:        "integer",
+						Description: "The ID of the job role to set as the users' role.",
+					},
+					"user_ids": {
+						Type:        "array",
+						Items:       &jsonschema.Schema{Type: "integer"},
+						Description: "The IDs of the users whose job role is being set.",
+					},
+				},
+				Required: []string{"job_role_id", "user_ids"},
+			},
+		},
+		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+			var assignRequest projects.UserAssignJobRoleRequest
+
+			var arguments map[string]any
+			if err := json.Unmarshal(request.Params.Arguments, &arguments); err != nil {
+				return helpers.NewToolResultTextError("failed to decode request: %s", err.Error()), nil
+			}
+			err := helpers.ParamGroup(arguments,
+				helpers.RequiredNumericParam(&assignRequest.Path.ID, "job_role_id"),
+				helpers.OptionalNumericListParam(&assignRequest.IDs, "user_ids"),
+			)
+			if err != nil {
+				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
+			}
+			if len(assignRequest.IDs) == 0 {
+				return helpers.NewToolResultTextError("invalid parameters: user_ids must contain at least one user"), nil
+			}
+
+			_, err = projects.UserAssignJobRole(ctx, engine, assignRequest)
+			if err != nil {
+				return helpers.HandleAPIError(err, "failed to set user job role")
+			}
+			return helpers.NewToolResultText("User job role set successfully"), nil
+		},
+	}
+}
+
+// JobRoleClearUser removes a job role from one or more users in Teamwork.com.
+func JobRoleClearUser(engine *twapi.Engine) toolsets.ToolWrapper {
+	return toolsets.ToolWrapper{
+		Tool: &mcp.Tool{
+			Name:        string(MethodJobRoleClearUser),
+			Description: "Remove a job role from one or more users, leaving them with no job role.",
+			Annotations: &mcp.ToolAnnotations{
+				Title:           "Clear User Job Role",
+				DestructiveHint: new(true),
+				OpenWorldHint:   new(false),
+			},
+			InputSchema: &jsonschema.Schema{
+				Type: "object",
+				Properties: map[string]*jsonschema.Schema{
+					"job_role_id": {
+						Type:        "integer",
+						Description: "The ID of the job role to remove.",
+					},
+					"user_ids": {
+						Type:        "array",
+						Items:       &jsonschema.Schema{Type: "integer"},
+						Description: "The IDs of the users to remove the job role from.",
+					},
+				},
+				Required: []string{"job_role_id", "user_ids"},
+			},
+		},
+		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+			var unassignRequest projects.UserUnassignJobRoleRequest
+
+			var arguments map[string]any
+			if err := json.Unmarshal(request.Params.Arguments, &arguments); err != nil {
+				return helpers.NewToolResultTextError("failed to decode request: %s", err.Error()), nil
+			}
+			err := helpers.ParamGroup(arguments,
+				helpers.RequiredNumericParam(&unassignRequest.Path.ID, "job_role_id"),
+				helpers.OptionalNumericListParam(&unassignRequest.IDs, "user_ids"),
+			)
+			if err != nil {
+				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
+			}
+			if len(unassignRequest.IDs) == 0 {
+				return helpers.NewToolResultTextError("invalid parameters: user_ids must contain at least one user"), nil
+			}
+
+			_, err = projects.UserUnassignJobRole(ctx, engine, unassignRequest)
+			if err != nil {
+				return helpers.HandleAPIError(err, "failed to clear user job role")
+			}
+			return helpers.NewToolResultText("User job role cleared successfully"), nil
 		},
 	}
 }

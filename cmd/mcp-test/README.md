@@ -47,6 +47,7 @@ cleanup with a list of what was created.
 | `-suite` | Covers |
 | --- | --- |
 | `custom-items` | Custom item types, their fields, and records addressed by field *name* and option *label* |
+| `jobroles` | Job roles and their user membership: setting a user's role moves them off their previous one, and clearing it leaves them with none |
 
 ## Adding a suite
 

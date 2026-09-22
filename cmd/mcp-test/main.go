@@ -147,6 +147,7 @@ type registeredSuite struct {
 // toolset's suite here; the first entry is the default.
 var suiteRegistry = []registeredSuite{
 	{name: "custom-items", new: newCustomItemsSuite},
+	{name: "jobroles", new: newJobRolesSuite},
 }
 
 // defaultSuite is what -suite runs when not given.
