@@ -127,7 +127,9 @@ func TimelogCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 						},
 					},
 					"project_id": {
-						Description: "Project the timelog is logged against. Provide exactly one of project_id or task_id.",
+						Description: "Project the timelog is logged against. Provide exactly one of project_id or task_id. " +
+							"A project whose timelogRequiresTask is true (see twprojects-get_project) rejects this; " +
+							"pass task_id instead.",
 						AnyOf: []*jsonschema.Schema{
 							{Type: "integer"},
 							{Type: "null"},
@@ -266,7 +268,8 @@ func TimelogUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 					},
 					"clear_task": {
 						Description: "Set to true to detach the timelog from its task, leaving it logged against " +
-							"the project. Cannot be combined with task_id.",
+							"the project. Cannot be combined with task_id. Rejected when the project's " +
+							"timelogRequiresTask is true.",
 						AnyOf: []*jsonschema.Schema{
 							{Type: "boolean"},
 							{Type: "null"},
