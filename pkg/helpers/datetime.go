@@ -110,6 +110,24 @@ func EndOfDay() ParamMiddleware[string] {
 	}
 }
 
+// NotBefore rejects a date-time parameter earlier than earliest. A date-only
+// value is its first instant, in UTC.
+func NotBefore(earliest time.Time) ParamMiddleware[string] {
+	return func(value *string) (bool, error) {
+		if value == nil {
+			return true, nil
+		}
+		t, err := parseDateTime(*value, false)
+		if err != nil {
+			return true, nil // reported by the binder
+		}
+		if t.Before(earliest) {
+			return false, fmt.Errorf("%q is before %s", *value, earliest.Format(time.RFC3339))
+		}
+		return true, nil
+	}
+}
+
 // NormalizeDateTime parses value with the same tolerance as the date-time
 // parameter binders and re-renders it as RFC 3339, for handlers that forward the
 // value to the API as a string instead of binding it to a time.Time. An empty

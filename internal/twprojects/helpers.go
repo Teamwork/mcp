@@ -2,11 +2,33 @@ package twprojects
 
 import (
 	"strings"
+	"time"
 
+	"github.com/google/jsonschema-go/jsonschema"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/teamwork/mcp/pkg/helpers"
 	"github.com/teamwork/twapi-go-sdk/projects"
 )
+
+// updatedAfterEpoch is the earliest updatedAfter the v3 endpoints accept; an
+// earlier one is answered with 400.
+var updatedAfterEpoch = time.Date(2007, 10, 1, 0, 0, 0, 0, time.UTC)
+
+// updatedAfterPattern matches a date or date-time from October 2007 onwards.
+const updatedAfterPattern = `^(2007-1[0-2]|200[89]|20[1-9][0-9]|2[1-9][0-9]{2})-`
+
+// updatedAfterSchema is helpers.DateTimeFilterSchema bounded below by
+// updatedAfterEpoch. Bind it with helpers.NotBefore(updatedAfterEpoch), which
+// also catches offsets the pattern cannot see.
+func updatedAfterSchema(description string) *jsonschema.Schema {
+	schema := helpers.DateTimeFilterSchema(description + " Must be on or after 2007-10-01.")
+	for _, branch := range schema.AnyOf {
+		if branch.Type == "string" {
+			branch.Pattern = updatedAfterPattern
+		}
+	}
+	return schema
+}
 
 func parseUserGroups(
 	arguments map[string]any,

@@ -1142,7 +1142,7 @@ func TaskList(engine *twapi.Engine) toolsets.ToolWrapper {
 							{Type: "null"},
 						},
 					},
-					"updated_after": helpers.DateTimeFilterSchema(
+					"updated_after": updatedAfterSchema(
 						"Only include tasks updated strictly after this moment; the boundary itself does not match."),
 					"updated_before": helpers.DateTimeFilterSchema(
 						"Only include tasks updated strictly before this moment; the boundary itself does not match."),
@@ -1275,7 +1275,8 @@ func TaskList(engine *twapi.Engine) toolsets.ToolWrapper {
 				helpers.OptionalTimePointerParam(&taskListRequest.Filters.CreatedBefore, "created_before",
 					helpers.EndOfDay()),
 				helpers.OptionalNumericListParam(&taskListRequest.Filters.CreatedByUserIDs, "created_by_user_ids"),
-				helpers.OptionalTimePointerParam(&taskListRequest.Filters.UpdatedAfter, "updated_after"),
+				helpers.OptionalTimePointerParam(&taskListRequest.Filters.UpdatedAfter, "updated_after",
+					helpers.NotBefore(updatedAfterEpoch)),
 				helpers.OptionalTimePointerParam(&taskListRequest.Filters.UpdatedBefore, "updated_before",
 					helpers.EndOfDay()),
 				helpers.OptionalTimePointerParam(&taskListRequest.Filters.CompletedAfter, "completed_after"),

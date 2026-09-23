@@ -112,7 +112,7 @@ func ProjectStatusUpdateList(engine *twapi.Engine) toolsets.ToolWrapper {
 					},
 					"created_after": helpers.DateTimeFilterSchema(
 						"Only include updates posted at or after this moment; the boundary itself matches."),
-					"updated_after": helpers.DateTimeFilterSchema(
+					"updated_after": updatedAfterSchema(
 						"Only include updates last edited strictly after this moment; the boundary itself does " +
 							"not match."),
 					"order_by":   projectStatusUpdateOrdering.orderBySchema(),
@@ -146,7 +146,8 @@ func ProjectStatusUpdateList(engine *twapi.Engine) toolsets.ToolWrapper {
 				helpers.OptionalPointerParam(&filters.ShowDeleted, "show_deleted"),
 				helpers.OptionalPointerParam(&filters.IncludeArchivedProjects, "include_archived"),
 				helpers.OptionalTimePointerParam(&filters.CreatedAfter, "created_after"),
-				helpers.OptionalTimePointerParam(&filters.UpdatedAfter, "updated_after"),
+				helpers.OptionalTimePointerParam(&filters.UpdatedAfter, "updated_after",
+					helpers.NotBefore(updatedAfterEpoch)),
 				projectStatusUpdateOrdering.param(&filters.OrderBy, &filters.OrderMode),
 				helpers.OptionalNumericParam(&filters.Page, "page"),
 				helpers.OptionalNumericParam(&filters.PageSize, "page_size"),

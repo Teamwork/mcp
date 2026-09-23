@@ -737,7 +737,7 @@ func AllocationList(engine *twapi.Engine) toolsets.ToolWrapper {
 							{Type: "null"},
 						},
 					},
-					"updated_after": helpers.DateTimeFilterSchema(
+					"updated_after": updatedAfterSchema(
 						"Only return allocations updated strictly after this moment; the boundary itself " +
 							"does not match."),
 					"deleted_after": helpers.DateTimeFilterSchema(
@@ -792,7 +792,8 @@ func AllocationList(engine *twapi.Engine) toolsets.ToolWrapper {
 				helpers.OptionalPointerParam(&filters.MatchAllProjectTags, "match_all_project_tags"),
 				helpers.OptionalParam(&filters.ProjectStatus, "project_status",
 					helpers.RestrictValues(allocationProjectStatuses...)),
-				helpers.OptionalTimePointerParam(&filters.UpdatedAfter, "updated_after"),
+				helpers.OptionalTimePointerParam(&filters.UpdatedAfter, "updated_after",
+					helpers.NotBefore(updatedAfterEpoch)),
 				helpers.OptionalTimePointerParam(&filters.DeletedAfter, "deleted_after"),
 				helpers.OptionalPointerParam(&filters.ShowDeleted, "show_deleted"),
 				allocationOrdering.param(&filters.OrderBy, &filters.OrderMode),

@@ -480,7 +480,7 @@ func CommentList(engine *twapi.Engine) toolsets.ToolWrapper {
 						},
 					},
 					"search_term": helpers.SearchTermSchema("comments", "name"),
-					"updated_after": helpers.DateTimeFilterSchema(
+					"updated_after": updatedAfterSchema(
 						"Only include comments edited strictly after this moment; the boundary itself does " +
 							"not match. Defaults to the last 3 months.",
 					),
@@ -513,7 +513,8 @@ func CommentList(engine *twapi.Engine) toolsets.ToolWrapper {
 				helpers.OptionalNumericParam(&commentListRequest.Path.FileVersionID, "file_version_id"),
 				helpers.OptionalNumericListParam(&commentListRequest.Filters.UserIDs, "user_ids"),
 				helpers.OptionalParam(&commentListRequest.Filters.SearchTerm, "search_term"),
-				helpers.OptionalTimeParam(&commentListRequest.Filters.UpdatedAfter, "updated_after"),
+				helpers.OptionalTimeParam(&commentListRequest.Filters.UpdatedAfter, "updated_after",
+					helpers.NotBefore(updatedAfterEpoch)),
 				commentOrdering.param(&commentListRequest.Filters.OrderBy, &commentListRequest.Filters.OrderMode),
 				helpers.OptionalNumericParam(&commentListRequest.Filters.Page, "page"),
 				helpers.OptionalNumericParam(&commentListRequest.Filters.PageSize, "page_size"),
