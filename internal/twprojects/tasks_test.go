@@ -405,6 +405,16 @@ func TestTaskComplete(t *testing.T) {
 	})
 }
 
+func TestTaskUncompleteReachesTheWire(t *testing.T) {
+	mcpServer, requestURL := testutil.ProjectsMCPServerMockWithRequestURL(t, http.StatusOK, []byte(`{}`))
+	testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodTaskUncomplete.String(), map[string]any{
+		"id": float64(123),
+	})
+	if requestURL.Path != "/tasks/123/uncomplete.json" {
+		t.Errorf("expected path /tasks/123/uncomplete.json, got %q", requestURL.Path)
+	}
+}
+
 func TestTaskGet(t *testing.T) {
 	mcpServer := mcpServerMock(t, http.StatusOK, []byte(`{}`))
 	testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodTaskGet.String(), map[string]any{

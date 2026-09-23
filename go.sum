@@ -165,8 +165,8 @@ github.com/teamwork/desksdkgo v1.1.2 h1:WZc5eZ2YARdF67Dz3MNPUg4oq+RsSmh1sD0O9wu1
 github.com/teamwork/desksdkgo v1.1.2/go.mod h1:Mgvw83q8iqHr7Sm9xV1iI/T89o3ObaPU3ChMJheRzwA=
 github.com/teamwork/spacessdkgo v0.1.1 h1:Ls1NqVR+IwYbwwm55zDVDcm8frk3X1/QtD0OLegeTXE=
 github.com/teamwork/spacessdkgo v0.1.1/go.mod h1:iFWDFSM0yjGt4GPmi3gFPEBZef+GCGZxCFiFWHXSWgk=
-github.com/teamwork/twapi-go-sdk v1.31.0 h1:9RPgpEciWPPvQsQxnsDdMvyGlrTpPxE8NIZmd8zSdWo=
-github.com/teamwork/twapi-go-sdk v1.31.0/go.mod h1:5aKvss5ZuvwWlxJqzC4rO5QwziNcLbgLFfRbzP1eu0E=
+github.com/teamwork/twapi-go-sdk v1.32.0 h1:u8c0WbXwOe3TEO4QIlOw9zDr6JItkbswQM25iNHiRXI=
+github.com/teamwork/twapi-go-sdk v1.32.0/go.mod h1:5aKvss5ZuvwWlxJqzC4rO5QwziNcLbgLFfRbzP1eu0E=
 github.com/tinylib/msgp v1.6.4 h1:mOwYbyYDLPj35mkA2BjjYejgJk9BuHxDdvRnb6v2ZcQ=
 github.com/tinylib/msgp v1.6.4/go.mod h1:RSp0LW9oSxFut3KzESt5Voq4GVWyS+PSulT77roAqEA=
 github.com/tklauser/go-sysconf v0.3.16 h1:frioLaCQSsF5Cy1jgRBrzr6t502KIIwQ0MArYICU0nA=

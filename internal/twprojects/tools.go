@@ -114,6 +114,7 @@ func DefaultToolsetGroup(readOnly, allowDelete bool, engine *twapi.Engine) *tool
 		TaskMove(engine),
 		TasklistCreate(engine),
 		TasklistUpdate(engine),
+		TaskUncomplete(engine),
 		TaskUpdate(engine),
 		WorkflowCreate(engine),
 		WorkflowUpdate(engine),
