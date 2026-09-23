@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"slices"
 	"strconv"
+	"strings"
 	"sync"
 
 	"github.com/google/jsonschema-go/jsonschema"
@@ -395,6 +396,10 @@ func coerceStringValues(schema *jsonschema.Schema, value any) bool {
 // helpers.DropNullBranches), and an absent key means the same thing, so clients
 // that send null for unset parameters keep working.
 //
+// The string "null" counts as null too: models send it for unset filters, and a
+// string parameter would otherwise accept it as a value (search_term "null"
+// matches nothing, and the empty result reads as "no such thing").
+//
 // Nulls are kept on a required property (so validation names it), on a schema
 // that genuinely accepts null, and inside an array (dropping an element would
 // change its length).
@@ -416,7 +421,7 @@ func dropNullArguments(schema *jsonschema.Schema, value any) bool {
 			if !ok {
 				continue
 			}
-			if sub == nil {
+			if isNullArgument(sub) {
 				if slices.Contains(obj.Required, key) || acceptsNull(propSchema) {
 					continue
 				}
@@ -444,6 +449,15 @@ func dropNullArguments(schema *jsonschema.Schema, value any) bool {
 	default:
 		return false
 	}
+}
+
+// isNullArgument reports whether value is null or the string "null".
+func isNullArgument(value any) bool {
+	if value == nil {
+		return true
+	}
+	s, ok := value.(string)
+	return ok && strings.EqualFold(strings.TrimSpace(s), "null")
 }
 
 // acceptsNull reports whether schema permits null, including via its branches.
