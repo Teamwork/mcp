@@ -336,6 +336,50 @@ func TestDropNullArguments(t *testing.T) {
 	}
 }
 
+// TestDropNullArgumentsStringNull covers models that write an unset parameter
+// as the string "null": on a string parameter it would otherwise be taken as a
+// value and narrow the results to nothing.
+func TestDropNullArgumentsStringNull(t *testing.T) {
+	schema := &jsonschema.Schema{
+		Type:     "object",
+		Required: []string{"name"},
+		Properties: map[string]*jsonschema.Schema{
+			"name":          {Type: "string"},
+			"search_term":   {Type: "string"},
+			"created_after": {Type: "string", Format: "date-time"},
+			"page":          {Type: "integer"},
+			"nullable":      {Types: []string{"string", "null"}},
+			"tags":          {Type: "array", Items: &jsonschema.Schema{Type: "string"}},
+		},
+	}
+
+	args := map[string]any{
+		"name":          "null",             // required: kept
+		"search_term":   "null",             // dropped
+		"created_after": " NULL ",           // dropped, whatever the case and spacing
+		"page":          "null",             // dropped
+		"nullable":      "null",             // schema accepts null: kept
+		"tags":          []any{"a", "null"}, // inside an array: kept
+	}
+
+	if !dropNullArguments(schema, args) {
+		t.Fatal("expected dropNullArguments to report a change")
+	}
+	for _, key := range []string{"search_term", "created_after", "page"} {
+		if _, ok := args[key]; ok {
+			t.Errorf("%s = %#v, want it dropped", key, args[key])
+		}
+	}
+	for _, key := range []string{"name", "nullable"} {
+		if args[key] != "null" {
+			t.Errorf("%s = %#v, want it kept", key, args[key])
+		}
+	}
+	if tags, ok := args["tags"].([]any); !ok || len(tags) != 2 {
+		t.Errorf("tags = %#v, want the array length preserved", args["tags"])
+	}
+}
+
 // TestNormalizeInputSchemasOnRegistration checks the schema is rewritten as the
 // tool enters a Toolset, so every reader sees the same shape.
 func TestNormalizeInputSchemasOnRegistration(t *testing.T) {
@@ -415,5 +459,46 @@ func TestWithInputValidationAcceptsExplicitNulls(t *testing.T) {
 	}
 	if _, ok := received["verbose"]; ok {
 		t.Errorf("handler received verbose = %#v, want the key absent", received["verbose"])
+	}
+}
+
+// TestWithInputValidationDropsStringNulls is the end-to-end half: the string
+// "null" reaches the handler as an absent key rather than a search term, and
+// does not fail validation on a parameter of another type.
+func TestWithInputValidationDropsStringNulls(t *testing.T) {
+	tool := &mcp.Tool{
+		Name: "twprojects-list_tasks",
+		InputSchema: &jsonschema.Schema{
+			Type: "object",
+			Properties: map[string]*jsonschema.Schema{
+				"search_term":    {Type: "string"},
+				"created_after":  {Type: "string", Format: "date-time"},
+				"project_id":     {Type: "integer"},
+				"show_completed": {Type: "boolean"},
+			},
+		},
+	}
+
+	var received map[string]any
+	wrapped := withInputValidation(tool, func(_ context.Context, req *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		received = map[string]any{}
+		if err := json.Unmarshal(req.Params.Arguments, &received); err != nil {
+			t.Fatalf("handler could not decode arguments: %v", err)
+		}
+		return &mcp.CallToolResult{}, nil
+	})
+
+	req := &mcp.CallToolRequest{Params: &mcp.CallToolParamsRaw{
+		Arguments: json.RawMessage(`{"search_term":"null","created_after":"null","project_id":"null","show_completed":"null"}`),
+	}}
+	res, err := wrapped(context.Background(), req)
+	if err != nil {
+		t.Fatalf("wrapped handler returned error: %v", err)
+	}
+	if res.IsError {
+		t.Fatalf("a string null must validate as an absent key, got: %+v", res.Content)
+	}
+	if len(received) != 0 {
+		t.Errorf("handler received %#v, want every key absent", received)
 	}
 }
