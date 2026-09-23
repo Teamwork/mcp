@@ -23,13 +23,14 @@ import (
 // The naming convention for methods follows a pattern described here:
 // https://github.com/github/github-mcp-server/issues/333
 const (
-	MethodTaskCreate   toolsets.Method = "twprojects-create_task"
-	MethodTaskUpdate   toolsets.Method = "twprojects-update_task"
-	MethodTaskDelete   toolsets.Method = "twprojects-delete_task"
-	MethodTaskComplete toolsets.Method = "twprojects-complete_task"
-	MethodTaskGet      toolsets.Method = "twprojects-get_task"
-	MethodTaskList     toolsets.Method = "twprojects-list_tasks"
-	MethodTaskMove     toolsets.Method = "twprojects-move_tasks"
+	MethodTaskCreate     toolsets.Method = "twprojects-create_task"
+	MethodTaskUpdate     toolsets.Method = "twprojects-update_task"
+	MethodTaskDelete     toolsets.Method = "twprojects-delete_task"
+	MethodTaskComplete   toolsets.Method = "twprojects-complete_task"
+	MethodTaskUncomplete toolsets.Method = "twprojects-uncomplete_task"
+	MethodTaskGet        toolsets.Method = "twprojects-get_task"
+	MethodTaskList       toolsets.Method = "twprojects-list_tasks"
+	MethodTaskMove       toolsets.Method = "twprojects-move_tasks"
 )
 
 var (
@@ -958,6 +959,51 @@ func TaskComplete(engine *twapi.Engine) toolsets.ToolWrapper {
 				return helpers.HandleAPIError(err, "failed to complete task")
 			}
 			return helpers.NewToolResultText("Task completed successfully"), nil
+		},
+	}
+}
+
+// TaskUncomplete reopens a completed task in Teamwork.com.
+func TaskUncomplete(engine *twapi.Engine) toolsets.ToolWrapper {
+	return toolsets.ToolWrapper{
+		Tool: &mcp.Tool{
+			Name:        string(MethodTaskUncomplete),
+			Description: "Reopen a completed task.",
+			Annotations: &mcp.ToolAnnotations{
+				Title:           "Uncomplete Task",
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
+			},
+			InputSchema: &jsonschema.Schema{
+				Type: "object",
+				Properties: map[string]*jsonschema.Schema{
+					"id": {
+						Type:        "integer",
+						Description: "The ID of the task to reopen.",
+					},
+				},
+				Required: []string{"id"},
+			},
+		},
+		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+			var taskUncompleteRequest projects.TaskUncompleteRequest
+
+			var arguments map[string]any
+			if err := json.Unmarshal(request.Params.Arguments, &arguments); err != nil {
+				return helpers.NewToolResultTextError("failed to decode request: %s", err.Error()), nil
+			}
+			err := helpers.ParamGroup(arguments,
+				helpers.RequiredNumericParam(&taskUncompleteRequest.Path.ID, "id"),
+			)
+			if err != nil {
+				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
+			}
+
+			_, err = projects.TaskUncomplete(ctx, engine, taskUncompleteRequest)
+			if err != nil {
+				return helpers.HandleAPIError(err, "failed to uncomplete task")
+			}
+			return helpers.NewToolResultText("Task reopened successfully"), nil
 		},
 	}
 }
