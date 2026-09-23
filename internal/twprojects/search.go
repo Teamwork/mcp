@@ -184,7 +184,7 @@ func Search(engine *twapi.Engine) toolsets.ToolWrapper {
 							{Type: "null"},
 						},
 					},
-					"updated_after": helpers.DateTimeFilterSchema(
+					"updated_after": updatedAfterSchema(
 						"Only include items updated strictly after this moment; the boundary itself does " +
 							"not match."),
 					"extended_search": {
@@ -254,7 +254,8 @@ func Search(engine *twapi.Engine) toolsets.ToolWrapper {
 				helpers.RequiredParam(&searchRequest.Filters.SearchTerm, "search_term"),
 				helpers.OptionalNumericParam(&searchRequest.Filters.ProjectID, "project_id"),
 				helpers.OptionalPointerParam(&searchRequest.Filters.IncludeCompletedItems, "include_completed_items"),
-				helpers.OptionalTimeParam(&searchRequest.Filters.UpdatedAfter, "updated_after"),
+				helpers.OptionalTimeParam(&searchRequest.Filters.UpdatedAfter, "updated_after",
+					helpers.NotBefore(updatedAfterEpoch)),
 				helpers.OptionalPointerParam(&searchRequest.Filters.ExtendedSearch, "extended_search"),
 				helpers.OptionalPointerParam(&searchRequest.Filters.IncludeHighlights, "include_highlights"),
 				searchTypeVocabulary.listParam(&searchRequest.Filters.Types, "types"),

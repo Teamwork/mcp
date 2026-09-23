@@ -306,3 +306,26 @@ func TestNullifyEmptyDates(t *testing.T) {
 		})
 	}
 }
+
+func TestNotBefore(t *testing.T) {
+	earliest := time.Date(2007, 10, 1, 0, 0, 0, 0, time.UTC)
+	tests := []struct {
+		value   string
+		wantErr bool
+	}{
+		{value: "2007-10-01", wantErr: false},
+		{value: "2007-10-01T02:00:00+02:00", wantErr: false},
+		{value: "2007-09-30T23:59:59Z", wantErr: true},
+		{value: "2007-10-01T01:00:00+02:00", wantErr: true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.value, func(t *testing.T) {
+			var got time.Time
+			err := helpers.ParamGroup(map[string]any{"updated_after": tt.value},
+				helpers.OptionalTimeParam(&got, "updated_after", helpers.NotBefore(earliest)))
+			if (err != nil) != tt.wantErr {
+				t.Errorf("error = %v, wantErr %t", err, tt.wantErr)
+			}
+		})
+	}
+}

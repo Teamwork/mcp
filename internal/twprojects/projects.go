@@ -714,7 +714,7 @@ func ProjectList(engine *twapi.Engine) toolsets.ToolWrapper {
 							{Type: "null"},
 						},
 					},
-					"updated_after": helpers.DateTimeFilterSchema(
+					"updated_after": updatedAfterSchema(
 						"Only include projects whose last activity is strictly after this moment; the " +
 							"boundary itself does not match. Any activity in the project counts, not just " +
 							"edits to the project record."),
@@ -762,7 +762,8 @@ func ProjectList(engine *twapi.Engine) toolsets.ToolWrapper {
 				helpers.OptionalPointerParam(&projectListRequest.Filters.OnlyArchivedProjects, "only_archived"),
 				helpers.OptionalPointerParam(&projectListRequest.Filters.IncludeTentativeProjects,
 					"include_tentative"),
-				helpers.OptionalTimePointerParam(&projectListRequest.Filters.UpdatedAfter, "updated_after"),
+				helpers.OptionalTimePointerParam(&projectListRequest.Filters.UpdatedAfter, "updated_after",
+					helpers.NotBefore(updatedAfterEpoch)),
 				helpers.OptionalParam(&projectListRequest.Filters.SearchTerm, "search_term"),
 				helpers.OptionalNumericListParam(&projectListRequest.Filters.TagIDs, "tag_ids"),
 				helpers.OptionalPointerParam(&projectListRequest.Filters.MatchAllTags, "match_all_tags"),

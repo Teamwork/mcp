@@ -808,7 +808,7 @@ func FileList(engine *twapi.Engine) toolsets.ToolWrapper {
 					"uploaded_before": helpers.DateFilterSchema("Only files whose selected version was uploaded " +
 						"before this day (YYYY-MM-DD). The bound is the first instant of the day, so files " +
 						"uploaded during it are excluded; name the following day to include it."),
-					"updated_after": helpers.DateTimeFilterSchema("Only files changed strictly after this instant, " +
+					"updated_after": updatedAfterSchema("Only files changed strictly after this instant, " +
 						"on the file or on its selected version."),
 					"show_deleted": {
 						Description: "Whether to also list deleted files. Defaults to false.",
@@ -858,7 +858,8 @@ func FileList(engine *twapi.Engine) toolsets.ToolWrapper {
 				helpers.OptionalParam(&fileListRequest.Filters.SearchAllFields, "search_all_fields"),
 				helpers.OptionalDatePointerParam(&fileListRequest.Filters.UploadedStartDate, "uploaded_after"),
 				helpers.OptionalDatePointerParam(&fileListRequest.Filters.UploadedEndDate, "uploaded_before"),
-				helpers.OptionalTimePointerParam(&fileListRequest.Filters.UpdatedAfter, "updated_after"),
+				helpers.OptionalTimePointerParam(&fileListRequest.Filters.UpdatedAfter, "updated_after",
+					helpers.NotBefore(updatedAfterEpoch)),
 				helpers.OptionalParam(&fileListRequest.Filters.ShowDeleted, "show_deleted"),
 				helpers.OptionalParam(&fileListRequest.Filters.SkipExternalFiles, "skip_external_files"),
 				fileOrdering.param(&fileListRequest.Filters.OrderBy, &fileListRequest.Filters.OrderMode),
