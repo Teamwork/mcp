@@ -162,6 +162,13 @@ func ProjectCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 							{Type: "null"},
 						},
 					},
+					"timelog_requires_task": {
+						Description: "If true, time can only be logged against the project's tasks, not the project itself.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "boolean"},
+							{Type: "null"},
+						},
+					},
 					"tag_ids": helpers.TagIDsAssociateSchema("project"),
 				},
 				Required: []string{"name"},
@@ -182,6 +189,7 @@ func ProjectCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 				helpers.OptionalNumericPointerParam(&projectCreateRequest.CategoryID, "category_id"),
 				helpers.OptionalNumericParam(&projectCreateRequest.CompanyID, "company_id"),
 				helpers.OptionalNumericPointerParam(&projectCreateRequest.OwnerID, "owned_id"),
+				helpers.OptionalParam(&projectCreateRequest.TimelogRequiresTask, "timelog_requires_task"),
 				helpers.OptionalNumericListParam(&projectCreateRequest.TagIDs, "tag_ids"),
 			)
 			if err != nil {
@@ -264,6 +272,13 @@ func ProjectUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 							{Type: "null"},
 						},
 					},
+					"timelog_requires_task": {
+						Description: "If true, time can only be logged against the project's tasks, not the project itself.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "boolean"},
+							{Type: "null"},
+						},
+					},
 					"tag_ids": helpers.TagIDsAssociateSchema("project"),
 					"status": {
 						Description: "The status of the project.",
@@ -292,6 +307,7 @@ func ProjectUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 				helpers.OptionalNumericPointerParam(&projectUpdateRequest.CategoryID, "category_id"),
 				helpers.OptionalNumericPointerParam(&projectUpdateRequest.CompanyID, "company_id"),
 				helpers.OptionalNumericPointerParam(&projectUpdateRequest.OwnerID, "owned_id"),
+				helpers.OptionalPointerParam(&projectUpdateRequest.TimelogRequiresTask, "timelog_requires_task"),
 				helpers.OptionalNumericListParam(&projectUpdateRequest.TagIDs, "tag_ids"),
 				helpers.OptionalPointerParam(&projectUpdateRequest.Status, "status",
 					helpers.RestrictValues(
