@@ -75,6 +75,11 @@ var matrixColumns = []string{"Create", "Get", "List", "Update"}
 // instead of forming a spurious resource row.
 var forceOther = map[string]bool{
 	"get_or_create_dm": true,
+	// Batch variants: plural like list_*, but they share a CRUD cell with the
+	// single-record tool.
+	"create_tasks":               true,
+	"update_tasks":               true,
+	"create_custom_field_values": true,
 }
 
 // displayOverrides maps resource/toolset slugs whose default title-casing reads

@@ -33,6 +33,8 @@ func TestEveryToolParameterIsBound(t *testing.T) {
 	}
 
 	fset := token.NewFileSet()
+	files := make(map[string]*ast.File)
+	funcs := make(map[string]*ast.FuncDecl)
 	for _, path := range paths {
 		if strings.HasSuffix(path, "_test.go") {
 			continue
@@ -41,7 +43,15 @@ func TestEveryToolParameterIsBound(t *testing.T) {
 		if err != nil {
 			t.Fatalf("failed to parse %s: %v", path, err)
 		}
+		files[path] = file
+		for _, decl := range file.Decls {
+			if fn, ok := decl.(*ast.FuncDecl); ok && fn.Recv == nil {
+				funcs[fn.Name.Name] = fn
+			}
+		}
+	}
 
+	for path, file := range files {
 		for _, decl := range file.Decls {
 			fn, ok := decl.(*ast.FuncDecl)
 			if !ok {
@@ -51,7 +61,7 @@ func TestEveryToolParameterIsBound(t *testing.T) {
 			if len(properties) == 0 || handler == nil {
 				continue
 			}
-			literals, calls := handlerReads(handler)
+			literals, calls := handlerReads(handler, funcs)
 
 			for _, property := range properties {
 				if literals[property] {
@@ -132,25 +142,36 @@ func schemaProperties(schema ast.Expr) []string {
 }
 
 // handlerReads returns the string literals and the names of the functions the
-// handler uses, which together cover both ways a parameter is bound.
-func handlerReads(handler *ast.FuncLit) (map[string]bool, map[string]bool) {
+// handler uses, which together cover both ways a parameter is bound. Calls to
+// package functions are followed, so a handler that delegates its binding to a
+// parser shared with another tool still counts as reading what the parser reads.
+func handlerReads(handler *ast.FuncLit, funcs map[string]*ast.FuncDecl) (map[string]bool, map[string]bool) {
 	literals, calls := map[string]bool{}, map[string]bool{}
-	ast.Inspect(handler, func(node ast.Node) bool {
-		switch expr := node.(type) {
-		case *ast.BasicLit:
-			if value, ok := stringLiteral(expr); ok {
-				literals[value] = true
+	visited := map[string]bool{}
+	var inspect func(node ast.Node)
+	inspect = func(root ast.Node) {
+		ast.Inspect(root, func(node ast.Node) bool {
+			switch expr := node.(type) {
+			case *ast.BasicLit:
+				if value, ok := stringLiteral(expr); ok {
+					literals[value] = true
+				}
+			case *ast.CallExpr:
+				switch fn := expr.Fun.(type) {
+				case *ast.Ident:
+					calls[fn.Name] = true
+					if decl, ok := funcs[fn.Name]; ok && !visited[fn.Name] {
+						visited[fn.Name] = true
+						inspect(decl.Body)
+					}
+				case *ast.SelectorExpr:
+					calls[fn.Sel.Name] = true
+				}
 			}
-		case *ast.CallExpr:
-			switch fn := expr.Fun.(type) {
-			case *ast.Ident:
-				calls[fn.Name] = true
-			case *ast.SelectorExpr:
-				calls[fn.Sel.Name] = true
-			}
-		}
-		return true
-	})
+			return true
+		})
+	}
+	inspect(handler)
 	return literals, calls
 }
 
