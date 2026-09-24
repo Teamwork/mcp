@@ -681,8 +681,8 @@ const (
 	taskMoveMaxTasks = 50
 )
 
-// taskMoveCarriedTasks reports which of the requested tasks another one will
-// carry, so they are not moved a second time.
+// taskMoveCarriedTasks maps each requested task another one will carry to the
+// nearest requested ancestor carrying it, so it is not moved a second time.
 //
 // The order the caller listed them in decides whether that second move is
 // harmless. An ancestor moved first carries the descendant, and updating the
@@ -695,8 +695,8 @@ func taskMoveCarriedTasks(
 	roots []int64,
 	requested map[int64]bool,
 	tasklistID int64,
-) (map[int64]bool, error) {
-	carried := make(map[int64]bool)
+) (map[int64]int64, error) {
+	carried := make(map[int64]int64)
 	if len(roots) == 1 {
 		// Nothing can be an ancestor of anything else, so skip the reads.
 		return carried, nil
@@ -732,7 +732,7 @@ func taskMoveCarriedTasks(
 			// An ancestor already in the destination stays put, so it carries
 			// nothing and the descendant still has to move itself.
 			if requested[parent.ID] && parent.Tasklist.ID != tasklistID {
-				carried[root] = true
+				carried[root] = parent.ID
 				break
 			}
 			id = parent.ID
@@ -741,13 +741,16 @@ func taskMoveCarriedTasks(
 	return carried, nil
 }
 
-func sortedTaskIDs(ids map[int64]bool) []int64 {
-	sorted := make([]int64, 0, len(ids))
-	for id := range ids {
-		sorted = append(sorted, id)
+// taskMoveMover follows the carriers up to the requested task that is actually
+// written, since a carrier can itself be carried.
+func taskMoveMover(carried map[int64]int64, id int64) int64 {
+	for {
+		carrier, ok := carried[id]
+		if !ok {
+			return id
+		}
+		id = carrier
 	}
-	slices.Sort(sorted)
-	return sorted
 }
 
 // TaskMove moves tasks, along with every subtask beneath them, to another
@@ -827,8 +830,9 @@ func TaskMove(engine *twapi.Engine) toolsets.ToolWrapper {
 
 			var moved []int64
 			var failures []string
+			failed := make(map[int64]bool)
 			for _, id := range roots {
-				if carried[id] {
+				if _, ok := carried[id]; ok {
 					continue
 				}
 
@@ -840,9 +844,23 @@ func TaskMove(engine *twapi.Engine) toolsets.ToolWrapper {
 
 				if _, err := projects.TaskUpdate(ctx, engine, taskUpdateRequest); err != nil {
 					failures = append(failures, fmt.Sprintf("task %d: %s", id, err.Error()))
+					failed[id] = true
 					continue
 				}
 				moved = append(moved, id)
+			}
+
+			// A carried task moves only if the task carrying it did.
+			var carriedMoved []int64
+			for _, id := range roots {
+				if _, ok := carried[id]; !ok {
+					continue
+				}
+				if mover := taskMoveMover(carried, id); failed[mover] {
+					failures = append(failures, fmt.Sprintf("task %d: not moved, because task %d failed", id, mover))
+				} else {
+					carriedMoved = append(carriedMoved, id)
+				}
 			}
 
 			var report strings.Builder
@@ -851,8 +869,8 @@ func TaskMove(engine *twapi.Engine) toolsets.ToolWrapper {
 			if len(moved) > 0 {
 				fmt.Fprintf(&report, "\nMoved: %s.", joinTaskIDs(moved))
 			}
-			if len(carried) > 0 {
-				fmt.Fprintf(&report, "\nCarried by another requested task: %s.", joinTaskIDs(sortedTaskIDs(carried)))
+			if len(carriedMoved) > 0 {
+				fmt.Fprintf(&report, "\nCarried by another requested task: %s.", joinTaskIDs(carriedMoved))
 			}
 			for _, failure := range failures {
 				fmt.Fprintf(&report, "\nFailed: %s.", failure)
