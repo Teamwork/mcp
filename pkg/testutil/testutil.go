@@ -199,12 +199,13 @@ func RoutedEngineMockWithRequestBody(
 // RecordingEngineMock is like RoutedEngineMock but records every request in
 // order rather than only the last body. Tools that fan one call out into many
 // writes need this: the order of those writes is part of the contract, and a
-// single captured body cannot show it.
+// single captured body cannot show it. It is safe for concurrent requests.
 func RecordingEngineMock(
 	routes []MockRoute,
 	fallbackStatus int,
 	fallbackBody []byte,
 ) (*twapi.Engine, *[]RecordedRequest) {
+	var mu sync.Mutex
 	var recorded []RecordedRequest
 	engine := newEngine(func(req *http.Request) (*http.Response, error) {
 		entry := RecordedRequest{Method: req.Method, URL: *req.URL}
@@ -215,7 +216,9 @@ func RecordingEngineMock(
 			}
 			entry.Body = body
 		}
+		mu.Lock()
 		recorded = append(recorded, entry)
+		mu.Unlock()
 		return matchRoute(req, routes, fallbackStatus, fallbackBody), nil
 	})
 	return engine, &recorded
