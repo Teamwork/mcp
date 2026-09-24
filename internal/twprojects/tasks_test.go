@@ -3,6 +3,7 @@ package twprojects_test
 import (
 	"encoding/json"
 	"net/http"
+	"strings"
 	"testing"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
@@ -309,7 +310,13 @@ func TestTaskMoveSkipsDescendantListedFirst(t *testing.T) {
 	testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodTaskMove.String(), map[string]any{
 		"task_ids":    []float64{3, 2},
 		"tasklist_id": float64(20),
-	})
+	}, testutil.ExecuteToolRequestWithCheckMessage(func(t *testing.T, result mcp.Result) {
+		testutil.CheckMessage(t, result)
+		text := result.(*mcp.CallToolResult).Content[0].(*mcp.TextContent).Text
+		if want := "Carried by another requested task: 3."; !strings.Contains(text, want) {
+			t.Errorf("expected %q in the report, got %q", want, text)
+		}
+	}))
 
 	writes := requestsOfMethod(*recorded, http.MethodPut)
 	if len(writes) != 1 {
@@ -317,6 +324,51 @@ func TestTaskMoveSkipsDescendantListedFirst(t *testing.T) {
 	}
 	if want := "/projects/api/v3/tasks/2.json"; writes[0].URL.Path != want {
 		t.Errorf("expected the write to target %s, got %s", want, writes[0].URL.Path)
+	}
+}
+
+// TestTaskMoveCarriedTaskFailsWithItsCarrier pins the report when the task that
+// would carry others fails: they stayed behind, so reporting them as carried
+// would tell the caller they moved. Task 4 is carried through task 3, which is
+// itself carried by the failing task 2.
+func TestTaskMoveCarriedTaskFailsWithItsCarrier(t *testing.T) {
+	mcpServer, recorded := mcpServerRecordingMock(t, []testutil.ProjectsMockRoute{
+		{Method: http.MethodGet, Match: "/tasks/2.json", Status: http.StatusOK,
+			Body: []byte(`{"task":{"id":2,"tasklist":{"id":10}}}`)},
+		{Method: http.MethodGet, Match: "/tasks/3.json", Status: http.StatusOK,
+			Body: []byte(`{"task":{"id":3,"tasklist":{"id":10},"parentTask":{"id":2}}}`)},
+		{Method: http.MethodGet, Match: "/tasks/4.json", Status: http.StatusOK,
+			Body: []byte(`{"task":{"id":4,"tasklist":{"id":10},"parentTask":{"id":3}}}`)},
+		{Method: http.MethodPut, Match: "/tasks/2.json", Status: http.StatusInternalServerError,
+			Body: []byte(`{}`)},
+	}, http.StatusOK, []byte(`{}`))
+	testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodTaskMove.String(), map[string]any{
+		"task_ids":    []float64{4, 3, 2},
+		"tasklist_id": float64(20),
+	}, testutil.ExecuteToolRequestWithCheckMessage(func(t *testing.T, result mcp.Result) {
+		toolResult, ok := result.(*mcp.CallToolResult)
+		if !ok {
+			t.Fatalf("unexpected result type: %T", result)
+		}
+		if !toolResult.IsError {
+			t.Errorf("expected an error result")
+		}
+		text := toolResult.Content[0].(*mcp.TextContent).Text
+		if strings.Contains(text, "Carried by") {
+			t.Errorf("expected no carried tasks in the report, got %q", text)
+		}
+		for _, want := range []string{
+			"Failed: task 3: not moved, because task 2 failed.",
+			"Failed: task 4: not moved, because task 2 failed.",
+		} {
+			if !strings.Contains(text, want) {
+				t.Errorf("expected %q in the report, got %q", want, text)
+			}
+		}
+	}))
+
+	if writes := requestsOfMethod(*recorded, http.MethodPut); len(writes) != 1 {
+		t.Errorf("expected only the carrier to be written, got %d writes", len(writes))
 	}
 }
 
