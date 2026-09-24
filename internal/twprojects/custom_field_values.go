@@ -23,11 +23,12 @@ import (
 // The naming convention for methods follows a pattern described here:
 // https://github.com/github/github-mcp-server/issues/333
 const (
-	MethodCustomFieldValueCreate toolsets.Method = "twprojects-create_custom_field_value"
-	MethodCustomFieldValueUpdate toolsets.Method = "twprojects-update_custom_field_value"
-	MethodCustomFieldValueDelete toolsets.Method = "twprojects-delete_custom_field_value"
-	MethodCustomFieldValueGet    toolsets.Method = "twprojects-get_custom_field_value"
-	MethodCustomFieldValueList   toolsets.Method = "twprojects-list_custom_field_values"
+	MethodCustomFieldValueCreate      toolsets.Method = "twprojects-create_custom_field_value"
+	MethodCustomFieldValueCreateBatch toolsets.Method = "twprojects-create_custom_field_values"
+	MethodCustomFieldValueUpdate      toolsets.Method = "twprojects-update_custom_field_value"
+	MethodCustomFieldValueDelete      toolsets.Method = "twprojects-delete_custom_field_value"
+	MethodCustomFieldValueGet         toolsets.Method = "twprojects-get_custom_field_value"
+	MethodCustomFieldValueList        toolsets.Method = "twprojects-list_custom_field_values"
 )
 
 var (
@@ -126,44 +127,12 @@ func CustomFieldValueCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 			if err := json.Unmarshal(request.Params.Arguments, &arguments); err != nil {
 				return helpers.NewToolResultTextError("failed to decode request: %s", err.Error()), nil
 			}
-
-			var entity projects.CustomFieldEntity
-			var entityID, customFieldID int64
-			var currencyCode, countryCode *string
-			err := helpers.ParamGroup(arguments,
-				helpers.RequiredParam(&entity, "entity",
-					helpers.RestrictValues(
-						projects.CustomFieldEntityTask,
-						projects.CustomFieldEntityProject,
-						projects.CustomFieldEntityCompany,
-					),
-				),
-				helpers.RequiredNumericParam(&entityID, "entity_id"),
-				helpers.RequiredNumericParam(&customFieldID, "custom_field_id"),
-				helpers.OptionalPointerParam(&currencyCode, "currency_code"),
-				helpers.OptionalPointerParam(&countryCode, "country_code"),
-			)
-			if err != nil {
-				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
+			customFieldValueCreateRequest, toolResult := parseCustomFieldValueCreateArguments(arguments)
+			if toolResult != nil {
+				return toolResult, nil
 			}
-
-			value, ok := arguments["value"]
-			if !ok {
-				return helpers.NewToolResultTextError("invalid parameters: 'value' is required"), nil
-			}
-			value = coerceCustomFieldValue(ctx, engine, customFieldID, value)
-
-			var customFieldValueCreateRequest projects.CustomFieldValueCreateRequest
-			switch entity {
-			case projects.CustomFieldEntityTask:
-				customFieldValueCreateRequest = projects.NewTaskCustomFieldValueCreateRequest(entityID, customFieldID, value)
-			case projects.CustomFieldEntityProject:
-				customFieldValueCreateRequest = projects.NewProjectCustomFieldValueCreateRequest(entityID, customFieldID, value)
-			case projects.CustomFieldEntityCompany:
-				customFieldValueCreateRequest = projects.NewCompanyCustomFieldValueCreateRequest(entityID, customFieldID, value)
-			}
-			customFieldValueCreateRequest.CurrencyCode = currencyCode
-			customFieldValueCreateRequest.CountryCode = countryCode
+			customFieldValueCreateRequest.Value = coerceCustomFieldValue(ctx, engine,
+				customFieldValueCreateRequest.CustomFieldID, customFieldValueCreateRequest.Value)
 
 			response, err := projects.CustomFieldValueCreate(ctx, engine, customFieldValueCreateRequest)
 			if err != nil {
@@ -171,6 +140,170 @@ func CustomFieldValueCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 			}
 			return helpers.NewToolResultText("Custom field value created successfully with ID %d",
 				response.CustomFieldValue.ID), nil
+		},
+	}
+}
+
+// parseCustomFieldValueCreateArguments binds the arguments of a single value
+// create, shared by create_custom_field_value and each item of
+// create_custom_field_values. The value is left uncoerced.
+func parseCustomFieldValueCreateArguments(
+	arguments map[string]any,
+) (projects.CustomFieldValueCreateRequest, *mcp.CallToolResult) {
+	var entity projects.CustomFieldEntity
+	var entityID, customFieldID int64
+	var currencyCode, countryCode *string
+	err := helpers.ParamGroup(arguments,
+		helpers.RequiredParam(&entity, "entity",
+			helpers.RestrictValues(
+				projects.CustomFieldEntityTask,
+				projects.CustomFieldEntityProject,
+				projects.CustomFieldEntityCompany,
+			),
+		),
+		helpers.RequiredNumericParam(&entityID, "entity_id"),
+		helpers.RequiredNumericParam(&customFieldID, "custom_field_id"),
+		helpers.OptionalPointerParam(&currencyCode, "currency_code"),
+		helpers.OptionalPointerParam(&countryCode, "country_code"),
+	)
+	if err != nil {
+		return projects.CustomFieldValueCreateRequest{},
+			helpers.NewToolResultTextError("invalid parameters: %s", err.Error())
+	}
+
+	value, ok := arguments["value"]
+	if !ok {
+		return projects.CustomFieldValueCreateRequest{},
+			helpers.NewToolResultTextError("invalid parameters: 'value' is required")
+	}
+
+	var req projects.CustomFieldValueCreateRequest
+	switch entity {
+	case projects.CustomFieldEntityTask:
+		req = projects.NewTaskCustomFieldValueCreateRequest(entityID, customFieldID, value)
+	case projects.CustomFieldEntityProject:
+		req = projects.NewProjectCustomFieldValueCreateRequest(entityID, customFieldID, value)
+	case projects.CustomFieldEntityCompany:
+		req = projects.NewCompanyCustomFieldValueCreateRequest(entityID, customFieldID, value)
+	}
+	req.CurrencyCode = currencyCode
+	req.CountryCode = countryCode
+	return req, nil
+}
+
+// CustomFieldValueCreateBatch sets many custom field values in Teamwork.com in one
+// call.
+//
+// It is a loop of single creates because create is what sets a value: it
+// replaces any value the entity already has for that field, except on a
+// multiselect field, where it adds to the selection. The bulk update route only
+// edits values that already exist, addressed by value ID.
+func CustomFieldValueCreateBatch(engine *twapi.Engine) toolsets.ToolWrapper {
+	itemSchema := batchItemSchema(CustomFieldValueCreate(engine).Tool.InputSchema, "entity")
+	return toolsets.ToolWrapper{
+		Tool: &mcp.Tool{
+			Name: string(MethodCustomFieldValueCreateBatch),
+			Description: "Set many custom field values on tasks, projects or companies in one call: one field " +
+				"across many records, many fields on one record, or any mix. Use instead of calling " +
+				"twprojects-create_custom_field_value in a loop. Setting a value replaces the one the record " +
+				"already has for that field, except on a multiselect field, where the options are added to " +
+				"the selection. Items are validated first and nothing is set if one is invalid; after that " +
+				"each value succeeds or fails on its own, and the result lists the error of each failure.",
+			Annotations: &mcp.ToolAnnotations{
+				Title:           "Create Custom Field Values",
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
+			},
+			InputSchema: &jsonschema.Schema{
+				Type: "object",
+				Properties: map[string]*jsonschema.Schema{
+					"entity": {
+						Type:        "string",
+						Description: "The type of entity every value in this call is attached to.",
+						Enum:        []any{"task", "project", "company"},
+					},
+					"values": {
+						Type:     "array",
+						Items:    itemSchema,
+						MinItems: new(1),
+						MaxItems: new(batchMaxItems),
+						Description: "The values to set. A record and field pair may appear only once; " +
+							"list every option of a multiselect in one value.",
+					},
+				},
+				Required: []string{"entity", "values"},
+			},
+		},
+		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+			var arguments map[string]any
+			if err := json.Unmarshal(request.Params.Arguments, &arguments); err != nil {
+				return helpers.NewToolResultTextError("failed to decode request: %s", err.Error()), nil
+			}
+			entity, ok := arguments["entity"]
+			if !ok {
+				return helpers.NewToolResultTextError("invalid parameters: 'entity' is required"), nil
+			}
+			items, toolResult := batchItems(arguments, "values", batchMaxItems)
+			if toolResult != nil {
+				return toolResult, nil
+			}
+
+			type target struct{ entityID, customFieldID int64 }
+			requests := make([]projects.CustomFieldValueCreateRequest, len(items))
+			labels := make([]string, len(items))
+			seen := make(map[target]bool, len(items))
+			var invalid []string
+			for i, item := range items {
+				item["entity"] = entity
+				req, toolResult := parseCustomFieldValueCreateArguments(item)
+				if toolResult != nil {
+					invalid = append(invalid, fmt.Sprintf("item %d: %s", i+1, toolResultText(toolResult)))
+					continue
+				}
+				key := target{customFieldID: req.CustomFieldID}
+				if err := helpers.ParamGroup(item, helpers.RequiredNumericParam(&key.entityID, "entity_id")); err != nil {
+					invalid = append(invalid, fmt.Sprintf("item %d: %s", i+1, err.Error()))
+					continue
+				}
+				// Two concurrent writes of one field on one record would race.
+				if seen[key] {
+					invalid = append(invalid, fmt.Sprintf("item %d: field %d on %s %d is listed more than once",
+						i+1, key.customFieldID, entity, key.entityID))
+					continue
+				}
+				seen[key] = true
+				requests[i] = req
+				labels[i] = fmt.Sprintf("field %d on %s %d", key.customFieldID, entity, key.entityID)
+			}
+			if len(invalid) > 0 {
+				return batchInvalidItems(invalid), nil
+			}
+
+			// Coerce with one field lookup per field rather than one per value.
+			fieldTypes := make(map[int64]*projects.CustomFieldType)
+			for i := range requests {
+				if !containsNumber(requests[i].Value) {
+					continue
+				}
+				id := requests[i].CustomFieldID
+				if _, ok := fieldTypes[id]; !ok {
+					fieldTypes[id] = nil
+					if resp, err := projects.CustomFieldGet(ctx, engine, projects.NewCustomFieldGetRequest(id)); err == nil {
+						fieldTypes[id] = &resp.CustomField.Type
+					}
+				}
+				if fieldType := fieldTypes[id]; fieldType != nil {
+					requests[i].Value = coerceCustomFieldValueForType(*fieldType, requests[i].Value)
+				}
+			}
+
+			errs := runBatch(ctx, len(requests), batchConcurrency, func(ctx context.Context, i int) error {
+				_, err := projects.CustomFieldValueCreate(ctx, engine, requests[i])
+				return err
+			})
+			return batchReport("Set", "custom field values",
+				"check with "+string(MethodCustomFieldValueList)+" before sending multiselect values again",
+				labels, nil, errs), nil
 		},
 	}
 }
@@ -621,10 +754,16 @@ func coerceCustomFieldValue(ctx context.Context, engine *twapi.Engine, customFie
 	if err != nil {
 		return raw
 	}
+	return coerceCustomFieldValueForType(resp.CustomField.Type, raw)
+}
+
+// coerceCustomFieldValueForType is coerceCustomFieldValue with the field type
+// already known.
+func coerceCustomFieldValueForType(fieldType projects.CustomFieldType, raw any) any {
 	// Dropdown, status and multiselect fields store their choices as strings,
 	// so a numeric choice must be stringified. Dropdown and status are
 	// single-valued; multiselect is an array.
-	switch resp.CustomField.Type {
+	switch fieldType {
 	case projects.CustomFieldTypeDropdown, projects.CustomFieldTypeStatus:
 		if s, ok := stringifyScalar(raw); ok {
 			return s

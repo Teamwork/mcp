@@ -23,14 +23,16 @@ import (
 // The naming convention for methods follows a pattern described here:
 // https://github.com/github/github-mcp-server/issues/333
 const (
-	MethodTaskCreate     toolsets.Method = "twprojects-create_task"
-	MethodTaskUpdate     toolsets.Method = "twprojects-update_task"
-	MethodTaskDelete     toolsets.Method = "twprojects-delete_task"
-	MethodTaskComplete   toolsets.Method = "twprojects-complete_task"
-	MethodTaskUncomplete toolsets.Method = "twprojects-uncomplete_task"
-	MethodTaskGet        toolsets.Method = "twprojects-get_task"
-	MethodTaskList       toolsets.Method = "twprojects-list_tasks"
-	MethodTaskMove       toolsets.Method = "twprojects-move_tasks"
+	MethodTaskCreate      toolsets.Method = "twprojects-create_task"
+	MethodTaskUpdate      toolsets.Method = "twprojects-update_task"
+	MethodTaskDelete      toolsets.Method = "twprojects-delete_task"
+	MethodTaskComplete    toolsets.Method = "twprojects-complete_task"
+	MethodTaskUncomplete  toolsets.Method = "twprojects-uncomplete_task"
+	MethodTaskGet         toolsets.Method = "twprojects-get_task"
+	MethodTaskList        toolsets.Method = "twprojects-list_tasks"
+	MethodTaskMove        toolsets.Method = "twprojects-move_tasks"
+	MethodTaskCreateBatch toolsets.Method = "twprojects-create_tasks"
+	MethodTaskUpdateBatch toolsets.Method = "twprojects-update_tasks"
 )
 
 var (
@@ -257,117 +259,13 @@ func TaskCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 			},
 		},
 		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-			var taskCreateRequest projects.TaskCreateRequest
-			taskCreateRequest.Options.Notify = true
-			taskCreateRequest.Options.CheckInvalidUsers = true
-
 			var arguments map[string]any
 			if err := json.Unmarshal(request.Params.Arguments, &arguments); err != nil {
 				return helpers.NewToolResultTextError("failed to decode request: %s", err.Error()), nil
 			}
-			err := helpers.ParamGroup(arguments,
-				helpers.RequiredParam(&taskCreateRequest.Name, "name"),
-				helpers.RequiredNumericParam(&taskCreateRequest.Path.TasklistID, "tasklist_id"),
-				helpers.OptionalPointerParam(&taskCreateRequest.Description, "description"),
-				helpers.OptionalPointerParam(&taskCreateRequest.Priority, "priority",
-					helpers.RestrictValues("low", "medium", "high"),
-				),
-				helpers.OptionalNumericPointerParam(&taskCreateRequest.Progress, "progress"),
-				helpers.OptionalDatePointerParam(&taskCreateRequest.StartAt, "start_date"),
-				helpers.OptionalDatePointerParam(&taskCreateRequest.DueAt, "due_date"),
-				helpers.OptionalNumericPointerParam(&taskCreateRequest.EstimatedMinutes, "estimated_minutes"),
-				helpers.OptionalNumericPointerParam(&taskCreateRequest.ParentTaskID, "parent_task_id"),
-				helpers.OptionalNumericListParam(&taskCreateRequest.TagIDs, "tag_ids"),
-				helpers.OptionalNumericPointerParam(&taskCreateRequest.Workflows.WorkflowID, "workflow_id"),
-				helpers.OptionalNumericPointerParam(&taskCreateRequest.Workflows.StageID, "stage_id"),
-				helpers.OptionalParam(&taskCreateRequest.Options.Notify, "notify"),
-			)
-			if err != nil {
-				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
-			}
-
-			// The endpoint drops either ID sent alone and still answers 201, so
-			// say it here rather than let the placement vanish.
-			if (taskCreateRequest.Workflows.WorkflowID == nil) != (taskCreateRequest.Workflows.StageID == nil) {
-				return helpers.NewToolResultTextError(
-					"workflow_id and stage_id must be provided together"), nil
-			}
-
-			if assignees, toolResult := parseUserGroups(
-				arguments,
-				"assignees",
-				"assignees",
-			); toolResult != nil {
+			taskCreateRequest, toolResult := parseTaskCreateArguments(arguments)
+			if toolResult != nil {
 				return toolResult, nil
-			} else if assignees != nil {
-				taskCreateRequest.Assignees = assignees
-			}
-
-			// Only set attachments when the caller named one: the field is a
-			// sibling of the task in the request body, so an empty one would be a
-			// payload change for every caller that attaches nothing.
-			if attachments, toolResult := parseTaskAttachments(arguments); toolResult != nil {
-				return toolResult, nil
-			} else if attachments != nil {
-				taskCreateRequest.Attachments = *attachments
-			}
-
-			if predecessors, ok := arguments["predecessors"]; ok {
-				predecessorsSlice, ok := predecessors.([]any)
-				if !ok {
-					return helpers.NewToolResultTextError("invalid predecessors"), nil
-				}
-
-				for _, predecessor := range predecessorsSlice {
-					predecessorMap, ok := predecessor.(map[string]any)
-					if !ok {
-						return helpers.NewToolResultTextError("invalid predecessors"), nil
-					}
-
-					var p projects.TaskPredecessor
-					err = helpers.ParamGroup(predecessorMap,
-						helpers.RequiredNumericParam(&p.ID, "task_id"),
-						helpers.RequiredParam(&p.Type, "type",
-							helpers.RestrictValues(
-								projects.TaskPredecessorTypeStart,
-								projects.TaskPredecessorTypeFinish,
-							),
-						),
-					)
-					if err != nil {
-						return helpers.NewToolResultTextError("invalid predecessor: %s", err), nil
-					}
-
-					taskCreateRequest.Predecessors = append(taskCreateRequest.Predecessors, p)
-				}
-			}
-
-			if followers, toolResult := parseUserGroups(
-				arguments,
-				"change_followers",
-				"change followers",
-			); toolResult != nil {
-				return toolResult, nil
-			} else if followers != nil {
-				taskCreateRequest.ChangeFollowers = *followers
-			}
-			if followers, toolResult := parseUserGroups(
-				arguments,
-				"comment_followers",
-				"comment followers",
-			); toolResult != nil {
-				return toolResult, nil
-			} else if followers != nil {
-				taskCreateRequest.CommentFollowers = *followers
-			}
-			if followers, toolResult := parseUserGroups(
-				arguments,
-				"complete_followers",
-				"complete followers",
-			); toolResult != nil {
-				return toolResult, nil
-			} else if followers != nil {
-				taskCreateRequest.CompleteFollowers = *followers
 			}
 
 			taskResponse, err := projects.TaskCreate(ctx, engine, taskCreateRequest)
@@ -509,166 +407,252 @@ func TaskUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 			},
 		},
 		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-			var taskUpdateRequest projects.TaskUpdateRequest
-			taskUpdateRequest.Options.Notify = true
-			taskUpdateRequest.Options.CheckInvalidUsers = true
-
 			var arguments map[string]any
 			if err := json.Unmarshal(request.Params.Arguments, &arguments); err != nil {
 				return helpers.NewToolResultTextError("failed to decode request: %s", err.Error()), nil
 			}
-			err := helpers.ParamGroup(arguments,
-				helpers.RequiredNumericParam(&taskUpdateRequest.Path.ID, "id"),
-				helpers.OptionalNumericPointerParam(&taskUpdateRequest.TasklistID, "tasklist_id"),
-				helpers.OptionalPointerParam(&taskUpdateRequest.Name, "name"),
-				helpers.OptionalPointerParam(&taskUpdateRequest.Description, "description"),
-				helpers.OptionalPointerParam(&taskUpdateRequest.Priority, "priority",
-					helpers.RestrictValues("low", "medium", "high"),
-				),
-				helpers.OptionalNumericPointerParam(&taskUpdateRequest.Progress, "progress"),
-				helpers.OptionalDatePointerParam(&taskUpdateRequest.StartAt, "start_date"),
-				helpers.OptionalDatePointerParam(&taskUpdateRequest.DueAt, "due_date"),
-				helpers.OptionalNumericPointerParam(&taskUpdateRequest.EstimatedMinutes, "estimated_minutes"),
-				helpers.OptionalNumericPointerParam(&taskUpdateRequest.ParentTaskID, "parent_task_id"),
-				helpers.OptionalNumericListParam(&taskUpdateRequest.TagIDs, "tag_ids"),
-				helpers.OptionalParam(&taskUpdateRequest.Options.Notify, "notify"),
-			)
-			if err != nil {
-				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
-			}
-
-			var clearAssignees bool
-			if err := helpers.ParamGroup(arguments,
-				helpers.OptionalParam(&clearAssignees, "clear_assignees"),
-			); err != nil {
-				return helpers.NewToolResultTextError("invalid clear_assignees: %s", err.Error()), nil
-			}
-
-			var clearParentTask bool
-			if err := helpers.ParamGroup(arguments,
-				helpers.OptionalParam(&clearParentTask, "clear_parent_task"),
-			); err != nil {
-				return helpers.NewToolResultTextError("invalid clear_parent_task: %s", err.Error()), nil
-			}
-			if clearParentTask {
-				if taskUpdateRequest.ParentTaskID != nil {
-					return helpers.NewToolResultTextError(
-						"clear_parent_task cannot be combined with parent_task_id",
-					), nil
-				}
-				// A null parent_task_id cannot express this: null means "not
-				// provided" for every optional parameter, because OpenAI strict mode
-				// requires clients to send every property and fill the unset ones
-				// with null. Zero is the sentinel the v3 API accepts to detach, and
-				// it survives the SDK's omitempty because only a nil pointer is
-				// omitted.
-				taskUpdateRequest.ParentTaskID = new(int64(0))
-			}
-
-			if assignees, toolResult := parseUserGroups(
-				arguments,
-				"assignees",
-				"assignees",
-			); toolResult != nil {
+			taskUpdateRequest, toolResult := parseTaskUpdateArguments(arguments)
+			if toolResult != nil {
 				return toolResult, nil
-			} else if assignees != nil {
-				assigneesEmpty := len(assignees.UserIDs) == 0 &&
-					len(assignees.CompanyIDs) == 0 &&
-					len(assignees.TeamIDs) == 0 &&
-					len(assignees.JobRoleIDs) == 0
-				if clearAssignees && !assigneesEmpty {
-					return helpers.NewToolResultTextError(
-						"clear_assignees cannot be combined with a non-empty assignees value",
-					), nil
-				}
-				taskUpdateRequest.Assignees = assignees
 			}
 
-			// Only set attachments when the caller named one. Attaching is additive
-			// server side, so this never disturbs the files the task already has.
-			if attachments, toolResult := parseTaskAttachments(arguments); toolResult != nil {
-				return toolResult, nil
-			} else if attachments != nil {
-				taskUpdateRequest.Attachments = *attachments
-			}
-
-			if clearAssignees {
-				// Empty arrays unassign every assignee dimension. Job roles are
-				// included because the SDK now sends the "Jobroles-Enabled: true"
-				// header on every request, so the API honours jobRoleIds here.
-				taskUpdateRequest.Assignees = &projects.UserGroups{
-					UserIDs:    []int64{},
-					CompanyIDs: []int64{},
-					TeamIDs:    []int64{},
-					JobRoleIDs: []int64{},
-				}
-			}
-
-			if predecessors, ok := arguments["predecessors"]; ok {
-				predecessorsSlice, ok := predecessors.([]any)
-				if !ok {
-					return helpers.NewToolResultTextError("invalid predecessors"), nil
-				}
-
-				for _, predecessor := range predecessorsSlice {
-					predecessorMap, ok := predecessor.(map[string]any)
-					if !ok {
-						return helpers.NewToolResultTextError("invalid predecessors"), nil
-					}
-
-					var p projects.TaskPredecessor
-					err = helpers.ParamGroup(predecessorMap,
-						helpers.RequiredNumericParam(&p.ID, "task_id"),
-						helpers.RequiredParam(&p.Type, "type",
-							helpers.RestrictValues(
-								projects.TaskPredecessorTypeStart,
-								projects.TaskPredecessorTypeFinish,
-							),
-						),
-					)
-					if err != nil {
-						return helpers.NewToolResultTextError("invalid predecessor: %s", err), nil
-					}
-
-					taskUpdateRequest.Predecessors = append(taskUpdateRequest.Predecessors, p)
-				}
-			}
-
-			if followers, toolResult := parseUserGroups(
-				arguments,
-				"change_followers",
-				"change followers",
-			); toolResult != nil {
-				return toolResult, nil
-			} else if followers != nil {
-				taskUpdateRequest.ChangeFollowers = followers
-			}
-			if followers, toolResult := parseUserGroups(
-				arguments,
-				"comment_followers",
-				"comment followers",
-			); toolResult != nil {
-				return toolResult, nil
-			} else if followers != nil {
-				taskUpdateRequest.CommentFollowers = followers
-			}
-			if followers, toolResult := parseUserGroups(
-				arguments,
-				"complete_followers",
-				"complete followers",
-			); toolResult != nil {
-				return toolResult, nil
-			} else if followers != nil {
-				taskUpdateRequest.CompleteFollowers = followers
-			}
-
-			_, err = projects.TaskUpdate(ctx, engine, taskUpdateRequest)
-			if err != nil {
+			if _, err := projects.TaskUpdate(ctx, engine, taskUpdateRequest); err != nil {
 				return helpers.HandleAPIError(err, "failed to update task")
 			}
 			return helpers.NewToolResultText("Task updated successfully"), nil
 		},
 	}
+}
+
+// parseTaskCreateArguments binds the arguments of a single task create, shared
+// by create_task and each item of create_tasks.
+func parseTaskCreateArguments(arguments map[string]any) (projects.TaskCreateRequest, *mcp.CallToolResult) {
+	var taskCreateRequest projects.TaskCreateRequest
+	taskCreateRequest.Options.Notify = true
+	taskCreateRequest.Options.CheckInvalidUsers = true
+
+	err := helpers.ParamGroup(arguments,
+		helpers.RequiredParam(&taskCreateRequest.Name, "name"),
+		helpers.RequiredNumericParam(&taskCreateRequest.Path.TasklistID, "tasklist_id"),
+		helpers.OptionalPointerParam(&taskCreateRequest.Description, "description"),
+		helpers.OptionalPointerParam(&taskCreateRequest.Priority, "priority",
+			helpers.RestrictValues("low", "medium", "high"),
+		),
+		helpers.OptionalNumericPointerParam(&taskCreateRequest.Progress, "progress"),
+		helpers.OptionalDatePointerParam(&taskCreateRequest.StartAt, "start_date"),
+		helpers.OptionalDatePointerParam(&taskCreateRequest.DueAt, "due_date"),
+		helpers.OptionalNumericPointerParam(&taskCreateRequest.EstimatedMinutes, "estimated_minutes"),
+		helpers.OptionalNumericPointerParam(&taskCreateRequest.ParentTaskID, "parent_task_id"),
+		helpers.OptionalNumericListParam(&taskCreateRequest.TagIDs, "tag_ids"),
+		helpers.OptionalNumericPointerParam(&taskCreateRequest.Workflows.WorkflowID, "workflow_id"),
+		helpers.OptionalNumericPointerParam(&taskCreateRequest.Workflows.StageID, "stage_id"),
+		helpers.OptionalParam(&taskCreateRequest.Options.Notify, "notify"),
+	)
+	if err != nil {
+		return taskCreateRequest, helpers.NewToolResultTextError("invalid parameters: %s", err.Error())
+	}
+
+	// The endpoint drops either ID sent alone and still answers 201, so
+	// say it here rather than let the placement vanish.
+	if (taskCreateRequest.Workflows.WorkflowID == nil) != (taskCreateRequest.Workflows.StageID == nil) {
+		return taskCreateRequest, helpers.NewToolResultTextError(
+			"workflow_id and stage_id must be provided together")
+	}
+
+	if assignees, toolResult := parseUserGroups(arguments, "assignees", "assignees"); toolResult != nil {
+		return taskCreateRequest, toolResult
+	} else if assignees != nil {
+		taskCreateRequest.Assignees = assignees
+	}
+
+	// Only set attachments when the caller named one: the field is a
+	// sibling of the task in the request body, so an empty one would be a
+	// payload change for every caller that attaches nothing.
+	if attachments, toolResult := parseTaskAttachments(arguments); toolResult != nil {
+		return taskCreateRequest, toolResult
+	} else if attachments != nil {
+		taskCreateRequest.Attachments = *attachments
+	}
+
+	predecessors, toolResult := parseTaskPredecessors(arguments)
+	if toolResult != nil {
+		return taskCreateRequest, toolResult
+	}
+	taskCreateRequest.Predecessors = predecessors
+
+	followers, toolResult := parseTaskFollowers(arguments)
+	if toolResult != nil {
+		return taskCreateRequest, toolResult
+	}
+	if followers[0] != nil {
+		taskCreateRequest.ChangeFollowers = *followers[0]
+	}
+	if followers[1] != nil {
+		taskCreateRequest.CommentFollowers = *followers[1]
+	}
+	if followers[2] != nil {
+		taskCreateRequest.CompleteFollowers = *followers[2]
+	}
+	return taskCreateRequest, nil
+}
+
+// parseTaskUpdateArguments binds the arguments of a single task update, shared
+// by update_task and each item of update_tasks.
+func parseTaskUpdateArguments(arguments map[string]any) (projects.TaskUpdateRequest, *mcp.CallToolResult) {
+	var taskUpdateRequest projects.TaskUpdateRequest
+	taskUpdateRequest.Options.Notify = true
+	taskUpdateRequest.Options.CheckInvalidUsers = true
+
+	err := helpers.ParamGroup(arguments,
+		helpers.RequiredNumericParam(&taskUpdateRequest.Path.ID, "id"),
+		helpers.OptionalNumericPointerParam(&taskUpdateRequest.TasklistID, "tasklist_id"),
+		helpers.OptionalPointerParam(&taskUpdateRequest.Name, "name"),
+		helpers.OptionalPointerParam(&taskUpdateRequest.Description, "description"),
+		helpers.OptionalPointerParam(&taskUpdateRequest.Priority, "priority",
+			helpers.RestrictValues("low", "medium", "high"),
+		),
+		helpers.OptionalNumericPointerParam(&taskUpdateRequest.Progress, "progress"),
+		helpers.OptionalDatePointerParam(&taskUpdateRequest.StartAt, "start_date"),
+		helpers.OptionalDatePointerParam(&taskUpdateRequest.DueAt, "due_date"),
+		helpers.OptionalNumericPointerParam(&taskUpdateRequest.EstimatedMinutes, "estimated_minutes"),
+		helpers.OptionalNumericPointerParam(&taskUpdateRequest.ParentTaskID, "parent_task_id"),
+		helpers.OptionalNumericListParam(&taskUpdateRequest.TagIDs, "tag_ids"),
+		helpers.OptionalParam(&taskUpdateRequest.Options.Notify, "notify"),
+	)
+	if err != nil {
+		return taskUpdateRequest, helpers.NewToolResultTextError("invalid parameters: %s", err.Error())
+	}
+
+	var clearAssignees bool
+	if err := helpers.ParamGroup(arguments,
+		helpers.OptionalParam(&clearAssignees, "clear_assignees"),
+	); err != nil {
+		return taskUpdateRequest, helpers.NewToolResultTextError("invalid clear_assignees: %s", err.Error())
+	}
+
+	var clearParentTask bool
+	if err := helpers.ParamGroup(arguments,
+		helpers.OptionalParam(&clearParentTask, "clear_parent_task"),
+	); err != nil {
+		return taskUpdateRequest, helpers.NewToolResultTextError("invalid clear_parent_task: %s", err.Error())
+	}
+	if clearParentTask {
+		if taskUpdateRequest.ParentTaskID != nil {
+			return taskUpdateRequest, helpers.NewToolResultTextError(
+				"clear_parent_task cannot be combined with parent_task_id",
+			)
+		}
+		// A null parent_task_id cannot express this: null means "not
+		// provided" for every optional parameter, because OpenAI strict mode
+		// requires clients to send every property and fill the unset ones
+		// with null. Zero is the sentinel the v3 API accepts to detach, and
+		// it survives the SDK's omitempty because only a nil pointer is
+		// omitted.
+		taskUpdateRequest.ParentTaskID = new(int64(0))
+	}
+
+	if assignees, toolResult := parseUserGroups(arguments, "assignees", "assignees"); toolResult != nil {
+		return taskUpdateRequest, toolResult
+	} else if assignees != nil {
+		assigneesEmpty := len(assignees.UserIDs) == 0 &&
+			len(assignees.CompanyIDs) == 0 &&
+			len(assignees.TeamIDs) == 0 &&
+			len(assignees.JobRoleIDs) == 0
+		if clearAssignees && !assigneesEmpty {
+			return taskUpdateRequest, helpers.NewToolResultTextError(
+				"clear_assignees cannot be combined with a non-empty assignees value",
+			)
+		}
+		taskUpdateRequest.Assignees = assignees
+	}
+
+	// Only set attachments when the caller named one. Attaching is additive
+	// server side, so this never disturbs the files the task already has.
+	if attachments, toolResult := parseTaskAttachments(arguments); toolResult != nil {
+		return taskUpdateRequest, toolResult
+	} else if attachments != nil {
+		taskUpdateRequest.Attachments = *attachments
+	}
+
+	if clearAssignees {
+		// Empty arrays unassign every assignee dimension. Job roles are
+		// included because the SDK now sends the "Jobroles-Enabled: true"
+		// header on every request, so the API honours jobRoleIds here.
+		taskUpdateRequest.Assignees = &projects.UserGroups{
+			UserIDs:    []int64{},
+			CompanyIDs: []int64{},
+			TeamIDs:    []int64{},
+			JobRoleIDs: []int64{},
+		}
+	}
+
+	predecessors, toolResult := parseTaskPredecessors(arguments)
+	if toolResult != nil {
+		return taskUpdateRequest, toolResult
+	}
+	taskUpdateRequest.Predecessors = predecessors
+
+	followers, toolResult := parseTaskFollowers(arguments)
+	if toolResult != nil {
+		return taskUpdateRequest, toolResult
+	}
+	taskUpdateRequest.ChangeFollowers = followers[0]
+	taskUpdateRequest.CommentFollowers = followers[1]
+	taskUpdateRequest.CompleteFollowers = followers[2]
+	return taskUpdateRequest, nil
+}
+
+func parseTaskPredecessors(arguments map[string]any) ([]projects.TaskPredecessor, *mcp.CallToolResult) {
+	raw, ok := arguments["predecessors"]
+	if !ok {
+		return nil, nil
+	}
+	items, ok := raw.([]any)
+	if !ok {
+		return nil, helpers.NewToolResultTextError("invalid predecessors")
+	}
+
+	var predecessors []projects.TaskPredecessor
+	for _, item := range items {
+		predecessorMap, ok := item.(map[string]any)
+		if !ok {
+			return nil, helpers.NewToolResultTextError("invalid predecessors")
+		}
+
+		var p projects.TaskPredecessor
+		err := helpers.ParamGroup(predecessorMap,
+			helpers.RequiredNumericParam(&p.ID, "task_id"),
+			helpers.RequiredParam(&p.Type, "type",
+				helpers.RestrictValues(
+					projects.TaskPredecessorTypeStart,
+					projects.TaskPredecessorTypeFinish,
+				),
+			),
+		)
+		if err != nil {
+			return nil, helpers.NewToolResultTextError("invalid predecessor: %s", err)
+		}
+		predecessors = append(predecessors, p)
+	}
+	return predecessors, nil
+}
+
+// parseTaskFollowers returns the change, comment and complete followers, each
+// nil when not provided.
+func parseTaskFollowers(arguments map[string]any) ([3]*projects.UserGroups, *mcp.CallToolResult) {
+	var followers [3]*projects.UserGroups
+	for i, param := range [3][2]string{
+		{"change_followers", "change followers"},
+		{"comment_followers", "comment followers"},
+		{"complete_followers", "complete followers"},
+	} {
+		group, toolResult := parseUserGroups(arguments, param[0], param[1])
+		if toolResult != nil {
+			return followers, toolResult
+		}
+		followers[i] = group
+	}
+	return followers, nil
 }
 
 const (
@@ -889,6 +873,189 @@ func joinTaskIDs(ids []int64) string {
 		formatted = append(formatted, strconv.FormatInt(id, 10))
 	}
 	return strings.Join(formatted, ", ")
+}
+
+// taskCreateBatchMaxTasks is lower than batchMaxItems because creates run one
+// at a time.
+const taskCreateBatchMaxTasks = 50
+
+// taskBatchDroppedParams are the single-task parameters the batch tools leave
+// out: notify is set once per batch, and attachments and followers are rare
+// enough in bulk that their schemas are not worth the tokens.
+var taskBatchDroppedParams = []string{
+	"notify", "attachment_refs", "attachment_file_ids",
+	"change_followers", "comment_followers", "complete_followers",
+}
+
+// TaskCreateBatch creates many tasks in Teamwork.com in one call.
+//
+// It is a loop of single creates rather than a call to the bulk create route,
+// which stops at the first failing row and reports none of the IDs it created
+// before it, leaving the caller unable to tell what exists.
+func TaskCreateBatch(engine *twapi.Engine) toolsets.ToolWrapper {
+	itemSchema := batchItemSchema(TaskCreate(engine).Tool.InputSchema, taskBatchDroppedParams...)
+	return toolsets.ToolWrapper{
+		Tool: &mcp.Tool{
+			Name: string(MethodTaskCreateBatch),
+			Description: "Create many tasks in one call, in the order listed. Use instead of calling " +
+				"twprojects-create_task in a loop. Items are validated first and nothing is created if one " +
+				"is invalid; after that each item succeeds or fails on its own, and the result lists the " +
+				"new task ID of each item and the error of each failure. A subtask needs its parent's ID, " +
+				"so create parents in one call and their subtasks in the next.",
+			Annotations: &mcp.ToolAnnotations{
+				Title:           "Create Tasks",
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
+			},
+			InputSchema: &jsonschema.Schema{
+				Type: "object",
+				Properties: map[string]*jsonschema.Schema{
+					"tasks": {
+						Type:        "array",
+						Items:       itemSchema,
+						MinItems:    new(1),
+						MaxItems:    new(taskCreateBatchMaxTasks),
+						Description: "The tasks to create, each with the parameters of twprojects-create_task.",
+					},
+					"notify": taskNotifySchema(),
+				},
+				Required: []string{"tasks"},
+			},
+		},
+		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+			var arguments map[string]any
+			if err := json.Unmarshal(request.Params.Arguments, &arguments); err != nil {
+				return helpers.NewToolResultTextError("failed to decode request: %s", err.Error()), nil
+			}
+			notify := true
+			if err := helpers.ParamGroup(arguments, helpers.OptionalParam(&notify, "notify")); err != nil {
+				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
+			}
+			items, toolResult := batchItems(arguments, "tasks", taskCreateBatchMaxTasks)
+			if toolResult != nil {
+				return toolResult, nil
+			}
+
+			requests := make([]projects.TaskCreateRequest, len(items))
+			labels := make([]string, len(items))
+			var invalid []string
+			for i, item := range items {
+				req, toolResult := parseTaskCreateArguments(item)
+				labels[i] = fmt.Sprintf("item %d %q", i+1, req.Name)
+				if toolResult != nil {
+					invalid = append(invalid, fmt.Sprintf("item %d: %s", i+1, toolResultText(toolResult)))
+					continue
+				}
+				req.Options.Notify = notify
+				requests[i] = req
+			}
+			if len(invalid) > 0 {
+				return batchInvalidItems(invalid), nil
+			}
+
+			// One at a time, so the tasks land in the tasklist in the order listed.
+			ids := make([]string, len(requests))
+			errs := runBatch(ctx, len(requests), 1, func(ctx context.Context, i int) error {
+				response, err := projects.TaskCreate(ctx, engine, requests[i])
+				if err != nil {
+					return err
+				}
+				ids[i] = fmt.Sprintf("task %d", response.Task.ID)
+				return nil
+			})
+			return batchReport("Created", "tasks",
+				"check with "+string(MethodTaskList)+" before sending them again", labels, ids, errs), nil
+		},
+	}
+}
+
+// TaskUpdateBatch updates many tasks in Teamwork.com in one call. v3 has no
+// bulk task update, so it fans out one update per task.
+func TaskUpdateBatch(engine *twapi.Engine) toolsets.ToolWrapper {
+	// Moves are left to move_tasks: run concurrently, moving a subtask before its
+	// parent would detach it.
+	itemSchema := batchItemSchema(TaskUpdate(engine).Tool.InputSchema,
+		append([]string{"tasklist_id"}, taskBatchDroppedParams...)...)
+	return toolsets.ToolWrapper{
+		Tool: &mcp.Tool{
+			Name: string(MethodTaskUpdateBatch),
+			Description: "Update many tasks in one call, each with its own changes. Use instead of calling " +
+				"twprojects-update_task in a loop. Items are validated first and nothing is updated if one " +
+				"is invalid; after that each task succeeds or fails on its own, and the result lists the " +
+				"error of each failure. To move tasks to another tasklist, use twprojects-move_tasks.",
+			Annotations: &mcp.ToolAnnotations{
+				Title:           "Update Tasks",
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
+			},
+			InputSchema: &jsonschema.Schema{
+				Type: "object",
+				Properties: map[string]*jsonschema.Schema{
+					"tasks": {
+						Type:     "array",
+						Items:    itemSchema,
+						MinItems: new(1),
+						MaxItems: new(batchMaxItems),
+						Description: "The updates, one per task, each with the parameters of " +
+							"twprojects-update_task. A task may appear only once.",
+					},
+					"notify": taskNotifySchema(),
+				},
+				Required: []string{"tasks"},
+			},
+		},
+		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+			var arguments map[string]any
+			if err := json.Unmarshal(request.Params.Arguments, &arguments); err != nil {
+				return helpers.NewToolResultTextError("failed to decode request: %s", err.Error()), nil
+			}
+			notify := true
+			if err := helpers.ParamGroup(arguments, helpers.OptionalParam(&notify, "notify")); err != nil {
+				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
+			}
+			items, toolResult := batchItems(arguments, "tasks", batchMaxItems)
+			if toolResult != nil {
+				return toolResult, nil
+			}
+
+			requests := make([]projects.TaskUpdateRequest, len(items))
+			labels := make([]string, len(items))
+			seen := make(map[int64]bool, len(items))
+			var invalid []string
+			for i, item := range items {
+				if _, ok := item["tasklist_id"]; ok {
+					invalid = append(invalid, fmt.Sprintf("item %d: tasklist_id is not accepted here; "+
+						"use %s to move tasks", i+1, MethodTaskMove))
+					continue
+				}
+				req, toolResult := parseTaskUpdateArguments(item)
+				if toolResult != nil {
+					invalid = append(invalid, fmt.Sprintf("item %d: %s", i+1, toolResultText(toolResult)))
+					continue
+				}
+				// Two concurrent updates of one task would race.
+				if seen[req.Path.ID] {
+					invalid = append(invalid, fmt.Sprintf("item %d: task %d is listed more than once; "+
+						"merge its changes into one item", i+1, req.Path.ID))
+					continue
+				}
+				seen[req.Path.ID] = true
+				req.Options.Notify = notify
+				requests[i] = req
+				labels[i] = fmt.Sprintf("task %d", req.Path.ID)
+			}
+			if len(invalid) > 0 {
+				return batchInvalidItems(invalid), nil
+			}
+
+			errs := runBatch(ctx, len(requests), batchConcurrency, func(ctx context.Context, i int) error {
+				_, err := projects.TaskUpdate(ctx, engine, requests[i])
+				return err
+			})
+			return batchReport("Updated", "tasks",
+				"sending the same update again is safe", labels, nil, errs), nil
+		},
+	}
 }
 
 // TaskDelete deletes a task in Teamwork.com.

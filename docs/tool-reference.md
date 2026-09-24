@@ -68,7 +68,7 @@ Project, category, template, member, custom field, and custom item (user-defined
 | File | ✓ | — | — | — |
 | Upload Url | ✓ | — | — | — |
 
-**Other actions:** `add_project_file`, `add_project_member`, `clone_project`, `count_projects`
+**Other actions:** `add_project_file`, `add_project_member`, `clone_project`, `count_projects`, `create_custom_field_values`
 
 ### Tasks — `twprojects-tasks`
 
@@ -81,7 +81,7 @@ Task, tasklist, and workflow management in Teamwork.com.
 | Workflow | ✓ | ✓ | ✓ | ✓ |
 | Workflow Stage | ✓ | ✓ | ✓ | ✓ |
 
-**Other actions:** `complete_task`, `count_tasks`, `link_project_to_workflow`, `move_task_to_workflow_stage`, `move_tasks`, `uncomplete_task`
+**Other actions:** `complete_task`, `count_tasks`, `create_tasks`, `link_project_to_workflow`, `move_task_to_workflow_stage`, `move_tasks`, `uncomplete_task`, `update_tasks`
 
 ### Time — `twprojects-time`
 
