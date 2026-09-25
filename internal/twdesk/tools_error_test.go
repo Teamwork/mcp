@@ -56,6 +56,23 @@ func TestAPIFailuresAreToolResults(t *testing.T) {
 			args:   map[string]any{"ticketId": float64(123), "taskId": float64(456)},
 		},
 		{
+			name:   "list_ticket_sources",
+			method: twdesk.MethodSourceList,
+			args:   map[string]any{"page": nil, "pageSize": nil, "orderBy": nil, "orderDirection": nil, "fields": nil},
+		},
+		{
+			name:   "list_happiness_rating_options",
+			method: twdesk.MethodHappinessRatingOptionList,
+			args:   map[string]any{"page": nil, "pageSize": nil, "orderBy": nil, "orderDirection": nil, "fields": nil},
+		},
+		{
+			name:   "list_custom_fields",
+			method: twdesk.MethodCustomFieldList,
+			args: map[string]any{
+				"inboxIDs": nil, "page": nil, "pageSize": nil, "orderBy": nil, "orderDirection": nil, "fields": nil,
+			},
+		},
+		{
 			name:   "get_inbox",
 			method: twdesk.MethodInboxGet,
 			args:   map[string]any{"id": float64(123), "fields": nil},

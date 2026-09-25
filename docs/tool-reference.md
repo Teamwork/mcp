@@ -102,11 +102,14 @@ Time tracking via timelogs, timers, calendars with time blocking, and budget rep
 
 ### Admin — `twdesk-admin`
 
-Inbox configuration: priorities, statuses, types, and tags in Teamwork Desk.
+Inbox configuration: priorities, statuses, types, tags, sources, custom fields and happiness ratings in Teamwork Desk.
 
 | Resource | Create | Get | List | Update |
 |---|---|---|---|---|
+| Custom Field | — | — | ✓ | — |
+| Happiness Rating Option | — | — | ✓ | — |
 | Priority | ✓ | ✓ | ✓ | ✓ |
+| Ticket Source | — | — | ✓ | — |
 | Status | ✓ | ✓ | ✓ | ✓ |
 | Tag | ✓ | ✓ | ✓ | ✓ |
 | Ticket Type | ✓ | ✓ | ✓ | ✓ |

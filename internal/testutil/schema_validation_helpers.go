@@ -69,6 +69,11 @@ func NewSchemaValidationTestSuite() *SchemaValidationTestSuite {
 		"TypeGet":    twdesk.TypeGet(httpClient),
 		"TypeList":   twdesk.TypeList(httpClient),
 
+		// Lookup tools
+		"SourceList":                twdesk.SourceList(httpClient),
+		"HappinessRatingOptionList": twdesk.HappinessRatingOptionList(httpClient),
+		"CustomFieldList":           twdesk.CustomFieldList(httpClient),
+
 		// User tools
 		"UserGet":  twdesk.UserGet(httpClient),
 		"UserList": twdesk.UserList(httpClient),
@@ -327,6 +332,12 @@ func GetValidTestData() map[string]map[string]map[string]any {
 				"companyIDs": nil, "tagIDs": nil, "statusIDs": nil,
 				"priorityIDs": nil, "userIDs": nil,
 				"createdAfter": nil, "createdBefore": nil, "omitMerged": nil,
+				"updatedAfter": nil, "updatedBefore": nil, "excludeTagIDs": nil,
+				"requireAllTags": nil, "onlyUntagged": nil, "typeIDs": nil, "sourceIDs": nil,
+				"happinessRatingIDs": nil, "unassigned": nil, "includeArchivedAgents": nil,
+				"subjectKeywords": nil, "excludePersonalInboxes": nil, "teamworkCompanyIDs": nil,
+				"taskStatuses": nil, "onlyWithAttachments": nil, "taskID": nil, "projectID": nil,
+				"exact": nil, "customFields": nil,
 				"page": nil, "pageSize": nil, "orderBy": nil,
 				"orderDirection": nil, "fields": nil,
 			},
@@ -335,9 +346,35 @@ func GetValidTestData() map[string]map[string]map[string]any {
 				"companyIDs": nil, "tagIDs": nil, "statusIDs": nil,
 				"priorityIDs": nil, "userIDs": nil,
 				"createdAfter": "2026-08-05", "createdBefore": "2026-08-06T23:59:59Z",
+				"omitMerged":   true,
+				"updatedAfter": nil, "updatedBefore": nil, "excludeTagIDs": nil,
+				"requireAllTags": nil, "onlyUntagged": nil, "typeIDs": nil, "sourceIDs": nil,
+				"happinessRatingIDs": nil, "unassigned": nil, "includeArchivedAgents": nil,
+				"subjectKeywords": nil, "excludePersonalInboxes": nil, "teamworkCompanyIDs": nil,
+				"taskStatuses": nil, "onlyWithAttachments": nil, "taskID": nil, "projectID": nil,
+				"exact": nil, "customFields": nil,
+				"page": nil, "pageSize": nil, "orderBy": nil,
+				"orderDirection": nil, "fields": []string{"id", "subject", "createdAt", "status"},
+			},
+			"everyFilter": {
+				"search": "refund", "inboxIDs": []int{1}, "customerIDs": []int{2},
+				"companyIDs": []int{3}, "tagIDs": nil, "statusIDs": []int{4},
+				"priorityIDs": []int{5}, "userIDs": nil,
+				"createdAfter": "2026-08-01", "createdBefore": "2026-08-31",
+				"updatedAfter": "2026-08-01T09:00:00Z", "updatedBefore": "2026-08-31",
+				"excludeTagIDs": nil, "requireAllTags": nil, "onlyUntagged": true,
+				"typeIDs": []int{6}, "sourceIDs": []int{7}, "happinessRatingIDs": []int{8},
+				"unassigned": true, "includeArchivedAgents": true,
+				"subjectKeywords": []string{"invoice"}, "excludePersonalInboxes": true,
+				"teamworkCompanyIDs": []int{9}, "taskStatuses": []string{"active", "complete"},
+				"onlyWithAttachments": true, "taskID": 10, "projectID": 11, "exact": true,
+				"customFields": []map[string]any{
+					{"id": 12, "value": "gold", "operation": "is"},
+					{"id": 13, "values": []int{14, 15}},
+				},
 				"omitMerged": true,
 				"page":       nil, "pageSize": nil, "orderBy": nil,
-				"orderDirection": nil, "fields": []string{"id", "subject", "createdAt", "status"},
+				"orderDirection": nil, "fields": nil,
 			},
 		},
 		"PriorityCreate": {
@@ -399,6 +436,26 @@ func GetValidTestData() map[string]map[string]map[string]any {
 		"TypeList": {
 			"empty": {
 				"name": nil, "inboxIDs": nil, "page": nil, "pageSize": nil,
+				"orderBy": nil, "orderDirection": nil, "fields": nil,
+			},
+		},
+		"SourceList": {
+			"empty": {
+				"page": nil, "pageSize": nil, "orderBy": nil, "orderDirection": nil, "fields": nil,
+			},
+		},
+		"HappinessRatingOptionList": {
+			"empty": {
+				"page": nil, "pageSize": nil, "orderBy": nil, "orderDirection": nil, "fields": nil,
+			},
+		},
+		"CustomFieldList": {
+			"empty": {
+				"inboxIDs": nil, "page": nil, "pageSize": nil,
+				"orderBy": nil, "orderDirection": nil, "fields": nil,
+			},
+			"byInbox": {
+				"inboxIDs": []int{1, 2}, "page": 1, "pageSize": 100,
 				"orderBy": nil, "orderDirection": nil, "fields": nil,
 			},
 		},

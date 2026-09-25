@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/url"
 	"slices"
+	"strconv"
 	"strings"
 	"time"
 
@@ -214,6 +215,105 @@ func trimTicketFields(response *deskmodels.TicketsResponse, fields []string) (ma
 	}, nil
 }
 
+// ticketSearchCustomFieldOperations is the comparison vocabulary the search
+// endpoint accepts for a custom-field condition.
+var ticketSearchCustomFieldOperations = []string{
+	"is", "is-not", "starts-with", "ends-with", "contains", "does-not-contain",
+	"equals", "greater", "less", "is-date",
+}
+
+// ticketSearchCustomField is one custom-field condition, in the shape the
+// search endpoint reads from its customfields query parameter.
+type ticketSearchCustomField struct {
+	ID        int64   `json:"id"`
+	Value     string  `json:"value,omitempty"`
+	Values    []int64 `json:"values,omitempty"`
+	Operation string  `json:"operation,omitempty"`
+}
+
+func ticketSearchCustomFieldsSchema() *jsonschema.Schema {
+	operations := make([]any, len(ticketSearchCustomFieldOperations))
+	for i, operation := range ticketSearchCustomFieldOperations {
+		operations[i] = operation
+	}
+	return &jsonschema.Schema{
+		Description: "Filter by custom field values. Use twdesk-list_custom_fields to discover the fields, " +
+			"their kinds and their option IDs. Every condition must match. Each names the field's id " +
+			"and either value (text, number and date fields) or values (option IDs of a dropdown, radio " +
+			"or checkbox field, any of which may match). A field id the installation does not have is " +
+			"ignored rather than rejected.",
+		AnyOf: []*jsonschema.Schema{
+			{
+				Type: "array",
+				Items: &jsonschema.Schema{
+					Type:                 "object",
+					AdditionalProperties: falseSchema(),
+					Properties: map[string]*jsonschema.Schema{
+						"id": {Type: "integer", Minimum: new(float64(1)), Description: "The custom field ID."},
+						"value": {
+							Type:        "string",
+							Description: "The value to compare against; a date field takes YYYY-MM-DD.",
+						},
+						"values": {
+							Type:        "array",
+							Items:       &jsonschema.Schema{Type: "integer"},
+							Description: "Option IDs to match; a ticket matching any one of them passes.",
+						},
+						"operation": {
+							Type: "string",
+							Enum: operations,
+							Description: "How value is compared. Defaults to is, or is-date for a date field. " +
+								"greater and less compare numbers and dates.",
+						},
+					},
+					Required: []string{"id"},
+				},
+			},
+			{Type: "null"},
+		},
+	}
+}
+
+// ticketSearchCustomFields validates the customFields argument and encodes it
+// as the JSON document the endpoint expects in one query parameter. It returns
+// "" when no condition was given.
+func ticketSearchCustomFields(arguments helpers.ToolArguments) (string, error) {
+	raw, ok := arguments["customFields"]
+	if !ok || raw == nil {
+		return "", nil
+	}
+	encoded, err := json.Marshal(raw)
+	if err != nil {
+		return "", fmt.Errorf("invalid customFields: %w", err)
+	}
+	var conditions []ticketSearchCustomField
+	if err := json.Unmarshal(encoded, &conditions); err != nil {
+		return "", fmt.Errorf("invalid customFields: %w", err)
+	}
+	if len(conditions) == 0 {
+		return "", nil
+	}
+	for i, condition := range conditions {
+		if condition.ID <= 0 {
+			return "", fmt.Errorf("customFields[%d]: id must be a positive integer", i)
+		}
+		// The endpoint skips a condition carrying neither, which would widen
+		// the result set without saying so.
+		if condition.Value == "" && len(condition.Values) == 0 {
+			return "", fmt.Errorf("customFields[%d]: set value or values", i)
+		}
+		if condition.Operation != "" && !slices.Contains(ticketSearchCustomFieldOperations, condition.Operation) {
+			return "", fmt.Errorf("customFields[%d]: unknown operation %q, expected one of %s",
+				i, condition.Operation, strings.Join(ticketSearchCustomFieldOperations, ", "))
+		}
+	}
+	encoded, err = json.Marshal(conditions)
+	if err != nil {
+		return "", fmt.Errorf("failed to encode customFields: %w", err)
+	}
+	return string(encoded), nil
+}
+
 // TicketSearch uses the search API to find tickets in Teamwork Desk
 func TicketSearch(httpClient *http.Client) toolsets.ToolWrapper {
 	properties := map[string]*jsonschema.Schema{
@@ -281,6 +381,141 @@ func TicketSearch(httpClient *http.Client) toolsets.ToolWrapper {
 			"Filter by ticket creation date: only tickets created on or before this day. " +
 				"This search filters by whole days, so a time of day is ignored.",
 		),
+		"updatedAfter": helpers.DateTimeFilterSchema(
+			"Filter by when the ticket was last updated: only tickets updated at or after this moment. " +
+				"Unlike the creation-date filters, a time of day is honoured. A ticket's last update " +
+				"is its most recent change of any kind, so this does not identify when it was resolved.",
+		),
+		"updatedBefore": helpers.DateTimeFilterSchema(
+			"Filter by when the ticket was last updated: only tickets updated at or before this moment. " +
+				"A plain date includes that whole day.",
+		),
+		"excludeTagIDs": {
+			Description: "Exclude tickets carrying any of these tags. Use twdesk-list_tags to discover.",
+			AnyOf: []*jsonschema.Schema{
+				{Type: "array", Items: &jsonschema.Schema{Type: "integer"}},
+				{Type: "null"},
+			},
+		},
+		"requireAllTags": {
+			Description: "If true, tagIDs matches tickets carrying every listed tag rather than any one of " +
+				"them. Has no effect without tagIDs.",
+			AnyOf: []*jsonschema.Schema{
+				{Type: "boolean"},
+				{Type: "null"},
+			},
+		},
+		"onlyUntagged": {
+			Description: "If true, return only tickets that carry no tags at all. Cannot be combined with " +
+				"tagIDs, excludeTagIDs or requireAllTags.",
+			AnyOf: []*jsonschema.Schema{
+				{Type: "boolean"},
+				{Type: "null"},
+			},
+		},
+		"typeIDs": {
+			Description: "Filter by ticket type. Use twdesk-list_ticket_types to discover.",
+			AnyOf: []*jsonschema.Schema{
+				{Type: "array", Items: &jsonschema.Schema{Type: "integer"}},
+				{Type: "null"},
+			},
+		},
+		"sourceIDs": {
+			Description: "Filter by the channel the ticket arrived through (email, form, API, …). " +
+				"Use twdesk-list_ticket_sources to discover.",
+			AnyOf: []*jsonschema.Schema{
+				{Type: "array", Items: &jsonschema.Schema{Type: "integer"}},
+				{Type: "null"},
+			},
+		},
+		"happinessRatingIDs": {
+			Description: "Filter by the happiness rating the customer gave. The IDs are the installation's " +
+				"happiness rating options, not scores. Use twdesk-list_happiness_rating_options to discover.",
+			AnyOf: []*jsonschema.Schema{
+				{Type: "array", Items: &jsonschema.Schema{Type: "integer"}},
+				{Type: "null"},
+			},
+		},
+		"unassigned": {
+			Description: "If true, return only tickets assigned to nobody. Cannot be combined with userIDs.",
+			AnyOf: []*jsonschema.Schema{
+				{Type: "boolean"},
+				{Type: "null"},
+			},
+		},
+		"includeArchivedAgents": {
+			Description: "If true, include tickets assigned to archived users. Defaults to false: unless " +
+				"userIDs or taskID is set, a ticket assigned to a user who has since been archived is " +
+				"left out, so a count over a past period can come out lower than the tickets created in it.",
+			AnyOf: []*jsonschema.Schema{
+				{Type: "boolean"},
+				{Type: "null"},
+			},
+			Default: []byte(`false`),
+		},
+		"subjectKeywords": {
+			Description: "Match tickets whose subject contains any of these words. A keyword containing " +
+				"a comma is split at the comma.",
+			AnyOf: []*jsonschema.Schema{
+				{Type: "array", Items: &jsonschema.Schema{Type: "string"}},
+				{Type: "null"},
+			},
+		},
+		"excludePersonalInboxes": {
+			Description: "If true, exclude tickets in personal inboxes (users' connected work email " +
+				"accounts), leaving only shared inboxes.",
+			AnyOf: []*jsonschema.Schema{
+				{Type: "boolean"},
+				{Type: "null"},
+			},
+		},
+		"teamworkCompanyIDs": {
+			Description: "Filter by Teamwork.com company: tickets from customers of the Desk companies linked " +
+				"to these companies, added to any companyIDs. A company with no linked Desk company " +
+				"matches nothing, so naming only such companies returns no tickets.",
+			AnyOf: []*jsonschema.Schema{
+				{Type: "array", Items: &jsonschema.Schema{Type: "integer"}},
+				{Type: "null"},
+			},
+		},
+		"taskStatuses": {
+			Description: "Filter by the state of the Teamwork.com tasks linked to the ticket: active matches " +
+				"tickets with an open linked task, complete one with a completed linked task.",
+			AnyOf: []*jsonschema.Schema{
+				{Type: "array", Items: &jsonschema.Schema{Type: "string", Enum: []any{"active", "complete"}}},
+				{Type: "null"},
+			},
+		},
+		"onlyWithAttachments": {
+			Description: "If true, return only tickets that have at least one attachment.",
+			AnyOf: []*jsonschema.Schema{
+				{Type: "boolean"},
+				{Type: "null"},
+			},
+		},
+		"taskID": {
+			Description: "Return only tickets linked to this Teamwork.com task.",
+			AnyOf: []*jsonschema.Schema{
+				{Type: "integer", Minimum: new(float64(1))},
+				{Type: "null"},
+			},
+		},
+		"projectID": {
+			Description: "Return only tickets related to this Teamwork.com project: linked to one of its " +
+				"tasks, or in an inbox linked to the project.",
+			AnyOf: []*jsonschema.Schema{
+				{Type: "integer", Minimum: new(float64(1))},
+				{Type: "null"},
+			},
+		},
+		"exact": {
+			Description: "If true, match the search term as one phrase instead of as separate words.",
+			AnyOf: []*jsonschema.Schema{
+				{Type: "boolean"},
+				{Type: "null"},
+			},
+		},
+		"customFields": ticketSearchCustomFieldsSchema(),
 		"omitMerged": {
 			Description: "If true, exclude tickets that have been merged into another ticket. " +
 				"Merged tickets are not a status, so they cannot be filtered out with statusIDs. " +
@@ -306,8 +541,10 @@ func TicketSearch(httpClient *http.Client) toolsets.ToolWrapper {
 				DestructiveHint: new(false),
 				OpenWorldHint:   new(false),
 			},
-			Description: "Search tickets. Filter by inbox, customer, company, tag, status, priority, user, " +
-				"or creation date range. Name the attributes you need in fields: a ticket returned whole " +
+			Description: "Search tickets. Filter by inbox, customer, company, tag, status, priority, type, " +
+				"source, user, happiness rating, custom field, linked task or project, and by creation " +
+				"or last-update date range. Days are UTC. Tickets assigned to archived users are left out " +
+				"unless includeArchivedAgents is true. Name the attributes you need in fields: a ticket returned whole " +
 				"carries every activity, message, file and timelog identifier it has, and a full page of " +
 				"those is large enough to be truncated in transit. The record and page totals saturate at " +
 				"10000: a search reporting exactly that many has 10000 or more, and asking for a page " +
@@ -320,7 +557,12 @@ func TicketSearch(httpClient *http.Client) toolsets.ToolWrapper {
 				Required: append(paginationRequiredKeys(),
 					"search", "inboxIDs", "customerIDs", "companyIDs",
 					"tagIDs", "statusIDs", "priorityIDs", "userIDs",
-					"createdAfter", "createdBefore", "omitMerged",
+					"createdAfter", "createdBefore", "updatedAfter", "updatedBefore",
+					"excludeTagIDs", "requireAllTags", "onlyUntagged", "typeIDs", "sourceIDs",
+					"happinessRatingIDs", "unassigned", "includeArchivedAgents", "subjectKeywords",
+					"excludePersonalInboxes", "teamworkCompanyIDs", "taskStatuses",
+					"onlyWithAttachments", "taskID", "projectID", "exact", "customFields",
+					"omitMerged",
 				),
 			},
 		},
@@ -361,13 +603,47 @@ func TicketSearch(httpClient *http.Client) toolsets.ToolWrapper {
 			// The creation-date window is bound here rather than onto
 			// filter.StartDate/EndDate so that the value the endpoint receives is
 			// not the RFC 3339 one qs renders a time.Time as. See below.
-			var createdAfter, createdBefore *time.Time
+			var createdAfter, createdBefore, updatedAfter, updatedBefore *time.Time
+			var happinessRatingIDs []int64
 			err = helpers.ParamGroup(arguments,
 				helpers.OptionalTimePointerParam(&createdAfter, "createdAfter"),
 				helpers.OptionalTimePointerParam(&createdBefore, "createdBefore"),
+				helpers.OptionalTimePointerParam(&updatedAfter, "updatedAfter"),
+				helpers.OptionalTimePointerParam(&updatedBefore, "updatedBefore", helpers.EndOfDay()),
+				helpers.OptionalNumericListParam(&filter.ExcludeTags, "excludeTagIDs"),
+				helpers.OptionalParam(&filter.RequireAllTags, "requireAllTags"),
+				helpers.OptionalParam(&filter.OnlyUntagged, "onlyUntagged"),
+				helpers.OptionalNumericListParam(&filter.Types, "typeIDs"),
+				helpers.OptionalNumericListParam(&filter.Sources, "sourceIDs"),
+				helpers.OptionalNumericListParam(&happinessRatingIDs, "happinessRatingIDs"),
+				helpers.OptionalParam(&filter.Unassigned, "unassigned"),
+				helpers.OptionalParam(&filter.IncludeArchivedAgents, "includeArchivedAgents"),
+				helpers.OptionalListParam(&filter.SubjectKeywords, "subjectKeywords"),
+				helpers.OptionalParam(&filter.ExcludeWorkEmails, "excludePersonalInboxes"),
+				helpers.OptionalNumericListParam(&filter.TWCompanyIDs, "teamworkCompanyIDs"),
+				helpers.OptionalListParam(&filter.TaskStatuses, "taskStatuses",
+					helpers.RestrictValues("active", "complete")),
+				helpers.OptionalParam(&filter.OnlyWithAttachment, "onlyWithAttachments"),
+				helpers.OptionalNumericParam(&filter.TaskID, "taskID"),
+				helpers.OptionalNumericPointerParam(&filter.ProjectID, "projectID"),
+				helpers.OptionalParam(&filter.Exact, "exact"),
 			)
 			if err != nil {
 				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
+			}
+			// The endpoint answers both combinations without complaint: an
+			// unassigned ticket has no user to match, so the first is always
+			// empty, and onlyUntagged silently discards the tag filters.
+			if filter.Unassigned && len(filter.Agents) > 0 {
+				return helpers.NewToolResultTextError("unassigned cannot be combined with userIDs"), nil
+			}
+			if filter.OnlyUntagged && (len(filter.Tags) > 0 || len(filter.ExcludeTags) > 0 || filter.RequireAllTags) {
+				return helpers.NewToolResultTextError(
+					"onlyUntagged cannot be combined with tagIDs, excludeTagIDs or requireAllTags"), nil
+			}
+			customFields, err := ticketSearchCustomFields(arguments)
+			if err != nil {
+				return helpers.NewToolResultTextError("%v", err), nil
 			}
 
 			fields, err := ticketSearchSelection(arguments)
@@ -392,6 +668,20 @@ func TicketSearch(httpClient *http.Client) toolsets.ToolWrapper {
 			}
 			if createdBefore != nil {
 				params.Set("endDate", createdBefore.Format(time.DateOnly))
+			}
+			// Unlike startDate/endDate, the update bounds are parsed as RFC 3339
+			// and compared as given, so a date-only value has to be widened here.
+			if updatedAfter != nil {
+				params.Set("updatedAtFrom", updatedAfter.UTC().Format(time.RFC3339))
+			}
+			if updatedBefore != nil {
+				params.Set("updatedAtTo", updatedBefore.UTC().Format(time.RFC3339))
+			}
+			for _, id := range happinessRatingIDs {
+				params.Add("rating", strconv.FormatInt(id, 10))
+			}
+			if customFields != "" {
+				params.Set("customfields", customFields)
 			}
 
 			tickets, err := ticketSearchService(client).List(ctx, params)
