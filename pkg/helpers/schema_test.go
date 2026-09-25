@@ -290,6 +290,21 @@ func TestNotifySchema(t *testing.T) {
 	}
 }
 
+func TestQuietNotifySchema(t *testing.T) {
+	t.Parallel()
+
+	got := helpers.QuietNotifySchema("Who to notify.")
+	if string(got.Default) != "false" {
+		t.Errorf("QuietNotifySchema Default = %s, want false", string(got.Default))
+	}
+	if !strings.Contains(got.Description, "Omit it to notify nobody") {
+		t.Errorf("QuietNotifySchema description does not state the default: %q", got.Description)
+	}
+	if strings.Contains(got.Description, "the default notifies") {
+		t.Errorf("QuietNotifySchema description claims a default audience: %q", got.Description)
+	}
+}
+
 func TestDateTimeFilterSchema(t *testing.T) {
 	t.Parallel()
 

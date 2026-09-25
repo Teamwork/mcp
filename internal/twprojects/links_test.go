@@ -1,6 +1,8 @@
 package twprojects_test
 
 import (
+	"encoding/json"
+	"maps"
 	"net/http"
 	"testing"
 
@@ -66,4 +68,51 @@ func TestLinkList(t *testing.T) {
 		"page":           float64(1),
 		"page_size":      float64(10),
 	})
+}
+
+// An omitted notify must send no notification: the mocks answer the same body
+// either way, so the value is asserted on the request body.
+func TestLinkNotifyReachesTheWire(t *testing.T) {
+	tests := []struct {
+		name   string
+		notify any
+		want   string
+	}{
+		{name: "omitted", want: ""},
+		{name: "false", notify: false, want: ""},
+		{name: "all", notify: "all", want: `"ALL"`},
+		{name: "true", notify: true, want: `"ALL"`},
+		{name: "users", notify: []any{float64(777)}, want: `"777"`},
+	}
+	tools := []struct {
+		method string
+		status int
+		args   map[string]any
+	}{
+		{twprojects.MethodLinkCreate.String(), http.StatusCreated, map[string]any{"project_id": float64(123)}},
+		{twprojects.MethodLinkUpdate.String(), http.StatusOK, map[string]any{"id": float64(123)}},
+	}
+	for _, tool := range tools {
+		for _, tt := range tests {
+			t.Run(tool.method+"/"+tt.name, func(t *testing.T) {
+				mcpServer, body := mcpServerMockWithRequestBody(t, tool.status, []byte(`{"id":"123"}`))
+				args := map[string]any{"code": "https://example.com"}
+				maps.Copy(args, tool.args)
+				if tt.notify != nil {
+					args["notify"] = tt.notify
+				}
+				testutil.ExecuteToolRequest(t, mcpServer, tool.method, args)
+
+				var payload struct {
+					Link map[string]json.RawMessage `json:"link"`
+				}
+				if err := json.Unmarshal(*body, &payload); err != nil {
+					t.Fatalf("failed to decode request body: %v", err)
+				}
+				if got := string(payload.Link["notify"]); got != tt.want {
+					t.Errorf("notify = %s, want %s", got, tt.want)
+				}
+			})
+		}
+	}
 }

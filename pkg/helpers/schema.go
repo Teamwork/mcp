@@ -255,8 +255,22 @@ func NotifySchema(description string, withFollowers bool) *jsonschema.Schema {
 	}
 	description += " Omit it unless the user named who to notify: the default notifies " + defaultRecipients +
 		", and a value here replaces that set rather than adding to it, so a narrower one silently drops " +
-		"everyone else who would have been told." +
-		` Accepts the string "all" to notify all project members` + boolPhrase +
+		"everyone else who would have been told."
+	return notifySchema(description, defaultValue, boolDescription, boolPhrase)
+}
+
+// QuietNotifySchema is NotifySchema for a handler that notifies nobody when
+// the parameter is omitted, so a caller that never mentions notifications
+// emails no one.
+func QuietNotifySchema(description string) *jsonschema.Schema {
+	description += " Omit it to notify nobody; set it only when the user asked for someone to be told."
+	return notifySchema(description, json.RawMessage(`false`),
+		`true is the same as "all": notify all project members. false notifies nobody.`,
+		`, the boolean true as an alias for "all"`)
+}
+
+func notifySchema(description string, defaultValue json.RawMessage, boolDescription, boolPhrase string) *jsonschema.Schema {
+	description += ` Accepts the string "all" to notify all project members` + boolPhrase +
 		`, the boolean false to notify nobody, a plain array of user IDs (e.g. [123, 456]), ` +
 		`or an object selecting user_ids, company_ids, team_ids and/or job_role_ids ` +
 		`(e.g. {"user_ids": [123, 456]}).`
