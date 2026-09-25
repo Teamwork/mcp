@@ -430,6 +430,7 @@ func parseTaskCreateArguments(arguments map[string]any) (projects.TaskCreateRequ
 	var taskCreateRequest projects.TaskCreateRequest
 	taskCreateRequest.Options.Notify = true
 	taskCreateRequest.Options.CheckInvalidUsers = true
+	taskCreateRequest.Options.UseDefaults = true
 
 	err := helpers.ParamGroup(arguments,
 		helpers.RequiredParam(&taskCreateRequest.Name, "name"),
