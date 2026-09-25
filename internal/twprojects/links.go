@@ -107,7 +107,7 @@ func LinkCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 							{Type: "null"},
 						},
 					},
-					"notify": helpers.NotifySchema("Who to notify of the new link.", false),
+					"notify": helpers.QuietNotifySchema("Who to notify of the new link."),
 				},
 				Required: []string{"project_id", "code"},
 			},
@@ -138,10 +138,10 @@ func LinkCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 			switch notifyChosen {
 			case notifyChoiceGroup:
 				linkCreateRequest.Notify = projects.NewLinkNotifyGroup(*notifiers)
-			case notifyChoiceNone:
-				// leave Notify unset: the API sends no notifications
-			default:
+			case notifyChoiceAll:
 				linkCreateRequest.Notify = projects.NewLinkNotifyAll()
+			default:
+				// leave Notify unset: the API sends no notifications
 			}
 
 			link, err := projects.LinkCreate(ctx, engine, linkCreateRequest)
@@ -200,7 +200,7 @@ func LinkUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 							{Type: "null"},
 						},
 					},
-					"notify": helpers.NotifySchema("Who to notify of the link update.", false),
+					"notify": helpers.QuietNotifySchema("Who to notify of the link update."),
 				},
 				Required: []string{"id"},
 			},
@@ -231,10 +231,10 @@ func LinkUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 			switch notifyChosen {
 			case notifyChoiceGroup:
 				linkUpdateRequest.Notify = projects.NewLinkNotifyGroup(*notifiers)
-			case notifyChoiceNone:
-				// leave Notify unset: the API sends no notifications
-			default:
+			case notifyChoiceAll:
 				linkUpdateRequest.Notify = projects.NewLinkNotifyAll()
+			default:
+				// leave Notify unset: the API sends no notifications
 			}
 
 			_, err = projects.LinkUpdate(ctx, engine, linkUpdateRequest)
