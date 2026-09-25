@@ -323,6 +323,265 @@ func TestTicketSearchRejectsInvalidCreatedDate(t *testing.T) {
 	}))
 }
 
+// TestTicketSearchFiltersReachTheWire pins every filter beyond the original
+// set onto the query string under the name the endpoint reads. The mock answers
+// the same body whatever is sent, so a filter dropped on the way would pass any
+// check on the result.
+func TestTicketSearchFiltersReachTheWire(t *testing.T) {
+	mcpServer, lastRequestURL, cleanup := testutil.DeskMCPServerMockWithRequestURL(t,
+		http.StatusOK, []byte(`{"tickets":[]}`))
+	defer cleanup()
+
+	testutil.ExecuteToolRequest(t, mcpServer, twdesk.MethodTicketSearch.String(), searchArgs(map[string]any{
+		"tagIDs":                 []float64{1},
+		"excludeTagIDs":          []float64{2, 3},
+		"requireAllTags":         true,
+		"typeIDs":                []float64{4},
+		"sourceIDs":              []float64{5, 6},
+		"happinessRatingIDs":     []float64{7, 8},
+		"includeArchivedAgents":  true,
+		"subjectKeywords":        []string{"invoice", "refund"},
+		"excludePersonalInboxes": true,
+		"teamworkCompanyIDs":     []float64{9},
+		"taskStatuses":           []string{"active", "complete"},
+		"onlyWithAttachments":    true,
+		"taskID":                 float64(10),
+		"projectID":              float64(11),
+		"exact":                  true,
+	}))
+
+	requestURL := lastRequestURL()
+	query := requestURL.Query()
+	for key, want := range map[string][]string{
+		"tags":                  {"1"},
+		"excludeTags":           {"2", "3"},
+		"tagRequireAll":         {"true"},
+		"types":                 {"4"},
+		"sources":               {"5", "6"},
+		"rating":                {"7", "8"},
+		"includeArchivedAgents": {"true"},
+		"subjectKeywords":       {"invoice", "refund"},
+		"excludeWorkEmails":     {"true"},
+		"twCompanyIds":          {"9"},
+		"taskStatuses":          {"active", "complete"},
+		"onlyWithAttachment":    {"true"},
+		"task":                  {"10"},
+		"project":               {"11"},
+		"exact":                 {"true"},
+	} {
+		if got := query[key]; !slices.Equal(got, want) {
+			t.Errorf("query parameter %q: got %v, want %v", key, got, want)
+		}
+	}
+}
+
+// TestTicketSearchBooleanFiltersReachTheWire covers the two filters that
+// cannot share a request with the ones above: each rejects the other half of a
+// pair that the endpoint would answer with an empty or silently widened list.
+func TestTicketSearchBooleanFiltersReachTheWire(t *testing.T) {
+	for _, key := range []struct{ arg, param string }{
+		{"unassigned", "unassigned"},
+		{"onlyUntagged", "onlyUntagged"},
+	} {
+		t.Run(key.arg, func(t *testing.T) {
+			mcpServer, lastRequestURL, cleanup := testutil.DeskMCPServerMockWithRequestURL(t,
+				http.StatusOK, []byte(`{"tickets":[]}`))
+			defer cleanup()
+
+			testutil.ExecuteToolRequest(t, mcpServer, twdesk.MethodTicketSearch.String(),
+				searchArgs(map[string]any{key.arg: true}))
+
+			requestURL := lastRequestURL()
+			if got := requestURL.Query().Get(key.param); got != "true" {
+				t.Errorf("query parameter %q: got %q, want %q", key.param, got, "true")
+			}
+		})
+	}
+}
+
+// TestTicketSearchForwardsUpdatedDateRange pins the last-update window. Unlike
+// the creation dates, the endpoint reads these as RFC 3339 and compares them as
+// sent, so a plain date must become the day's first and last second rather than
+// being forwarded as a date.
+func TestTicketSearchForwardsUpdatedDateRange(t *testing.T) {
+	tests := []struct {
+		name                      string
+		updatedAfter              any
+		updatedBefore             any
+		wantFrom, wantTo          string
+		wantFromAbsent, wantToAbs bool
+	}{{
+		name:          "plain dates cover whole days",
+		updatedAfter:  "2026-08-01",
+		updatedBefore: "2026-08-31",
+		wantFrom:      "2026-08-01T00:00:00Z",
+		wantTo:        "2026-08-31T23:59:59Z",
+	}, {
+		name:          "timestamps are kept and normalised to UTC",
+		updatedAfter:  "2026-08-01T09:30:00+02:00",
+		updatedBefore: "2026-08-31T17:00:00Z",
+		wantFrom:      "2026-08-01T07:30:00Z",
+		wantTo:        "2026-08-31T17:00:00Z",
+	}, {
+		name:           "open-ended lower bound",
+		updatedBefore:  "2026-08-31",
+		wantFromAbsent: true,
+		wantTo:         "2026-08-31T23:59:59Z",
+	}, {
+		name:         "open-ended upper bound",
+		updatedAfter: "2026-08-01",
+		wantFrom:     "2026-08-01T00:00:00Z",
+		wantToAbs:    true,
+	}}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mcpServer, lastRequestURL, cleanup := testutil.DeskMCPServerMockWithRequestURL(t,
+				http.StatusOK, []byte(`{"tickets":[]}`))
+			defer cleanup()
+
+			testutil.ExecuteToolRequest(t, mcpServer, twdesk.MethodTicketSearch.String(), searchArgs(map[string]any{
+				"updatedAfter":  tt.updatedAfter,
+				"updatedBefore": tt.updatedBefore,
+			}))
+
+			requestURL := lastRequestURL()
+			query := requestURL.Query()
+			for _, bound := range []struct {
+				key    string
+				want   string
+				absent bool
+			}{
+				{"updatedAtFrom", tt.wantFrom, tt.wantFromAbsent},
+				{"updatedAtTo", tt.wantTo, tt.wantToAbs},
+			} {
+				switch {
+				case bound.absent:
+					if query.Has(bound.key) {
+						t.Errorf("query parameter %q should be absent, got %q", bound.key, query.Get(bound.key))
+					}
+				default:
+					if got := query.Get(bound.key); got != bound.want {
+						t.Errorf("query parameter %q: got %q, want %q", bound.key, got, bound.want)
+					}
+				}
+			}
+			// The update window must not leak into the creation window.
+			for _, key := range []string{"startDate", "endDate", "lastUpdated"} {
+				if query.Has(key) {
+					t.Errorf("query parameter %q should be absent, got %q", key, query.Get(key))
+				}
+			}
+		})
+	}
+}
+
+// TestTicketSearchForwardsCustomFields pins the custom-field conditions as the
+// single JSON document the endpoint reads from customfields.
+func TestTicketSearchForwardsCustomFields(t *testing.T) {
+	mcpServer, lastRequestURL, cleanup := testutil.DeskMCPServerMockWithRequestURL(t,
+		http.StatusOK, []byte(`{"tickets":[]}`))
+	defer cleanup()
+
+	testutil.ExecuteToolRequest(t, mcpServer, twdesk.MethodTicketSearch.String(), searchArgs(map[string]any{
+		"customFields": []any{
+			map[string]any{"id": float64(12), "value": "gold", "operation": "contains"},
+			map[string]any{"id": float64(13), "values": []any{float64(14), float64(15)}},
+		},
+	}))
+
+	want := `[{"id":12,"value":"gold","operation":"contains"},{"id":13,"values":[14,15]}]`
+	requestURL := lastRequestURL()
+	if got := requestURL.Query()["customfields"]; !slices.Equal(got, []string{want}) {
+		t.Errorf("query parameter \"customfields\": got %v, want [%s]", got, want)
+	}
+}
+
+// TestTicketSearchOmittedFiltersSendNothing keeps the parameters the handler
+// writes by hand off the query string when the caller did not ask for them.
+func TestTicketSearchOmittedFiltersSendNothing(t *testing.T) {
+	mcpServer, lastRequestURL, cleanup := testutil.DeskMCPServerMockWithRequestURL(t,
+		http.StatusOK, []byte(`{"tickets":[]}`))
+	defer cleanup()
+
+	testutil.ExecuteToolRequest(t, mcpServer, twdesk.MethodTicketSearch.String(), searchArgs(nil))
+
+	requestURL := lastRequestURL()
+	query := requestURL.Query()
+	for _, key := range []string{"updatedAtFrom", "updatedAtTo", "rating", "customfields", "project"} {
+		if query.Has(key) {
+			t.Errorf("query parameter %q should not be sent when not requested, got %v", key, query[key])
+		}
+	}
+}
+
+// TestTicketSearchRejectsInvalidFilters keeps each combination the endpoint
+// would answer with an empty or silently widened list an explicit error.
+func TestTicketSearchRejectsInvalidFilters(t *testing.T) {
+	tests := []struct {
+		name     string
+		args     map[string]any
+		wantText string
+	}{{
+		name:     "unassigned with userIDs",
+		args:     map[string]any{"unassigned": true, "userIDs": []float64{1}},
+		wantText: "unassigned",
+	}, {
+		name:     "onlyUntagged with tagIDs",
+		args:     map[string]any{"onlyUntagged": true, "tagIDs": []float64{1}},
+		wantText: "onlyUntagged",
+	}, {
+		name:     "onlyUntagged with excludeTagIDs",
+		args:     map[string]any{"onlyUntagged": true, "excludeTagIDs": []float64{1}},
+		wantText: "onlyUntagged",
+	}, {
+		name:     "unknown task status",
+		args:     map[string]any{"taskStatuses": []string{"late"}},
+		wantText: "taskStatuses",
+	}, {
+		name:     "custom field without a value",
+		args:     map[string]any{"customFields": []any{map[string]any{"id": float64(12)}}},
+		wantText: "customFields[0]",
+	}, {
+		name: "custom field with an unknown operation",
+		args: map[string]any{"customFields": []any{
+			map[string]any{"id": float64(12), "value": "x", "operation": "like"},
+		}},
+		wantText: "operation",
+	}, {
+		name:     "unparseable updated date",
+		args:     map[string]any{"updatedAfter": "last month"},
+		wantText: "updatedAfter",
+	}}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mcpServer, cleanup := mcpServerMock(t, http.StatusOK, []byte(`{"tickets":[]}`))
+			defer cleanup()
+
+			testutil.ExecuteToolRequest(t, mcpServer, twdesk.MethodTicketSearch.String(), searchArgs(tt.args),
+				testutil.ExecuteToolRequestWithCheckMessage(func(t *testing.T, result mcp.Result) {
+					t.Helper()
+
+					toolResult, ok := result.(*mcp.CallToolResult)
+					if !ok {
+						t.Fatalf("unexpected result type: %T", result)
+					}
+					if !toolResult.IsError {
+						t.Fatal("expected an error tool result")
+					}
+					textContent, ok := toolResult.Content[0].(*mcp.TextContent)
+					if !ok {
+						t.Fatalf("unexpected content type: %T", toolResult.Content[0])
+					}
+					if !strings.Contains(textContent.Text, tt.wantText) {
+						t.Errorf("error should name %q, got %q", tt.wantText, textContent.Text)
+					}
+				}))
+		})
+	}
+}
+
 func TestTicketTaskLink(t *testing.T) {
 	mcpServer, cleanup := mcpServerMock(t, http.StatusOK, nil)
 	defer cleanup()
@@ -449,6 +708,12 @@ func searchArgs(overrides map[string]any) map[string]any {
 		"search": nil, "inboxIDs": nil, "customerIDs": nil, "companyIDs": nil,
 		"tagIDs": nil, "statusIDs": nil, "priorityIDs": nil, "userIDs": nil,
 		"createdAfter": nil, "createdBefore": nil, "omitMerged": nil,
+		"updatedAfter": nil, "updatedBefore": nil, "excludeTagIDs": nil,
+		"requireAllTags": nil, "onlyUntagged": nil, "typeIDs": nil, "sourceIDs": nil,
+		"happinessRatingIDs": nil, "unassigned": nil, "includeArchivedAgents": nil,
+		"subjectKeywords": nil, "excludePersonalInboxes": nil, "teamworkCompanyIDs": nil,
+		"taskStatuses": nil, "onlyWithAttachments": nil, "taskID": nil, "projectID": nil,
+		"exact": nil, "customFields": nil,
 		"page": nil, "pageSize": nil, "orderBy": nil, "orderDirection": nil,
 		"fields": nil,
 	}

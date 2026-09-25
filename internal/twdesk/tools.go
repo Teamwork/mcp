@@ -9,8 +9,9 @@ import (
 const (
 	deskTicketsDescription   = "Tickets, messages, files, and inboxes in Teamwork Desk."
 	deskCustomersDescription = "Companies, customers, and user management in Teamwork Desk."
-	deskAdminDescription     = "Inbox configuration: priorities, statuses, types, and tags in Teamwork Desk."
-	deskHelpDocsDescription  = "Help doc articles, categories and sites in Teamwork Desk."
+	deskAdminDescription     = "Inbox configuration: priorities, statuses, types, tags, sources, custom fields " +
+		"and happiness ratings in Teamwork Desk."
+	deskHelpDocsDescription = "Help doc articles, categories and sites in Teamwork Desk."
 )
 
 // Sub-toolset keys for twdesk. These are the valid values for the
@@ -20,7 +21,8 @@ const (
 	ToolsetTickets toolsets.Method = "twdesk-tickets"
 	// ToolsetCustomers covers companies, customers, and users.
 	ToolsetCustomers toolsets.Method = "twdesk-customers"
-	// ToolsetAdmin covers priorities, statuses, types, and tags.
+	// ToolsetAdmin covers priorities, statuses, types, tags, sources, custom
+	// fields and happiness ratings.
 	ToolsetAdmin toolsets.Method = "twdesk-admin"
 	// ToolsetHelpDocs covers help doc articles and sites.
 	ToolsetHelpDocs toolsets.Method = "twdesk-helpdocs"
@@ -84,8 +86,11 @@ func DefaultToolsetGroup(readOnly bool, httpClient *http.Client) *toolsets.Tools
 			TypeUpdate(httpClient),
 		).
 		AddReadTools(
+			CustomFieldList(httpClient),
+			HappinessRatingOptionList(httpClient),
 			PriorityGet(httpClient),
 			PriorityList(httpClient),
+			SourceList(httpClient),
 			StatusGet(httpClient),
 			StatusList(httpClient),
 			TagGet(httpClient),
