@@ -16,7 +16,8 @@ import (
 // checkboxes condition is written in, and the inbox filter.
 func TestCustomFieldListRequest(t *testing.T) {
 	mcpServer, lastRequestURL, cleanup := testutil.DeskMCPServerMockWithRequestURL(t, http.StatusOK,
-		[]byte(`{"customfields":[{"id":12,"agentLabel":"Plan","kind":"dropdown","options":[{"id":14,"type":"customfieldoptions"}]}],`+
+		[]byte(`{"customfields":[{"id":12,"agentLabel":"Plan","kind":"dropdown",`+
+			`"options":[{"id":14,"type":"customfieldoptions"}]}],`+
 			`"included":{"customfieldoptions":[{"id":14,"name":"Gold"}]}}`))
 	defer cleanup()
 
