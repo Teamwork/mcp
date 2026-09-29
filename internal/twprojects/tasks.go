@@ -281,8 +281,9 @@ func TaskCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 func TaskUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
-			Name:        string(MethodTaskUpdate),
-			Description: "Update task.",
+			Name: string(MethodTaskUpdate),
+			Description: "Update task. To change many tasks at once, use twprojects-update_tasks or " +
+				"twprojects-move_tasks.",
 			Annotations: &mcp.ToolAnnotations{
 				Title:           "Update Task",
 				DestructiveHint: new(false),
@@ -416,12 +417,26 @@ func TaskUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 				return toolResult, nil
 			}
 
-			if _, err := projects.TaskUpdate(ctx, engine, taskUpdateRequest); err != nil {
+			if err := updateTask(ctx, engine, taskUpdateRequest); err != nil {
 				return helpers.HandleAPIError(err, "failed to update task")
 			}
 			return helpers.NewToolResultText("Task updated successfully"), nil
 		},
 	}
+}
+
+// updateTask retries transient failures such as deadlocks, unless it attaches
+// pending files, whose references a committed first attempt has consumed.
+func updateTask(ctx context.Context, engine *twapi.Engine, request projects.TaskUpdateRequest) error {
+	if len(request.Attachments.PendingFiles) > 0 {
+		_, err := projects.TaskUpdate(ctx, engine, request)
+		return err
+	}
+	_, err := helpers.Retry(ctx, helpers.TransientRetry, func() (struct{}, error) {
+		_, err := projects.TaskUpdate(ctx, engine, request)
+		return struct{}{}, err
+	})
+	return err
 }
 
 // parseTaskCreateArguments binds the arguments of a single task create, shared
@@ -827,7 +842,7 @@ func TaskMove(engine *twapi.Engine) toolsets.ToolWrapper {
 				taskUpdateRequest.Options.Notify = false
 				taskUpdateRequest.TasklistID = &tasklistID
 
-				if _, err := projects.TaskUpdate(ctx, engine, taskUpdateRequest); err != nil {
+				if err := updateTask(ctx, engine, taskUpdateRequest); err != nil {
 					failures = append(failures, fmt.Sprintf("task %d: %s", id, err.Error()))
 					failed[id] = true
 					continue
@@ -1050,8 +1065,7 @@ func TaskUpdateBatch(engine *twapi.Engine) toolsets.ToolWrapper {
 			}
 
 			errs := runBatch(ctx, len(requests), batchConcurrency, func(ctx context.Context, i int) error {
-				_, err := projects.TaskUpdate(ctx, engine, requests[i])
-				return err
+				return updateTask(ctx, engine, requests[i])
 			})
 			return batchReport("Updated", "tasks",
 				"sending the same update again is safe", labels, nil, errs), nil
