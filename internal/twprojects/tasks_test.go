@@ -4,11 +4,14 @@ import (
 	"encoding/json"
 	"net/http"
 	"strings"
+	"sync/atomic"
 	"testing"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/teamwork/mcp/internal/testutil"
 	"github.com/teamwork/mcp/internal/twprojects"
+	pkgtestutil "github.com/teamwork/mcp/pkg/testutil"
+	twapi "github.com/teamwork/twapi-go-sdk"
 )
 
 func TestTaskCreate(t *testing.T) {
@@ -339,7 +342,7 @@ func TestTaskMoveCarriedTaskFailsWithItsCarrier(t *testing.T) {
 			Body: []byte(`{"task":{"id":3,"tasklist":{"id":10},"parentTask":{"id":2}}}`)},
 		{Method: http.MethodGet, Match: "/tasks/4.json", Status: http.StatusOK,
 			Body: []byte(`{"task":{"id":4,"tasklist":{"id":10},"parentTask":{"id":3}}}`)},
-		{Method: http.MethodPut, Match: "/tasks/2.json", Status: http.StatusInternalServerError,
+		{Method: http.MethodPut, Match: "/tasks/2.json", Status: http.StatusUnprocessableEntity,
 			Body: []byte(`{}`)},
 	}, http.StatusOK, []byte(`{}`))
 	testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodTaskMove.String(), map[string]any{
@@ -884,4 +887,82 @@ func TestTaskGetKeepsAttachments(t *testing.T) {
 			t.Errorf("expected the file relationship to survive the round-trip, got %q", text)
 		}
 	}))
+}
+
+// statusSequenceMCPServer answers each request with the next status in order,
+// repeating the last one, and counts the requests.
+func statusSequenceMCPServer(t *testing.T, body []byte, statuses ...int) (*mcp.Server, *atomic.Int32) {
+	t.Helper()
+	var calls atomic.Int32
+	engine := twapi.NewEngine(testutil.ProjectsSessionMock{},
+		twapi.WithMiddleware(func(twapi.HTTPClient) twapi.HTTPClient {
+			return twapi.HTTPClientFunc(func(*http.Request) (*http.Response, error) {
+				n := int(calls.Add(1)) - 1
+				return pkgtestutil.NewMockHTTPResponse(statuses[min(n, len(statuses)-1)], body), nil
+			})
+		}),
+	)
+	return pkgtestutil.MCPServer(t, twprojects.DefaultToolsetGroup(false, true, engine)), &calls
+}
+
+func TestTaskUpdateRetriesTransientServerError(t *testing.T) {
+	mcpServer, calls := statusSequenceMCPServer(t, []byte(`{}`),
+		http.StatusInternalServerError, http.StatusOK)
+	testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodTaskUpdate.String(), map[string]any{
+		"id":   float64(123),
+		"name": "Example",
+	})
+	if got := calls.Load(); got != 2 {
+		t.Errorf("expected 2 attempts, got %d", got)
+	}
+}
+
+func TestTaskUpdateDoesNotRetryClientError(t *testing.T) {
+	mcpServer, calls := statusSequenceMCPServer(t, []byte(`{}`), http.StatusBadRequest, http.StatusOK)
+	testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodTaskUpdate.String(), map[string]any{
+		"id":   float64(123),
+		"name": "Example",
+	}, testutil.ExecuteToolRequestWithCheckMessage(func(t *testing.T, result mcp.Result) {
+		if toolResult, ok := result.(*mcp.CallToolResult); !ok || !toolResult.IsError {
+			t.Errorf("expected an error result, got %#v", result)
+		}
+	}))
+	if got := calls.Load(); got != 1 {
+		t.Errorf("expected 1 attempt, got %d", got)
+	}
+}
+
+// Attaching consumes the upload reference, so a committed first attempt would
+// make the retry fail.
+func TestTaskUpdateWithPendingFilesDoesNotRetry(t *testing.T) {
+	mcpServer, calls := statusSequenceMCPServer(t, []byte(`{}`),
+		http.StatusInternalServerError, http.StatusOK)
+	testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodTaskUpdate.String(), map[string]any{
+		"id":              float64(123),
+		"attachment_refs": []any{"tf_A"},
+	}, testutil.ExecuteToolRequestWithCheckMessage(func(t *testing.T, result mcp.Result) {
+		if toolResult, ok := result.(*mcp.CallToolResult); !ok || !toolResult.IsError {
+			t.Errorf("expected an error result, got %#v", result)
+		}
+	}))
+	if got := calls.Load(); got != 1 {
+		t.Errorf("expected 1 attempt, got %d", got)
+	}
+}
+
+// A create is not safe to repeat: a 500 does not say whether the task exists.
+func TestTaskCreateDoesNotRetryServerError(t *testing.T) {
+	mcpServer, calls := statusSequenceMCPServer(t, []byte(`{"task":{"id":123}}`),
+		http.StatusInternalServerError, http.StatusCreated)
+	testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodTaskCreate.String(), map[string]any{
+		"name":        "Example",
+		"tasklist_id": float64(123),
+	}, testutil.ExecuteToolRequestWithCheckMessage(func(t *testing.T, result mcp.Result) {
+		if toolResult, ok := result.(*mcp.CallToolResult); !ok || !toolResult.IsError {
+			t.Errorf("expected an error result, got %#v", result)
+		}
+	}))
+	if got := calls.Load(); got != 1 {
+		t.Errorf("expected 1 attempt, got %d", got)
+	}
 }
