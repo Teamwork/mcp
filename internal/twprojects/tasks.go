@@ -338,7 +338,8 @@ func TaskUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 						"The due date of the task. If omitted, falls back to the milestone due date when one is set.",
 					),
 					"estimated_minutes": {
-						Description: "The estimated time to complete the task in minutes.",
+						Description: "The estimated time to complete the task in minutes. Workload spreads it over " +
+							"the working days from start to due date; changing it removes any custom split.",
 						AnyOf: []*jsonschema.Schema{
 							{Type: "integer"},
 							{Type: "null"},

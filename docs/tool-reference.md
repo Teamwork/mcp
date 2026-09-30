@@ -47,8 +47,9 @@ Resource scheduling in Teamwork.com: allocations, which commit a person's time t
 | Resource | Create | Get | List | Update |
 |---|---|---|---|---|
 | Allocation | ✓ | ✓ | ✓ | ✓ |
+| Task Split | — | ✓ | — | — |
 
-**Other actions:** `link_task_to_allocation`, `restore_allocation`, `unlink_task_from_allocation`, `users_workload`
+**Other actions:** `link_task_to_allocation`, `restore_allocation`, `set_task_split`, `unlink_task_from_allocation`, `users_workload`
 
 ### Projects — `twprojects-projects`
 
