@@ -209,6 +209,7 @@ func DefaultToolsetGroup(readOnly, allowDelete bool, engine *twapi.Engine) *tool
 		// list_allocations able to find deleted allocations, being a read tool,
 		// with no way to act on them.
 		AllocationRestore(engine),
+		TaskSplitSet(engine),
 	}
 	if allowDelete {
 		planningWriteTools = append(planningWriteTools,
@@ -221,6 +222,7 @@ func DefaultToolsetGroup(readOnly, allowDelete bool, engine *twapi.Engine) *tool
 			AllocationGet(engine),
 			AllocationList(engine),
 			UsersWorkload(engine),
+			TaskSplitGet(engine),
 		)
 	group.AddToolset(planningToolset)
 
