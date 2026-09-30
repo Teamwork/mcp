@@ -193,7 +193,8 @@ func TestTaskSplitSetRejectsInvalidInput(t *testing.T) {
 
 // TestTaskSplitGetNamesEveryAssignee pins that an omitted user_ids reads the
 // task's user assignees first: the list endpoint defaults to the caller's own
-// rows, so a split held by anyone else would otherwise read as absent.
+// rows, so a split held by anyone else would otherwise read as absent. Teams are
+// not expanded, since Workload never counts a task for a team's members.
 func TestTaskSplitGetNamesEveryAssignee(t *testing.T) {
 	mcpServer, recorded := testutil.ProjectsMCPServerRecordingMock(t, []testutil.ProjectsMockRoute{
 		{Match: "/tasks/capacity", Status: http.StatusOK, Body: []byte(taskSplitRows)},
@@ -256,12 +257,21 @@ func TestTaskSplitGetStopsPaging(t *testing.T) {
 		{Match: "/tasks/capacity", Status: http.StatusOK,
 			Body: []byte(`{"capacities":[],"meta":{"page":{"hasMore":true}}}`)},
 	}, http.StatusOK, []byte(`{}`))
-	taskSplitResult(t, mcpServer, twprojects.MethodTaskSplitGet.String(), map[string]any{
+	result := taskSplitResult(t, mcpServer, twprojects.MethodTaskSplitGet.String(), map[string]any{
 		"task_id":  float64(12345),
 		"user_ids": []any{float64(456)},
 	})
 
 	if len(*recorded) != 20 {
 		t.Errorf("expected paging to stop at 20 requests, got %d", len(*recorded))
+	}
+	var split struct {
+		Truncated bool `json:"truncated"`
+	}
+	if err := json.Unmarshal([]byte(resultText(t, result)), &split); err != nil {
+		t.Fatalf("failed to decode the result: %s", err)
+	}
+	if !split.Truncated {
+		t.Error("expected a split cut by the page bound to be reported as truncated")
 	}
 }

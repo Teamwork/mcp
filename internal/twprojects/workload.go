@@ -192,11 +192,11 @@ func workloadWithSlimTasks(workload *projects.WorkloadResponse) (*mcp.CallToolRe
 
 	encoded, err := json.Marshal(workload)
 	if err != nil {
-		return nil, fmt.Errorf("failed to encode workload: %w", err)
+		return helpers.NewToolResultTextError("failed to encode workload: %s", err.Error()), nil
 	}
 	var result map[string]any
 	if err := json.Unmarshal(encoded, &result); err != nil {
-		return nil, fmt.Errorf("failed to decode workload: %w", err)
+		return helpers.NewToolResultTextError("failed to decode workload: %s", err.Error()), nil
 	}
 	if included, ok := result["included"].(map[string]any); ok && len(tasks) > 0 {
 		included["tasks"] = tasks
