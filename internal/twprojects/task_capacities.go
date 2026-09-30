@@ -27,13 +27,15 @@ const (
 )
 
 // taskSplitMaxPages bounds the pages get_task_split walks. A page holds 50
-// days, so this covers a split far longer than any task range.
+// rows (one per user and day); a longer split is reported as truncated.
 const taskSplitMaxPages = 20
 
 // taskSplit is a task's custom splits, one row per user and day.
 type taskSplit struct {
 	TaskID     int64                   `json:"taskId"`
 	Capacities []projects.TaskCapacity `json:"capacities"`
+	// Truncated is set when the page bound stopped the read early.
+	Truncated bool `json:"truncated,omitempty"`
 }
 
 var taskSplitOutputSchema *jsonschema.Schema
@@ -53,7 +55,7 @@ func TaskSplitGet(engine *twapi.Engine) toolsets.ToolWrapper {
 			Name: string(MethodTaskSplitGet),
 			Description: "Get a task's custom capacity split: the minutes each assignee spends on it per day in " +
 				"Workload. A user with no rows is on the default even spread. When seconds is above zero it is " +
-				"what Workload counts.",
+				"what Workload counts. truncated means more rows exist; pass user_ids to read fewer.",
 			Annotations: &mcp.ToolAnnotations{
 				Title:           "Get Task Split",
 				ReadOnlyHint:    true,
@@ -104,6 +106,8 @@ func TaskSplitGet(engine *twapi.Engine) toolsets.ToolWrapper {
 				if err != nil {
 					return helpers.HandleAPIError(err, "failed to get task assignees")
 				}
+				// Workload counts a task for its user assignees only, so a split
+				// held by a member of an assigned team has no effect there
 				for _, assignee := range task.Task.Assignees {
 					if assignee.Type == "users" {
 						userIDs = append(userIDs, assignee.ID)
@@ -117,7 +121,7 @@ func TaskSplitGet(engine *twapi.Engine) toolsets.ToolWrapper {
 			}
 
 			listRequest := projects.NewTaskCapacityListRequest(taskID, userIDs...)
-			for range taskSplitMaxPages {
+			for page := range taskSplitMaxPages {
 				response, err := projects.TaskCapacityList(ctx, engine, listRequest)
 				if err != nil {
 					return helpers.HandleAPIError(err, "failed to get task split")
@@ -125,6 +129,10 @@ func TaskSplitGet(engine *twapi.Engine) toolsets.ToolWrapper {
 				result.Capacities = append(result.Capacities, response.Capacities...)
 				next := response.Iterate()
 				if next == nil {
+					break
+				}
+				if page == taskSplitMaxPages-1 {
+					result.Truncated = true
 					break
 				}
 				listRequest = *next
@@ -160,9 +168,10 @@ func TaskSplitSet(engine *twapi.Engine) toolsets.ToolWrapper {
 						Description: "The ID of the task.",
 					},
 					"user_id": {
-						Type:        "integer",
-						Minimum:     new(1.0),
-						Description: "The assignee the split applies to.",
+						Type:    "integer",
+						Minimum: new(1.0),
+						Description: "The assignee the split applies to. Workload counts only direct assignees, " +
+							"not members of an assigned team.",
 					},
 					"dates": {
 						Description: "The split, one entry per day. Required unless clear is true.",
