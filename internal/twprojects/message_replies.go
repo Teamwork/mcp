@@ -83,7 +83,9 @@ func MessageReplyCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 							{Type: "null"},
 						},
 					},
-					"notify": helpers.NotifySchema("Who to notify of the new reply.", false),
+					"notify":              helpers.NotifySchema("Who to notify of the new reply.", false),
+					"attachment_refs":     attachmentRefsSchema("reply"),
+					"attachment_file_ids": legacyAttachmentFileIDsSchema("reply"),
 				},
 				Required: []string{"message_id", "body"},
 			},
@@ -103,6 +105,18 @@ func MessageReplyCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 			if err != nil {
 				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
 			}
+
+			refs, toolResult := parseAttachmentRefs(arguments)
+			if toolResult != nil {
+				return toolResult, nil
+			}
+			messageReplyCreateRequest.PendingFileAttachments = refs
+
+			fileIDs, toolResult := parseAttachmentFileIDs(arguments)
+			if toolResult != nil {
+				return toolResult, nil
+			}
+			messageReplyCreateRequest.Attachments = fileIDs
 
 			notifyChosen, notifiers, toolResult := parseNotify(arguments, false)
 			if toolResult != nil {
@@ -158,7 +172,9 @@ func MessageReplyUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 							{Type: "null"},
 						},
 					},
-					"notify": helpers.NotifySchema("Who to notify of the reply update.", false),
+					"notify":              helpers.NotifySchema("Who to notify of the reply update.", false),
+					"attachment_refs":     attachmentRefsSchema("reply"),
+					"attachment_file_ids": legacyAttachmentFileIDsSchema("reply"),
 				},
 				Required: []string{"id"},
 			},
@@ -178,6 +194,18 @@ func MessageReplyUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 			if err != nil {
 				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
 			}
+
+			refs, toolResult := parseAttachmentRefs(arguments)
+			if toolResult != nil {
+				return toolResult, nil
+			}
+			messageReplyUpdateRequest.PendingFileAttachments = refs
+
+			fileIDs, toolResult := parseAttachmentFileIDs(arguments)
+			if toolResult != nil {
+				return toolResult, nil
+			}
+			messageReplyUpdateRequest.Attachments = fileIDs
 
 			notifyChosen, notifiers, toolResult := parseNotify(arguments, false)
 			if toolResult != nil {

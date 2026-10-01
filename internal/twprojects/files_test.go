@@ -2,8 +2,10 @@ package twprojects_test
 
 import (
 	"bytes"
+	"cmp"
 	"encoding/base64"
 	"encoding/json"
+	"maps"
 	"net/http"
 	"strings"
 	"testing"
@@ -369,6 +371,115 @@ func TestMessageCreateSendsAttachments(t *testing.T) {
 	}
 	if len(payload.Post.PendingFileAttachments) != 1 || payload.Post.PendingFileAttachments[0] != "tf_A" {
 		t.Errorf("unexpected references in body %q", string(*requestBody))
+	}
+}
+
+// TestLegacyAttachmentFileIDsReachTheWire pins the key each legacy route reads
+// for a file that already exists, which differs per route and is invisible in
+// a mock that answers the same body either way.
+func TestLegacyAttachmentFileIDsReachTheWire(t *testing.T) {
+	for _, tt := range []struct {
+		name      string
+		method    string
+		status    int
+		response  string
+		arguments map[string]any
+		envelope  string
+		key       string
+	}{{
+		name:     "comment",
+		method:   twprojects.MethodCommentCreate.String(),
+		response: `{"id":"123"}`,
+		arguments: map[string]any{
+			"object": map[string]any{"type": "tasks", "id": float64(777)},
+			"body":   "see attached",
+		},
+		envelope: "comment",
+		key:      "fileIds",
+	}, {
+		name:     "message",
+		method:   twprojects.MethodMessageCreate.String(),
+		response: `{"messageId":"123"}`,
+		arguments: map[string]any{
+			"project_id": float64(777),
+			"title":      "example",
+			"body":       "see attached",
+		},
+		envelope: "post",
+		key:      "attachments",
+	}, {
+		name:     "message reply",
+		method:   twprojects.MethodMessageReplyCreate.String(),
+		response: `{"postId":"123"}`,
+		arguments: map[string]any{
+			"message_id": float64(777),
+			"body":       "see attached",
+		},
+		envelope: "messagereply",
+		key:      "attachments",
+	}, {
+		// An empty fileIds here removes every file on the comment, so the
+		// omission half below is what keeps an unrelated edit from doing that.
+		name:      "comment update",
+		method:    twprojects.MethodCommentUpdate.String(),
+		status:    http.StatusOK,
+		arguments: map[string]any{"id": float64(123), "body": "edited"},
+		envelope:  "comment",
+		key:       "fileIds",
+	}, {
+		name:      "message update",
+		method:    twprojects.MethodMessageUpdate.String(),
+		status:    http.StatusOK,
+		arguments: map[string]any{"id": float64(123), "body": "edited"},
+		envelope:  "post",
+		key:       "attachments",
+	}, {
+		name:      "message reply update",
+		method:    twprojects.MethodMessageReplyUpdate.String(),
+		status:    http.StatusOK,
+		arguments: map[string]any{"id": float64(123), "body": "edited"},
+		envelope:  "messagereply",
+		key:       "attachments",
+	}} {
+		t.Run(tt.name, func(t *testing.T) {
+			status := cmp.Or(tt.status, http.StatusCreated)
+			response := cmp.Or(tt.response, "{}")
+			arguments := maps.Clone(tt.arguments)
+			arguments["attachment_file_ids"] = []any{4242, 4243}
+			arguments["attachment_refs"] = []any{"tf_A"}
+
+			mcpServer, requestBody := mcpServerMockWithRequestBody(t, status, []byte(response))
+			testutil.ExecuteToolRequest(t, mcpServer, tt.method, arguments)
+
+			var payload map[string]map[string]any
+			if err := json.Unmarshal(*requestBody, &payload); err != nil {
+				t.Fatalf("failed to decode request body %q: %v", string(*requestBody), err)
+			}
+			body := payload[tt.envelope]
+			if got := body[tt.key]; got != "4242,4243" {
+				t.Errorf("expected %s.%s to be \"4242,4243\", got %v", tt.envelope, tt.key, got)
+			}
+			// The two forms are independent, so naming one must not drop the other.
+			if refs, _ := body["pendingFileAttachments"].([]any); len(refs) != 1 || refs[0] != "tf_A" {
+				t.Errorf("expected the pending reference alongside, got %v", body["pendingFileAttachments"])
+			}
+
+			// Without either, or with both empty, neither key is sent.
+			arguments = maps.Clone(tt.arguments)
+			arguments["attachment_file_ids"] = []any{}
+			arguments["attachment_refs"] = []any{}
+			mcpServer, requestBody = mcpServerMockWithRequestBody(t, status, []byte(response))
+			testutil.ExecuteToolRequest(t, mcpServer, tt.method, arguments)
+			payload = nil
+			if err := json.Unmarshal(*requestBody, &payload); err != nil {
+				t.Fatalf("failed to decode request body %q: %v", string(*requestBody), err)
+			}
+			for _, key := range []string{tt.key, "pendingFileAttachments"} {
+				if value, ok := payload[tt.envelope][key]; ok {
+					t.Errorf("expected no %s.%s, got %v", tt.envelope, key, value)
+				}
+			}
+		})
 	}
 }
 

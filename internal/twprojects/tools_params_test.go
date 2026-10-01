@@ -16,7 +16,7 @@ var indirectlyBoundParams = map[string][]string{
 	"order_mode":          {"param", "orderModeParam"},
 	"notify":              {"parseNotify"},
 	"attachment_refs":     {"parseAttachmentRefs", "parseTaskAttachments"},
-	"attachment_file_ids": {"parseTaskAttachments"},
+	"attachment_file_ids": {"parseAttachmentFileIDs", "parseTaskAttachments"},
 	"options":             {"parseCustomFieldOptions"},
 	"field_values":        {"buildRecordFieldValues"},
 	"assignees":           {"parseMilestoneAssignees"},

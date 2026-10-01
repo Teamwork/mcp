@@ -138,8 +138,9 @@ func CommentCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 							{Type: "null"},
 						},
 					},
-					"notify":          helpers.NotifySchema("Who to notify of the new comment.", true),
-					"attachment_refs": attachmentRefsSchema("comment"),
+					"notify":              helpers.NotifySchema("Who to notify of the new comment.", true),
+					"attachment_refs":     attachmentRefsSchema("comment"),
+					"attachment_file_ids": legacyAttachmentFileIDsSchema("comment"),
 				},
 				Required: []string{"object", "body"},
 			},
@@ -165,6 +166,12 @@ func CommentCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 				return toolResult, nil
 			}
 			commentCreateRequest.PendingFileAttachments = refs
+
+			fileIDs, toolResult := parseAttachmentFileIDs(arguments)
+			if toolResult != nil {
+				return toolResult, nil
+			}
+			commentCreateRequest.FileIDs = fileIDs
 
 			notifyChosen, notifiers, toolResult := parseNotify(arguments, true)
 			if toolResult != nil {
@@ -261,7 +268,9 @@ func CommentUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 							{Type: "null"},
 						},
 					},
-					"notify": helpers.NotifySchema("Who to notify of the comment change.", true),
+					"notify":              helpers.NotifySchema("Who to notify of the comment change.", true),
+					"attachment_refs":     attachmentRefsSchema("comment"),
+					"attachment_file_ids": legacyAttachmentFileIDsSchema("comment"),
 				},
 				Required: []string{"id", "body"},
 			},
@@ -282,6 +291,18 @@ func CommentUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 			if err != nil {
 				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
 			}
+
+			refs, toolResult := parseAttachmentRefs(arguments)
+			if toolResult != nil {
+				return toolResult, nil
+			}
+			commentUpdateRequest.PendingFileAttachments = refs
+
+			fileIDs, toolResult := parseAttachmentFileIDs(arguments)
+			if toolResult != nil {
+				return toolResult, nil
+			}
+			commentUpdateRequest.FileIDs = fileIDs
 
 			notifyChosen, notifiers, toolResult := parseNotify(arguments, true)
 			if toolResult != nil {
