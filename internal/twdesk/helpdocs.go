@@ -433,7 +433,7 @@ func HelpDocArticleUpdate(httpClient *http.Client) toolsets.ToolWrapper {
 				// Changing status to published or toggling isPrivate alters
 				// publicly-visible knowledge-base content.
 				OpenWorldHint:   new(true),
-				DestructiveHint: new(false),
+				DestructiveHint: new(true),
 			},
 			Description: "Update an existing help doc article. Only the properties supplied " +
 				"change; the article is addressed through its site, so both IDs are needed. An " +

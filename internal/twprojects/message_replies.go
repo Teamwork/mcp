@@ -62,7 +62,7 @@ func MessageReplyCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 			Description: "Create message reply.",
 			Annotations: &mcp.ToolAnnotations{
 				Title:           "Create Message Reply",
-				DestructiveHint: new(false),
+				DestructiveHint: new(true),
 				OpenWorldHint:   new(false),
 			},
 			InputSchema: &jsonschema.Schema{
@@ -134,7 +134,7 @@ func MessageReplyUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 			Description: "Update message reply.",
 			Annotations: &mcp.ToolAnnotations{
 				Title:           "Update MessageReply",
-				DestructiveHint: new(false),
+				DestructiveHint: new(true),
 				OpenWorldHint:   new(false),
 			},
 			InputSchema: &jsonschema.Schema{

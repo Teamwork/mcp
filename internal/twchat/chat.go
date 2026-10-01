@@ -443,7 +443,7 @@ func MessageSend(engine *twapi.Engine) toolsets.ToolWrapper {
 			Name: string(MethodMessageSend),
 			Annotations: &mcp.ToolAnnotations{
 				Title:           "Send Chat Message",
-				DestructiveHint: new(false),
+				DestructiveHint: new(true),
 				OpenWorldHint:   new(false),
 			},
 			Description: "Send a message to a Teamwork Chat conversation. Requires conversation_id and body.",
@@ -530,7 +530,7 @@ func SendDM(engine *twapi.Engine) toolsets.ToolWrapper {
 			Name: string(MethodSendDM),
 			Annotations: &mcp.ToolAnnotations{
 				Title:           "Send Direct Message",
-				DestructiveHint: new(false),
+				DestructiveHint: new(true),
 				OpenWorldHint:   new(false),
 			},
 			Description: "Send a direct message to a person, resolving (or creating) the 1:1 conversation " +

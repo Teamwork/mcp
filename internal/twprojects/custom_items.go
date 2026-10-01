@@ -150,7 +150,7 @@ func CustomItemUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 			Description: "Update a custom item type's display name, description, or labels." + customItemRoutingHint,
 			Annotations: &mcp.ToolAnnotations{
 				Title:           "Update Custom Item",
-				DestructiveHint: new(false),
+				DestructiveHint: new(true),
 				OpenWorldHint:   new(false),
 			},
 			InputSchema: &jsonschema.Schema{

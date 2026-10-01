@@ -303,7 +303,7 @@ func CustomerUpdate(httpClient *http.Client) toolsets.ToolWrapper {
 			Name: string(MethodCustomerUpdate),
 			Annotations: &mcp.ToolAnnotations{
 				Title:           "Update Customer",
-				DestructiveHint: new(false),
+				DestructiveHint: new(true),
 				OpenWorldHint:   new(false),
 			},
 			Description: "Update customer.",

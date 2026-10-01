@@ -115,7 +115,7 @@ func WorkflowStageUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 			Description: "Update workflow stage.",
 			Annotations: &mcp.ToolAnnotations{
 				Title:           "Update Workflow Stage",
-				DestructiveHint: new(false),
+				DestructiveHint: new(true),
 				OpenWorldHint:   new(false),
 			},
 			InputSchema: &jsonschema.Schema{
@@ -243,7 +243,7 @@ func WorkflowStageTaskMove(engine *twapi.Engine) toolsets.ToolWrapper {
 			Description: "Move one or more tasks to a workflow stage.",
 			Annotations: &mcp.ToolAnnotations{
 				Title:           "Move Tasks to Workflow Stage",
-				DestructiveHint: new(false),
+				DestructiveHint: new(true),
 				OpenWorldHint:   new(false),
 			},
 			InputSchema: &jsonschema.Schema{

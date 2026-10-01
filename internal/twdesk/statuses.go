@@ -213,7 +213,7 @@ func StatusUpdate(httpClient *http.Client) toolsets.ToolWrapper {
 			Name: string(MethodStatusUpdate),
 			Annotations: &mcp.ToolAnnotations{
 				Title:           "Update Status",
-				DestructiveHint: new(false),
+				DestructiveHint: new(true),
 				OpenWorldHint:   new(false),
 			},
 			Description: "Update ticket status.",

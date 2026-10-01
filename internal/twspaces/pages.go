@@ -415,7 +415,7 @@ func PageUpdate(httpClient *http.Client) toolsets.ToolWrapper {
 			Name: string(MethodPageUpdate),
 			Annotations: &mcp.ToolAnnotations{
 				Title:           "Update Page",
-				DestructiveHint: new(false),
+				DestructiveHint: new(true),
 				OpenWorldHint:   new(false),
 			},
 			Description: "Update page. Note: content and publish changes update the published page only, not the " +

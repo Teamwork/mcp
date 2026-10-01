@@ -102,7 +102,7 @@ func WorkflowUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 			Description: "Update workflow.",
 			Annotations: &mcp.ToolAnnotations{
 				Title:           "Update Workflow",
-				DestructiveHint: new(false),
+				DestructiveHint: new(true),
 				OpenWorldHint:   new(false),
 			},
 			InputSchema: &jsonschema.Schema{

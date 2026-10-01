@@ -277,7 +277,7 @@ func CompanyUpdate(httpClient *http.Client) toolsets.ToolWrapper {
 			Name: string(MethodCompanyUpdate),
 			Annotations: &mcp.ToolAnnotations{
 				Title:           "Update Company",
-				DestructiveHint: new(false),
+				DestructiveHint: new(true),
 				OpenWorldHint:   new(false),
 			},
 			Description: "Update Desk company.",

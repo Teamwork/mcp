@@ -172,7 +172,7 @@ func TeamUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 			Description: "Update team.",
 			Annotations: &mcp.ToolAnnotations{
 				Title:           "Update Team",
-				DestructiveHint: new(false),
+				DestructiveHint: new(true),
 				OpenWorldHint:   new(false),
 			},
 			InputSchema: &jsonschema.Schema{

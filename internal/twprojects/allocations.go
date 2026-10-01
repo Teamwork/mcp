@@ -309,7 +309,7 @@ func AllocationUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 				"redistributing it, because the per-day rate is what is held constant.",
 			Annotations: &mcp.ToolAnnotations{
 				Title:           "Update Allocation",
-				DestructiveHint: new(false),
+				DestructiveHint: new(true),
 				OpenWorldHint:   new(false),
 			},
 			InputSchema: &jsonschema.Schema{
@@ -406,7 +406,7 @@ func AllocationRestore(engine *twapi.Engine) toolsets.ToolWrapper {
 				"show_deleted set, since a deleted allocation is otherwise not returned.",
 			Annotations: &mcp.ToolAnnotations{
 				Title:           "Restore Allocation",
-				DestructiveHint: new(false),
+				DestructiveHint: new(true),
 				OpenWorldHint:   new(false),
 			},
 			InputSchema: &jsonschema.Schema{
@@ -505,7 +505,7 @@ func AllocationTaskUnlink(engine *twapi.Engine) toolsets.ToolWrapper {
 				"allocation's other links alone.",
 			Annotations: &mcp.ToolAnnotations{
 				Title:           "Unlink Task From Allocation",
-				DestructiveHint: new(false),
+				DestructiveHint: new(true),
 				OpenWorldHint:   new(false),
 			},
 			InputSchema: &jsonschema.Schema{

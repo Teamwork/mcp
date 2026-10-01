@@ -92,7 +92,7 @@ func CommentCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 			Description: "Create comment on a task, milestone, notebook, file, or link.",
 			Annotations: &mcp.ToolAnnotations{
 				Title:           "Create Comment",
-				DestructiveHint: new(false),
+				DestructiveHint: new(true),
 				OpenWorldHint:   new(false),
 			},
 			InputSchema: &jsonschema.Schema{
@@ -233,7 +233,7 @@ func CommentUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 			Description: "Update comment.",
 			Annotations: &mcp.ToolAnnotations{
 				Title:           "Update Comment",
-				DestructiveHint: new(false),
+				DestructiveHint: new(true),
 				OpenWorldHint:   new(false),
 			},
 			InputSchema: &jsonschema.Schema{

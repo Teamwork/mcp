@@ -59,7 +59,7 @@ func TimerCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 			Description: "Create and start a timer.",
 			Annotations: &mcp.ToolAnnotations{
 				Title:           "Create Timer",
-				DestructiveHint: new(false),
+				DestructiveHint: new(true),
 				OpenWorldHint:   new(false),
 			},
 			InputSchema: &jsonschema.Schema{
@@ -153,7 +153,7 @@ func TimerUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 			Description: "Update timer.",
 			Annotations: &mcp.ToolAnnotations{
 				Title:           "Update Timer",
-				DestructiveHint: new(false),
+				DestructiveHint: new(true),
 				OpenWorldHint:   new(false),
 			},
 			InputSchema: &jsonschema.Schema{
@@ -238,7 +238,7 @@ func TimerPause(engine *twapi.Engine) toolsets.ToolWrapper {
 			Description: "Pause a running timer; can be resumed later. Use complete_timer to stop permanently.",
 			Annotations: &mcp.ToolAnnotations{
 				Title:           "Pause Timer",
-				DestructiveHint: new(false),
+				DestructiveHint: new(true),
 				OpenWorldHint:   new(false),
 			},
 			InputSchema: &jsonschema.Schema{
@@ -283,7 +283,7 @@ func TimerResume(engine *twapi.Engine) toolsets.ToolWrapper {
 			Description: "Resume a paused timer back to running.",
 			Annotations: &mcp.ToolAnnotations{
 				Title:           "Resume Timer",
-				DestructiveHint: new(false),
+				DestructiveHint: new(true),
 				OpenWorldHint:   new(false),
 			},
 			InputSchema: &jsonschema.Schema{
@@ -328,7 +328,7 @@ func TimerComplete(engine *twapi.Engine) toolsets.ToolWrapper {
 			Description: "Stop a timer permanently and convert it to a timelog. Use pause_timer to pause without converting.",
 			Annotations: &mcp.ToolAnnotations{
 				Title:           "Complete Timer",
-				DestructiveHint: new(false),
+				DestructiveHint: new(true),
 				OpenWorldHint:   new(false),
 			},
 			InputSchema: &jsonschema.Schema{

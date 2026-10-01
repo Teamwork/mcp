@@ -206,7 +206,7 @@ func CustomItemRecordUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 				"Set section_id to null to remove the record from any section." + customItemRoutingHint,
 			Annotations: &mcp.ToolAnnotations{
 				Title:           "Update Custom Item Record",
-				DestructiveHint: new(false),
+				DestructiveHint: new(true),
 				OpenWorldHint:   new(false),
 			},
 			InputSchema: &jsonschema.Schema{

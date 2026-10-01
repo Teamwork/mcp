@@ -142,7 +142,7 @@ func NotebookUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 			Description: "Update notebook.",
 			Annotations: &mcp.ToolAnnotations{
 				Title:           "Update Notebook",
-				DestructiveHint: new(false),
+				DestructiveHint: new(true),
 				OpenWorldHint:   new(false),
 			},
 			InputSchema: &jsonschema.Schema{

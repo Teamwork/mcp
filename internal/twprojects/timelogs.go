@@ -195,7 +195,7 @@ func TimelogUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 			Description: "Update timelog. It can also be moved to another project or task.",
 			Annotations: &mcp.ToolAnnotations{
 				Title:           "Update Timelog",
-				DestructiveHint: new(false),
+				DestructiveHint: new(true),
 				OpenWorldHint:   new(false),
 			},
 			InputSchema: &jsonschema.Schema{

@@ -150,7 +150,7 @@ func TaskCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 			Description: "Create task in a tasklist.",
 			Annotations: &mcp.ToolAnnotations{
 				Title:           "Create Task",
-				DestructiveHint: new(false),
+				DestructiveHint: new(true),
 				OpenWorldHint:   new(false),
 			},
 			InputSchema: &jsonschema.Schema{
@@ -286,7 +286,7 @@ func TaskUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 				"twprojects-move_tasks.",
 			Annotations: &mcp.ToolAnnotations{
 				Title:           "Update Task",
-				DestructiveHint: new(false),
+				DestructiveHint: new(true),
 				OpenWorldHint:   new(false),
 			},
 			InputSchema: &jsonschema.Schema{
@@ -771,7 +771,7 @@ func TaskMove(engine *twapi.Engine) toolsets.ToolWrapper {
 				"the move is detached from it, becoming a top-level task in the destination.",
 			Annotations: &mcp.ToolAnnotations{
 				Title:           "Move Tasks",
-				DestructiveHint: new(false),
+				DestructiveHint: new(true),
 				OpenWorldHint:   new(false),
 			},
 			InputSchema: &jsonschema.Schema{
@@ -921,7 +921,7 @@ func TaskCreateBatch(engine *twapi.Engine) toolsets.ToolWrapper {
 				"so create parents in one call and their subtasks in the next.",
 			Annotations: &mcp.ToolAnnotations{
 				Title:           "Create Tasks",
-				DestructiveHint: new(false),
+				DestructiveHint: new(true),
 				OpenWorldHint:   new(false),
 			},
 			InputSchema: &jsonschema.Schema{
@@ -1002,7 +1002,7 @@ func TaskUpdateBatch(engine *twapi.Engine) toolsets.ToolWrapper {
 				"error of each failure. To move tasks to another tasklist, use twprojects-move_tasks.",
 			Annotations: &mcp.ToolAnnotations{
 				Title:           "Update Tasks",
-				DestructiveHint: new(false),
+				DestructiveHint: new(true),
 				OpenWorldHint:   new(false),
 			},
 			InputSchema: &jsonschema.Schema{
@@ -1127,7 +1127,7 @@ func TaskComplete(engine *twapi.Engine) toolsets.ToolWrapper {
 			Description: "Mark task complete.",
 			Annotations: &mcp.ToolAnnotations{
 				Title:           "Complete Task",
-				DestructiveHint: new(false),
+				DestructiveHint: new(true),
 				OpenWorldHint:   new(false),
 			},
 			InputSchema: &jsonschema.Schema{
@@ -1172,7 +1172,7 @@ func TaskUncomplete(engine *twapi.Engine) toolsets.ToolWrapper {
 			Description: "Reopen a completed task.",
 			Annotations: &mcp.ToolAnnotations{
 				Title:           "Uncomplete Task",
-				DestructiveHint: new(false),
+				DestructiveHint: new(true),
 				OpenWorldHint:   new(false),
 			},
 			InputSchema: &jsonschema.Schema{

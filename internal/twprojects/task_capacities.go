@@ -156,7 +156,7 @@ func TaskSplitSet(engine *twapi.Engine) toolsets.ToolWrapper {
 				"removes the split; changing its dates moves it with them.",
 			Annotations: &mcp.ToolAnnotations{
 				Title:           "Set Task Split",
-				DestructiveHint: new(false),
+				DestructiveHint: new(true),
 				OpenWorldHint:   new(false),
 			},
 			InputSchema: &jsonschema.Schema{
