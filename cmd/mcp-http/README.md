@@ -106,6 +106,7 @@ The server can be configured using the following environment variables:
 | `TW_MCP_HAPROXY_URL` | HAProxy instance URL | _(empty)_ | `https://haproxy.example.com` |
 | `TW_MCP_URL` | The base URL for the MCP server | `https://mcp.ai.teamwork.com` |
 | `TW_MCP_API_URL` | The Teamwork API base URL | `https://teamwork.com` |
+| `TW_MCP_RESTRICTED_INSTALLATION_IDS` | Installations whose tool results carry no personal data (contact details, avatars, timezones, cost rates, recipients); comma-separated | _(empty)_ | `777,12345` |
 
 ### Logging Configuration
 | Variable | Description | Default | Example |

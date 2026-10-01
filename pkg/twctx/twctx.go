@@ -13,6 +13,7 @@ type (
 	bearerTokenKey struct{}
 	crossRegionKey struct{}
 	customerURLKey struct{}
+	restrictedKey  struct{}
 	scopesKey      struct{}
 )
 
@@ -63,4 +64,17 @@ func ScopesFromContext(ctx context.Context) []string {
 		return nil
 	}
 	return scopes
+}
+
+// WithRestrictedData marks the request as belonging to an installation whose
+// responses must carry no personal or otherwise sensitive data.
+func WithRestrictedData(ctx context.Context, restricted bool) context.Context {
+	return context.WithValue(ctx, restrictedKey{}, restricted)
+}
+
+// IsRestrictedData reports whether responses to the request must carry no
+// personal or otherwise sensitive data.
+func IsRestrictedData(ctx context.Context) bool {
+	restricted, ok := ctx.Value(restrictedKey{}).(bool)
+	return ok && restricted
 }

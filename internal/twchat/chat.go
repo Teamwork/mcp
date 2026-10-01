@@ -14,6 +14,7 @@ import (
 
 	"github.com/teamwork/mcp/pkg/helpers"
 	"github.com/teamwork/mcp/pkg/toolsets"
+	"github.com/teamwork/mcp/pkg/twctx"
 	twapi "github.com/teamwork/twapi-go-sdk"
 )
 
@@ -25,15 +26,98 @@ var sensitiveFieldNames = map[string]struct{}{
 	"authkey": {},
 }
 
-// execute runs the request through the shared engine and streams the raw JSON
-// response body back to the caller. label is used in error messages.
+// execute runs the request through the shared engine and returns the JSON
+// response body, minimized by minimizeChatBody. label is used in error
+// messages.
 func execute(
 	ctx context.Context,
 	engine *twapi.Engine,
 	req twapi.HTTPRequester,
 	label string,
 ) (*mcp.CallToolResult, error) {
-	return executeWithTransform(ctx, engine, req, label, nil)
+	restricted := twctx.IsRestrictedData(ctx)
+	return executeWithTransform(ctx, engine, req, label, func(body []byte) ([]byte, error) {
+		return minimizeChatBody(body, restricted)
+	})
+}
+
+// chatEnvelopeKeys are top-level keys the Chat API adds to its responses that
+// describe no record, such as the "ok" status beside the payload.
+var chatEnvelopeKeys = []string{"status", "STATUS", "robert"}
+
+// chatPersonKeys are the attributes a person keeps, for a restricted
+// installation, wherever one appears (a people row, a message author, the
+// current user): who they are, not their presence, avatar, timezone or last
+// activity. Presence shares its "status" name with a conversation's state, so
+// the generic restricted-data redaction cannot remove it.
+var chatPersonKeys = helpers.NewKeySet(
+	"id", "firstName", "lastName", "fullName", "title", "email", "handle", "role", "type", "deleted",
+	"hasSentMessage",
+)
+
+// chatAccountConnectionKeys are the connection details the current user's
+// account carries (socket and upload endpoints, the bot's app ID). No tool
+// call can use them, so no caller receives them.
+var chatAccountConnectionKeys = []string{
+	"webSocketDSN", "uploadsHref", "avatarUploadsHref", "baseHref", "teamworkBotAppId",
+}
+
+// minimizeChatBody decodes a Chat response, removes credentials, envelope keys
+// and the account's connection details, plus, when restricted, the account's
+// subscription and every person attribute outside chatPersonKeys, and
+// re-encodes it. It returns an error rather than the raw body on failure, so a parsing
+// problem can never leak what it was meant to remove.
+func minimizeChatBody(body []byte, restricted bool) ([]byte, error) {
+	var decoded any
+	if err := json.Unmarshal(body, &decoded); err != nil {
+		return nil, fmt.Errorf("failed to decode response: %w", err)
+	}
+	redactSensitive(decoded)
+	if root, ok := decoded.(map[string]any); ok {
+		for _, key := range chatEnvelopeKeys {
+			delete(root, key)
+		}
+		if meta, ok := root["meta"].(map[string]any); ok {
+			delete(meta, "status")
+		}
+		if account, ok := root["account"].(map[string]any); ok {
+			for _, key := range chatAccountConnectionKeys {
+				delete(account, key)
+			}
+			if restricted {
+				delete(account, "subscription")
+			}
+		}
+	}
+	if restricted {
+		retainChatPeople(decoded)
+	}
+	minimized, err := json.Marshal(decoded)
+	if err != nil {
+		return nil, fmt.Errorf("failed to re-encode response: %w", err)
+	}
+	return minimized, nil
+}
+
+// retainChatPeople trims, at any depth, the people arrays and the author and
+// user objects to chatPersonKeys.
+func retainChatPeople(v any) {
+	switch val := v.(type) {
+	case map[string]any:
+		for key, child := range val {
+			switch key {
+			case "people":
+				helpers.RetainKeysEach(child, chatPersonKeys)
+			case "author", "user":
+				helpers.RetainKeys(child, chatPersonKeys)
+			}
+			retainChatPeople(child)
+		}
+	case []any:
+		for _, item := range val {
+			retainChatPeople(item)
+		}
+	}
 }
 
 // executeWithTransform behaves like execute but applies transform to the raw
@@ -70,23 +154,6 @@ func executeWithTransform(
 			&mcp.TextContent{Text: string(body)},
 		},
 	}, nil
-}
-
-// redactSensitiveBody decodes a JSON response body, removes any
-// credential-bearing fields (see sensitiveFieldNames) at any depth, and
-// re-encodes it. It returns an error rather than the raw body on failure, so a
-// parsing problem can never cause secrets to be leaked unredacted.
-func redactSensitiveBody(body []byte) ([]byte, error) {
-	var decoded any
-	if err := json.Unmarshal(body, &decoded); err != nil {
-		return nil, fmt.Errorf("failed to decode response for redaction: %w", err)
-	}
-	redactSensitive(decoded)
-	redacted, err := json.Marshal(decoded)
-	if err != nil {
-		return nil, fmt.Errorf("failed to re-encode redacted response: %w", err)
-	}
-	return redacted, nil
 }
 
 // redactSensitive recursively deletes sensitive keys from a decoded JSON value
@@ -219,9 +286,8 @@ func CurrentUserGet(engine *twapi.Engine) toolsets.ToolWrapper {
 		},
 		Handler: func(ctx context.Context, _ *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 			// The current-user payload embeds the caller's API key and auth
-			// token; strip them before handing the response to the client.
-			return executeWithTransform(ctx, engine, currentUserGetRequest{},
-				"failed to get current chat user", redactSensitiveBody)
+			// token; minimizeChatBody strips them with the rest.
+			return execute(ctx, engine, currentUserGetRequest{}, "failed to get current chat user")
 		},
 	}
 }

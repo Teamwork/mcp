@@ -1,6 +1,7 @@
 package twprojects_test
 
 import (
+	"context"
 	"encoding/json"
 	"maps"
 	"net/http"
@@ -11,6 +12,7 @@ import (
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/teamwork/mcp/internal/testutil"
 	"github.com/teamwork/mcp/internal/twprojects"
+	"github.com/teamwork/mcp/pkg/twctx"
 )
 
 // allocationBody is a response row carrying the date and date-time shapes the
@@ -739,4 +741,29 @@ func TestAllocationGetReturnsSideloads(t *testing.T) {
 			}
 		}
 	}))
+}
+
+// TestAllocationFinancialDetailsWithheldWhenRestricted pins that a restricted
+// installation never asks for per-person cost or revenue, even when the caller
+// opts in.
+func TestAllocationFinancialDetailsWithheldWhenRestricted(t *testing.T) {
+	cases := map[string]map[string]any{
+		twprojects.MethodAllocationList.String(): {"include_financial_details": true},
+		twprojects.MethodAllocationGet.String():  {"id": float64(777), "include_financial_details": true},
+	}
+	for method, args := range cases {
+		t.Run(method, func(t *testing.T) {
+			mcpServer, lastURL := testutil.ProjectsMCPServerMockWithRequestURL(t, http.StatusOK,
+				[]byte(`{"allocations":[],"allocation":{"id":777}}`))
+			mcpServer.AddReceivingMiddleware(func(next mcp.MethodHandler) mcp.MethodHandler {
+				return func(ctx context.Context, m string, req mcp.Request) (mcp.Result, error) {
+					return next(twctx.WithRestrictedData(ctx, true), m, req)
+				}
+			})
+			testutil.ExecuteToolRequest(t, mcpServer, method, args)
+			if slices.Contains(strings.Split(lastURL.Query().Get("include"), ","), "financialDetails") {
+				t.Errorf("financialDetails was requested for a restricted installation: %s", lastURL)
+			}
+		})
+	}
 }

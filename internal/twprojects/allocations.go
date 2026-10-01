@@ -11,6 +11,7 @@ import (
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/teamwork/mcp/pkg/helpers"
 	"github.com/teamwork/mcp/pkg/toolsets"
+	"github.com/teamwork/mcp/pkg/twctx"
 	twapi "github.com/teamwork/twapi-go-sdk"
 	"github.com/teamwork/twapi-go-sdk/projects"
 )
@@ -591,6 +592,10 @@ func AllocationGet(engine *twapi.Engine) toolsets.ToolWrapper {
 			if err != nil {
 				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
 			}
+			// A restricted installation never receives per-person cost or revenue.
+			if twctx.IsRestrictedData(ctx) {
+				financialDetails = false
+			}
 
 			if len(allocationGetRequest.Fields.Allocation) > 0 {
 				// A selection wins over the sideloads: sideloading would hand back the
@@ -806,6 +811,10 @@ func AllocationList(engine *twapi.Engine) toolsets.ToolWrapper {
 			)
 			if err != nil {
 				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
+			}
+			// A restricted installation never receives per-person cost or revenue.
+			if twctx.IsRestrictedData(ctx) {
+				financialDetails = false
 			}
 
 			// Every filter is bound by this point, and no row shaping has been

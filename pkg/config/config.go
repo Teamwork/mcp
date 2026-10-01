@@ -71,6 +71,11 @@ const (
 func Load(logOutput io.Writer, opts ...Option) (Resources, func()) {
 	resources := newResources(newOptions(opts...))
 	resources.logger = slog.New(newCustomLogHandler(resources, logOutput))
+	for _, entry := range resources.invalidRestrictedInstallationIDs {
+		resources.logger.Error("ignoring invalid restricted installation ID",
+			slog.String("value", entry),
+		)
+	}
 	resources.teamworkHTTPClient = new(http.Client)
 
 	var haProxyURL *url.URL
@@ -257,6 +262,7 @@ func NewMCPServer(resources Resources, groups ...*toolsets.ToolsetGroup) *mcp.Se
 	namespaces := newNamespaceTable(groups)
 
 	mcpServer.AddReceivingMiddleware(mcpLoggingMiddleware(resources))
+	mcpServer.AddReceivingMiddleware(restrictedDataMiddleware)
 	mcpServer.AddReceivingMiddleware(func(next mcp.MethodHandler) mcp.MethodHandler {
 		return func(ctx context.Context, method string, req mcp.Request) (result mcp.Result, err error) {
 			result, err = next(ctx, method, req)
@@ -490,6 +496,27 @@ func NewMCPClient(
 	}
 
 	return mcpClient, clientSession, nil
+}
+
+// restrictedDataMiddleware removes helpers.RestrictedDataKeys from every tool
+// result of a restricted installation (twctx.IsRestrictedData), so the rule
+// holds for every tool and every response path at once. It fails closed: a
+// result it cannot redact is not returned.
+func restrictedDataMiddleware(next mcp.MethodHandler) mcp.MethodHandler {
+	return func(ctx context.Context, method string, req mcp.Request) (mcp.Result, error) {
+		result, err := next(ctx, method, req)
+		if err != nil || !twctx.IsRestrictedData(ctx) {
+			return result, err
+		}
+		callToolResult, ok := result.(*mcp.CallToolResult)
+		if !ok {
+			return result, nil
+		}
+		if err := helpers.RestrictToolResult(callToolResult); err != nil {
+			return nil, fmt.Errorf("failed to restrict tool result: %w", err)
+		}
+		return callToolResult, nil
+	}
 }
 
 func mcpLoggingMiddleware(resources Resources) mcp.Middleware {
