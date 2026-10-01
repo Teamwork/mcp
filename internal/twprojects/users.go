@@ -387,7 +387,8 @@ func UserGetMe(engine *twapi.Engine) toolsets.ToolWrapper {
 				Type:       "object",
 				Properties: map[string]*jsonschema.Schema{},
 			},
-			OutputSchema: userGetMeOutputSchema,
+			// Optional fields: a restricted installation's result has no email or rates.
+			OutputSchema: helpers.WithOptionalFields(userGetMeOutputSchema),
 		},
 		Handler: func(ctx context.Context, _ *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 			var userGetMeRequest projects.UserGetMeRequest

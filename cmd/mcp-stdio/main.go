@@ -66,6 +66,8 @@ func main() {
 			ctx = twctx.WithCustomerURL(ctx, info.URL)
 			// inject bearer token in the context (used by Desk SDK clients)
 			ctx = twctx.WithBearerToken(ctx, resources.Info.BearerToken)
+			// restrict responses for the configured installations
+			ctx = twctx.WithRestrictedData(ctx, resources.IsRestrictedInstallation(info.InstallationID))
 			// inject bearer token in the context
 			ctx = session.WithBearerTokenContext(ctx, session.NewBearerToken(resources.Info.BearerToken, info.URL))
 		}

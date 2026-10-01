@@ -152,6 +152,8 @@ func Auth(resources config.Resources, validator *auth.Validator, next http.Handl
 		ctx = twctx.WithBearerToken(ctx, bearerToken)
 		// inject scopes
 		ctx = twctx.WithScopes(ctx, info.Meta.Scopes)
+		// restrict responses for the configured installations
+		ctx = twctx.WithRestrictedData(ctx, resources.IsRestrictedInstallation(info.InstallationID))
 		// inject session
 		ctx = session.WithBearerTokenContext(ctx, session.NewBearerToken(bearerToken, info.URL))
 

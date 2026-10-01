@@ -44,7 +44,7 @@ func TestCurrentUserGetRedactsCredentials(t *testing.T) {
 				}
 			}
 			// Non-sensitive fields must survive redaction.
-			if !strings.Contains(text.Text, `"status":"ok"`) {
+			if !strings.Contains(text.Text, `"user":{"id":1}`) {
 				t.Errorf("expected non-sensitive fields to be preserved, got: %s", text.Text)
 			}
 		}))
@@ -261,5 +261,75 @@ func checkToolError(t *testing.T, want string) func(*testing.T, mcp.Result) {
 		if !strings.Contains(text.Text, want) {
 			t.Errorf("expected error to mention %q, got: %s", want, text.Text)
 		}
+	}
+}
+
+// TestChatResponsesAreMinimized pins what every Chat response loses on the way
+// to the caller: the envelope keys and the account's connection details. The
+// records themselves stay whole; trimming people is the restricted mode's job
+// (TestMinimizeChatBodyRestrictsPeople).
+func TestChatResponsesAreMinimized(t *testing.T) {
+	tests := []struct {
+		name    string
+		method  string
+		args    map[string]any
+		body    string
+		want    []string
+		notWant []string
+	}{{
+		name:   "list_people",
+		method: twchat.MethodPeopleList.String(),
+		args:   map[string]any{},
+		body: `{"robert":"example","STATUS":"ok","people":[{"id":777,"firstName":"John",` +
+			`"email":"john@example.com","status":"away","timezoneReferenceCode":"Europe/Dublin",` +
+			`"avatar":"https://example.com/john.jpg","roomId":12345}],"meta":{"page":{"total":1}}}`,
+		want:    []string{`"email":"john@example.com"`, `"total":1`, `"status":"away"`},
+		notWant: []string{"robert", "STATUS"},
+	}, {
+		name:   "list_conversations",
+		method: twchat.MethodConversationList.String(),
+		args:   map[string]any{},
+		body: `{"conversations":[{"id":1,"status":"active","people":[{"id":777,"lastActivityAt":"2026-01-01T00:00:00Z"}],` +
+			`"latestMessage":{"id":2,"body":"hi","author":{"id":777,"fullName":"John Doe","status":"active",` +
+			`"avatar":"https://example.com/john.jpg"}}}],"meta":{"status":"ok"}}`,
+		want:    []string{`"status":"active"`, `"fullName":"John Doe"`, `"lastActivityAt"`},
+		notWant: []string{`"status":"ok"`},
+	}, {
+		name:   "get_current_user",
+		method: twchat.MethodCurrentUserGet.String(),
+		args:   map[string]any{},
+		body: `{"account":{"id":777,"counts":{"1":{"unread":2}},"subscription":{"pricePlanId":103},` +
+			`"avatarUrl":"https://example.com/a.jpg","region":"US","areGroupCallsEnabled":true,` +
+			`"webSocketDSN":"wss://example.com","uploadsHref":"https://example.com/uploads",` +
+			`"avatarUploadsHref":"https://example.com/avatars","baseHref":"https://test.teamwork.com/",` +
+			`"teamworkBotAppId":180,"user":{"id":777,"status":"online"}},"status":"ok"}`,
+		want: []string{`"unread":2`, `"status":"online"`, `"pricePlanId":103`, `"avatarUrl"`, `"region":"US"`,
+			`"areGroupCallsEnabled":true`},
+		notWant: []string{"webSocketDSN", "uploadsHref", "avatarUploadsHref", "baseHref", "teamworkBotAppId",
+			`"status":"ok"`},
+	}}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mcpServer := mcpServerMock(t, http.StatusOK, []byte(tt.body))
+			testutil.ExecuteToolRequest(t, mcpServer, tt.method, tt.args,
+				testutil.ExecuteToolRequestWithCheckMessage(func(t *testing.T, result mcp.Result) {
+					t.Helper()
+					toolResult, ok := result.(*mcp.CallToolResult)
+					if !ok || toolResult.IsError {
+						t.Fatalf("unexpected result: %#v", result)
+					}
+					text := toolResult.Content[0].(*mcp.TextContent).Text
+					for _, s := range tt.want {
+						if !strings.Contains(text, s) {
+							t.Errorf("expected %s in %s", s, text)
+						}
+					}
+					for _, s := range tt.notWant {
+						if strings.Contains(text, s) {
+							t.Errorf("%s reached the caller: %s", s, text)
+						}
+					}
+				}))
+		})
 	}
 }

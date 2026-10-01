@@ -113,6 +113,7 @@ The server can be configured using the following environment variables:
 | ---------------- | ------------------------- | ---------------------- | ------------------------------ |
 | `TW_MCP_VERSION` | Version of the MCP server | `dev`                  | `v1.0.0`                       |
 | `TW_MCP_API_URL` | The Teamwork API base URL | `https://teamwork.com` | `https://example.teamwork.com` |
+| `TW_MCP_RESTRICTED_INSTALLATION_IDS` | Installations whose tool results carry no personal data (contact details, avatars, timezones, cost rates, recipients); comma-separated | _(empty)_ | `777,12345` |
 
 ##### Logging Configuration
 

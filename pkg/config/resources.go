@@ -4,6 +4,8 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
+	"slices"
+	"strconv"
 	"strings"
 
 	desksdk "github.com/teamwork/desksdkgo/client"
@@ -28,9 +30,12 @@ var Version = "dev"
 // Resources stores all the resources loaded in the startup.
 type Resources struct {
 	teamworkHTTPClient *http.Client
-	teamworkEngine     *twapi.Engine
-	deskClient         *desksdk.Client
-	logger             *slog.Logger
+	// invalidRestrictedInstallationIDs are the RESTRICTED_INSTALLATION_IDS entries
+	// that are not installation IDs, reported by Load once a logger exists.
+	invalidRestrictedInstallationIDs []string
+	teamworkEngine                   *twapi.Engine
+	deskClient                       *desksdk.Client
+	logger                           *slog.Logger
 
 	// Info stores environment variables mappings.
 	Info struct {
@@ -64,6 +69,10 @@ type Resources struct {
 		// BearerToken is the bearer token to be used to authenticate with Teamwork
 		// API. This is useful for the MCP server in STDIO mode.
 		BearerToken string
+		// RestrictedInstallationIDs lists the installations whose tool responses
+		// carry no personal or otherwise sensitive data (RESTRICTED_INSTALLATION_IDS,
+		// comma-separated). See IsRestrictedInstallation.
+		RestrictedInstallationIDs []int64
 		// Log contains the logging configuration.
 		Log struct {
 			// Format is the format of the logs. It can be "json" or "text".
@@ -176,6 +185,8 @@ func newResources(opts options) Resources {
 	resources.Info.APIURL = strings.TrimSuffix(env("API_URL", "https://teamwork.com"), "/")
 	resources.Info.HAProxyURL = env("HAPROXY_URL", "")
 	resources.Info.BearerToken = env("BEARER_TOKEN", "")
+	resources.Info.RestrictedInstallationIDs, resources.invalidRestrictedInstallationIDs =
+		parseInstallationIDs(env("RESTRICTED_INSTALLATION_IDS", ""))
 	resources.Info.Log.Format = strings.ToLower(env("LOG_FORMAT", "text"))
 	resources.Info.Log.Level = strings.ToLower(env("LOG_LEVEL", "info"))
 	resources.Info.Log.SentryDSN = env("SENTRY_DSN", "")
@@ -203,6 +214,31 @@ func newResources(opts options) Resources {
 	}
 
 	return resources
+}
+
+// parseInstallationIDs reads a comma-separated list of installation IDs,
+// returning the entries that are not one separately so they can be reported
+// rather than silently dropped.
+func parseInstallationIDs(value string) (ids []int64, invalid []string) {
+	for entry := range strings.SplitSeq(value, ",") {
+		entry = strings.TrimSpace(entry)
+		if entry == "" {
+			continue
+		}
+		id, err := strconv.ParseInt(entry, 10, 64)
+		if err != nil || id <= 0 {
+			invalid = append(invalid, entry)
+			continue
+		}
+		ids = append(ids, id)
+	}
+	return ids, invalid
+}
+
+// IsRestrictedInstallation reports whether responses for the installation must
+// carry no personal or otherwise sensitive data.
+func (r *Resources) IsRestrictedInstallation(installationID int64) bool {
+	return installationID > 0 && slices.Contains(r.Info.RestrictedInstallationIDs, installationID)
 }
 
 // Logger returns the logger resource. A Resources that did not come from Load

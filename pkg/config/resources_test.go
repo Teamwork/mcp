@@ -138,3 +138,18 @@ func TestNewResourcesDefaultMCPURL(t *testing.T) {
 		}
 	})
 }
+
+func TestNewResourcesRestrictedInstallationIDs(t *testing.T) {
+	t.Setenv("TW_MCP_RESTRICTED_INSTALLATION_IDS", " 777, 12345,,abc,-1 ")
+	resources := newResources(newOptions())
+	if got := resources.Info.RestrictedInstallationIDs; len(got) != 2 || got[0] != 777 || got[1] != 12345 {
+		t.Errorf("RestrictedInstallationIDs = %v, want [777 12345]", got)
+	}
+	if got := resources.invalidRestrictedInstallationIDs; len(got) != 2 || got[0] != "abc" || got[1] != "-1" {
+		t.Errorf("invalid entries = %v, want [abc -1]", got)
+	}
+	if !resources.IsRestrictedInstallation(777) || resources.IsRestrictedInstallation(1) ||
+		resources.IsRestrictedInstallation(0) {
+		t.Error("IsRestrictedInstallation does not follow the list")
+	}
+}
