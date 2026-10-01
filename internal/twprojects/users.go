@@ -70,9 +70,10 @@ func UserCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 			Name:        string(MethodUserCreate),
 			Description: "Create user.",
 			Annotations: &mcp.ToolAnnotations{
-				Title:           "Create User",
-				DestructiveHint: new(false),
-				OpenWorldHint:   new(false),
+				Title: "Create User",
+				// The create emails an invite to the new user's address by default.
+				DestructiveHint: new(true),
+				OpenWorldHint:   new(true),
 			},
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
