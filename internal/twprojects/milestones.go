@@ -158,7 +158,7 @@ func MilestoneUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 			Description: "Update milestone.",
 			Annotations: &mcp.ToolAnnotations{
 				Title:           "Update Milestone",
-				DestructiveHint: new(false),
+				DestructiveHint: new(true),
 				OpenWorldHint:   new(false),
 			},
 			InputSchema: &jsonschema.Schema{

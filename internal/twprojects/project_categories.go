@@ -119,7 +119,7 @@ func ProjectCategoryUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 			Description: "Update project category.",
 			Annotations: &mcp.ToolAnnotations{
 				Title:           "Update Project Category",
-				DestructiveHint: new(false),
+				DestructiveHint: new(true),
 				OpenWorldHint:   new(false),
 			},
 			InputSchema: &jsonschema.Schema{

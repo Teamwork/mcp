@@ -61,7 +61,7 @@ func CustomFieldValueCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 				"The custom field must already exist and be applicable to the target entity.",
 			Annotations: &mcp.ToolAnnotations{
 				Title:           "Create Custom Field Value",
-				DestructiveHint: new(false),
+				DestructiveHint: new(true),
 				OpenWorldHint:   new(false),
 			},
 			InputSchema: &jsonschema.Schema{
@@ -211,7 +211,7 @@ func CustomFieldValueCreateBatch(engine *twapi.Engine) toolsets.ToolWrapper {
 				"each value succeeds or fails on its own, and the result lists the error of each failure.",
 			Annotations: &mcp.ToolAnnotations{
 				Title:           "Create Custom Field Values",
-				DestructiveHint: new(false),
+				DestructiveHint: new(true),
 				OpenWorldHint:   new(false),
 			},
 			InputSchema: &jsonschema.Schema{
@@ -317,7 +317,7 @@ func CustomFieldValueUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 			Description: "Update a custom field value on a task, project or company.",
 			Annotations: &mcp.ToolAnnotations{
 				Title:           "Update Custom Field Value",
-				DestructiveHint: new(false),
+				DestructiveHint: new(true),
 				OpenWorldHint:   new(false),
 			},
 			InputSchema: &jsonschema.Schema{

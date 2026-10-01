@@ -247,7 +247,7 @@ func CompanyUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 			Description: "Update company (aka client).",
 			Annotations: &mcp.ToolAnnotations{
 				Title:           "Update Company",
-				DestructiveHint: new(false),
+				DestructiveHint: new(true),
 				OpenWorldHint:   new(false),
 			},
 			InputSchema: &jsonschema.Schema{

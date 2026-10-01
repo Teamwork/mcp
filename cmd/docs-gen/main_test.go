@@ -229,7 +229,7 @@ func TestAnnotationHintsAreExplicit(t *testing.T) {
 				}
 				if tw.Tool.Annotations.DestructiveHint == nil {
 					t.Errorf("%s/%s: tool %q is missing destructiveHint; set it "+
-						"explicitly (new(false) unless the tool destroys data)", p.label, method, name)
+						"explicitly (true unless the tool only adds records; see additiveWriteTools)", p.label, method, name)
 				}
 				if tw.Tool.Annotations.OpenWorldHint == nil {
 					t.Errorf("%s/%s: tool %q is missing openWorldHint; set it "+
@@ -244,6 +244,86 @@ func TestAnnotationHintsAreExplicit(t *testing.T) {
 						"destructive", p.label, method, name)
 				}
 			}
+		}
+	}
+}
+
+// additiveWriteTools are the write tools that only add records, without
+// changing existing ones or notifying anyone by default. Every other write tool
+// overwrites, removes or sends, which OpenAI's review reads as destructive.
+var additiveWriteTools = map[string]bool{
+	"twchat-get_or_create_dm":              true,
+	"twdesk-create_company":                true,
+	"twdesk-create_customer":               true,
+	"twdesk-create_file":                   true,
+	"twdesk-create_helpdoc_article":        true,
+	"twdesk-create_priority":               true,
+	"twdesk-create_status":                 true,
+	"twdesk-create_tag":                    true,
+	"twdesk-create_ticket_type":            true,
+	"twdesk-link_task_to_ticket":           true,
+	"twprojects-add_project_file":          true,
+	"twprojects-add_project_member":        true,
+	"twprojects-clone_project":             true,
+	"twprojects-create_allocation":         true,
+	"twprojects-create_company":            true,
+	"twprojects-create_custom_field":       true,
+	"twprojects-create_custom_item":        true,
+	"twprojects-create_custom_item_field":  true,
+	"twprojects-create_custom_item_record": true,
+	"twprojects-create_file":               true,
+	"twprojects-create_jobrole":            true,
+	"twprojects-create_milestone":          true,
+	"twprojects-create_notebook":           true,
+	"twprojects-create_project":            true,
+	"twprojects-create_project_category":   true,
+	"twprojects-create_project_template":   true,
+	"twprojects-create_skill":              true,
+	"twprojects-create_tag":                true,
+	"twprojects-create_tasklist":           true,
+	"twprojects-create_team":               true,
+	"twprojects-create_timelog":            true,
+	"twprojects-create_upload_url":         true,
+	"twprojects-create_user":               true,
+	"twprojects-create_workflow":           true,
+	"twprojects-create_workflow_stage":     true,
+	"twprojects-link_project_to_workflow":  true,
+	"twprojects-link_task_to_allocation":   true,
+	"twspaces-create_category":             true,
+	"twspaces-create_comment":              true,
+	"twspaces-create_page":                 true,
+	"twspaces-create_space":                true,
+	"twspaces-create_tags":                 true,
+	"twspaces-duplicate_page":              true,
+}
+
+// TestWriteToolsAreDestructiveUnlessAdditive pins OpenAI's reading of
+// destructiveHint: true for overwrites and irreversible sends, not only
+// deletes. A new write tool fails here until it is classified.
+func TestWriteToolsAreDestructiveUnlessAdditive(t *testing.T) {
+	seen := make(map[string]bool)
+	for _, p := range products() {
+		for _, ts := range p.group.Toolsets {
+			for _, tw := range ts.GetAvailableTools() {
+				a := tw.Tool.Annotations
+				if a == nil || a.ReadOnlyHint || a.DestructiveHint == nil {
+					continue
+				}
+				name := tw.Tool.Name
+				seen[name] = true
+				if additiveWriteTools[name] && *a.DestructiveHint {
+					t.Errorf("%s is listed as additive but annotated destructive", name)
+				}
+				if !additiveWriteTools[name] && !*a.DestructiveHint {
+					t.Errorf("%s changes existing data or notifies people: set destructiveHint "+
+						"to true, or add it to additiveWriteTools if it only adds records", name)
+				}
+			}
+		}
+	}
+	for name := range additiveWriteTools {
+		if !seen[name] {
+			t.Errorf("additiveWriteTools lists %s, which is not a shipped write tool", name)
 		}
 	}
 }

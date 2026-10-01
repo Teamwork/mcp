@@ -67,7 +67,7 @@ func MessageCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 			Description: "Create message in a project.",
 			Annotations: &mcp.ToolAnnotations{
 				Title:           "Create Message",
-				DestructiveHint: new(false),
+				DestructiveHint: new(true),
 				OpenWorldHint:   new(false),
 			},
 			InputSchema: &jsonschema.Schema{
@@ -151,7 +151,7 @@ func MessageUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 			Description: "Update message.",
 			Annotations: &mcp.ToolAnnotations{
 				Title:           "Update Message",
-				DestructiveHint: new(false),
+				DestructiveHint: new(true),
 				OpenWorldHint:   new(false),
 			},
 			InputSchema: &jsonschema.Schema{

@@ -304,7 +304,7 @@ func CustomFieldUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 			Description: "Update custom field.",
 			Annotations: &mcp.ToolAnnotations{
 				Title:           "Update Custom Field",
-				DestructiveHint: new(false),
+				DestructiveHint: new(true),
 				OpenWorldHint:   new(false),
 			},
 			InputSchema: &jsonschema.Schema{

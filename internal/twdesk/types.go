@@ -202,7 +202,7 @@ func TypeUpdate(httpClient *http.Client) toolsets.ToolWrapper {
 			Name: string(MethodTypeUpdate),
 			Annotations: &mcp.ToolAnnotations{
 				Title:           "Update Ticket Type",
-				DestructiveHint: new(false),
+				DestructiveHint: new(true),
 				OpenWorldHint:   new(false),
 			},
 			Description: "Update ticket type.",

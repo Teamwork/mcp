@@ -195,7 +195,7 @@ func CustomItemFieldUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 			Description: "Update a field on a custom item type." + customItemRoutingHint,
 			Annotations: &mcp.ToolAnnotations{
 				Title:           "Update Custom Item Field",
-				DestructiveHint: new(false),
+				DestructiveHint: new(true),
 				OpenWorldHint:   new(false),
 			},
 			InputSchema: &jsonschema.Schema{

@@ -160,7 +160,7 @@ func UserUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 			Description: "Update user.",
 			Annotations: &mcp.ToolAnnotations{
 				Title:           "Update User",
-				DestructiveHint: new(false),
+				DestructiveHint: new(true),
 				OpenWorldHint:   new(false),
 			},
 			InputSchema: &jsonschema.Schema{

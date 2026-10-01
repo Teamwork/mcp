@@ -182,7 +182,7 @@ func TagUpdate(httpClient *http.Client) toolsets.ToolWrapper {
 			Name: string(MethodTagUpdate),
 			Annotations: &mcp.ToolAnnotations{
 				Title:           "Update Tag",
-				DestructiveHint: new(false),
+				DestructiveHint: new(true),
 				OpenWorldHint:   new(false),
 			},
 			Description: "Update Spaces tag.",

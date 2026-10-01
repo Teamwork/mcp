@@ -206,7 +206,7 @@ func SpaceUpdate(httpClient *http.Client) toolsets.ToolWrapper {
 			Name: string(MethodSpaceUpdate),
 			Annotations: &mcp.ToolAnnotations{
 				Title:           "Update Space",
-				DestructiveHint: new(false),
+				DestructiveHint: new(true),
 				OpenWorldHint:   new(false),
 			},
 			Description: "Update space.",

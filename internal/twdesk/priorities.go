@@ -193,7 +193,7 @@ func PriorityUpdate(httpClient *http.Client) toolsets.ToolWrapper {
 			Name: string(MethodPriorityUpdate),
 			Annotations: &mcp.ToolAnnotations{
 				Title:           "Update Priority",
-				DestructiveHint: new(false),
+				DestructiveHint: new(true),
 				OpenWorldHint:   new(false),
 			},
 			Description: "Update ticket priority.",

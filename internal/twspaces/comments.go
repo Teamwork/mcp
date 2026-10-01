@@ -201,7 +201,7 @@ func CommentUpdate(httpClient *http.Client) toolsets.ToolWrapper {
 			Name: string(MethodCommentUpdate),
 			Annotations: &mcp.ToolAnnotations{
 				Title:           "Update Comment",
-				DestructiveHint: new(false),
+				DestructiveHint: new(true),
 				OpenWorldHint:   new(false),
 			},
 			Description: "Update page comment.",

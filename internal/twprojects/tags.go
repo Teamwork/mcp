@@ -128,7 +128,7 @@ func TagUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 			Description: "Update tag.",
 			Annotations: &mcp.ToolAnnotations{
 				Title:           "Update Tag",
-				DestructiveHint: new(false),
+				DestructiveHint: new(true),
 				OpenWorldHint:   new(false),
 			},
 			InputSchema: &jsonschema.Schema{

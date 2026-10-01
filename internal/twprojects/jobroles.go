@@ -130,7 +130,7 @@ func JobRoleUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 			Description: "Update job role.",
 			Annotations: &mcp.ToolAnnotations{
 				Title:           "Update Job Role",
-				DestructiveHint: new(false),
+				DestructiveHint: new(true),
 				OpenWorldHint:   new(false),
 			},
 			InputSchema: &jsonschema.Schema{

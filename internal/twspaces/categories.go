@@ -156,7 +156,7 @@ func CategoryUpdate(httpClient *http.Client) toolsets.ToolWrapper {
 			Name: string(MethodCategoryUpdate),
 			Annotations: &mcp.ToolAnnotations{
 				Title:           "Update Category",
-				DestructiveHint: new(false),
+				DestructiveHint: new(true),
 				OpenWorldHint:   new(false),
 			},
 			Description: "Update space category.",
