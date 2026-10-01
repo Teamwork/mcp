@@ -332,11 +332,12 @@ func ProjectFileAdd(engine *twapi.Engine) toolsets.ToolWrapper {
 			Description: fmt.Sprintf("Store an uploaded file in a project's files area, where people "+
 				"find it outside any one task or comment. Upload it first with %s, then pass the "+
 				"reference here. Returns a numeric file ID which, unlike a reference, survives being "+
-				"used: pass it in attachment_file_ids on %s or %s to attach the same file to as many "+
-				"tasks as needed. Attaching a reference to a task, comment or message already files it "+
+				"used: pass it in attachment_file_ids on %s, %s, %s, %s or %s to attach the same file "+
+				"as many times as needed. Attaching a reference to a task, comment or message already files it "+
 				"here, so use this tool to store a file on its own, to describe or categorise it, or "+
 				"when it has to reach more than one place.",
-				MethodUploadURLCreate, MethodTaskCreate, MethodTaskUpdate),
+				MethodUploadURLCreate, MethodTaskCreate, MethodTaskUpdate, MethodCommentCreate,
+				MethodMessageCreate, MethodMessageReplyCreate),
 			Annotations: &mcp.ToolAnnotations{
 				Title:           "Add Project File",
 				DestructiveHint: new(false),
@@ -433,8 +434,9 @@ func ProjectFileAdd(engine *twapi.Engine) toolsets.ToolWrapper {
 
 			return helpers.NewToolResultJSON(projectFileAddResult{
 				ID: int64(file.ID),
-				Usage: fmt.Sprintf("Pass %d in attachment_file_ids on %s or %s. Unlike a reference, "+
-					"it can be used more than once.", file.ID, MethodTaskCreate, MethodTaskUpdate),
+				Usage: fmt.Sprintf("Pass %d in attachment_file_ids on %s, %s, %s, %s or %s. Unlike a "+
+					"reference, it can be used more than once.", file.ID, MethodTaskCreate, MethodTaskUpdate,
+					MethodCommentCreate, MethodMessageCreate, MethodMessageReplyCreate),
 			})
 		},
 	}
@@ -475,9 +477,9 @@ func attachmentFileIDsSchema(entity string) *jsonschema.Schema {
 	return &jsonschema.Schema{
 		Description: fmt.Sprintf(
 			"IDs of files already in a project's files area to attach to the %s, as returned by "+
-				"%s. Unlike a reference these can be used repeatedly, so this is how one file "+
-				"reaches several tasks. Files are added to whatever is already attached; nothing "+
-				"is removed.",
+				"%s or read from an item's attachments. Unlike a reference these can be used "+
+				"repeatedly, so this is how one file reaches several places. Files are added to "+
+				"whatever is already attached; nothing is removed.",
 			entity, MethodProjectFileAdd),
 		AnyOf: []*jsonschema.Schema{
 			{Type: "array", Items: &jsonschema.Schema{Type: "integer"}},
@@ -486,20 +488,36 @@ func attachmentFileIDsSchema(entity string) *jsonschema.Schema {
 	}
 }
 
+// legacyAttachmentFileIDsSchema is attachmentFileIDsSchema for the comment and
+// message routes, which only attach a file from the item's own project.
+func legacyAttachmentFileIDsSchema(entity string) *jsonschema.Schema {
+	schema := attachmentFileIDsSchema(entity)
+	schema.Description += fmt.Sprintf(" Each file must be in the same project as the %s.", entity)
+	return schema
+}
+
+// parseAttachmentFileIDs reads the identifiers of files that already exist.
+func parseAttachmentFileIDs(arguments map[string]any) ([]int64, *mcp.CallToolResult) {
+	var fileIDs []int64
+	if err := helpers.ParamGroup(arguments,
+		helpers.OptionalNumericListParam(&fileIDs, "attachment_file_ids"),
+	); err != nil {
+		return nil, helpers.NewToolResultTextError("invalid attachment_file_ids: %s", err.Error())
+	}
+	return fileIDs, nil
+}
+
 // parseTaskAttachments reads the attachments for the task tools, which take the
-// structured form rather than a plain list, and are the only ones that can
-// attach a file that already exists as well as a freshly uploaded one.
+// structured form rather than a plain list.
 func parseTaskAttachments(arguments map[string]any) (*projects.TaskAttachments, *mcp.CallToolResult) {
 	refs, toolResult := parseAttachmentRefs(arguments)
 	if toolResult != nil {
 		return nil, toolResult
 	}
 
-	var fileIDs []int64
-	if err := helpers.ParamGroup(arguments,
-		helpers.OptionalNumericListParam(&fileIDs, "attachment_file_ids"),
-	); err != nil {
-		return nil, helpers.NewToolResultTextError("invalid attachment_file_ids: %s", err.Error())
+	fileIDs, toolResult := parseAttachmentFileIDs(arguments)
+	if toolResult != nil {
+		return nil, toolResult
 	}
 
 	if len(refs) == 0 && len(fileIDs) == 0 {

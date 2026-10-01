@@ -92,8 +92,9 @@ func MessageCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 							{Type: "null"},
 						},
 					},
-					"notify":          helpers.NotifySchema("Who to notify of the new message.", false),
-					"attachment_refs": attachmentRefsSchema("message"),
+					"notify":              helpers.NotifySchema("Who to notify of the new message.", false),
+					"attachment_refs":     attachmentRefsSchema("message"),
+					"attachment_file_ids": legacyAttachmentFileIDsSchema("message"),
 				},
 				Required: []string{"title", "project_id", "body"},
 			},
@@ -120,6 +121,12 @@ func MessageCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 				return toolResult, nil
 			}
 			messageCreateRequest.PendingFileAttachments = refs
+
+			fileIDs, toolResult := parseAttachmentFileIDs(arguments)
+			if toolResult != nil {
+				return toolResult, nil
+			}
+			messageCreateRequest.Attachments = fileIDs
 
 			notifyChosen, notifiers, toolResult := parseNotify(arguments, false)
 			if toolResult != nil {
@@ -182,7 +189,9 @@ func MessageUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 							{Type: "null"},
 						},
 					},
-					"notify": helpers.NotifySchema("Who to notify of the message update.", false),
+					"notify":              helpers.NotifySchema("Who to notify of the message update.", false),
+					"attachment_refs":     attachmentRefsSchema("message"),
+					"attachment_file_ids": legacyAttachmentFileIDsSchema("message"),
 				},
 				Required: []string{"id"},
 			},
@@ -203,6 +212,18 @@ func MessageUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 			if err != nil {
 				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
 			}
+
+			refs, toolResult := parseAttachmentRefs(arguments)
+			if toolResult != nil {
+				return toolResult, nil
+			}
+			messageUpdateRequest.PendingFileAttachments = refs
+
+			fileIDs, toolResult := parseAttachmentFileIDs(arguments)
+			if toolResult != nil {
+				return toolResult, nil
+			}
+			messageUpdateRequest.Attachments = fileIDs
 
 			notifyChosen, notifiers, toolResult := parseNotify(arguments, false)
 			if toolResult != nil {
