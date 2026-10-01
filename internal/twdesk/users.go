@@ -57,7 +57,7 @@ func UserGet(httpClient *http.Client) toolsets.ToolWrapper {
 			if err != nil {
 				return helpers.HandleAPIError(err, "failed to get user")
 			}
-			return helpers.NewToolResultJSON(user)
+			return newToolResultJSON(user)
 		},
 	}
 }
@@ -160,7 +160,7 @@ func UserList(httpClient *http.Client) toolsets.ToolWrapper {
 			if err != nil {
 				return helpers.HandleAPIError(err, "failed to list users")
 			}
-			return helpers.NewToolResultJSON(users)
+			return newToolResultJSON(users)
 		},
 	}
 }

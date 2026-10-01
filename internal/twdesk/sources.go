@@ -63,7 +63,7 @@ func SourceList(httpClient *http.Client) toolsets.ToolWrapper {
 			if err != nil {
 				return helpers.HandleAPIError(err, "failed to list ticket sources")
 			}
-			return helpers.NewToolResultJSON(*sources)
+			return newToolResultJSON(*sources)
 		},
 	}
 }

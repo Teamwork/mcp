@@ -64,7 +64,7 @@ func HappinessRatingOptionList(httpClient *http.Client) toolsets.ToolWrapper {
 			if err != nil {
 				return helpers.HandleAPIError(err, "failed to list happiness rating options")
 			}
-			return helpers.NewToolResultJSON(*options)
+			return newToolResultJSON(*options)
 		},
 	}
 }

@@ -61,7 +61,7 @@ func CompanyGet(httpClient *http.Client) toolsets.ToolWrapper {
 				return helpers.HandleAPIError(err, "failed to get company")
 			}
 
-			return helpers.NewToolResultJSON(company)
+			return newToolResultJSON(company)
 		},
 	}
 }
@@ -143,7 +143,7 @@ func CompanyList(httpClient *http.Client) toolsets.ToolWrapper {
 			if err != nil {
 				return helpers.HandleAPIError(err, "failed to list companies")
 			}
-			return helpers.NewToolResultJSON(companies)
+			return newToolResultJSON(companies)
 		},
 	}
 }

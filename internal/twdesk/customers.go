@@ -61,7 +61,7 @@ func CustomerGet(httpClient *http.Client) toolsets.ToolWrapper {
 				return helpers.HandleAPIError(err, "failed to get customer")
 			}
 
-			return helpers.NewToolResultJSON(customer)
+			return newToolResultJSON(customer)
 		},
 	}
 }
@@ -144,7 +144,7 @@ func CustomerList(httpClient *http.Client) toolsets.ToolWrapper {
 				return helpers.HandleAPIError(err, "failed to list customers")
 			}
 
-			return helpers.NewToolResultJSON(customers)
+			return newToolResultJSON(customers)
 		},
 	}
 }

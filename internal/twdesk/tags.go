@@ -60,7 +60,7 @@ func TagGet(httpClient *http.Client) toolsets.ToolWrapper {
 			if err != nil {
 				return helpers.HandleAPIError(err, "failed to get tag")
 			}
-			return helpers.NewToolResultJSON(tag)
+			return newToolResultJSON(tag)
 		},
 	}
 }
@@ -140,7 +140,7 @@ func TagList(httpClient *http.Client) toolsets.ToolWrapper {
 			if err != nil {
 				return helpers.HandleAPIError(err, "failed to list tags")
 			}
-			return helpers.NewToolResultJSON(tags)
+			return newToolResultJSON(tags)
 		},
 	}
 }
