@@ -83,7 +83,7 @@ func CustomFieldList(httpClient *http.Client) toolsets.ToolWrapper {
 			if err != nil {
 				return helpers.HandleAPIError(err, "failed to list custom fields")
 			}
-			return helpers.NewToolResultJSON(*fields)
+			return newToolResultJSON(*fields)
 		},
 	}
 }

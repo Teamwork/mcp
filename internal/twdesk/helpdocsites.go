@@ -57,7 +57,7 @@ func HelpDocSiteGet(httpClient *http.Client) toolsets.ToolWrapper {
 			if err != nil {
 				return helpers.HandleAPIError(err, "failed to get help doc site")
 			}
-			return helpers.NewToolResultJSON(site)
+			return newToolResultJSON(site)
 		},
 	}
 }
@@ -128,7 +128,7 @@ func HelpDocSiteList(httpClient *http.Client) toolsets.ToolWrapper {
 			if err != nil {
 				return helpers.HandleAPIError(err, "failed to list help doc sites")
 			}
-			return helpers.NewToolResultJSON(sites)
+			return newToolResultJSON(sites)
 		},
 	}
 }

@@ -60,7 +60,7 @@ func PriorityGet(httpClient *http.Client) toolsets.ToolWrapper {
 			if err != nil {
 				return helpers.HandleAPIError(err, "failed to get priority")
 			}
-			return helpers.NewToolResultJSON(priority)
+			return newToolResultJSON(priority)
 		},
 	}
 }
@@ -129,7 +129,7 @@ func PriorityList(httpClient *http.Client) toolsets.ToolWrapper {
 			if err != nil {
 				return helpers.HandleAPIError(err, "failed to list priorities")
 			}
-			return helpers.NewToolResultJSON(priorities)
+			return newToolResultJSON(priorities)
 		},
 	}
 }

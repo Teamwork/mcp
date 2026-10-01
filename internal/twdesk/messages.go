@@ -100,7 +100,7 @@ func MessageCreate(httpClient *http.Client) toolsets.ToolWrapper {
 				return helpers.HandleAPIError(err, "failed to create message")
 			}
 
-			return helpers.NewToolResultJSON(message)
+			return newToolResultJSON(message)
 		},
 	}
 }

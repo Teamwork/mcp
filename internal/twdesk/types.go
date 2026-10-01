@@ -60,7 +60,7 @@ func TypeGet(httpClient *http.Client) toolsets.ToolWrapper {
 			if err != nil {
 				return helpers.HandleAPIError(err, "failed to get type")
 			}
-			return helpers.NewToolResultJSON(t)
+			return newToolResultJSON(t)
 		},
 	}
 }
@@ -129,7 +129,7 @@ func TypeList(httpClient *http.Client) toolsets.ToolWrapper {
 			if err != nil {
 				return helpers.HandleAPIError(err, "failed to list types")
 			}
-			return helpers.NewToolResultJSON(types)
+			return newToolResultJSON(types)
 		},
 	}
 }

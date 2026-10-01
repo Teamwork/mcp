@@ -224,7 +224,7 @@ func HelpDocArticleSearch(httpClient *http.Client) toolsets.ToolWrapper {
 // helpDocArticleResult answers with the article payload plus a meta.webLink on
 // every article it carries, on both the text and the structured content.
 func helpDocArticleResult(ctx context.Context, payload any) (*mcp.CallToolResult, error) {
-	encoded, err := json.Marshal(payload)
+	encoded, decoded, err := minimizeDeskResponse(payload)
 	if err != nil {
 		return helpers.NewToolResultTextError("failed to encode help doc article: %s", err.Error()), nil
 	}
@@ -234,7 +234,7 @@ func helpDocArticleResult(ctx context.Context, payload any) (*mcp.CallToolResult
 				Text: string(helpers.WebLinker(ctx, encoded, helpDocArticlePathBuilder)),
 			},
 		},
-		StructuredContent: helpers.StructuredWebLinker(ctx, payload, helpDocArticlePathBuilder),
+		StructuredContent: helpers.StructuredWebLinker(ctx, decoded, helpDocArticlePathBuilder),
 	}, nil
 }
 
@@ -594,7 +594,7 @@ func HelpDocCategoryList(httpClient *http.Client) toolsets.ToolWrapper {
 			if err != nil {
 				return helpers.HandleAPIError(err, "failed to list help doc categories")
 			}
-			return helpers.NewToolResultJSON(*categories)
+			return newToolResultJSON(*categories)
 		},
 	}
 }

@@ -61,7 +61,7 @@ func StatusGet(httpClient *http.Client) toolsets.ToolWrapper {
 				return helpers.HandleAPIError(err, "failed to get status")
 			}
 
-			return helpers.NewToolResultJSON(status)
+			return newToolResultJSON(status)
 		},
 	}
 }
@@ -141,7 +141,7 @@ func StatusList(httpClient *http.Client) toolsets.ToolWrapper {
 			if err != nil {
 				return helpers.HandleAPIError(err, "failed to list statuses")
 			}
-			return helpers.NewToolResultJSON(statuses)
+			return newToolResultJSON(statuses)
 		},
 	}
 }

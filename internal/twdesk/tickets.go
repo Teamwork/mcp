@@ -70,7 +70,7 @@ func TicketGet(httpClient *http.Client) toolsets.ToolWrapper {
 				return helpers.HandleAPIError(err, "failed to get ticket")
 			}
 
-			encoded, err := json.Marshal(ticket)
+			encoded, decoded, err := minimizeDeskResponse(ticket)
 			if err != nil {
 				return helpers.NewToolResultTextError("failed to encode ticket: %s", err.Error()), nil
 			}
@@ -83,7 +83,7 @@ func TicketGet(httpClient *http.Client) toolsets.ToolWrapper {
 						)),
 					},
 				},
-				StructuredContent: helpers.StructuredWebLinker(ctx, ticket,
+				StructuredContent: helpers.StructuredWebLinker(ctx, decoded,
 					helpers.WebLinkerWithIDPathBuilder("/desk/tickets"),
 				),
 			}, nil
@@ -689,13 +689,13 @@ func TicketSearch(httpClient *http.Client) toolsets.ToolWrapper {
 				return helpers.HandleAPIError(err, "failed to search tickets")
 			}
 			if len(fields) == 0 {
-				return helpers.NewToolResultJSON(tickets)
+				return newToolResultJSON(tickets)
 			}
 			trimmed, err := trimTicketFields(tickets, fields)
 			if err != nil {
 				return helpers.NewToolResultTextError("failed to encode tickets: %s", err.Error()), nil
 			}
-			return helpers.NewToolResultJSON(trimmed)
+			return newToolResultJSON(trimmed)
 		},
 	}
 }
@@ -929,7 +929,7 @@ func TicketCreate(httpClient *http.Client) toolsets.ToolWrapper {
 			if err != nil {
 				return helpers.HandleAPIError(err, "failed to create ticket")
 			}
-			return helpers.NewToolResultJSON(ticket)
+			return newToolResultJSON(ticket)
 		},
 	}
 }
@@ -1110,7 +1110,7 @@ func TicketUpdate(httpClient *http.Client) toolsets.ToolWrapper {
 			if err != nil {
 				return helpers.HandleAPIError(err, "failed to update ticket")
 			}
-			return helpers.NewToolResultJSON(ticket)
+			return newToolResultJSON(ticket)
 		},
 	}
 }

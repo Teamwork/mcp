@@ -57,7 +57,7 @@ func InboxGet(httpClient *http.Client) toolsets.ToolWrapper {
 			if err != nil {
 				return helpers.HandleAPIError(err, "failed to get inbox")
 			}
-			return helpers.NewToolResultJSON(inbox)
+			return newToolResultJSON(inbox)
 		},
 	}
 }
@@ -126,7 +126,7 @@ func InboxList(httpClient *http.Client) toolsets.ToolWrapper {
 			if err != nil {
 				return helpers.HandleAPIError(err, "failed to list inboxes")
 			}
-			return helpers.NewToolResultJSON(inboxes)
+			return newToolResultJSON(inboxes)
 		},
 	}
 }
