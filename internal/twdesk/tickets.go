@@ -1089,6 +1089,11 @@ func TicketUpdate(httpClient *http.Client) toolsets.ToolWrapper {
 				data.CC = arguments.GetStringSlice("cc", []string{})
 			}
 
+			priorityID := arguments.GetInt("priorityId", 0)
+			if priorityID > 0 {
+				data.Priority = &deskmodels.EntityRef{ID: priorityID}
+			}
+
 			statusID := arguments.GetInt("statusId", 0)
 			if statusID > 0 {
 				data.Status = &deskmodels.EntityRef{ID: statusID}
