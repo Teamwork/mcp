@@ -2,6 +2,7 @@
 package twdesk_test
 
 import (
+	"encoding/json"
 	"net/http"
 	"slices"
 	"strings"
@@ -53,6 +54,36 @@ func TestTicketUpdate(t *testing.T) {
 		"typeId":     float64(2),
 		"agentId":    nil,
 	})
+}
+
+// TestTicketUpdatePriorityReachesTheWire pins priorityId on the request body,
+// since the mock answers the same body whether it is sent or not.
+func TestTicketUpdatePriorityReachesTheWire(t *testing.T) {
+	mcpServer, lastRequest, cleanup := testutil.DeskMCPServerMockWithRequestBody(t, http.StatusOK,
+		[]byte(`{"ticket":{"id":123}}`))
+	defer cleanup()
+
+	testutil.ExecuteToolRequest(t, mcpServer, twdesk.MethodTicketUpdate.String(), map[string]any{
+		"id": float64(123), "subject": nil, "body": nil, "tags": nil, "deleteTags": nil,
+		"cc": nil, "bcc": nil, "inboxId": nil, "priorityId": float64(8),
+		"statusId": nil, "typeId": nil, "agentId": nil,
+	})
+
+	_, _, body := lastRequest()
+
+	var sent struct {
+		Ticket struct {
+			Priority *struct {
+				ID int `json:"id"`
+			} `json:"priority"`
+		} `json:"ticket"`
+	}
+	if err := json.Unmarshal(body, &sent); err != nil {
+		t.Fatalf("failed to decode request body %q: %v", body, err)
+	}
+	if sent.Ticket.Priority == nil || sent.Ticket.Priority.ID != 8 {
+		t.Errorf("expected priority 8 in the body, got %s", body)
+	}
 }
 
 func TestTicketGet(t *testing.T) {
@@ -348,6 +379,7 @@ func TestTicketSearchFiltersReachTheWire(t *testing.T) {
 		"taskID":                 float64(10),
 		"projectID":              float64(11),
 		"exact":                  true,
+		"priorityIDs":            []float64{12, 13},
 	}))
 
 	requestURL := lastRequestURL()
@@ -368,6 +400,7 @@ func TestTicketSearchFiltersReachTheWire(t *testing.T) {
 		"task":                  {"10"},
 		"project":               {"11"},
 		"exact":                 {"true"},
+		"priorities":            {"12", "13"},
 	} {
 		if got := query[key]; !slices.Equal(got, want) {
 			t.Errorf("query parameter %q: got %v, want %v", key, got, want)
