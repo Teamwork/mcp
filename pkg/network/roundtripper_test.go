@@ -199,3 +199,53 @@ func TestPresignedSplitTransportRoutesByURL(t *testing.T) {
 		})
 	}
 }
+
+func TestHostSplitTransportRoutesByHost(t *testing.T) {
+	base, matched := &stubTransport{}, &stubTransport{}
+	transport := &network.HostSplitTransport{
+		Host:    "haproxy.internal:8443",
+		Matched: matched,
+		Base:    base,
+	}
+
+	for _, tt := range []struct {
+		name string
+		url  string
+		want *stubTransport
+	}{{
+		name: "haproxy host",
+		url:  "https://haproxy.internal:8443/projects/api/v3/tasks.json",
+		want: matched,
+	}, {
+		name: "haproxy host in another case",
+		url:  "https://HAProxy.Internal:8443/projects/api/v3/tasks.json",
+		want: matched,
+	}, {
+		name: "same host on another port",
+		url:  "https://haproxy.internal/projects/api/v3/tasks.json",
+		want: base,
+	}, {
+		name: "customer host",
+		url:  "https://example.com/desk/api/v2/tickets.json",
+		want: base,
+	}, {
+		name: "presigned upload",
+		url:  presignedUploadURL,
+		want: base,
+	}} {
+		t.Run(tt.name, func(t *testing.T) {
+			base.seen, matched.seen = nil, nil
+
+			request, err := http.NewRequest(http.MethodGet, tt.url, nil)
+			if err != nil {
+				t.Fatalf("failed to build the request: %v", err)
+			}
+			if _, err := transport.RoundTrip(request); err != nil {
+				t.Fatalf("round trip failed: %v", err)
+			}
+			if tt.want.seen == nil {
+				t.Error("expected the request to reach the other transport")
+			}
+		})
+	}
+}
