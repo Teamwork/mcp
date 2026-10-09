@@ -89,15 +89,17 @@ func Load(logOutput io.Writer, opts ...Option) (Resources, func()) {
 			haProxyURL = nil
 
 		} else {
-			// disable TLS verification when using HAProxy, as the certificate won't
-			// match the internal address. Pre-signed storage uploads keep it: they
-			// are not rerouted, so their certificate does match.
-			resources.teamworkHTTPClient.Transport = &network.PresignedSplitTransport{
-				Base: &http.Transport{
-					TLSClientConfig: &tls.Config{
-						InsecureSkipVerify: true,
-					},
-				},
+			// The HAProxy certificate won't match its internal address, so only
+			// requests rerouted there skip verification. Everything else on this
+			// client (Desk, Spaces, token validation, cross-region and pre-signed
+			// requests) goes to its real host and is verified.
+			insecure := http.DefaultTransport.(*http.Transport).Clone()
+			insecure.TLSClientConfig = &tls.Config{
+				InsecureSkipVerify: true, //nolint:gosec // HAProxy host only
+			}
+			resources.teamworkHTTPClient.Transport = &network.HostSplitTransport{
+				Host:    haProxyURL.Host,
+				Matched: insecure,
 			}
 
 			resources.logger.Info("using HAProxy for Teamwork API requests",

@@ -13,12 +13,35 @@ import (
 	"github.com/teamwork/mcp/pkg/request"
 )
 
+// HostSplitTransport sends requests addressed to Host (as host[:port]) through
+// Matched and everything else through Base.
+//
+// It exists because the HAProxy setup relaxes TLS verification: the internal
+// address does not match the certificate. That concession is for requests
+// rerouted to HAProxy only; any other host must still be verified.
+type HostSplitTransport struct {
+	Host    string
+	Matched http.RoundTripper
+	Base    http.RoundTripper
+}
+
+// RoundTrip implements the RoundTripper interface.
+func (t *HostSplitTransport) RoundTrip(r *http.Request) (*http.Response, error) {
+	transport := t.Base
+	if t.Host != "" && strings.EqualFold(r.URL.Host, t.Host) {
+		transport = t.Matched
+	}
+	if transport == nil {
+		transport = http.DefaultTransport
+	}
+	return transport.RoundTrip(r)
+}
+
 // PresignedSplitTransport sends pre-signed storage requests through Presigned
 // and everything else through Base.
 //
-// It exists because the HAProxy setup relaxes TLS verification: the internal
-// address does not match the certificate. That concession is for the API, not
-// for a request leaving to storage, whose host is genuine.
+// Deprecated: it keeps verification for storage only, so a relaxed Base also
+// reaches every other host unverified. Use HostSplitTransport.
 type PresignedSplitTransport struct {
 	Base      http.RoundTripper
 	Presigned http.RoundTripper

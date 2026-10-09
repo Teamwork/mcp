@@ -1,10 +1,17 @@
 package config
 
 import (
+	"context"
+	"crypto/tls"
+	"errors"
 	"io"
+	"log"
 	"net/http"
+	"net/http/httptest"
 	"strings"
 	"testing"
+
+	"github.com/teamwork/mcp/pkg/twctx"
 )
 
 // captureTransport records the URL a request carried once the engine's
@@ -66,4 +73,79 @@ func TestHAProxyLeavesPresignedURLsAlone(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestHAProxyKeepsTLSVerificationForOtherHosts(t *testing.T) {
+	// Both servers present a certificate nobody trusts. Only the one standing
+	// in for HAProxy may be reached without verification.
+	haproxy, public := newUntrustedServer(t), newUntrustedServer(t)
+
+	t.Setenv("TW_MCP_HAPROXY_URL", haproxy.URL)
+
+	resources, closer := Load(io.Discard)
+	defer closer()
+
+	// The customer host is unreachable here; the engine reroutes it anyway.
+	const apiURL = "https://example.com/projects/api/v3/tasks.json"
+
+	for _, tt := range []struct {
+		name    string
+		do      func(*http.Request) (*http.Response, error)
+		url     string
+		ctx     func(context.Context) context.Context
+		wantErr bool
+	}{{
+		name: "engine request rerouted to haproxy",
+		do:   resources.teamworkEngine.Do,
+		url:  apiURL,
+	}, {
+		name: "cross-region engine request",
+		do:   resources.teamworkEngine.Do,
+		url:  public.URL,
+		ctx: func(ctx context.Context) context.Context {
+			return twctx.WithCrossRegion(ctx, true)
+		},
+		wantErr: true,
+	}, {
+		// Desk, Spaces and token validation use the client directly.
+		name:    "client request to another host",
+		do:      resources.teamworkHTTPClient.Do,
+		url:     public.URL,
+		wantErr: true,
+	}} {
+		t.Run(tt.name, func(t *testing.T) {
+			ctx := context.Background()
+			if tt.ctx != nil {
+				ctx = tt.ctx(ctx)
+			}
+			request, err := http.NewRequestWithContext(ctx, http.MethodGet, tt.url, nil)
+			if err != nil {
+				t.Fatalf("failed to build the request: %v", err)
+			}
+			resp, err := tt.do(request)
+			if resp != nil {
+				_ = resp.Body.Close()
+			}
+
+			_, certErr := errors.AsType[*tls.CertificateVerificationError](err)
+			switch {
+			case tt.wantErr && !certErr:
+				t.Errorf("expected a certificate verification error, got %v", err)
+			case !tt.wantErr && err != nil:
+				t.Errorf("expected the request to succeed, got %v", err)
+			}
+		})
+	}
+}
+
+// newUntrustedServer starts a TLS server with a self-signed certificate, which
+// no client verifying certificates accepts.
+func newUntrustedServer(t *testing.T) *httptest.Server {
+	t.Helper()
+	server := httptest.NewUnstartedServer(http.HandlerFunc(func(http.ResponseWriter, *http.Request) {}))
+	// the rejected handshakes are expected; keep them out of the test output
+	server.Config.ErrorLog = log.New(io.Discard, "", 0)
+	server.StartTLS()
+	t.Cleanup(server.Close)
+	return server
 }
