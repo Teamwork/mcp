@@ -20,8 +20,8 @@ Edit `$HOME/.gemini/settings.json` and add the `mcpServers` block:
     "Teamwork.com": {
       "url": "https://mcp.ai.teamwork.com",
       "type": "http",
-      "oauth": {
-        "scopes": ["projects","desk"]
+      "headers": {
+        "Authorization": "Bearer <token>"
       },
       "trust": false,
       "timeout": 5000,
@@ -30,6 +30,10 @@ Edit `$HOME/.gemini/settings.json` and add the `mcpServers` block:
   }
 }
 ```
+
+You won't be able to use OAuth 2.0 DCR since Teamwork.com MCP server now blocks
+loopback redirects. You can generate the `<token>` from your Teamwork.com
+account following [these steps](teamwork-cli.md#get-a-bearer-token).
 
 > [!NOTE]
 > This configuration is for Gemini CLI v0.36.0. If you're using a different
