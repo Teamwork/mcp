@@ -267,6 +267,7 @@ var additiveWriteTools = map[string]bool{
 	"twprojects-clone_project":             true,
 	"twprojects-create_allocation":         true,
 	"twprojects-create_company":            true,
+	"twprojects-create_companies":          true,
 	"twprojects-create_custom_field":       true,
 	"twprojects-create_custom_item":        true,
 	"twprojects-create_custom_item_field":  true,
