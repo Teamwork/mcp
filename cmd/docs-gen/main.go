@@ -80,6 +80,7 @@ var forceOther = map[string]bool{
 	"create_tasks":               true,
 	"update_tasks":               true,
 	"create_custom_field_values": true,
+	"create_custom_item_records": true,
 }
 
 // displayOverrides maps resource/toolset slugs whose default title-casing reads
