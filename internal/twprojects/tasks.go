@@ -1184,8 +1184,9 @@ func TaskCompleteBatch(engine *twapi.Engine) toolsets.ToolWrapper {
 				"found, no permission, or an incomplete predecessor). A task that was already complete counts "+
 				"as completed.", taskCompleteBatchMaxTasks),
 			Annotations: &mcp.ToolAnnotations{
-				Title:           "Complete Tasks",
-				DestructiveHint: new(true),
+				Title: "Complete Tasks",
+				// Reversible, like complete_task: uncomplete_task undoes it.
+				DestructiveHint: new(false),
 				OpenWorldHint:   new(false),
 			},
 			InputSchema: &jsonschema.Schema{

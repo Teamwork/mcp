@@ -350,12 +350,12 @@ func companyBulkCreateErrorFailures(err error) []projects.CompanyBulkCreateFailu
 		return nil
 	}
 	var body struct {
-		Errors []projects.CompanyBulkCreateError `json:"errors"`
+		Errors []twapi.V3Error `json:"errors"`
 	}
 	if json.Unmarshal([]byte(httpErr.Details), &body) != nil || len(body.Errors) == 0 {
 		return nil
 	}
-	byIndex := make(map[int][]projects.CompanyBulkCreateError)
+	byIndex := make(map[int][]twapi.V3Error)
 	for _, entry := range body.Errors {
 		index, ok := entry.Meta["index"].(float64)
 		if !ok {

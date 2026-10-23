@@ -177,8 +177,9 @@ func UserCreateBatch(engine *twapi.Engine) toolsets.ToolWrapper {
 			Annotations: &mcp.ToolAnnotations{
 				Title: "Create Users",
 				// Invitations are off by default, but the caller can turn them on,
-				// and they email any address.
-				DestructiveHint: new(true),
+				// and they email any address. Like create_user, adding people and
+				// inviting them is not destructive.
+				DestructiveHint: new(false),
 				OpenWorldHint:   new(true),
 			},
 			InputSchema: &jsonschema.Schema{

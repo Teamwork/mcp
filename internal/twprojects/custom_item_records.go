@@ -540,7 +540,7 @@ func customItemRecordBatchRejection(err error) ([]projects.CustomItemRecordBulkC
 		return nil, false
 	}
 	var body struct {
-		Errors []projects.CustomItemRecordBulkCreateError `json:"errors"`
+		Errors []twapi.V3Error `json:"errors"`
 	}
 	if json.Unmarshal([]byte(httpErr.Details), &body) != nil || len(body.Errors) == 0 {
 		return nil, false
@@ -628,7 +628,7 @@ func customItemRecordBatchReport(
 
 // customItemRecordBatchReason renders one API error for a failed record, with
 // any detail the endpoint attached other than the record's own index.
-func customItemRecordBatchReason(apiErr projects.CustomItemRecordBulkCreateError) string {
+func customItemRecordBatchReason(apiErr twapi.V3Error) string {
 	reason := apiErr.Detail
 	if apiErr.Title != "" {
 		reason = apiErr.Title + ": " + reason

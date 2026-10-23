@@ -38,7 +38,7 @@ Users, companies, teams, skills, and job roles in Teamwork.com.
 | User | ✓ | ✓ | ✓ | ✓ |
 | Current User (me) | — | ✓ | — | — |
 
-**Other actions:** `clear_user_jobrole`, `create_users`, `set_user_jobrole`
+**Other actions:** `clear_user_jobrole`, `create_companies`, `create_users`, `set_user_jobrole`
 
 ### Planning — `twprojects-planning`
 
@@ -69,7 +69,7 @@ Project, category, template, member, custom field, and custom item (user-defined
 | File | ✓ | — | — | — |
 | Upload Url | ✓ | — | — | — |
 
-**Other actions:** `add_project_file`, `add_project_member`, `clone_project`, `count_projects`, `create_custom_field_values`, `update_custom_field_values`
+**Other actions:** `add_project_file`, `add_project_member`, `clone_project`, `count_projects`, `create_custom_field_values`, `create_custom_item_records`, `update_custom_field_values`
 
 ### Tasks — `twprojects-tasks`
 
