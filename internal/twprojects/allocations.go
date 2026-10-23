@@ -3,9 +3,11 @@ package twprojects
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 
 	"github.com/google/jsonschema-go/jsonschema"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
@@ -21,14 +23,15 @@ import (
 // The naming convention for methods follows a pattern described here:
 // https://github.com/github/github-mcp-server/issues/333
 const (
-	MethodAllocationCreate     toolsets.Method = "twprojects-create_allocation"
-	MethodAllocationUpdate     toolsets.Method = "twprojects-update_allocation"
-	MethodAllocationDelete     toolsets.Method = "twprojects-delete_allocation"
-	MethodAllocationRestore    toolsets.Method = "twprojects-restore_allocation"
-	MethodAllocationTaskLink   toolsets.Method = "twprojects-link_task_to_allocation"
-	MethodAllocationTaskUnlink toolsets.Method = "twprojects-unlink_task_from_allocation"
-	MethodAllocationGet        toolsets.Method = "twprojects-get_allocation"
-	MethodAllocationList       toolsets.Method = "twprojects-list_allocations"
+	MethodAllocationCreate      toolsets.Method = "twprojects-create_allocation"
+	MethodAllocationCreateBatch toolsets.Method = "twprojects-create_allocations"
+	MethodAllocationUpdate      toolsets.Method = "twprojects-update_allocation"
+	MethodAllocationDelete      toolsets.Method = "twprojects-delete_allocation"
+	MethodAllocationRestore     toolsets.Method = "twprojects-restore_allocation"
+	MethodAllocationTaskLink    toolsets.Method = "twprojects-link_task_to_allocation"
+	MethodAllocationTaskUnlink  toolsets.Method = "twprojects-unlink_task_from_allocation"
+	MethodAllocationGet         toolsets.Method = "twprojects-get_allocation"
+	MethodAllocationList        toolsets.Method = "twprojects-list_allocations"
 )
 
 // allocationWebPath is the in-app route of an allocation's quick view.
@@ -292,6 +295,156 @@ func AllocationCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 				allocation.Allocation.ID), nil
 		},
 	}
+}
+
+// allocationCreateBatchMaxItems bounds create_allocations. The endpoint takes the
+// whole list in one request and validates every item before answering, so a
+// longer list is a slower call with more ways to be rejected as a whole.
+const allocationCreateBatchMaxItems = 50
+
+// AllocationCreateBatch creates many allocations in Teamwork.com in one request.
+//
+// Unlike the other batch tools it does not fan out: the allocations bulk route
+// takes the whole list in one request, and it is all or nothing, so the result
+// is either every new ID or the item that stopped the batch.
+func AllocationCreateBatch(engine *twapi.Engine) toolsets.ToolWrapper {
+	itemSchema := batchItemSchema(AllocationCreate(engine).Tool.InputSchema)
+	return toolsets.ToolWrapper{
+		Tool: &mcp.Tool{
+			Name: string(MethodAllocationCreateBatch),
+			Description: fmt.Sprintf("Create up to %d allocations in one request. Use instead of calling "+
+				"twprojects-create_allocation in a loop. The batch is ALL OR NOTHING: if any allocation is "+
+				"rejected, none is created, and the result names the first rejected item and why. Fix that item "+
+				"and send the whole list again; a later item can still be rejected on the next attempt. On "+
+				"success the result lists the new allocation ID of each item, in order.",
+				allocationCreateBatchMaxItems),
+			Annotations: &mcp.ToolAnnotations{
+				Title:           "Create Allocations",
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
+			},
+			InputSchema: &jsonschema.Schema{
+				Type: "object",
+				Properties: map[string]*jsonschema.Schema{
+					"allocations": {
+						Type:     "array",
+						Items:    itemSchema,
+						MinItems: new(1),
+						MaxItems: new(allocationCreateBatchMaxItems),
+						Description: fmt.Sprintf("The allocations to create, at most %d, each with the "+
+							"parameters of twprojects-create_allocation.", allocationCreateBatchMaxItems),
+					},
+				},
+				Required: []string{"allocations"},
+			},
+		},
+		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+			var arguments map[string]any
+			if err := json.Unmarshal(request.Params.Arguments, &arguments); err != nil {
+				return helpers.NewToolResultTextError("failed to decode request: %s", err.Error()), nil
+			}
+			items, toolResult := batchItems(arguments, "allocations", allocationCreateBatchMaxItems)
+			if toolResult != nil {
+				return toolResult, nil
+			}
+
+			upserts := make([]projects.AllocationUpsert, len(items))
+			labels := make([]string, len(items))
+			var invalid []string
+			for i, item := range items {
+				title, _ := item["title"].(string)
+				labels[i] = fmt.Sprintf("item %d %q", i+1, title)
+
+				if err := helpers.ParamGroup(item, allocationUpsertParams(&upserts[i])...); err != nil {
+					invalid = append(invalid, fmt.Sprintf("item %d: %s", i+1, err.Error()))
+					continue
+				}
+				// Default the report on, as create_allocation does.
+				if upserts[i].InformOfOverAllocation == nil {
+					upserts[i].InformOfOverAllocation = new(true)
+				}
+			}
+			if len(invalid) > 0 {
+				return batchInvalidItems(invalid), nil
+			}
+
+			response, err := projects.AllocationBulkCreate(ctx, engine, projects.NewAllocationBulkCreateRequest(upserts...))
+			if err != nil {
+				return allocationCreateBatchFailure(err, labels)
+			}
+			if len(response.Allocations) != len(upserts) {
+				return helpers.NewToolResultTextError("The API answered with %d allocations for %d requested; "+
+					"check with %s before sending the list again.",
+					len(response.Allocations), len(upserts), MethodAllocationList), nil
+			}
+
+			created := make([]string, len(response.Allocations))
+			var overAllocated []string
+			for i, allocation := range response.Allocations {
+				created[i] = fmt.Sprintf("%s → allocation %d", labels[i], allocation.ID)
+				if allocation.OverAllocated {
+					overAllocated = append(overAllocated, labels[i])
+				}
+			}
+			var report strings.Builder
+			fmt.Fprintf(&report, "Created %d allocations: %s.", len(created), strings.Join(created, ", "))
+			if len(overAllocated) > 0 {
+				fmt.Fprintf(&report, "\nThese put the assigned user over their capacity for the period: %s.",
+					strings.Join(overAllocated, ", "))
+			}
+			return helpers.NewToolResultText("%s", report.String()), nil
+		},
+	}
+}
+
+// allocationCreateBatchFailure reports a failed bulk create. Every answer from
+// the API means nothing was created, so the result says so and names the item
+// the API rejected when it identifies one. An error with no answer behind it
+// leaves the outcome unknown, so it is returned as such.
+func allocationCreateBatchFailure(err error, labels []string) (*mcp.CallToolResult, error) {
+	const nothingCreated = "No allocations were created: the batch is all or nothing."
+
+	if bulkErr, ok := errors.AsType[*projects.AllocationBulkCreateError](err); ok {
+		label := fmt.Sprintf("item %d", bulkErr.Index+1)
+		if bulkErr.Index >= 0 && bulkErr.Index < len(labels) {
+			label = labels[bulkErr.Index]
+		}
+		return helpers.NewToolResultTextError("%s The API rejected %s (status %d): %s. Fix it and send the "+
+			"whole list again.", nothingCreated, label, bulkErr.StatusCode, apiErrorDetails(bulkErr.Details)), nil
+	}
+	if httpErr, ok := errors.AsType[*twapi.HTTPError](err); ok {
+		return helpers.NewToolResultTextError("%s The API rejected the batch as a whole (status %d): %s.",
+			nothingCreated, httpErr.StatusCode, apiErrorDetails(httpErr.Details)), nil
+	}
+	return helpers.HandleAPIError(err, "failed to create allocations; the batch was created in full or not at "+
+		"all, so check with "+string(MethodAllocationList)+" before sending it again")
+}
+
+// apiErrorDetails joins the detail of each entry of a v3 error body
+// ({"errors":[{"title":…,"detail":…}]}), falling back to the body as sent.
+func apiErrorDetails(body string) string {
+	var payload struct {
+		Errors []struct {
+			Title  string `json:"title"`
+			Detail string `json:"detail"`
+		} `json:"errors"`
+	}
+	if err := json.Unmarshal([]byte(body), &payload); err != nil || len(payload.Errors) == 0 {
+		return body
+	}
+	details := make([]string, 0, len(payload.Errors))
+	for _, entry := range payload.Errors {
+		switch {
+		case entry.Detail != "":
+			details = append(details, entry.Detail)
+		case entry.Title != "":
+			details = append(details, entry.Title)
+		}
+	}
+	if len(details) == 0 {
+		return body
+	}
+	return strings.Join(details, "; ")
 }
 
 // AllocationUpdate updates an allocation in Teamwork.com.
