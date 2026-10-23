@@ -81,6 +81,7 @@ var forceOther = map[string]bool{
 	"update_tasks":               true,
 	"create_custom_field_values": true,
 	"create_allocations":         true,
+	"create_custom_item_records": true,
 	"update_custom_field_values": true,
 }
 

@@ -72,6 +72,7 @@ func DefaultToolsetGroup(readOnly, allowDelete bool, engine *twapi.Engine) *tool
 		CustomItemFieldCreate(engine),
 		CustomItemFieldUpdate(engine),
 		CustomItemRecordCreate(engine),
+		CustomItemRecordCreateBatch(engine),
 		CustomItemRecordUpdate(engine),
 	}
 	if allowDelete {
