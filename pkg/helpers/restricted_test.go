@@ -18,3 +18,18 @@ func TestRedactKeysIsCaseInsensitiveAndDeep(t *testing.T) {
 		t.Errorf("got %s, want %s", got, want)
 	}
 }
+
+// OpenAI's review cited these on a list_tasks row.
+func TestRedactKeysDropsRecordAttribution(t *testing.T) {
+	var value any
+	body := `{"tasks":[{"id":12345,"name":"Task","createdBy":777,"createdByUserId":777,` +
+		`"updatedBy":777,"completedBy":777,"commentFollowers":[{"id":777,"type":"users"}]}]}`
+	if err := json.Unmarshal([]byte(body), &value); err != nil {
+		t.Fatal(err)
+	}
+	RedactKeys(value, RestrictedDataKeys)
+	got, _ := json.Marshal(value)
+	if want := `{"tasks":[{"id":12345,"name":"Task"}]}`; string(got) != want {
+		t.Errorf("got %s, want %s", got, want)
+	}
+}

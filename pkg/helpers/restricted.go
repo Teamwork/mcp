@@ -10,9 +10,10 @@ import (
 // RestrictedDataKeys are the attribute names, compared case-insensitively,
 // that a tool result for a restricted installation never carries, at any
 // depth: contact details, profile pictures, timezones and activity times,
-// personal cost rates, message and event recipients, free-text notes about a
-// person, and internal identifiers. Names, titles, roles and record IDs stay,
-// since no request about people can be answered without them.
+// personal cost rates, message and event recipients, who created, changed or
+// follows a record, free-text notes about a person, and internal identifiers.
+// Names, titles, roles and record IDs stay, since no request about people can
+// be answered without them.
 var RestrictedDataKeys = NewKeySet(
 	// contact details
 	"email", "emails", "emailaddress", "emailone", "emailtwo", "emailthree", "verifiedemail",
@@ -27,6 +28,10 @@ var RestrictedDataKeys = NewKeySet(
 	// recipients and participants
 	"notifieduserids", "cc", "bcc", "originalrecipient",
 	"attendees", "organizer", "eventcreator", "location", "videocalllink",
+	// who created, changed or follows a record
+	"createdby", "createdbyuserid", "updatedby", "updatedbyuserid",
+	"deletedby", "deletedbyuserid", "completedby", "completedbyuserid",
+	"commentfollowers", "changefollowers", "completefollowers",
 	// notes and identifiers kept about a person
 	"notes", "extradata", "externalid", "ldkey", "apikey", "authkey",
 )
