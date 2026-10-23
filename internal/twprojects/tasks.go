@@ -150,7 +150,7 @@ func TaskCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 			Description: "Create task in a tasklist.",
 			Annotations: &mcp.ToolAnnotations{
 				Title:           "Create Task",
-				DestructiveHint: new(true),
+				DestructiveHint: new(false),
 				OpenWorldHint:   new(false),
 			},
 			InputSchema: &jsonschema.Schema{
@@ -921,7 +921,7 @@ func TaskCreateBatch(engine *twapi.Engine) toolsets.ToolWrapper {
 				"so create parents in one call and their subtasks in the next.",
 			Annotations: &mcp.ToolAnnotations{
 				Title:           "Create Tasks",
-				DestructiveHint: new(true),
+				DestructiveHint: new(false),
 				OpenWorldHint:   new(false),
 			},
 			InputSchema: &jsonschema.Schema{
@@ -1127,7 +1127,7 @@ func TaskComplete(engine *twapi.Engine) toolsets.ToolWrapper {
 			Description: "Mark task complete.",
 			Annotations: &mcp.ToolAnnotations{
 				Title:           "Complete Task",
-				DestructiveHint: new(true),
+				DestructiveHint: new(false),
 				OpenWorldHint:   new(false),
 			},
 			InputSchema: &jsonschema.Schema{
@@ -1172,7 +1172,7 @@ func TaskUncomplete(engine *twapi.Engine) toolsets.ToolWrapper {
 			Description: "Reopen a completed task.",
 			Annotations: &mcp.ToolAnnotations{
 				Title:           "Uncomplete Task",
-				DestructiveHint: new(true),
+				DestructiveHint: new(false),
 				OpenWorldHint:   new(false),
 			},
 			InputSchema: &jsonschema.Schema{

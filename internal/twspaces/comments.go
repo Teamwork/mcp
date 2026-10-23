@@ -128,9 +128,8 @@ func CommentCreate(httpClient *http.Client) toolsets.ToolWrapper {
 		Tool: &mcp.Tool{
 			Name: string(MethodCommentCreate),
 			Annotations: &mcp.ToolAnnotations{
-				Title: "Create Comment",
-				// Page, space and thread followers and mentioned users are notified.
-				DestructiveHint: new(true),
+				Title:           "Create Comment",
+				DestructiveHint: new(false),
 				OpenWorldHint:   new(false),
 			},
 			Description: "Create comment on a page. Use parentId for replies.",

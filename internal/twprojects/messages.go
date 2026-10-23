@@ -67,7 +67,7 @@ func MessageCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 			Description: "Create message in a project.",
 			Annotations: &mcp.ToolAnnotations{
 				Title:           "Create Message",
-				DestructiveHint: new(true),
+				DestructiveHint: new(false),
 				OpenWorldHint:   new(false),
 			},
 			InputSchema: &jsonschema.Schema{
