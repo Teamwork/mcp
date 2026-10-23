@@ -407,7 +407,7 @@ func AllocationRestore(engine *twapi.Engine) toolsets.ToolWrapper {
 				"show_deleted set, since a deleted allocation is otherwise not returned.",
 			Annotations: &mcp.ToolAnnotations{
 				Title:           "Restore Allocation",
-				DestructiveHint: new(true),
+				DestructiveHint: new(false),
 				OpenWorldHint:   new(false),
 			},
 			InputSchema: &jsonschema.Schema{

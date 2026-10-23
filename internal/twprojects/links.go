@@ -71,7 +71,7 @@ func LinkCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 			Description: "Create link.",
 			Annotations: &mcp.ToolAnnotations{
 				Title:           "Create Link",
-				DestructiveHint: new(true),
+				DestructiveHint: new(false),
 				OpenWorldHint:   new(false),
 			},
 			InputSchema: &jsonschema.Schema{

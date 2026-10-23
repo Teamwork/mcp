@@ -248,11 +248,14 @@ func TestAnnotationHintsAreExplicit(t *testing.T) {
 	}
 }
 
-// additiveWriteTools are the write tools that only add records, without
-// changing existing ones or notifying anyone by default. Every other write tool
-// overwrites, removes or sends, which OpenAI's review reads as destructive.
+// additiveWriteTools are the write tools OpenAI's review reads as
+// non-destructive: they add records, send messages, notifications or emails,
+// or make a clearly reversible change. Every other write tool overwrites,
+// replaces or removes existing data.
 var additiveWriteTools = map[string]bool{
 	"twchat-get_or_create_dm":              true,
+	"twchat-send_dm":                       true,
+	"twchat-send_message":                  true,
 	"twdesk-create_company":                true,
 	"twdesk-create_customer":               true,
 	"twdesk-create_file":                   true,
@@ -265,7 +268,10 @@ var additiveWriteTools = map[string]bool{
 	"twprojects-add_project_file":          true,
 	"twprojects-add_project_member":        true,
 	"twprojects-clone_project":             true,
+	"twprojects-complete_task":             true,
+	"twprojects-complete_timer":            true,
 	"twprojects-create_allocation":         true,
+	"twprojects-create_comment":            true,
 	"twprojects-create_company":            true,
 	"twprojects-create_custom_field":       true,
 	"twprojects-create_custom_item":        true,
@@ -273,6 +279,9 @@ var additiveWriteTools = map[string]bool{
 	"twprojects-create_custom_item_record": true,
 	"twprojects-create_file":               true,
 	"twprojects-create_jobrole":            true,
+	"twprojects-create_link":               true,
+	"twprojects-create_message":            true,
+	"twprojects-create_message_reply":      true,
 	"twprojects-create_milestone":          true,
 	"twprojects-create_notebook":           true,
 	"twprojects-create_project":            true,
@@ -280,15 +289,24 @@ var additiveWriteTools = map[string]bool{
 	"twprojects-create_project_template":   true,
 	"twprojects-create_skill":              true,
 	"twprojects-create_tag":                true,
+	"twprojects-create_task":               true,
 	"twprojects-create_tasklist":           true,
+	"twprojects-create_tasks":              true,
 	"twprojects-create_team":               true,
 	"twprojects-create_timelog":            true,
+	"twprojects-create_timer":              true,
 	"twprojects-create_upload_url":         true,
+	"twprojects-create_user":               true,
 	"twprojects-create_workflow":           true,
 	"twprojects-create_workflow_stage":     true,
 	"twprojects-link_project_to_workflow":  true,
 	"twprojects-link_task_to_allocation":   true,
+	"twprojects-pause_timer":               true,
+	"twprojects-restore_allocation":        true,
+	"twprojects-resume_timer":              true,
+	"twprojects-uncomplete_task":           true,
 	"twspaces-create_category":             true,
+	"twspaces-create_comment":              true,
 	"twspaces-create_page":                 true,
 	"twspaces-create_space":                true,
 	"twspaces-create_tags":                 true,
@@ -296,8 +314,9 @@ var additiveWriteTools = map[string]bool{
 }
 
 // TestWriteToolsAreDestructiveUnlessAdditive pins OpenAI's reading of
-// destructiveHint: true for overwrites and irreversible sends, not only
-// deletes. A new write tool fails here until it is classified.
+// destructiveHint: true for overwrites, replacements and removals, false for
+// additions, sends and clearly reversible changes. A new write tool fails here
+// until it is classified.
 func TestWriteToolsAreDestructiveUnlessAdditive(t *testing.T) {
 	seen := make(map[string]bool)
 	for _, p := range products() {
