@@ -165,6 +165,7 @@ func DefaultToolsetGroup(readOnly, allowDelete bool, engine *twapi.Engine) *tool
 		TeamCreate(engine),
 		TeamUpdate(engine),
 		UserCreate(engine),
+		UserCreateBatch(engine),
 		UserUpdate(engine),
 	}
 	if allowDelete {

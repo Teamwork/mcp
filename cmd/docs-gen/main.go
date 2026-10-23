@@ -82,6 +82,7 @@ var forceOther = map[string]bool{
 	"create_custom_field_values": true,
 	"create_allocations":         true,
 	"create_custom_item_records": true,
+	"create_users":               true,
 	"update_custom_field_values": true,
 }
 
