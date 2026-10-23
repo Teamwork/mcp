@@ -1581,6 +1581,12 @@ func TaskList(engine *twapi.Engine) toolsets.ToolWrapper {
 				taskListRequest.Filters.Include = []projects.TaskRequestSideload{
 					projects.TaskRequestSideloadCustomFields,
 					projects.TaskRequestSideloadCustomFieldValues,
+					// A row carries the project ID only.
+					projects.TaskRequestSideloadProjects,
+				}
+				taskListRequest.Filters.Fields.Projects = []projects.ProjectField{
+					projects.ProjectFieldID,
+					projects.ProjectFieldName,
 				}
 				// Ensure predecessors and subtask IDs are included in the response
 				taskListRequest.Filters.IncludeRelatedTasks = true

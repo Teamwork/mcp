@@ -717,6 +717,27 @@ func TestTaskListShowCompletedReachesTheWire(t *testing.T) {
 	}
 }
 
+// A task row carries its project's ID only, so the verbose list sideloads the
+// project's name and nothing else about it.
+func TestTaskListSideloadsProjectNames(t *testing.T) {
+	mcpServer, lastURL := testutil.ProjectsMCPServerMockWithRequestURL(t, http.StatusOK, []byte(`{}`))
+	testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodTaskList.String(), map[string]any{})
+	if got := lastURL.Query().Get("include"); !strings.Contains(got, "projects") {
+		t.Errorf("expected include to carry projects, got %q", got)
+	}
+	if got := lastURL.Query().Get("fields[projects]"); got != "id,name" {
+		t.Errorf("expected fields[projects]=id,name, got %q", got)
+	}
+
+	mcpServer, lastURL = testutil.ProjectsMCPServerMockWithRequestURL(t, http.StatusOK, []byte(`{}`))
+	testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodTaskList.String(), map[string]any{
+		"fields": []any{"name"},
+	})
+	if got := lastURL.Query().Get("include"); got != "" {
+		t.Errorf("expected no sideload with a field selection, got %q", got)
+	}
+}
+
 // The mocks answer the same body either way, so only the request shows whether
 // the placement travelled.
 func TestTaskCreateWorkflowPlacementReachesTheWire(t *testing.T) {
