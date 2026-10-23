@@ -3,7 +3,9 @@ package twprojects
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"net/http"
 	"sort"
 	"strconv"
 	"strings"
@@ -18,13 +20,19 @@ import (
 )
 
 const (
-	MethodCustomItemRecordCreate     toolsets.Method = "twprojects-create_custom_item_record"
-	MethodCustomItemRecordUpdate     toolsets.Method = "twprojects-update_custom_item_record"
-	MethodCustomItemRecordDelete     toolsets.Method = "twprojects-delete_custom_item_record"
-	MethodCustomItemRecordBulkDelete toolsets.Method = "twprojects-bulk_delete_custom_item_records"
-	MethodCustomItemRecordGet        toolsets.Method = "twprojects-get_custom_item_record"
-	MethodCustomItemRecordList       toolsets.Method = "twprojects-list_custom_item_records"
+	MethodCustomItemRecordCreate      toolsets.Method = "twprojects-create_custom_item_record"
+	MethodCustomItemRecordCreateBatch toolsets.Method = "twprojects-create_custom_item_records"
+	MethodCustomItemRecordUpdate      toolsets.Method = "twprojects-update_custom_item_record"
+	MethodCustomItemRecordDelete      toolsets.Method = "twprojects-delete_custom_item_record"
+	MethodCustomItemRecordBulkDelete  toolsets.Method = "twprojects-bulk_delete_custom_item_records"
+	MethodCustomItemRecordGet         toolsets.Method = "twprojects-get_custom_item_record"
+	MethodCustomItemRecordList        toolsets.Method = "twprojects-list_custom_item_records"
 )
+
+// customItemRecordBatchMaxItems bounds create_custom_item_records. The whole
+// list goes in one request, and the endpoint creates its records one after
+// another, so the cap keeps a single call's work bounded.
+const customItemRecordBatchMaxItems = 100
 
 var (
 	customItemRecordGetOutputSchema  *jsonschema.Schema
@@ -408,6 +416,235 @@ func CustomItemRecordBulkDelete(engine *twapi.Engine) toolsets.ToolWrapper {
 			return helpers.NewToolResultText("Deleted %d custom item record(s)", len(ids)), nil
 		},
 	}
+}
+
+// CustomItemRecordCreateBatch creates many records on one custom item type
+// with a single request to the bulk create endpoint, which runs with partial
+// success on: each record is created or rejected on its own.
+func CustomItemRecordCreateBatch(engine *twapi.Engine) toolsets.ToolWrapper {
+	itemSchema := batchItemSchema(CustomItemRecordCreate(engine).Tool.InputSchema, "custom_item_id")
+	return toolsets.ToolWrapper{
+		Tool: &mcp.Tool{
+			Name: string(MethodCustomItemRecordCreateBatch),
+			Description: fmt.Sprintf("Create many records (rows) on one custom item type in a single request, "+
+				"for example importing a list of Contracts. Use instead of calling "+
+				"twprojects-create_custom_item_record in a loop. Accepts at most %d records per call; split a "+
+				"longer list across several calls. Each record takes the same parameters as the single-record "+
+				"tool, with field values passed by name. Records are checked first and nothing is created if "+
+				"one is invalid (an unknown field or option, or a missing required field). After that each "+
+				"record is created or rejected on its own: the result gives the ID of every new record and the "+
+				"reason for every failure, numbering records from 1 in the order listed. Resend only the "+
+				"failed ones.", customItemRecordBatchMaxItems) + customItemRoutingHint,
+			Annotations: &mcp.ToolAnnotations{
+				Title:           "Create Custom Item Records",
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
+			},
+			InputSchema: &jsonschema.Schema{
+				Type: "object",
+				Properties: map[string]*jsonschema.Schema{
+					"custom_item_id": {
+						Type:        "integer",
+						Description: "Custom item type ID that will own every new record.",
+					},
+					"records": {
+						Type:     "array",
+						Items:    itemSchema,
+						MinItems: new(1),
+						MaxItems: new(customItemRecordBatchMaxItems),
+						Description: fmt.Sprintf("The records to create, at most %d. "+
+							"Failures are reported by position in this list, counting from 1.",
+							customItemRecordBatchMaxItems),
+					},
+				},
+				Required: []string{"custom_item_id", "records"},
+			},
+		},
+		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+			var arguments map[string]any
+			if err := json.Unmarshal(request.Params.Arguments, &arguments); err != nil {
+				return helpers.NewToolResultTextError("failed to decode request: %s", err.Error()), nil
+			}
+
+			var customItemID int64
+			if err := helpers.ParamGroup(arguments,
+				helpers.RequiredNumericParam(&customItemID, "custom_item_id"),
+			); err != nil {
+				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
+			}
+			items, toolResult := batchItems(arguments, "records", customItemRecordBatchMaxItems)
+			if toolResult != nil {
+				return toolResult, nil
+			}
+
+			records := make([]projects.CustomItemRecordBulkCreateRecord, len(items))
+			labels := make([]string, len(items))
+			var invalid []string
+			for i, item := range items {
+				labels[i] = fmt.Sprintf("item %d", i+1)
+				var record projects.CustomItemRecordBulkCreateRecord
+				err := helpers.ParamGroup(item,
+					helpers.RequiredParam(&record.Name, "name"),
+					helpers.OptionalNumericPointerParam(&record.SectionID, "section_id"),
+					helpers.OptionalNumericPointerParam(&record.PositionAfterID, "position_after_id"),
+				)
+				if err != nil {
+					invalid = append(invalid, fmt.Sprintf("%s: %s", labels[i], err.Error()))
+					continue
+				}
+				labels[i] = fmt.Sprintf("item %d (%q)", i+1, record.Name)
+				// The field schema is cached, so this is one lookup for the whole list.
+				fieldValues, errResult := buildRecordFieldValues(ctx, engine, customItemID, item, true)
+				if errResult != nil {
+					invalid = append(invalid, fmt.Sprintf("%s: %s", labels[i], toolResultText(errResult)))
+					continue
+				}
+				record.FieldValues = fieldValues
+				records[i] = record
+			}
+			if len(invalid) > 0 {
+				return batchInvalidItems(invalid), nil
+			}
+
+			req := projects.NewCustomItemRecordBulkCreateRequest(customItemID, records)
+			req.Options.PartialSuccess = new(true)
+
+			resp, err := projects.CustomItemRecordBulkCreate(ctx, engine, req)
+			if err != nil {
+				if failures, ok := customItemRecordBatchRejection(err); ok {
+					return customItemRecordBatchReport(labels, nil, failures), nil
+				}
+				result, err := helpers.HandleAPIError(err, "failed to create custom item records")
+				if result != nil && isServerError(err) {
+					// With partial success each record is committed as it is
+					// created, so a server error can follow records that exist.
+					result.Content = append(result.Content, &mcp.TextContent{Text: "Some records may have " +
+						"been created before the error; call twprojects-list_custom_item_records to check " +
+						"before sending the list again."})
+				}
+				return result, err
+			}
+			return customItemRecordBatchReport(labels, resp.CustomItemRecords, resp.Failed), nil
+		},
+	}
+}
+
+// customItemRecordBatchRejection reads the per-record errors out of a bulk
+// create the endpoint rejected as a whole, which it does when no record could
+// be created: 403 when every record was forbidden, 400 otherwise, each error
+// carrying its record's index under meta.index. ok is false for any other
+// failure, such as an error that names no record.
+func customItemRecordBatchRejection(err error) ([]projects.CustomItemRecordBulkCreateFailure, bool) {
+	httpErr, ok := errors.AsType[*twapi.HTTPError](err)
+	if !ok || (httpErr.StatusCode != http.StatusBadRequest && httpErr.StatusCode != http.StatusForbidden) {
+		return nil, false
+	}
+	var body struct {
+		Errors []twapi.V3Error `json:"errors"`
+	}
+	if json.Unmarshal([]byte(httpErr.Details), &body) != nil || len(body.Errors) == 0 {
+		return nil, false
+	}
+	var failures []projects.CustomItemRecordBulkCreateFailure
+	byIndex := make(map[int]int)
+	for _, apiErr := range body.Errors {
+		index, ok := apiErr.Meta["index"].(float64)
+		if !ok {
+			return nil, false
+		}
+		position, seen := byIndex[int(index)]
+		if !seen {
+			position = len(failures)
+			byIndex[int(index)] = position
+			failures = append(failures, projects.CustomItemRecordBulkCreateFailure{Index: int(index)})
+		}
+		failures[position].Errors = append(failures[position].Errors, apiErr)
+	}
+	return failures, true
+}
+
+// isServerError reports whether err is an API answer with a 5xx status.
+func isServerError(err error) bool {
+	httpErr, ok := errors.AsType[*twapi.HTTPError](err)
+	return ok && httpErr.StatusCode >= http.StatusInternalServerError
+}
+
+// customItemRecordBatchReport summarises a bulk create: the ID of each record
+// created, by its position in the request, and every failure with its reasons.
+// The endpoint returns the created records in request order without their
+// index, so each is matched to the next position that did not fail. It is an
+// error result when any record failed, even though the others were created.
+func customItemRecordBatchReport(
+	labels []string,
+	created []projects.CustomItemRecord,
+	failures []projects.CustomItemRecordBulkCreateFailure,
+) *mcp.CallToolResult {
+	failed := make(map[int]bool, len(failures))
+	for _, failure := range failures {
+		failed[failure.Index] = true
+	}
+
+	var report strings.Builder
+	fmt.Fprintf(&report, "Created %d of %d custom item records.", len(created), len(labels))
+	if len(created) == 0 {
+		report.WriteString(" Nothing was written.")
+	}
+	if len(created) > 0 {
+		var entries []string
+		next := 0
+		for i := range labels {
+			if failed[i] || next >= len(created) {
+				continue
+			}
+			entries = append(entries, fmt.Sprintf("%s → ID %d", labels[i], created[next].ID))
+			next++
+		}
+		// A count that does not line up cannot be matched to positions; report
+		// the IDs rather than guess which record each belongs to.
+		if len(created)+len(failures) != len(labels) {
+			entries = entries[:0]
+			for _, record := range created {
+				entries = append(entries, fmt.Sprintf("ID %d (%q)", record.ID, record.Name))
+			}
+		}
+		fmt.Fprintf(&report, "\nCreated: %s.", strings.Join(entries, ", "))
+	}
+	for _, failure := range failures {
+		label := fmt.Sprintf("item %d", failure.Index+1)
+		if failure.Index >= 0 && failure.Index < len(labels) {
+			label = labels[failure.Index]
+		}
+		reasons := make([]string, 0, len(failure.Errors))
+		for _, apiErr := range failure.Errors {
+			reasons = append(reasons, customItemRecordBatchReason(apiErr))
+		}
+		fmt.Fprintf(&report, "\nFailed: %s: %s.", label, strings.Join(reasons, "; "))
+	}
+	if len(failures) > 0 {
+		return helpers.NewToolResultTextError("%s", report.String())
+	}
+	return helpers.NewToolResultText("%s", report.String())
+}
+
+// customItemRecordBatchReason renders one API error for a failed record, with
+// any detail the endpoint attached other than the record's own index.
+func customItemRecordBatchReason(apiErr twapi.V3Error) string {
+	reason := apiErr.Detail
+	if apiErr.Title != "" {
+		reason = apiErr.Title + ": " + reason
+	}
+	meta := make(map[string]any, len(apiErr.Meta))
+	for key, value := range apiErr.Meta {
+		if key != "index" {
+			meta[key] = value
+		}
+	}
+	if len(meta) > 0 {
+		if encoded, err := json.Marshal(meta); err == nil {
+			reason += " " + string(encoded)
+		}
+	}
+	return reason
 }
 
 // CustomItemRecordGet retrieves a record on a custom item type. Field values

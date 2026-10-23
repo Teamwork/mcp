@@ -3,6 +3,7 @@ package twprojects
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -33,6 +34,8 @@ const (
 	MethodTaskMove        toolsets.Method = "twprojects-move_tasks"
 	MethodTaskCreateBatch toolsets.Method = "twprojects-create_tasks"
 	MethodTaskUpdateBatch toolsets.Method = "twprojects-update_tasks"
+
+	MethodTaskCompleteBatch toolsets.Method = "twprojects-complete_tasks"
 )
 
 var (
@@ -1160,6 +1163,107 @@ func TaskComplete(engine *twapi.Engine) toolsets.ToolWrapper {
 				return helpers.HandleAPIError(err, "failed to complete task")
 			}
 			return helpers.NewToolResultText("Task completed successfully"), nil
+		},
+	}
+}
+
+// taskCompleteBatchMaxTasks bounds twprojects-complete_tasks. The endpoint
+// completes the tasks one after another within one request, so a long list
+// risks outliving the call.
+const taskCompleteBatchMaxTasks = 50
+
+// TaskCompleteBatch marks many tasks as complete in Teamwork.com with a single
+// request to the bulk complete route, rather than one request per task.
+func TaskCompleteBatch(engine *twapi.Engine) toolsets.ToolWrapper {
+	return toolsets.ToolWrapper{
+		Tool: &mcp.Tool{
+			Name: string(MethodTaskCompleteBatch),
+			Description: fmt.Sprintf("Mark many tasks complete in one request, at most %d task IDs per call. "+
+				"Use instead of calling twprojects-complete_task in a loop. Each task succeeds or fails on its "+
+				"own: the result lists the tasks completed and, for each one that was not, the reason (not "+
+				"found, no permission, or an incomplete predecessor). A task that was already complete counts "+
+				"as completed.", taskCompleteBatchMaxTasks),
+			Annotations: &mcp.ToolAnnotations{
+				Title: "Complete Tasks",
+				// Reversible, like complete_task: uncomplete_task undoes it.
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
+			},
+			InputSchema: &jsonschema.Schema{
+				Type: "object",
+				Properties: map[string]*jsonschema.Schema{
+					"task_ids": {
+						Type:     "array",
+						Items:    &jsonschema.Schema{Type: "integer"},
+						MinItems: new(1),
+						MaxItems: new(taskCompleteBatchMaxTasks),
+						Description: fmt.Sprintf("The IDs of the tasks to mark as complete, at most %d.",
+							taskCompleteBatchMaxTasks),
+					},
+				},
+				Required: []string{"task_ids"},
+			},
+		},
+		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+			var arguments map[string]any
+			if err := json.Unmarshal(request.Params.Arguments, &arguments); err != nil {
+				return helpers.NewToolResultTextError("failed to decode request: %s", err.Error()), nil
+			}
+			var taskIDs []int64
+			if err := helpers.ParamGroup(arguments,
+				helpers.OptionalNumericListParam(&taskIDs, "task_ids"),
+			); err != nil {
+				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
+			}
+			// A task listed twice would be reported twice; completing it once is enough.
+			uniqueIDs := make([]int64, 0, len(taskIDs))
+			for _, id := range taskIDs {
+				if !slices.Contains(uniqueIDs, id) {
+					uniqueIDs = append(uniqueIDs, id)
+				}
+			}
+			taskIDs = uniqueIDs
+			if len(taskIDs) == 0 {
+				return helpers.NewToolResultTextError("task_ids must contain at least one task ID"), nil
+			}
+			if len(taskIDs) > taskCompleteBatchMaxTasks {
+				return helpers.NewToolResultTextError(
+					"task_ids accepts at most %d tasks, got %d; split the list across several calls",
+					taskCompleteBatchMaxTasks, len(taskIDs)), nil
+			}
+
+			response, err := projects.TaskBulkComplete(ctx, engine, projects.NewTaskBulkCompleteRequest(taskIDs))
+			if err != nil {
+				if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+					return helpers.NewToolResultTextError(
+						"The request was interrupted and its outcome is unknown: some tasks may have been "+
+							"completed. Check them with %s before sending them again.", MethodTaskGet), nil
+				}
+				return helpers.HandleAPIError(err, "failed to complete tasks")
+			}
+
+			labels := make([]string, len(taskIDs))
+			errs := make([]error, len(taskIDs))
+			for i, id := range taskIDs {
+				labels[i] = fmt.Sprintf("task %d", id)
+				if !slices.Contains(response.CompletedTaskIDs, id) {
+					errs[i] = errors.New("not reported as completed")
+				}
+			}
+			for _, failure := range response.Failed {
+				if failure.Index < 0 || failure.Index >= len(taskIDs) {
+					continue
+				}
+				reasons := make([]string, len(failure.Errors))
+				for j, e := range failure.Errors {
+					reasons[j] = e.Title
+					if e.Detail != "" {
+						reasons[j] += " (" + e.Detail + ")"
+					}
+				}
+				errs[failure.Index] = errors.New(strings.Join(reasons, "; "))
+			}
+			return batchReport("Completed", "tasks", "", labels, nil, errs), nil
 		},
 	}
 }

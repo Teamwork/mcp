@@ -38,7 +38,7 @@ Users, companies, teams, skills, and job roles in Teamwork.com.
 | User | ✓ | ✓ | ✓ | ✓ |
 | Current User (me) | — | ✓ | — | — |
 
-**Other actions:** `clear_user_jobrole`, `set_user_jobrole`
+**Other actions:** `clear_user_jobrole`, `create_companies`, `create_users`, `set_user_jobrole`
 
 ### Planning — `twprojects-planning`
 
@@ -49,7 +49,7 @@ Resource scheduling in Teamwork.com: allocations, which commit a person's time t
 | Allocation | ✓ | ✓ | ✓ | ✓ |
 | Task Split | — | ✓ | — | — |
 
-**Other actions:** `link_task_to_allocation`, `restore_allocation`, `set_task_split`, `unlink_task_from_allocation`, `users_workload`
+**Other actions:** `create_allocations`, `link_task_to_allocation`, `restore_allocation`, `set_task_split`, `unlink_task_from_allocation`, `users_workload`
 
 ### Projects — `twprojects-projects`
 
@@ -69,7 +69,7 @@ Project, category, template, member, custom field, and custom item (user-defined
 | File | ✓ | — | — | — |
 | Upload Url | ✓ | — | — | — |
 
-**Other actions:** `add_project_file`, `add_project_member`, `clone_project`, `count_projects`, `create_custom_field_values`
+**Other actions:** `add_project_file`, `add_project_member`, `clone_project`, `count_projects`, `create_custom_field_values`, `create_custom_item_records`, `update_custom_field_values`
 
 ### Tasks — `twprojects-tasks`
 
@@ -82,7 +82,7 @@ Task, tasklist, and workflow management in Teamwork.com.
 | Workflow | ✓ | ✓ | ✓ | ✓ |
 | Workflow Stage | ✓ | ✓ | ✓ | ✓ |
 
-**Other actions:** `complete_task`, `count_tasks`, `create_tasks`, `link_project_to_workflow`, `move_task_to_workflow_stage`, `move_tasks`, `uncomplete_task`, `update_tasks`
+**Other actions:** `complete_task`, `complete_tasks`, `count_tasks`, `create_tasks`, `link_project_to_workflow`, `move_task_to_workflow_stage`, `move_tasks`, `uncomplete_task`, `update_tasks`
 
 ### Time — `twprojects-time`
 
@@ -97,7 +97,7 @@ Time tracking via timelogs, timers, calendars with time blocking, and budget rep
 | Timelog | ✓ | ✓ | ✓ | ✓ |
 | Timer | ✓ | ✓ | ✓ | ✓ |
 
-**Other actions:** `complete_timer`, `count_timelogs`, `pause_timer`, `resume_timer`, `summarize_timelogs`
+**Other actions:** `complete_timer`, `count_timelogs`, `move_timelogs`, `pause_timer`, `resume_timer`, `set_timelogs_billable`, `summarize_timelogs`
 
 ## Desk
 

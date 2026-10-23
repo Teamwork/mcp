@@ -225,3 +225,93 @@ func inputProperties(t *testing.T, inputSchema any) map[string]*jsonschema.Schem
 	}
 	return schema.Properties
 }
+
+// completeTasksRequest decodes the single bulk request complete_tasks sends.
+func completeTasksRequest(t *testing.T, recorded []testutil.ProjectsRecordedRequest) []int64 {
+	t.Helper()
+	if len(recorded) != 1 {
+		t.Fatalf("expected exactly 1 request, got %d", len(recorded))
+	}
+	entry := recorded[0]
+	if entry.Method != http.MethodPost || entry.URL.Path != "/projects/api/v3/tasks/bulk/complete.json" {
+		t.Errorf("expected POST /projects/api/v3/tasks/bulk/complete.json, got %s %s", entry.Method, entry.URL.Path)
+	}
+	var payload struct {
+		TaskIDs []int64 `json:"taskIds"`
+	}
+	if err := json.Unmarshal(entry.Body, &payload); err != nil {
+		t.Fatalf("failed to decode body %q: %v", entry.Body, err)
+	}
+	return payload.TaskIDs
+}
+
+// TestTaskCompleteBatchSendsOneRequest pins a single bulk request carrying
+// every task ID once, in the order listed.
+func TestTaskCompleteBatchSendsOneRequest(t *testing.T) {
+	mcpServer, recorded := mcpServerRecordingMock(t, nil, http.StatusOK,
+		[]byte(`{"completedTaskIds":[10,11,12],"affected":{"taskIds":[10,11,12]}}`))
+	testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodTaskCompleteBatch.String(), map[string]any{
+		"task_ids": []any{float64(10), float64(11), float64(10), float64(12)},
+	}, expectBatchResult(false, "Completed 3 of 3 tasks", "task 10, task 11, task 12"))
+
+	if got := completeTasksRequest(t, *recorded); !slices.Equal(got, []int64{10, 11, 12}) {
+		t.Errorf("expected taskIds [10 11 12], got %v", got)
+	}
+}
+
+// TestTaskCompleteBatchReportsEachFailure maps each failure the endpoint reports
+// by index back to its task, with the reason.
+func TestTaskCompleteBatchReportsEachFailure(t *testing.T) {
+	mcpServer, recorded := mcpServerRecordingMock(t, nil, http.StatusOK, []byte(`{
+		"completedTaskIds":[10],
+		"affected":{"taskIds":[10]},
+		"failed":[
+			{"index":1,"errors":[{"title":"not found","detail":"task 11 not found"}]},
+			{"index":2,"errors":[{"title":"unprocessable entity","detail":"cannot complete task, dependencies exist"}]}
+		]}`))
+	testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodTaskCompleteBatch.String(), map[string]any{
+		"task_ids": []any{float64(10), float64(11), float64(12)},
+	}, expectBatchResult(true,
+		"Completed 1 of 3 tasks",
+		"Completed: task 10.",
+		"Failed: task 11: not found (task 11 not found).",
+		"Failed: task 12: unprocessable entity (cannot complete task, dependencies exist)."))
+
+	if got := completeTasksRequest(t, *recorded); !slices.Equal(got, []int64{10, 11, 12}) {
+		t.Errorf("expected taskIds [10 11 12], got %v", got)
+	}
+}
+
+// TestTaskCompleteBatchReportsWhenNothingCompletes keeps the per-task reasons
+// when the endpoint answers an error status because no task was completed.
+func TestTaskCompleteBatchReportsWhenNothingCompletes(t *testing.T) {
+	mcpServer, recorded := mcpServerRecordingMock(t, nil, http.StatusForbidden, []byte(`{"errors":[
+		{"title":"forbidden action","detail":"user does not have permission to complete task","meta":{"index":0}},
+		{"title":"forbidden action","detail":"user does not have permission to complete task","meta":{"index":1}}
+	]}`))
+	testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodTaskCompleteBatch.String(), map[string]any{
+		"task_ids": []any{float64(10), float64(11)},
+	}, expectBatchResult(true,
+		"Completed 0 of 2 tasks",
+		"Failed: task 10: forbidden action (user does not have permission to complete task).",
+		"Failed: task 11: forbidden action"))
+
+	completeTasksRequest(t, *recorded)
+}
+
+// TestTaskCompleteBatchRejectsATooLongList refuses a list over the limit
+// before anything is sent.
+func TestTaskCompleteBatchRejectsATooLongList(t *testing.T) {
+	mcpServer, recorded := mcpServerRecordingMock(t, nil, http.StatusOK, []byte(`{"completedTaskIds":[]}`))
+	taskIDs := make([]any, 51)
+	for i := range taskIDs {
+		taskIDs[i] = float64(i + 1)
+	}
+	testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodTaskCompleteBatch.String(), map[string]any{
+		"task_ids": taskIDs,
+	}, expectBatchResult(true))
+
+	if len(*recorded) != 0 {
+		t.Errorf("expected no requests, got %d", len(*recorded))
+	}
+}

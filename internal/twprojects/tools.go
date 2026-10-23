@@ -66,11 +66,13 @@ func DefaultToolsetGroup(readOnly, allowDelete bool, engine *twapi.Engine) *tool
 		CustomFieldValueCreate(engine),
 		CustomFieldValueCreateBatch(engine),
 		CustomFieldValueUpdate(engine),
+		CustomFieldValueUpdateBatch(engine),
 		CustomItemCreate(engine),
 		CustomItemUpdate(engine),
 		CustomItemFieldCreate(engine),
 		CustomItemFieldUpdate(engine),
 		CustomItemRecordCreate(engine),
+		CustomItemRecordCreateBatch(engine),
 		CustomItemRecordUpdate(engine),
 	}
 	if allowDelete {
@@ -111,6 +113,7 @@ func DefaultToolsetGroup(readOnly, allowDelete bool, engine *twapi.Engine) *tool
 	// --- tasks sub-toolset ---
 	tasksWriteTools := []toolsets.ToolWrapper{
 		TaskComplete(engine),
+		TaskCompleteBatch(engine),
 		TaskCreate(engine),
 		TaskCreateBatch(engine),
 		TaskMove(engine),
@@ -153,6 +156,7 @@ func DefaultToolsetGroup(readOnly, allowDelete bool, engine *twapi.Engine) *tool
 	// --- people sub-toolset ---
 	peopleWriteTools := []toolsets.ToolWrapper{
 		CompanyCreate(engine),
+		CompanyCreateBatch(engine),
 		CompanyUpdate(engine),
 		JobRoleCreate(engine),
 		JobRoleUpdate(engine),
@@ -163,6 +167,7 @@ func DefaultToolsetGroup(readOnly, allowDelete bool, engine *twapi.Engine) *tool
 		TeamCreate(engine),
 		TeamUpdate(engine),
 		UserCreate(engine),
+		UserCreateBatch(engine),
 		UserUpdate(engine),
 	}
 	if allowDelete {
@@ -199,6 +204,7 @@ func DefaultToolsetGroup(readOnly, allowDelete bool, engine *twapi.Engine) *tool
 	// is how "how loaded is this person" gets answered from half the picture.
 	planningWriteTools := []toolsets.ToolWrapper{
 		AllocationCreate(engine),
+		AllocationCreateBatch(engine),
 		AllocationUpdate(engine),
 		AllocationTaskLink(engine),
 		AllocationTaskUnlink(engine),
@@ -230,6 +236,8 @@ func DefaultToolsetGroup(readOnly, allowDelete bool, engine *twapi.Engine) *tool
 	timeWriteTools := []toolsets.ToolWrapper{
 		TimelogCreate(engine),
 		TimelogUpdate(engine),
+		TimelogBulkMove(engine),
+		TimelogBillableBulkUpdate(engine),
 		TimerComplete(engine),
 		TimerCreate(engine),
 		TimerPause(engine),
