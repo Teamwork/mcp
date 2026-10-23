@@ -97,7 +97,7 @@ Time tracking via timelogs, timers, calendars with time blocking, and budget rep
 | Timelog | ✓ | ✓ | ✓ | ✓ |
 | Timer | ✓ | ✓ | ✓ | ✓ |
 
-**Other actions:** `complete_timer`, `count_timelogs`, `pause_timer`, `resume_timer`, `summarize_timelogs`
+**Other actions:** `complete_timer`, `count_timelogs`, `move_timelogs`, `pause_timer`, `resume_timer`, `set_timelogs_billable`, `summarize_timelogs`
 
 ## Desk
 
