@@ -3,12 +3,14 @@ package twprojects
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"math"
 	"net/http"
 	"slices"
 	"strconv"
+	"strings"
 
 	"github.com/google/jsonschema-go/jsonschema"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
@@ -26,6 +28,7 @@ const (
 	MethodCustomFieldValueCreate      toolsets.Method = "twprojects-create_custom_field_value"
 	MethodCustomFieldValueCreateBatch toolsets.Method = "twprojects-create_custom_field_values"
 	MethodCustomFieldValueUpdate      toolsets.Method = "twprojects-update_custom_field_value"
+	MethodCustomFieldValueUpdateBatch toolsets.Method = "twprojects-update_custom_field_values"
 	MethodCustomFieldValueDelete      toolsets.Method = "twprojects-delete_custom_field_value"
 	MethodCustomFieldValueGet         toolsets.Method = "twprojects-get_custom_field_value"
 	MethodCustomFieldValueList        toolsets.Method = "twprojects-list_custom_field_values"
@@ -208,7 +211,9 @@ func CustomFieldValueCreateBatch(engine *twapi.Engine) toolsets.ToolWrapper {
 				"twprojects-create_custom_field_value in a loop. Setting a value replaces the one the record " +
 				"already has for that field, except on a multiselect field, where the options are added to " +
 				"the selection. Items are validated first and nothing is set if one is invalid; after that " +
-				"each value succeeds or fails on its own, and the result lists the error of each failure.",
+				"each value succeeds or fails on its own, and the result lists the error of each failure. " +
+				"Costs one request per value; to change values that already exist on one record, " +
+				string(MethodCustomFieldValueUpdateBatch) + " does it in a single request.",
 			Annotations: &mcp.ToolAnnotations{
 				Title:           "Create Custom Field Values",
 				DestructiveHint: new(true),
@@ -313,8 +318,9 @@ func CustomFieldValueCreateBatch(engine *twapi.Engine) toolsets.ToolWrapper {
 func CustomFieldValueUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
-			Name:        string(MethodCustomFieldValueUpdate),
-			Description: "Update a custom field value on a task, project or company.",
+			Name: string(MethodCustomFieldValueUpdate),
+			Description: "Update a custom field value on a task, project or company. To update several " +
+				"values of one record, use " + string(MethodCustomFieldValueUpdateBatch) + " instead.",
 			Annotations: &mcp.ToolAnnotations{
 				Title:           "Update Custom Field Value",
 				DestructiveHint: new(true),
@@ -434,6 +440,218 @@ func CustomFieldValueUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 			return helpers.NewToolResultText("Custom field value updated successfully"), nil
 		},
 	}
+}
+
+// customFieldValueUpdateBatchMaxItems bounds update_custom_field_values. The
+// whole list is one request, validated value by value before anything is
+// written, so the cap keeps that request and its error easy to act on.
+const customFieldValueUpdateBatchMaxItems = 100
+
+// CustomFieldValueUpdateBatch updates many existing custom field values of one
+// task, project or company in Teamwork.com with a single request.
+//
+// Unlike create_custom_field_values, which is a loop of single creates, this is
+// one call to the bulk update route, so it costs one request whatever the list
+// length. The route works on one entity per request, addresses values by value
+// ID, and is all-or-nothing.
+func CustomFieldValueUpdateBatch(engine *twapi.Engine) toolsets.ToolWrapper {
+	valueSchema := CustomFieldValueUpdate(engine).Tool.InputSchema.(*jsonschema.Schema).Properties["value"]
+	return toolsets.ToolWrapper{
+		Tool: &mcp.Tool{
+			Name: string(MethodCustomFieldValueUpdateBatch),
+			Description: fmt.Sprintf("Update many existing custom field values of ONE task, project or company "+
+				"in a single request. Works on one entity per call: every value must already exist on that "+
+				"entity, addressed by its value ID from "+string(MethodCustomFieldValueList)+". Use instead of "+
+				"calling "+string(MethodCustomFieldValueUpdate)+" in a loop. To set values that do not exist "+
+				"yet, or values across many records, use "+string(MethodCustomFieldValueCreateBatch)+" instead. "+
+				"The batch is all-or-nothing: if any value is rejected, no value is updated. A multiselect "+
+				"value replaces the whole selection. At most %d values per call.",
+				customFieldValueUpdateBatchMaxItems),
+			Annotations: &mcp.ToolAnnotations{
+				Title:           "Update Custom Field Values",
+				DestructiveHint: new(true),
+				OpenWorldHint:   new(false),
+			},
+			InputSchema: &jsonschema.Schema{
+				Type: "object",
+				Properties: map[string]*jsonschema.Schema{
+					"entity": {
+						Type:        "string",
+						Description: "The type of the one entity whose values are updated.",
+						Enum:        []any{"task", "project", "company"},
+					},
+					"entity_id": {
+						Type:        "integer",
+						Description: "The ID of the one task, project or company every value belongs to.",
+					},
+					"values": {
+						Type: "array",
+						Items: &jsonschema.Schema{
+							Type: "object",
+							Properties: map[string]*jsonschema.Schema{
+								"value_id": {
+									Type:        "integer",
+									Description: "The ID of the existing custom field value entry to update.",
+								},
+								"custom_field_id": {
+									Type:        "integer",
+									Description: "The ID of the custom field the value belongs to.",
+								},
+								"value": valueSchema,
+								"clear": {
+									Type:        "boolean",
+									Description: "Set to true instead of sending value to clear the field.",
+								},
+							},
+							Required: []string{"value_id", "custom_field_id"},
+						},
+						MinItems: new(1),
+						MaxItems: new(customFieldValueUpdateBatchMaxItems),
+						Description: fmt.Sprintf("The values to update, at most %d. Each value ID may appear "+
+							"only once, and each item needs either value or clear.",
+							customFieldValueUpdateBatchMaxItems),
+					},
+				},
+				Required: []string{"entity", "entity_id", "values"},
+			},
+		},
+		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+			var arguments map[string]any
+			if err := json.Unmarshal(request.Params.Arguments, &arguments); err != nil {
+				return helpers.NewToolResultTextError("failed to decode request: %s", err.Error()), nil
+			}
+
+			var entity projects.CustomFieldEntity
+			var entityID int64
+			err := helpers.ParamGroup(arguments,
+				helpers.RequiredParam(&entity, "entity",
+					helpers.RestrictValues(
+						projects.CustomFieldEntityTask,
+						projects.CustomFieldEntityProject,
+						projects.CustomFieldEntityCompany,
+					),
+				),
+				helpers.RequiredNumericParam(&entityID, "entity_id"),
+			)
+			if err != nil {
+				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
+			}
+			items, toolResult := batchItems(arguments, "values", customFieldValueUpdateBatchMaxItems)
+			if toolResult != nil {
+				return toolResult, nil
+			}
+
+			values := make([]projects.CustomFieldValueBulkUpdateItem, len(items))
+			seen := make(map[int64]int, len(items))
+			var invalid []string
+			for i, item := range items {
+				var valueID, customFieldID int64
+				var clear bool
+				err := helpers.ParamGroup(item,
+					helpers.RequiredNumericParam(&valueID, "value_id"),
+					helpers.RequiredNumericParam(&customFieldID, "custom_field_id"),
+					helpers.OptionalParam(&clear, "clear"),
+				)
+				if err != nil {
+					invalid = append(invalid, fmt.Sprintf("item %d: %s", i+1, err.Error()))
+					continue
+				}
+				value, hasValue := item["value"]
+				if hasValue && value == nil {
+					hasValue = false
+				}
+				switch {
+				case clear && hasValue:
+					invalid = append(invalid, fmt.Sprintf("item %d: send either value or clear, not both", i+1))
+					continue
+				case !clear && !hasValue:
+					invalid = append(invalid, fmt.Sprintf("item %d: value is required unless clear is true", i+1))
+					continue
+				}
+				// The endpoint answers a repeated value ID with a 404 that names
+				// no value, so catch it here where the item can be named.
+				if first, ok := seen[valueID]; ok {
+					invalid = append(invalid, fmt.Sprintf("item %d: value %d is already listed as item %d",
+						i+1, valueID, first))
+					continue
+				}
+				seen[valueID] = i + 1
+				values[i] = projects.CustomFieldValueBulkUpdateItem{
+					ID:            valueID,
+					CustomFieldID: customFieldID,
+					Value:         value,
+				}
+			}
+			if len(invalid) > 0 {
+				return helpers.NewToolResultTextError(
+					"No values were updated. Fix these items and send the whole list again:\n%s",
+					strings.Join(invalid, "\n")), nil
+			}
+
+			// Coerce numeric choices with one field lookup per field rather than
+			// one per value.
+			fieldTypes := make(map[int64]*projects.CustomFieldType)
+			for i := range values {
+				if !containsNumber(values[i].Value) {
+					continue
+				}
+				id := values[i].CustomFieldID
+				if _, ok := fieldTypes[id]; !ok {
+					fieldTypes[id] = nil
+					if resp, err := projects.CustomFieldGet(ctx, engine, projects.NewCustomFieldGetRequest(id)); err == nil {
+						fieldTypes[id] = &resp.CustomField.Type
+					}
+				}
+				if fieldType := fieldTypes[id]; fieldType != nil {
+					values[i].Value = coerceCustomFieldValueForType(*fieldType, values[i].Value)
+				}
+			}
+
+			var req projects.CustomFieldValueBulkUpdateRequest
+			switch entity {
+			case projects.CustomFieldEntityTask:
+				req = projects.NewTaskCustomFieldValueBulkUpdateRequest(entityID, values)
+			case projects.CustomFieldEntityProject:
+				req = projects.NewProjectCustomFieldValueBulkUpdateRequest(entityID, values)
+			case projects.CustomFieldEntityCompany:
+				req = projects.NewCompanyCustomFieldValueBulkUpdateRequest(entityID, values)
+			}
+
+			response, err := projects.CustomFieldValueBulkUpdate(ctx, engine, req)
+			if err != nil {
+				return customFieldValueUpdateBatchFailure(err, entity, entityID)
+			}
+			ids := make([]string, len(response.CustomFieldValues))
+			for i, value := range response.CustomFieldValues {
+				ids[i] = strconv.FormatInt(value.ID, 10)
+			}
+			return helpers.NewToolResultText("Updated %d of %d custom field values on %s %d (value IDs: %s).",
+				len(response.CustomFieldValues), len(values), entity, entityID, strings.Join(ids, ", ")), nil
+		},
+	}
+}
+
+// customFieldValueUpdateBatchFailure reports a rejected bulk update. The route
+// is all-or-nothing, so a 4xx means nothing was written; it does not name the
+// value that caused the rejection, so the result says how to find it.
+func customFieldValueUpdateBatchFailure(
+	apiErr error,
+	entity projects.CustomFieldEntity,
+	entityID int64,
+) (*mcp.CallToolResult, error) {
+	result, err := helpers.HandleAPIError(apiErr, "failed to update custom field values")
+	if result == nil {
+		return result, err
+	}
+	detail := toolResultText(result)
+	if httpErr, ok := errors.AsType[*twapi.HTTPError](apiErr); ok && httpErr.StatusCode >= 500 {
+		return helpers.NewToolResultTextError("The update may not have been applied: %s. Check the values with %s "+
+			"before sending the list again.", detail, MethodCustomFieldValueList), nil
+	}
+	return helpers.NewToolResultTextError("No values were updated: the batch is all-or-nothing and the API "+
+		"rejected it (%s). The API does not say which value caused it. Check that every value ID exists on %s %d "+
+		"with %s, that each custom_field_id is the value's own field, and that each value fits its field type, "+
+		"then send the whole list again.", detail, entity, entityID, MethodCustomFieldValueList), nil
 }
 
 // CustomFieldValueDelete clears a custom field value from a task, project or

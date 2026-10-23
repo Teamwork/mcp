@@ -66,6 +66,7 @@ func DefaultToolsetGroup(readOnly, allowDelete bool, engine *twapi.Engine) *tool
 		CustomFieldValueCreate(engine),
 		CustomFieldValueCreateBatch(engine),
 		CustomFieldValueUpdate(engine),
+		CustomFieldValueUpdateBatch(engine),
 		CustomItemCreate(engine),
 		CustomItemUpdate(engine),
 		CustomItemFieldCreate(engine),

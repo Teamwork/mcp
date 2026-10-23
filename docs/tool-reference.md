@@ -69,7 +69,7 @@ Project, category, template, member, custom field, and custom item (user-defined
 | File | ✓ | — | — | — |
 | Upload Url | ✓ | — | — | — |
 
-**Other actions:** `add_project_file`, `add_project_member`, `clone_project`, `count_projects`, `create_custom_field_values`
+**Other actions:** `add_project_file`, `add_project_member`, `clone_project`, `count_projects`, `create_custom_field_values`, `update_custom_field_values`
 
 ### Tasks — `twprojects-tasks`
 
