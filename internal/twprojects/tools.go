@@ -155,6 +155,7 @@ func DefaultToolsetGroup(readOnly, allowDelete bool, engine *twapi.Engine) *tool
 	// --- people sub-toolset ---
 	peopleWriteTools := []toolsets.ToolWrapper{
 		CompanyCreate(engine),
+		CompanyCreateBatch(engine),
 		CompanyUpdate(engine),
 		JobRoleCreate(engine),
 		JobRoleUpdate(engine),

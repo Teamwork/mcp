@@ -3,9 +3,13 @@ package twprojects
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
+	"maps"
 	"net/http"
+	"slices"
+	"strings"
 
 	"github.com/google/jsonschema-go/jsonschema"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
@@ -20,11 +24,12 @@ import (
 // The naming convention for methods follows a pattern described here:
 // https://github.com/github/github-mcp-server/issues/333
 const (
-	MethodCompanyCreate toolsets.Method = "twprojects-create_company"
-	MethodCompanyUpdate toolsets.Method = "twprojects-update_company"
-	MethodCompanyDelete toolsets.Method = "twprojects-delete_company"
-	MethodCompanyGet    toolsets.Method = "twprojects-get_company"
-	MethodCompanyList   toolsets.Method = "twprojects-list_companies"
+	MethodCompanyCreate      toolsets.Method = "twprojects-create_company"
+	MethodCompanyCreateBatch toolsets.Method = "twprojects-create_companies"
+	MethodCompanyUpdate      toolsets.Method = "twprojects-update_company"
+	MethodCompanyDelete      toolsets.Method = "twprojects-delete_company"
+	MethodCompanyGet         toolsets.Method = "twprojects-get_company"
+	MethodCompanyList        toolsets.Method = "twprojects-list_companies"
 )
 
 var (
@@ -201,31 +206,11 @@ func CompanyCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 			},
 		},
 		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-			var companyCreateRequest projects.CompanyCreateRequest
-
 			var arguments map[string]any
 			if err := json.Unmarshal(request.Params.Arguments, &arguments); err != nil {
 				return helpers.NewToolResultTextError("failed to decode request: %s", err.Error()), nil
 			}
-			err := helpers.ParamGroup(arguments,
-				helpers.RequiredParam(&companyCreateRequest.Name, "name"),
-				helpers.OptionalPointerParam(&companyCreateRequest.AddressOne, "address_one"),
-				helpers.OptionalPointerParam(&companyCreateRequest.AddressTwo, "address_two"),
-				helpers.OptionalPointerParam(&companyCreateRequest.City, "city"),
-				helpers.OptionalPointerParam(&companyCreateRequest.State, "state"),
-				helpers.OptionalPointerParam(&companyCreateRequest.Zip, "zip"),
-				helpers.OptionalPointerParam(&companyCreateRequest.CountryCode, "country_code"),
-				helpers.OptionalPointerParam(&companyCreateRequest.Phone, "phone"),
-				helpers.OptionalPointerParam(&companyCreateRequest.Fax, "fax"),
-				helpers.OptionalPointerParam(&companyCreateRequest.EmailOne, "email_one"),
-				helpers.OptionalPointerParam(&companyCreateRequest.EmailTwo, "email_two"),
-				helpers.OptionalPointerParam(&companyCreateRequest.EmailThree, "email_three"),
-				helpers.OptionalPointerParam(&companyCreateRequest.Website, "website"),
-				helpers.OptionalPointerParam(&companyCreateRequest.Profile, "profile"),
-				helpers.OptionalNumericPointerParam(&companyCreateRequest.ManagerID, "manager_id"),
-				helpers.OptionalNumericPointerParam(&companyCreateRequest.IndustryID, "industry_id"),
-				helpers.OptionalNumericListParam(&companyCreateRequest.TagIDs, "tag_ids"),
-			)
+			companyCreateRequest, err := parseCompanyCreateArguments(arguments)
 			if err != nil {
 				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
 			}
@@ -237,6 +222,187 @@ func CompanyCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 			return helpers.NewToolResultText("Company created successfully with ID %d", companyResponse.Company.ID), nil
 		},
 	}
+}
+
+// parseCompanyCreateArguments binds the parameters of twprojects-create_company,
+// which twprojects-create_companies takes for each of its items.
+func parseCompanyCreateArguments(arguments map[string]any) (projects.CompanyCreateRequest, error) {
+	var companyCreateRequest projects.CompanyCreateRequest
+	err := helpers.ParamGroup(arguments,
+		helpers.RequiredParam(&companyCreateRequest.Name, "name"),
+		helpers.OptionalPointerParam(&companyCreateRequest.AddressOne, "address_one"),
+		helpers.OptionalPointerParam(&companyCreateRequest.AddressTwo, "address_two"),
+		helpers.OptionalPointerParam(&companyCreateRequest.City, "city"),
+		helpers.OptionalPointerParam(&companyCreateRequest.State, "state"),
+		helpers.OptionalPointerParam(&companyCreateRequest.Zip, "zip"),
+		helpers.OptionalPointerParam(&companyCreateRequest.CountryCode, "country_code"),
+		helpers.OptionalPointerParam(&companyCreateRequest.Phone, "phone"),
+		helpers.OptionalPointerParam(&companyCreateRequest.Fax, "fax"),
+		helpers.OptionalPointerParam(&companyCreateRequest.EmailOne, "email_one"),
+		helpers.OptionalPointerParam(&companyCreateRequest.EmailTwo, "email_two"),
+		helpers.OptionalPointerParam(&companyCreateRequest.EmailThree, "email_three"),
+		helpers.OptionalPointerParam(&companyCreateRequest.Website, "website"),
+		helpers.OptionalPointerParam(&companyCreateRequest.Profile, "profile"),
+		helpers.OptionalNumericPointerParam(&companyCreateRequest.ManagerID, "manager_id"),
+		helpers.OptionalNumericPointerParam(&companyCreateRequest.IndustryID, "industry_id"),
+		helpers.OptionalNumericListParam(&companyCreateRequest.TagIDs, "tag_ids"),
+	)
+	return companyCreateRequest, err
+}
+
+// companyCreateBatchMaxItems bounds twprojects-create_companies. The whole list
+// is one request, and the endpoint creates the companies one after another, so
+// a longer list would outlive the tool call.
+const companyCreateBatchMaxItems = 50
+
+// CompanyCreateBatch creates many companies in Teamwork.com with a single
+// request to the bulk create route, with partial success turned on so one bad
+// company does not stop the others.
+func CompanyCreateBatch(engine *twapi.Engine) toolsets.ToolWrapper {
+	itemSchema := batchItemSchema(CompanyCreate(engine).Tool.InputSchema)
+	return toolsets.ToolWrapper{
+		Tool: &mcp.Tool{
+			Name: string(MethodCompanyCreateBatch),
+			Description: fmt.Sprintf("Create many companies (aka clients) in one call, up to %d per call. "+
+				"Use instead of calling twprojects-create_company in a loop. Items are validated first and "+
+				"nothing is created if one is invalid; after that each company succeeds or fails on its own, "+
+				"and the result lists the company ID of each item and the reason for each failure, numbering "+
+				"items from 1 in list order. A name already used by an existing company (ignoring case and "+
+				"surrounding spaces) is not created again: the item reports that company's ID instead, and "+
+				"the same applies to a name repeated in the list.", companyCreateBatchMaxItems),
+			Annotations: &mcp.ToolAnnotations{
+				Title:           "Create Companies",
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
+			},
+			InputSchema: &jsonschema.Schema{
+				Type: "object",
+				Properties: map[string]*jsonschema.Schema{
+					"companies": {
+						Type:     "array",
+						Items:    itemSchema,
+						MinItems: new(1),
+						MaxItems: new(companyCreateBatchMaxItems),
+						Description: fmt.Sprintf("The companies to create, at most %d, each with the parameters "+
+							"of twprojects-create_company.", companyCreateBatchMaxItems),
+					},
+				},
+				Required: []string{"companies"},
+			},
+		},
+		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+			var arguments map[string]any
+			if err := json.Unmarshal(request.Params.Arguments, &arguments); err != nil {
+				return helpers.NewToolResultTextError("failed to decode request: %s", err.Error()), nil
+			}
+			items, toolResult := batchItems(arguments, "companies", companyCreateBatchMaxItems)
+			if toolResult != nil {
+				return toolResult, nil
+			}
+
+			bulkRequest := projects.CompanyBulkCreateRequest{
+				Companies:      make([]projects.CompanyCreateRequest, len(items)),
+				PartialSuccess: true,
+			}
+			labels := make([]string, len(items))
+			var invalid []string
+			for i, item := range items {
+				req, err := parseCompanyCreateArguments(item)
+				labels[i] = fmt.Sprintf("item %d %q", i+1, req.Name)
+				if err != nil {
+					invalid = append(invalid, fmt.Sprintf("item %d: %s", i+1, err.Error()))
+					continue
+				}
+				bulkRequest.Companies[i] = req
+			}
+			if len(invalid) > 0 {
+				return batchInvalidItems(invalid), nil
+			}
+
+			response, err := projects.CompanyBulkCreate(ctx, engine, bulkRequest)
+			if err != nil {
+				if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+					return helpers.NewToolResultTextError("The request was interrupted and its outcome is "+
+						"unknown; check with %s before sending the companies again.", MethodCompanyList), nil
+				}
+				if failures := companyBulkCreateErrorFailures(err); failures != nil {
+					return companyBatchReport(labels, nil, nil, failures), nil
+				}
+				return helpers.HandleAPIError(err, "failed to create companies")
+			}
+			indexes, err := response.CompanyIndexes(len(items))
+			if err != nil {
+				return helpers.NewToolResultTextError("The companies were sent but the response could not be "+
+					"read (%s); check with %s before sending them again.", err.Error(), MethodCompanyList), nil
+			}
+			return companyBatchReport(labels, indexes, response.Companies, response.Failed), nil
+		},
+	}
+}
+
+// companyBulkCreateErrorFailures reads the per-company errors of a bulk create
+// in which no company could be created: the endpoint then answers 400 or 403
+// with each error carrying its company's position under meta.index. It returns
+// nil for any other error.
+func companyBulkCreateErrorFailures(err error) []projects.CompanyBulkCreateFailure {
+	httpErr, ok := errors.AsType[*twapi.HTTPError](err)
+	if !ok || (httpErr.StatusCode != http.StatusBadRequest && httpErr.StatusCode != http.StatusForbidden) {
+		return nil
+	}
+	var body struct {
+		Errors []projects.CompanyBulkCreateError `json:"errors"`
+	}
+	if json.Unmarshal([]byte(httpErr.Details), &body) != nil || len(body.Errors) == 0 {
+		return nil
+	}
+	byIndex := make(map[int][]projects.CompanyBulkCreateError)
+	for _, entry := range body.Errors {
+		index, ok := entry.Meta["index"].(float64)
+		if !ok {
+			return nil
+		}
+		byIndex[int(index)] = append(byIndex[int(index)], entry)
+	}
+	failures := make([]projects.CompanyBulkCreateFailure, 0, len(byIndex))
+	for _, index := range slices.Sorted(maps.Keys(byIndex)) {
+		failures = append(failures, projects.CompanyBulkCreateFailure{Index: index, Errors: byIndex[index]})
+	}
+	return failures
+}
+
+// companyBatchReport summarises a bulk create in one result: the company ID of
+// each item that succeeded and the reasons of each item that failed. It is an
+// error result when any item failed, even though the others were created.
+func companyBatchReport(
+	labels []string,
+	indexes []int,
+	companies []projects.Company,
+	failures []projects.CompanyBulkCreateFailure,
+) *mcp.CallToolResult {
+	var report strings.Builder
+	fmt.Fprintf(&report, "Created %d of %d companies.", len(companies), len(labels))
+	if len(companies) > 0 {
+		created := make([]string, len(companies))
+		for i, company := range companies {
+			created[i] = fmt.Sprintf("%s → company %d", labels[indexes[i]], company.ID)
+		}
+		fmt.Fprintf(&report, "\nCreated: %s.", strings.Join(created, ", "))
+	}
+	for _, failure := range failures {
+		label := fmt.Sprintf("item %d", failure.Index+1)
+		if failure.Index >= 0 && failure.Index < len(labels) {
+			label = labels[failure.Index]
+		}
+		reasons := make([]string, len(failure.Errors))
+		for i, reason := range failure.Errors {
+			reasons[i] = strings.TrimPrefix(reason.Title+": "+reason.Detail, ": ")
+		}
+		fmt.Fprintf(&report, "\nFailed: %s: %s.", label, strings.Join(reasons, "; "))
+	}
+	if len(companies) < len(labels) {
+		return helpers.NewToolResultTextError("%s", report.String())
+	}
+	return helpers.NewToolResultText("%s", report.String())
 }
 
 // CompanyUpdate updates a company in Teamwork.com.
