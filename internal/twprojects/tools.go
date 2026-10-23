@@ -199,6 +199,7 @@ func DefaultToolsetGroup(readOnly, allowDelete bool, engine *twapi.Engine) *tool
 	// is how "how loaded is this person" gets answered from half the picture.
 	planningWriteTools := []toolsets.ToolWrapper{
 		AllocationCreate(engine),
+		AllocationCreateBatch(engine),
 		AllocationUpdate(engine),
 		AllocationTaskLink(engine),
 		AllocationTaskUnlink(engine),

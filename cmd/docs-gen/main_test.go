@@ -271,6 +271,7 @@ var additiveWriteTools = map[string]bool{
 	"twprojects-complete_task":             true,
 	"twprojects-complete_timer":            true,
 	"twprojects-create_allocation":         true,
+	"twprojects-create_allocations":        true,
 	"twprojects-create_comment":            true,
 	"twprojects-create_company":            true,
 	"twprojects-create_custom_field":       true,
