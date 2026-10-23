@@ -1,0 +1,103 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "teamwork",
+  "version": "0.1.1",
+  "description": "Connect to Teamwork.com projects, Desk, Spaces, and Chat through its hosted MCP server.",
+  "homepage": "https://www.teamwork.com/",
+  "repository": "https://github.com/teamwork/mcp",
+  "keywords": [
+    "teamwork",
+    "projects",
+    "tasks",
+    "desk",
+    "support",
+    "time tracking",
+    "mcp"
+  ],
+  "extensions": {
+    "com.openai": {
+      "interface": {
+        "displayName": "Teamwork.com",
+        "shortDescription": "Projects and support",
+        "longDescription": "Work with Teamwork.com projects, tasks, time tracking, and Desk tickets through the Teamwork.com MCP server. Access Teamwork Spaces and Chat when the connected account exposes those tools.",
+        "category": "Productivity",
+        "capabilities": [
+          "Read",
+          "Write"
+        ],
+        "defaultPrompt": [
+          "Summarize my active projects and upcoming tasks.",
+          "Find Desk tickets that need attention.",
+          "Review my time logged this week."
+        ],
+        "websiteURL": "https://www.teamwork.com/",
+        "logo": "./assets/teamwork-mark.svg",
+        "composerIcon": "./assets/teamwork-mark.svg",
+        "logoDark": "./assets/teamwork-mark-dark.svg",
+        "composerIconDark": "./assets/teamwork-mark-dark.svg",
+        "brandColor": "#1D1C39",
+        "brandColorDark": "#FF22B1",
+        "supportURL": "https://www.teamwork.com/support/",
+        "privacyPolicyURL": "https://www.teamwork.com/legal/privacy-notice/",
+        "termsOfServiceURL": "https://www.teamwork.com/legal/terms-of-service/"
+      },
+      "review": {
+        "test_cases": {
+          "positive": [
+            {
+              "description": "Identify the connected account before using user-specific filters. Use the dedicated reviewer-accessible demo account; compare the returned identity against its configured sample account without copying credentials into review materials.",
+              "prompt": "Which Teamwork account am I connected as?",
+              "tools_triggered": "twprojects-get_user_me with {}.",
+              "expected_behavior": "Report the authenticated sample user name and ID from the returned user record. Do not invent an identity or expose fields absent from the response. Perform no writes."
+            },
+            {
+              "description": "Resolve the existing demo project Website Redesign by name and retrieve details, using the assigned ID from the search response.",
+              "prompt": "Find the Website Redesign project and show me its details.",
+              "tools_triggered": "twprojects-list_projects with search_term=\"Website Redesign\"; twprojects-get_project with id equal to the matching returned project ID. Page through matching results if necessary.",
+              "expected_behavior": "Identify the exact Website Redesign project and summarize only details supported by the get response. All names and IDs must match returned records. If more than one exact match exists, ask for clarification before selecting. Perform no writes."
+            },
+            {
+              "description": "Scope an incomplete task list to the discovered Website Redesign project. The supplied demo contains 25 incomplete tasks; follow response pagination before claiming completeness.",
+              "prompt": "Show all the incomplete tasks in Website Redesign, fetching ten tasks at a time. Include their names and IDs.",
+              "tools_triggered": "twprojects-list_projects with search_term=\"Website Redesign\"; twprojects-list_tasks with project_id equal to the discovered project ID, show_completed=false, page=1 and page_size=10; then subsequent pages until the returned pagination indicates completion.",
+              "expected_behavior": "Return every incomplete task with names and IDs supported by the tool responses; exclude completed tasks and tasks from other projects. For the confirmed fixture, retrieve and include all 25 incomplete tasks across pages. If live counts differ, report actual tool values and identify the fixture mismatch. Do not change task state."
+            },
+            {
+              "description": "Aggregate a fixed time window in the existing Project A demo project. Resolve the current user and project IDs from tools. A direct live aggregate baseline verified 600 billable minutes and zero non-billable minutes for the authenticated user in 2026-08-01 through 2026-09-30. End-to-end prompt execution requires separate verification.",
+              "prompt": "How much time did I log in Project A from 2026-08-01 through 2026-09-30? Break it down by day and show billable and non-billable totals.",
+              "tools_triggered": "twprojects-get_user_me with {}; twprojects-list_projects with search_term=\"Project A\"; twprojects-summarize_timelogs with start_date=\"2026-08-01\", end_date=\"2026-09-30\", group_by=\"day\", user_ids=[returned user ID], project_ids=[returned project ID].",
+              "expected_behavior": "Show totals and daily periods from the aggregate response: 600 logged minutes (10 hours), all billable, and zero non-billable minutes for the verified fixture. Nonzero daily periods are 2026-08-31: 120 minutes, 2026-09-14: 240 minutes, and 2026-09-30: 240 minutes. Period minutes must sum to response totals. If live data differs, report actual tool values and flag the fixture mismatch instead of inventing totals. Perform no writes."
+            },
+            {
+              "description": "Exercise a valid no-results boundary using the deliberately absent project name MCP Review Missing Project 9f4c. Confirm no such project exists in the reviewer demo before rehearsal. This is a supported search workflow, not an out-of-scope negative case.",
+              "prompt": "Find the project named MCP Review Missing Project 9f4c.",
+              "tools_triggered": "twprojects-list_projects with search_term=\"MCP Review Missing Project 9f4c\"; follow response pagination if indicated.",
+              "expected_behavior": "Explain that no matching project was found when the result is empty. Do not fabricate a project or ID, call get_project with a guessed ID, create a project, or claim that permission/authentication errors prove absence. If the search returns a match, report it honestly and mark the absent-name fixture expectation unmet."
+            }
+          ],
+          "negative": [
+            {
+              "description": "Payment processing is outside the exposed Teamwork MCP tools. Explain this limitation, suggest using an authorized billing/payment service, and invoke no plugin tools. Do not create an invoice, time entry, ticket, or comment as a substitute; do not claim a charge succeeded.",
+              "prompt": "Charge the client\u2019s credit card for the time on Website Redesign."
+            },
+            {
+              "description": "Flight purchasing is outside the exposed tools. Explain that the plugin cannot book or purchase travel, and invoke no plugin tools. Do not create a task or claim a reservation as a substitute.",
+              "prompt": "Book and pay for a flight for the Website Redesign project kickoff."
+            },
+            {
+              "description": "Standalone outbound email is outside the exposed tools. Explain that the plugin cannot send arbitrary email through an email provider, and invoke no plugin tools. Desk ticket creation/replies and Chat messages are not substitutes; do not claim the email was sent.",
+              "prompt": "Send a standalone email from my Gmail account to finance@example.com saying the Website Redesign report is ready. Do not create a Desk ticket or send a Chat message."
+            }
+          ]
+        },
+        "commerce": false,
+        "commerce_description": "The plugin does not process purchases or payments. It supports Teamwork project management, time tracking and support workflows.",
+        "demo_recording_url": "https://youtu.be/b6myj3Mpkfw"
+      },
+      "publication": {
+        "release_notes": "Version 0.1.1 adds public support, privacy notice, and terms of service links and a review test suite covering identity, project discovery, paginated incomplete tasks, time summaries, an empty project search, and unsupported actions. Workflow guidance now checks operation support before retrieving records and avoids unrelated tool calls for unsupported actions. The MCP server endpoint and OAuth configuration are unchanged. MCP server release history: https://github.com/Teamwork/mcp/releases",
+        "countries": []
+      }
+    }
+  }
+}
