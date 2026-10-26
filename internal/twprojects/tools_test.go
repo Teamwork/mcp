@@ -98,15 +98,16 @@ func TestPlanningToolsetMembership(t *testing.T) {
 	}
 
 	want := map[toolsets.Method]toolsets.Method{
-		twprojects.MethodAllocationCreate:     twprojects.ToolsetPlanning,
-		twprojects.MethodAllocationUpdate:     twprojects.ToolsetPlanning,
-		twprojects.MethodAllocationDelete:     twprojects.ToolsetPlanning,
-		twprojects.MethodAllocationRestore:    twprojects.ToolsetPlanning,
-		twprojects.MethodAllocationTaskLink:   twprojects.ToolsetPlanning,
-		twprojects.MethodAllocationTaskUnlink: twprojects.ToolsetPlanning,
-		twprojects.MethodAllocationGet:        twprojects.ToolsetPlanning,
-		twprojects.MethodAllocationList:       twprojects.ToolsetPlanning,
-		twprojects.MethodUsersWorkload:        twprojects.ToolsetPlanning,
+		twprojects.MethodAllocationCreate:      twprojects.ToolsetPlanning,
+		twprojects.MethodAllocationCreateBatch: twprojects.ToolsetPlanning,
+		twprojects.MethodAllocationUpdate:      twprojects.ToolsetPlanning,
+		twprojects.MethodAllocationDelete:      twprojects.ToolsetPlanning,
+		twprojects.MethodAllocationRestore:     twprojects.ToolsetPlanning,
+		twprojects.MethodAllocationTaskLink:    twprojects.ToolsetPlanning,
+		twprojects.MethodAllocationTaskUnlink:  twprojects.ToolsetPlanning,
+		twprojects.MethodAllocationGet:         twprojects.ToolsetPlanning,
+		twprojects.MethodAllocationList:        twprojects.ToolsetPlanning,
+		twprojects.MethodUsersWorkload:         twprojects.ToolsetPlanning,
 	}
 	for method, wantToolset := range want {
 		got, ok := toolsetOf[method.String()]

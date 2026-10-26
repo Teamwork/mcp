@@ -3,9 +3,11 @@ package twprojects
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 
 	"github.com/google/jsonschema-go/jsonschema"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
@@ -20,12 +22,13 @@ import (
 // The naming convention for methods follows a pattern described here:
 // https://github.com/github/github-mcp-server/issues/333
 const (
-	MethodUserCreate toolsets.Method = "twprojects-create_user"
-	MethodUserUpdate toolsets.Method = "twprojects-update_user"
-	MethodUserDelete toolsets.Method = "twprojects-delete_user"
-	MethodUserGet    toolsets.Method = "twprojects-get_user"
-	MethodUserGetMe  toolsets.Method = "twprojects-get_user_me"
-	MethodUserList   toolsets.Method = "twprojects-list_users"
+	MethodUserCreate      toolsets.Method = "twprojects-create_user"
+	MethodUserCreateBatch toolsets.Method = "twprojects-create_users"
+	MethodUserUpdate      toolsets.Method = "twprojects-update_user"
+	MethodUserDelete      toolsets.Method = "twprojects-delete_user"
+	MethodUserGet         toolsets.Method = "twprojects-get_user"
+	MethodUserGetMe       toolsets.Method = "twprojects-get_user_me"
+	MethodUserList        toolsets.Method = "twprojects-list_users"
 )
 
 var (
@@ -151,6 +154,178 @@ func UserCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 			return helpers.NewToolResultText("User created successfully with ID %d", user.ID), nil
 		},
 	}
+}
+
+// userCreateBatchMaxUsers bounds create_users. The endpoint creates the users
+// one after another inside the one request, so a long list risks outliving the
+// tool call.
+const userCreateBatchMaxUsers = 50
+
+// UserCreateBatch creates many users in Teamwork.com with a single request to
+// the bulk people endpoint, instead of one request per user.
+func UserCreateBatch(engine *twapi.Engine) toolsets.ToolWrapper {
+	itemSchema := batchItemSchema(UserCreate(engine).Tool.InputSchema)
+	return toolsets.ToolWrapper{
+		Tool: &mcp.Tool{
+			Name: string(MethodUserCreateBatch),
+			Description: fmt.Sprintf("Create many users in one call (at most %d per call), in one request. Use "+
+				"instead of calling twprojects-create_user in a loop. No invitation email is sent unless "+
+				"send_invite is true; invitations go to real people and cannot be recalled, so ask the user "+
+				"before setting it. Items are validated first and nothing is created if one is invalid; after "+
+				"that each user succeeds or fails on its own, and the result lists the new user ID of each "+
+				"item and the reason for each failure, by item number counting from 1.", userCreateBatchMaxUsers),
+			Annotations: &mcp.ToolAnnotations{
+				Title: "Create Users",
+				// Invitations are off by default, but the caller can turn them on,
+				// and they email any address. Like create_user, adding people and
+				// inviting them is not destructive.
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(true),
+			},
+			InputSchema: &jsonschema.Schema{
+				Type: "object",
+				Properties: map[string]*jsonschema.Schema{
+					"users": {
+						Type:     "array",
+						Items:    itemSchema,
+						MinItems: new(1),
+						MaxItems: new(userCreateBatchMaxUsers),
+						Description: fmt.Sprintf("The users to create, at most %d, each with the parameters of "+
+							"twprojects-create_user.", userCreateBatchMaxUsers),
+					},
+					"send_invite": {
+						Type: "boolean",
+						Description: "Email every created user an invitation to the site. Defaults to false. " +
+							"Only set it to true after the user has confirmed that invitations should be sent.",
+						Default: json.RawMessage("false"),
+					},
+				},
+				Required: []string{"users"},
+			},
+		},
+		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+			var arguments map[string]any
+			if err := json.Unmarshal(request.Params.Arguments, &arguments); err != nil {
+				return helpers.NewToolResultTextError("failed to decode request: %s", err.Error()), nil
+			}
+			var sendInvite bool
+			if err := helpers.ParamGroup(arguments, helpers.OptionalParam(&sendInvite, "send_invite")); err != nil {
+				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
+			}
+			items, toolResult := batchItems(arguments, "users", userCreateBatchMaxUsers)
+			if toolResult != nil {
+				return toolResult, nil
+			}
+
+			users := make([]projects.UserBulkCreateRequestUser, len(items))
+			labels := make([]string, len(items))
+			var invalid []string
+			for i, item := range items {
+				user, err := parseUserBulkCreateItem(item)
+				labels[i] = fmt.Sprintf("item %d %q", i+1, user.Email)
+				if err != nil {
+					invalid = append(invalid, fmt.Sprintf("item %d: %s", i+1, err.Error()))
+					continue
+				}
+				user.SendInvite = sendInvite
+				users[i] = user
+			}
+			if len(invalid) > 0 {
+				return batchInvalidItems(invalid), nil
+			}
+
+			response, err := projects.UserBulkCreate(ctx, engine, projects.NewUserBulkCreateRequest(users))
+			if err != nil {
+				if failures := projects.UserBulkCreateFailures(err); len(failures) > 0 {
+					return userBulkCreateNothingCreated(labels, failures), nil
+				}
+				return helpers.HandleAPIError(err, "failed to create users")
+			}
+			return userBulkCreateReport(labels, response), nil
+		},
+	}
+}
+
+// parseUserBulkCreateItem binds one item of create_users with the same
+// parameters and checks as create_user.
+func parseUserBulkCreateItem(item map[string]any) (projects.UserBulkCreateRequestUser, error) {
+	var user projects.UserBulkCreateRequestUser
+	var userType *string
+	err := helpers.ParamGroup(item,
+		helpers.RequiredParam(&user.Email, "email"),
+		helpers.RequiredParam(&user.FirstName, "first_name"),
+		helpers.RequiredParam(&user.LastName, "last_name"),
+		helpers.OptionalPointerParam(&user.Title, "title"),
+		helpers.OptionalPointerParam(&user.Admin, "admin"),
+		helpers.OptionalPointerParam(&userType, "type",
+			helpers.RestrictValues("account", "collaborator", "contact"),
+		),
+		helpers.OptionalNumericPointerParam(&user.CompanyID, "company_id"),
+	)
+	if userType != nil {
+		user.Type = new(projects.UserType(*userType))
+	}
+	return user, err
+}
+
+// userBulkCreateReport maps the created users back to the items they came from.
+// The endpoint returns the created users in request order, leaving out the
+// items it reports as failed.
+func userBulkCreateReport(labels []string, response *projects.UserBulkCreateResponse) *mcp.CallToolResult {
+	errs := make([]error, len(labels))
+	for _, failure := range response.Failed {
+		if failure.Index >= 0 && failure.Index < len(errs) {
+			errs[failure.Index] = errors.New(userBulkCreateReasons(failure))
+		}
+	}
+
+	details := make([]string, len(labels))
+	next := 0
+	for i := range errs {
+		if errs[i] != nil {
+			continue
+		}
+		if next >= len(response.Users) {
+			errs[i] = errors.New("not reported as created or failed; check with " +
+				string(MethodUserList) + " before sending it again")
+			continue
+		}
+		details[i] = fmt.Sprintf("user %d", response.Users[next].ID)
+		next++
+	}
+	return batchReport("Created", "users",
+		"check with "+string(MethodUserList)+" before sending them again", labels, details, errs)
+}
+
+// userBulkCreateNothingCreated reports a request the endpoint rejected as a
+// whole, naming each item that caused it.
+func userBulkCreateNothingCreated(labels []string, failures []projects.UserBulkCreateFailure) *mcp.CallToolResult {
+	var report strings.Builder
+	fmt.Fprintf(&report, "Created 0 of %d users. Nothing was created.", len(labels))
+	for _, failure := range failures {
+		label := fmt.Sprintf("item %d", failure.Index+1)
+		if failure.Index >= 0 && failure.Index < len(labels) {
+			label = labels[failure.Index]
+		}
+		fmt.Fprintf(&report, "\nFailed: %s: %s.", label, userBulkCreateReasons(failure))
+	}
+	return helpers.NewToolResultTextError("%s", report.String())
+}
+
+// userBulkCreateReasons joins the reasons one item was not created.
+func userBulkCreateReasons(failure projects.UserBulkCreateFailure) string {
+	reasons := make([]string, 0, len(failure.Errors))
+	for _, e := range failure.Errors {
+		reason := e.Detail
+		if reason == "" {
+			reason = e.Title
+		}
+		reasons = append(reasons, reason)
+	}
+	if len(reasons) == 0 {
+		return "no reason given"
+	}
+	return strings.Join(reasons, "; ")
 }
 
 // UserUpdate updates a user in Teamwork.com.

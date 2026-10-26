@@ -14,7 +14,7 @@ require (
 	github.com/sonh/qs v0.7.1
 	github.com/teamwork/desksdkgo v1.1.2
 	github.com/teamwork/spacessdkgo v0.1.1
-	github.com/teamwork/twapi-go-sdk v1.36.0
+	github.com/teamwork/twapi-go-sdk v1.37.0
 )
 
 require (
