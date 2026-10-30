@@ -8,6 +8,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"maps"
 	"slices"
 	"strconv"
 	"strings"
@@ -212,6 +213,11 @@ type ToolWrapper struct {
 	//
 	// https://pkg.go.dev/github.com/modelcontextprotocol/go-sdk@v1.0.0/mcp#ToolHandlerFor
 	Handler mcp.ToolHandler
+
+	// ResultMeta, when set, is added to the _meta of every result the tool
+	// returns, including the input-validation errors raised before Handler
+	// runs. An MCP App can use it to recognise its own tool's results.
+	ResultMeta mcp.Meta
 }
 
 // Toolset represents a collection of MCP functionality that can be enabled or
@@ -270,12 +276,31 @@ func (t *Toolset) RegisterTools(s *mcp.Server) {
 		return
 	}
 	for _, toolWrapper := range t.readTools {
-		s.AddTool(toolWrapper.Tool, withInputValidation(toolWrapper.Tool, toolWrapper.Handler))
+		s.AddTool(toolWrapper.Tool, toolWrapper.serverHandler())
 	}
 	if !t.readOnly {
 		for _, tool := range t.writeTools {
-			s.AddTool(tool.Tool, withInputValidation(tool.Tool, tool.Handler))
+			s.AddTool(tool.Tool, tool.serverHandler())
 		}
+	}
+}
+
+// serverHandler is the handler as registered: validated input, and ResultMeta
+// stamped outside the validation so its errors carry it too.
+func (t ToolWrapper) serverHandler() mcp.ToolHandler {
+	handler := withInputValidation(t.Tool, t.Handler)
+	if len(t.ResultMeta) == 0 {
+		return handler
+	}
+	return func(ctx context.Context, req *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		result, err := handler(ctx, req)
+		if result != nil {
+			if result.Meta == nil {
+				result.Meta = mcp.Meta{}
+			}
+			maps.Copy(result.Meta, t.ResultMeta)
+		}
+		return result, err
 	}
 }
 

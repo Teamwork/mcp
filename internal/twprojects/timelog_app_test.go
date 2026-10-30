@@ -345,13 +345,18 @@ func TestTimelogCreateAppNeverLogsTwice(t *testing.T) {
 // create_timelog results from echoes of its own read calls. Without it the app
 // ignores the model's result and never leaves "Creating timelog...".
 func TestTimelogCreateResultsCarryTheAppTag(t *testing.T) {
+	valid := map[string]any{"date": "2026-10-23", "time": "13:00:00", "hours": 0, "minutes": 15, "task_id": 777}
 	tests := []struct {
-		name    string
-		status  int
-		isError bool
+		name      string
+		status    int
+		arguments map[string]any
+		isError   bool
 	}{
-		{name: "created", status: http.StatusCreated},
-		{name: "rejected", status: http.StatusBadRequest, isError: true},
+		{name: "created", status: http.StatusCreated, arguments: valid},
+		{name: "rejected by the API", status: http.StatusBadRequest, arguments: valid, isError: true},
+		// rejected before the handler runs: unpadded time, no minutes.
+		{name: "rejected by the schema", status: http.StatusCreated, isError: true,
+			arguments: map[string]any{"date": "2026-10-23", "time": "9:00:00", "hours": 1, "task_id": 777}},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -360,10 +365,8 @@ func TestTimelogCreateResultsCarryTheAppTag(t *testing.T) {
 			defer clientSession.Close() //nolint:errcheck
 
 			result, err := clientSession.CallTool(t.Context(), &mcp.CallToolParams{
-				Name: twprojects.MethodTimelogCreate.String(),
-				Arguments: map[string]any{
-					"date": "2026-10-23", "time": "13:00:00", "hours": 0, "minutes": 15, "task_id": 777,
-				},
+				Name:      twprojects.MethodTimelogCreate.String(),
+				Arguments: tt.arguments,
 			})
 			if err != nil {
 				t.Fatalf("failed to call tool: %v", err)
