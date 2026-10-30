@@ -118,6 +118,19 @@ func TestTimelogCreateResourceRead(t *testing.T) {
 		}
 	}
 
+	// the host renders the form for the model's own create, so it must not be
+	// able to send that create again, nor drop its UTC flag or its task.
+	for _, fragment := range []string{
+		"lockForm(resultMessage(result))",  // finished create leaves no live submit
+		"if (created || hostCallActive)",   // no submit while the model's call runs
+		"is_utc: inputIsUTC",               // a UTC time is not re-read as local
+		"projectOfTask(preselectedTaskID)", // a task_id alone keeps its own project
+	} {
+		if !strings.Contains(content.Text, fragment) {
+			t.Errorf("expected embedded HTML to contain %s", fragment)
+		}
+	}
+
 	uiMetaRaw, ok := content.Meta["ui"]
 	if !ok {
 		t.Fatal("expected resource content to include _meta.ui")
