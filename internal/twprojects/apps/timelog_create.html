@@ -233,7 +233,7 @@
           <input class="control" id="date" type="date" required />
         </div>
         <div class="field">
-          <label class="label" for="time">Start time (HH:MM:SS)</label>
+          <label class="label" for="time" id="time-label">Start time (HH:MM:SS)</label>
           <input class="control" id="time" type="text" inputmode="numeric" pattern="^(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d$" placeholder="09:00:00" required />
         </div>
       </div>
@@ -292,8 +292,17 @@
       var descriptionField = document.getElementById("description");
       var billableField = document.getElementById("billable");
 
+      var timeLabel = document.getElementById("time-label");
+      var actionsEl = formEl.querySelector(".actions");
+
       var preselectedProjectID = null;
       var preselectedTaskID = null;
+      var inputIsUTC = false;
+      var projectsLoaded = false;
+      // The host renders this form for the model's own create call, so a
+      // submit while that call is in flight or done would log the time twice.
+      var hostCallActive = false;
+      var created = false;
 
       function pad(value) {
         return String(value).padStart(2, "0");
@@ -305,6 +314,16 @@
           date: now.toISOString().slice(0, 10),
           time: pad(now.getHours()) + ":" + pad(now.getMinutes()) + ":" + pad(now.getSeconds())
         };
+      }
+
+      function lockForm(message) {
+        created = true;
+        var controls = formEl.querySelectorAll("input, select, textarea, button");
+        for (var i = 0; i < controls.length; i += 1) {
+          controls[i].disabled = true;
+        }
+        actionsEl.style.display = "none";
+        setStatus("success", message);
       }
 
       function setStatus(type, message) {
@@ -554,6 +573,9 @@
           timeField.value = input.time;
         }
 
+        inputIsUTC = input.is_utc === true;
+        timeLabel.textContent = inputIsUTC ? "Start time (UTC, HH:MM:SS)" : "Start time (HH:MM:SS)";
+
         if (Number.isFinite(input.hours)) {
           hoursField.value = String(input.hours);
         }
@@ -569,12 +591,21 @@
         if (typeof input.billable === "boolean") {
           billableField.checked = input.billable;
         }
+
+        if (projectsLoaded) {
+          applyProjectSelection().catch(function () {});
+        }
       }
 
       function handleHostNotification(method, params) {
         if (method === "ui/notifications/tool-input" || method === "notifications/tool-input") {
           // Spec carries the arguments under "arguments"; "input" is pre-SEP.
           applyInput((params && (params.arguments || params.input)) || {});
+          if (!created) {
+            hostCallActive = true;
+            submitButton.disabled = true;
+            setStatus("success", "Creating timelog...");
+          }
           return;
         }
 
@@ -584,7 +615,13 @@
           if (!result || !Array.isArray(result.content)) {
             return;
           }
-          setStatus(result.isError ? "error" : "success", resultMessage(result));
+          hostCallActive = false;
+          if (result.isError) {
+            submitButton.disabled = false;
+            setStatus("error", resultMessage(result));
+            return;
+          }
+          lockForm(resultMessage(result));
         }
       }
 
@@ -674,18 +711,11 @@
           }
 
           setSelectOptions(projectSelect, projects, "Select a project");
-          projectSelect.disabled = false;
+          projectSelect.disabled = created;
           projectHint.textContent = "Choose a project to load its tasks.";
+          projectsLoaded = true;
 
-          if (preselectedProjectID) {
-            projectSelect.value = String(preselectedProjectID);
-          }
-
-          if (!projectSelect.value) {
-            projectSelect.value = String(projects[0].id);
-          }
-
-          await loadTasksForSelectedProject(preselectedTaskID);
+          await applyProjectSelection();
         } catch (error) {
           var baseMessage = error && error.message ? error.message : String(error);
           var authMessage = maybeNotAuthenticatedMessage(baseMessage);
@@ -695,6 +725,56 @@
           taskSelect.disabled = true;
           setSelectOptions(taskSelect, [], "Select a project first");
         }
+      }
+
+      // A task_id alone says nothing about its project, and falling back to the
+      // first project would log the time somewhere else entirely.
+      async function projectOfTask(taskID) {
+        var taskResult = await callTool("twprojects-get_task", { id: taskID, fields: ["tasklist"] });
+        var task = decodeResultObjects(taskResult)[0];
+        var tasklistID = task && task.task && task.task.tasklist && parsePositiveInt(task.task.tasklist.id);
+        if (!tasklistID) {
+          return null;
+        }
+        var tasklistResult = await callTool("twprojects-get_tasklist", { id: tasklistID, fields: ["project"] });
+        var tasklist = decodeResultObjects(tasklistResult)[0];
+        return (tasklist && tasklist.tasklist && tasklist.tasklist.project &&
+          parsePositiveInt(tasklist.tasklist.project.id)) || null;
+      }
+
+      function ensureOption(selectEl, id, label) {
+        var value = String(id);
+        for (var i = 0; i < selectEl.options.length; i += 1) {
+          if (selectEl.options[i].value === value) {
+            return;
+          }
+        }
+        var option = document.createElement("option");
+        option.value = value;
+        option.textContent = label + " " + id;
+        selectEl.appendChild(option);
+      }
+
+      async function applyProjectSelection() {
+        if (!preselectedProjectID && preselectedTaskID) {
+          try {
+            preselectedProjectID = await projectOfTask(preselectedTaskID);
+          } catch (_err) {
+            preselectedProjectID = null;
+          }
+        }
+
+        if (preselectedProjectID) {
+          // Lists stop at 200 rows; keep the requested one rather than swap it.
+          ensureOption(projectSelect, preselectedProjectID, "Project");
+          projectSelect.value = String(preselectedProjectID);
+        }
+
+        if (!projectSelect.value && projectSelect.options.length > 1) {
+          projectSelect.value = projectSelect.options[1].value;
+        }
+
+        await loadTasksForSelectedProject(preselectedTaskID);
       }
 
       async function loadTasksForSelectedProject(preferredTaskID) {
@@ -752,9 +832,10 @@
 
           tasks.sort(sortByName);
           setSelectOptions(taskSelect, tasks, "No task (log to project)");
-          taskSelect.disabled = false;
+          taskSelect.disabled = created;
 
           if (preferredTaskID) {
+            ensureOption(taskSelect, preferredTaskID, "Task");
             taskSelect.value = String(preferredTaskID);
           }
 
@@ -895,6 +976,9 @@
 
       formEl.addEventListener("submit", async function (event) {
         event.preventDefault();
+        if (created || hostCallActive) {
+          return;
+        }
         resetStatus();
 
         var validation = validateForm();
@@ -909,7 +993,8 @@
           hours: validation.payload.hours,
           minutes: validation.payload.minutes,
           description: validation.payload.description,
-          billable: validation.payload.billable
+          billable: validation.payload.billable,
+          is_utc: inputIsUTC
         };
 
         if (validation.payload.taskID) {
@@ -923,12 +1008,11 @@
 
         try {
           var result = await callTool("twprojects-create_timelog", payload);
-          setStatus("success", resultMessage(result));
+          lockForm(resultMessage(result));
         } catch (error) {
           var baseMessage = error && error.message ? error.message : String(error);
           var authMessage = maybeNotAuthenticatedMessage(baseMessage);
           setStatus("error", authMessage || baseMessage);
-        } finally {
           submitButton.disabled = false;
         }
       });
