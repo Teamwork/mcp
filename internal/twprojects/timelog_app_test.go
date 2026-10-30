@@ -273,6 +273,26 @@ func TestTimelogCreateAppNeverLogsTwice(t *testing.T) {
 				t.Errorf("expected a timed-out create to warn it may exist, got %q", o.Status)
 			}
 		}},
+		{scenario: "own-create-host-error", creates: 1, locked: true, check: func(t *testing.T, o observation) {
+			if !strings.Contains(o.Status, "may have been created") {
+				t.Errorf("expected a host error on the create to warn it may exist, got %q", o.Status)
+			}
+		}},
+		{scenario: "own-create-times-out-then-echo", creates: 1, locked: true, check: func(t *testing.T, o observation) {
+			if o.Status != "Timelog created successfully with ID 123" {
+				t.Errorf("expected the host's late result to settle the status, got %q", o.Status)
+			}
+		}},
+		{scenario: "late-load-error", creates: 0, locked: true, check: func(t *testing.T, o observation) {
+			if o.Status != "Timelog created successfully with ID 123" {
+				t.Errorf("expected a late load error to keep the created status, got %q", o.Status)
+			}
+		}},
+		{scenario: "load-error-without-text", creates: 0, submittable: true, check: func(t *testing.T, o observation) {
+			if strings.Contains(o.Status, "timelog") {
+				t.Errorf("expected a failed project load not to talk about the timelog, got %q", o.Status)
+			}
+		}},
 		{scenario: "utc-without-time", creates: 1, locked: true, check: func(t *testing.T, o observation) {
 			// the time field kept its local default, so it is not UTC.
 			if o.Creates[0]["is_utc"] != false {

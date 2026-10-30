@@ -46,7 +46,9 @@ function element(tag) {
   return node;
 }
 
-function newApp({ createReply }) {
+// createReply and toolReply answer with { result } or { error } (a JSON-RPC
+// error from the host), optionally after { delay } ms; null never answers.
+function newApp({ createReply, toolReply }) {
   const ids = ["timelog-form", "submit", "status", "project-id", "task-id", "project-hint", "task-hint",
     "date", "time", "hours", "minutes", "description", "billable", "time-label"];
   const els = Object.fromEntries(ids.map((id) => [id, element(
@@ -59,7 +61,7 @@ function newApp({ createReply }) {
   const listeners = [];
   const creates = [];
   const deliver = (data) => listeners.forEach((fn) => fn({ data, origin: "https://host.example.com" }));
-  const reply = (id, result) => setTimeout(() => deliver({ jsonrpc: "2.0", id, result }), 1);
+  const reply = (id, { delay = 1, ...answer }) => setTimeout(() => deliver({ jsonrpc: "2.0", id, ...answer }), delay);
 
   const window = {
     addEventListener(type, fn) { if (type === "message") listeners.push(fn); },
@@ -67,7 +69,7 @@ function newApp({ createReply }) {
     parent: {
       postMessage(msg) {
         if (msg.method === "ui/initialize") {
-          reply(msg.id, {});
+          reply(msg.id, { result: {} });
           return;
         }
         if (msg.method !== "tools/call") {
@@ -76,13 +78,13 @@ function newApp({ createReply }) {
         const { name, arguments: args } = msg.params;
         if (name === "twprojects-create_timelog") {
           creates.push(args);
-          const result = createReply(creates.length);
-          if (result) {
-            reply(msg.id, result);
+          const answer = createReply(creates.length);
+          if (answer) {
+            reply(msg.id, answer);
           }
           return;
         }
-        reply(msg.id, { content: [{ type: "text", text: JSON.stringify(toolBodies[name]) }] });
+        reply(msg.id, toolReply(name) || { result: { content: [{ type: "text", text: JSON.stringify(toolBodies[name]) }] } });
       },
     },
   };
@@ -183,6 +185,32 @@ const scenarios = {
     await wait(60);
     app.submit();
   },
+  // A JSON-RPC error from the host is no answer from the server.
+  "own-create-host-error": async (app) => {
+    app.host("ui/notifications/tool-input", { arguments: modelInput });
+    await wait(40);
+    app.host("ui/notifications/tool-result", failed());
+    app.submit();
+    await wait(20);
+    app.submit();
+  },
+  "own-create-times-out-then-echo": async (app) => {
+    app.host("ui/notifications/tool-input", { arguments: modelInput });
+    await wait(40);
+    app.host("ui/notifications/tool-result", failed());
+    app.submit();
+    await wait(60);
+    app.host("ui/notifications/tool-result", created());
+  },
+  // list_projects fails after the model's create already succeeded.
+  "late-load-error": async (app) => {
+    app.host("ui/notifications/tool-input", { arguments: modelInput });
+    app.host("ui/notifications/tool-result", created());
+    await wait(120);
+  },
+  "load-error-without-text": async () => {
+    await wait(40);
+  },
   "utc-without-time": async (app) => {
     const { time, ...input } = modelInput;
     app.host("ui/notifications/tool-input", { arguments: input });
@@ -192,10 +220,23 @@ const scenarios = {
   },
 };
 
+const scenarioOptions = {
+  "own-create-times-out": { createReply: () => null },
+  "own-create-times-out-then-echo": { createReply: () => null },
+  "own-create-host-error": { createReply: () => ({ error: { code: -32001, message: "Request timed out" } }) },
+  "late-load-error": {
+    toolReply: (name) => name === "twprojects-list_projects" ? { delay: 80, result: { isError: true, content: [] } } : null,
+  },
+  "load-error-without-text": {
+    toolReply: (name) => name === "twprojects-list_projects" ? { result: { isError: true } } : null,
+  },
+};
+
 (async () => {
   const out = {};
   for (const [name, run] of Object.entries(scenarios)) {
-    const app = newApp({ createReply: name === "own-create-times-out" ? () => null : created });
+    const app = newApp(Object.assign({ createReply: () => ({ result: created() }), toolReply: () => null },
+      scenarioOptions[name]));
     await run(app);
     await wait(40);
     out[name] = app.observe();
