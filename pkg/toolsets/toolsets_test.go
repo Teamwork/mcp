@@ -228,6 +228,55 @@ func TestWithInputValidationRejectsInvalidInput(t *testing.T) {
 	}
 }
 
+// TestServerHandlerStampsResultMeta pins that ResultMeta reaches every result,
+// including an input-validation error raised before the handler runs, and that
+// it keeps the _meta the handler set itself.
+func TestServerHandlerStampsResultMeta(t *testing.T) {
+	tool := ToolWrapper{
+		Tool: &mcp.Tool{
+			Name: "example-create",
+			InputSchema: &jsonschema.Schema{
+				Type:       "object",
+				Properties: map[string]*jsonschema.Schema{"count": {Type: "integer"}},
+				Required:   []string{"count"},
+			},
+		},
+		Handler: func(context.Context, *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+			return &mcp.CallToolResult{Meta: mcp.Meta{"example/own": "kept"}}, nil
+		},
+		ResultMeta: mcp.Meta{"example/tool": "example-create"},
+	}
+	handler := tool.serverHandler()
+
+	tests := []struct {
+		name      string
+		arguments string
+		isError   bool
+	}{
+		{name: "handled", arguments: `{"count":1}`},
+		{name: "rejected by the schema", arguments: `{}`, isError: true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			res, err := handler(context.Background(), &mcp.CallToolRequest{Params: &mcp.CallToolParamsRaw{
+				Arguments: json.RawMessage(tt.arguments),
+			}})
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if res.IsError != tt.isError {
+				t.Fatalf("expected isError=%t, got %t", tt.isError, res.IsError)
+			}
+			if res.Meta["example/tool"] != "example-create" {
+				t.Errorf("expected ResultMeta on the result, got _meta %v", res.Meta)
+			}
+			if !tt.isError && res.Meta["example/own"] != "kept" {
+				t.Errorf("expected the handler's own _meta to be kept, got %v", res.Meta)
+			}
+		})
+	}
+}
+
 // TestScopes covers the list a server advertises as "scopes_supported": it must
 // be deduplicated (several groups may share a scope) and stable, and it must
 // leave out groups that declared no namespace, since those are never filtered.
