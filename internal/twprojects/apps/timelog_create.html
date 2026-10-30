@@ -307,6 +307,8 @@
       // form only submits while idle: "host-call" waits for that call's result,
       // "submitting" for the form's own, and "created" is final.
       var state = "idle";
+      // Set while "created" stands for a create whose outcome never arrived.
+      var outcomeUnknown = false;
 
       function pad(value) {
         return String(value).padStart(2, "0");
@@ -384,9 +386,7 @@
               return;
             }
             pending.delete(id);
-            var timeoutError = new Error("Timed out calling " + method);
-            timeoutError.timedOut = true;
-            reject(timeoutError);
+            reject(new Error("Timed out calling " + method));
           }, timeoutMs || 30000);
         });
       }
@@ -405,7 +405,10 @@
         });
 
         if (result && result.isError) {
-          throw new Error(resultMessage(result, notCreatedMessage));
+          // The server answered, so unlike a transport error the outcome is known.
+          var toolError = new Error(resultMessage(result, name + " failed."));
+          toolError.toolResult = result;
+          throw toolError;
         }
 
         return result;
@@ -636,12 +639,20 @@
         }
 
         if (method === "ui/notifications/tool-result" || method === "notifications/tool-result") {
+          // Spec params *are* the result (content/structuredContent/_meta).
+          var result = (params && params.result) || params || {};
+          if (state === "created" && outcomeUnknown) {
+            // The host's echo of the form's own call settles what it didn't answer.
+            outcomeUnknown = false;
+            setStatus(result.isError ? "error" : "success", result.isError
+              ? resultMessage(result, notCreatedMessage) + " Ask again to log it."
+              : resultMessage(result));
+            return;
+          }
           // "idle" too: a host that skips tool-input still ran the model's create.
           if (state !== "host-call" && state !== "idle") {
             return;
           }
-          // Spec params *are* the result (content/structuredContent/_meta).
-          var result = (params && params.result) || params || {};
           if (result.isError) {
             unlockForm("error", resultMessage(result, notCreatedMessage));
             return;
@@ -761,7 +772,9 @@
         } catch (error) {
           var baseMessage = error && error.message ? error.message : String(error);
           var authMessage = maybeNotAuthenticatedMessage(baseMessage);
-          setStatus("error", authMessage || baseMessage);
+          if (state === "idle") {
+            setStatus("error", authMessage || baseMessage);
+          }
           setSelectOptions(projectSelect, [], "Unable to load projects");
           projectHint.textContent = "Project loading failed. Check authentication and reconnect.";
           taskSelect.disabled = true;
@@ -897,7 +910,9 @@
 
           var baseMessage = error && error.message ? error.message : String(error);
           var authMessage = maybeNotAuthenticatedMessage(baseMessage);
-          setStatus("error", authMessage || baseMessage);
+          if (state === "idle") {
+            setStatus("error", authMessage || baseMessage);
+          }
           setSelectOptions(taskSelect, [], "Unable to load tasks");
           taskSelect.disabled = true;
           taskHint.textContent = "Task loading failed. You can still log against the project.";
@@ -1058,15 +1073,22 @@
           var result = await callTool("twprojects-create_timelog", payload);
           lockForm(resultMessage(result));
         } catch (error) {
-          if (error && error.timedOut) {
-            // The create may still have landed; a resubmit could log it twice.
-            lockForm("No answer from Teamwork.com yet, so the timelog may have been created. " +
-              "Check before logging it again.", "error");
-            return;
-          }
           var baseMessage = error && error.message ? error.message : String(error);
           var authMessage = maybeNotAuthenticatedMessage(baseMessage);
-          unlockForm("error", authMessage || baseMessage);
+          if (error && error.toolResult) {
+            var message = resultMessage(error.toolResult, notCreatedMessage);
+            unlockForm("error", maybeNotAuthenticatedMessage(message) || message);
+            return;
+          }
+          if (authMessage) {
+            unlockForm("error", authMessage);
+            return;
+          }
+          // A timeout or host error says nothing about the server; the create
+          // may have landed, and a resubmit could log it twice.
+          outcomeUnknown = true;
+          lockForm("No answer from Teamwork.com, so the timelog may have been created. " +
+            "Check before logging it again.", "error");
         }
       });
 
