@@ -1,7 +1,9 @@
 package twprojects_test
 
 import (
+	"encoding/json"
 	"net/http"
+	"os/exec"
 	"regexp"
 	"strings"
 	"testing"
@@ -118,19 +120,6 @@ func TestTimelogCreateResourceRead(t *testing.T) {
 		}
 	}
 
-	// the host renders the form for the model's own create, so it must not be
-	// able to send that create again, nor drop its UTC flag or its task.
-	for _, fragment := range []string{
-		"lockForm(resultMessage(result))",  // finished create leaves no live submit
-		"if (created || hostCallActive)",   // no submit while the model's call runs
-		"is_utc: inputIsUTC",               // a UTC time is not re-read as local
-		"projectOfTask(preselectedTaskID)", // a task_id alone keeps its own project
-	} {
-		if !strings.Contains(content.Text, fragment) {
-			t.Errorf("expected embedded HTML to contain %s", fragment)
-		}
-	}
-
 	uiMetaRaw, ok := content.Meta["ui"]
 	if !ok {
 		t.Fatal("expected resource content to include _meta.ui")
@@ -199,5 +188,103 @@ func TestTimelogCreateAppCallsRegisteredTools(t *testing.T) {
 		if !registered[match[1]] {
 			t.Errorf("app calls %q, which no registered tool answers to", match[1])
 		}
+	}
+}
+
+// TestTimelogCreateAppNeverLogsTwice runs the app's script in node against a
+// fake host. The host renders the form for the model's own create, so the form
+// must not send that create again, and a retry it does send must match it.
+func TestTimelogCreateAppNeverLogsTwice(t *testing.T) {
+	node, err := exec.LookPath("node")
+	if err != nil {
+		t.Skip("node is not installed")
+	}
+	output, err := exec.CommandContext(t.Context(), node,
+		"testdata/timelog_app_harness.js", "apps/timelog_create.html").Output()
+	if err != nil {
+		t.Fatalf("failed to run the app harness: %v", err)
+	}
+
+	type observation struct {
+		Creates        []map[string]any `json:"creates"`
+		Project        string           `json:"project"`
+		Task           string           `json:"task"`
+		Date           string           `json:"date"`
+		SubmitDisabled bool             `json:"submitDisabled"`
+		Locked         bool             `json:"locked"`
+		Status         string           `json:"status"`
+	}
+	var observed map[string]observation
+	if err := json.Unmarshal(output, &observed); err != nil {
+		t.Fatalf("failed to decode harness output %q: %v", output, err)
+	}
+
+	tests := []struct {
+		scenario string
+		creates  int
+		locked   bool
+		check    func(t *testing.T, o observation)
+	}{
+		{scenario: "host-success", creates: 0, locked: true, check: func(t *testing.T, o observation) {
+			// a task_id alone must not fall back to the first project by name.
+			if o.Project != "1406292" || o.Task != "36434673" {
+				t.Errorf("expected the task's own project and the task, got %q and %q", o.Project, o.Task)
+			}
+		}},
+		{scenario: "submit-during-host-call", creates: 0},
+		{scenario: "host-result-without-content", creates: 0, locked: true},
+		{scenario: "host-error-then-retry", creates: 1, locked: true, check: func(t *testing.T, o observation) {
+			create := o.Creates[0]
+			for key, want := range map[string]any{
+				"is_utc": true, "task_id": 36434673.0, "user_id": 12345.0, "time": "13:00:00",
+			} {
+				if create[key] != want {
+					t.Errorf("expected the retry to send %s=%v, got %v", key, want, create[key])
+				}
+			}
+			if _, ok := create["project_id"]; ok {
+				t.Errorf("expected the retry to send no project_id, got %v", create["project_id"])
+			}
+			if tags, _ := create["tag_ids"].([]any); len(tags) != 1 {
+				t.Errorf("expected the retry to keep the model's tag_ids, got %v", create["tag_ids"])
+			}
+		}},
+		{scenario: "host-cancelled", creates: 1, locked: true},
+		{scenario: "input-after-lock", creates: 0, locked: true, check: func(t *testing.T, o observation) {
+			if o.Date != "2026-10-23" {
+				t.Errorf("expected a locked form to keep the created date, got %q", o.Date)
+			}
+		}},
+		{scenario: "own-create-times-out", creates: 1, locked: true, check: func(t *testing.T, o observation) {
+			if !strings.Contains(o.Status, "may have been created") {
+				t.Errorf("expected a timed-out create to warn it may exist, got %q", o.Status)
+			}
+		}},
+		{scenario: "utc-without-time", creates: 1, locked: true, check: func(t *testing.T, o observation) {
+			// the time field kept its local default, so it is not UTC.
+			if o.Creates[0]["is_utc"] != false {
+				t.Errorf("expected is_utc=false without a time, got %v", o.Creates[0]["is_utc"])
+			}
+		}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.scenario, func(t *testing.T) {
+			o, ok := observed[tt.scenario]
+			if !ok {
+				t.Fatalf("harness reported no %q scenario", tt.scenario)
+			}
+			if len(o.Creates) != tt.creates {
+				t.Fatalf("expected %d create_timelog calls from the app, got %d: %v", tt.creates, len(o.Creates), o.Creates)
+			}
+			if o.Locked != tt.locked {
+				t.Errorf("expected locked=%t, got %t (status %q)", tt.locked, o.Locked, o.Status)
+			}
+			if !o.SubmitDisabled {
+				t.Errorf("expected submit to be disabled, status %q", o.Status)
+			}
+			if tt.check != nil {
+				tt.check(t, o)
+			}
+		})
 	}
 }
