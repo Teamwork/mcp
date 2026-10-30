@@ -297,12 +297,16 @@
 
       var preselectedProjectID = null;
       var preselectedTaskID = null;
+      var taskProjectPromise = null;
+      var selectionQueue = Promise.resolve();
       var inputIsUTC = false;
+      var inputExtras = {};
       var projectsLoaded = false;
-      // The host renders this form for the model's own create call, so a
-      // submit while that call is in flight or done would log the time twice.
-      var hostCallActive = false;
-      var created = false;
+
+      // The host renders this form for the model's own create call, so the
+      // form only submits while idle: "host-call" waits for that call's result,
+      // "submitting" for the form's own, and "created" is final.
+      var state = "idle";
 
       function pad(value) {
         return String(value).padStart(2, "0");
@@ -311,19 +315,19 @@
       function nowDefaults() {
         var now = new Date();
         return {
-          date: now.toISOString().slice(0, 10),
+          date: now.getFullYear() + "-" + pad(now.getMonth() + 1) + "-" + pad(now.getDate()),
           time: pad(now.getHours()) + ":" + pad(now.getMinutes()) + ":" + pad(now.getSeconds())
         };
       }
 
-      function lockForm(message) {
-        created = true;
+      function lockForm(message, type) {
+        state = "created";
         var controls = formEl.querySelectorAll("input, select, textarea, button");
         for (var i = 0; i < controls.length; i += 1) {
           controls[i].disabled = true;
         }
         actionsEl.style.display = "none";
-        setStatus("success", message);
+        setStatus(type || "success", message);
       }
 
       function setStatus(type, message) {
@@ -380,7 +384,9 @@
               return;
             }
             pending.delete(id);
-            reject(new Error("Timed out calling " + method));
+            var timeoutError = new Error("Timed out calling " + method);
+            timeoutError.timedOut = true;
+            reject(timeoutError);
           }, timeoutMs || 30000);
         });
       }
@@ -571,10 +577,10 @@
 
         if (typeof input.time === "string") {
           timeField.value = input.time;
+          // Without a time the field keeps the local default, so is_utc can't apply.
+          inputIsUTC = input.is_utc === true;
+          timeLabel.textContent = inputIsUTC ? "Start time (UTC, HH:MM:SS)" : "Start time (HH:MM:SS)";
         }
-
-        inputIsUTC = input.is_utc === true;
-        timeLabel.textContent = inputIsUTC ? "Start time (UTC, HH:MM:SS)" : "Start time (HH:MM:SS)";
 
         if (Number.isFinite(input.hours)) {
           hoursField.value = String(input.hours);
@@ -592,37 +598,67 @@
           billableField.checked = input.billable;
         }
 
+        // Not shown in the form, but a retry must log for the same user and tags.
+        inputExtras = {};
+        if (Number.isFinite(input.user_id)) {
+          inputExtras.user_id = input.user_id;
+        }
+        if (Array.isArray(input.tag_ids)) {
+          inputExtras.tag_ids = input.tag_ids;
+        }
+
+        // Resolved alongside list_projects rather than after it.
+        taskProjectPromise = !preselectedProjectID && preselectedTaskID
+          ? projectOfTask(preselectedTaskID).catch(function () { return null; })
+          : null;
+
         if (projectsLoaded) {
-          applyProjectSelection().catch(function () {});
+          scheduleProjectSelection();
         }
       }
 
       function handleHostNotification(method, params) {
+        // The host may also echo these for the form's own call (spec,
+        // Interactive Phase), which the submit handler already tracks.
         if (method === "ui/notifications/tool-input" || method === "notifications/tool-input") {
+          if (state !== "idle") {
+            return;
+          }
           // Spec carries the arguments under "arguments"; "input" is pre-SEP.
           applyInput((params && (params.arguments || params.input)) || {});
-          if (!created) {
-            hostCallActive = true;
-            submitButton.disabled = true;
-            setStatus("success", "Creating timelog...");
-          }
+          state = "host-call";
+          submitButton.disabled = true;
+          setStatus("success", "Creating timelog...");
           return;
         }
 
         if (method === "ui/notifications/tool-result" || method === "notifications/tool-result") {
-          // Spec params *are* the result (content/structuredContent/_meta).
-          var result = (params && params.result) || params;
-          if (!result || !Array.isArray(result.content)) {
+          if (state !== "host-call") {
             return;
           }
-          hostCallActive = false;
+          // Spec params *are* the result (content/structuredContent/_meta).
+          var result = (params && params.result) || params || {};
           if (result.isError) {
-            submitButton.disabled = false;
-            setStatus("error", resultMessage(result));
+            unlockForm("error", resultMessage(result));
             return;
           }
           lockForm(resultMessage(result));
+          return;
         }
+
+        if (method === "ui/notifications/tool-cancelled" || method === "notifications/tool-cancelled") {
+          if (state !== "host-call") {
+            return;
+          }
+          var reason = params && typeof params.reason === "string" && params.reason !== "" ? " (" + params.reason + ")" : "";
+          unlockForm("error", "The request was cancelled" + reason + ". No timelog was created; submit the form to log it.");
+        }
+      }
+
+      function unlockForm(type, message) {
+        state = "idle";
+        submitButton.disabled = false;
+        setStatus(type, message);
       }
 
       // Hosts that size the iframe flexibly have no other way to learn our
@@ -711,11 +747,11 @@
           }
 
           setSelectOptions(projectSelect, projects, "Select a project");
-          projectSelect.disabled = created;
+          projectSelect.disabled = state === "created";
           projectHint.textContent = "Choose a project to load its tasks.";
           projectsLoaded = true;
 
-          await applyProjectSelection();
+          await scheduleProjectSelection();
         } catch (error) {
           var baseMessage = error && error.message ? error.message : String(error);
           var authMessage = maybeNotAuthenticatedMessage(baseMessage);
@@ -727,8 +763,8 @@
         }
       }
 
-      // A task_id alone says nothing about its project, and falling back to the
-      // first project would log the time somewhere else entirely.
+      // A task_id alone says nothing about its project. The create only sends
+      // task_id, but the form would show, and offer tasks from, another project.
       async function projectOfTask(taskID) {
         var taskResult = await callTool("twprojects-get_task", { id: taskID, fields: ["tasklist"] });
         var task = decodeResultObjects(taskResult)[0];
@@ -755,13 +791,15 @@
         selectEl.appendChild(option);
       }
 
+      // Queued so a tool-input landing mid-load can't run two selections at once.
+      function scheduleProjectSelection() {
+        selectionQueue = selectionQueue.then(applyProjectSelection, applyProjectSelection);
+        return selectionQueue;
+      }
+
       async function applyProjectSelection() {
-        if (!preselectedProjectID && preselectedTaskID) {
-          try {
-            preselectedProjectID = await projectOfTask(preselectedTaskID);
-          } catch (_err) {
-            preselectedProjectID = null;
-          }
+        if (!preselectedProjectID && taskProjectPromise) {
+          preselectedProjectID = await taskProjectPromise;
         }
 
         if (preselectedProjectID) {
@@ -832,7 +870,7 @@
 
           tasks.sort(sortByName);
           setSelectOptions(taskSelect, tasks, "No task (log to project)");
-          taskSelect.disabled = created;
+          taskSelect.disabled = state === "created";
 
           if (preferredTaskID) {
             ensureOption(taskSelect, preferredTaskID, "Task");
@@ -970,13 +1008,15 @@
       timeField.value = defaults.time;
 
       projectSelect.addEventListener("change", function () {
+        preselectedProjectID = parsePositiveInt(projectSelect.value);
         preselectedTaskID = null;
+        taskProjectPromise = null;
         loadTasksForSelectedProject(null);
       });
 
       formEl.addEventListener("submit", async function (event) {
         event.preventDefault();
-        if (created || hostCallActive) {
+        if (state !== "idle") {
           return;
         }
         resetStatus();
@@ -996,6 +1036,7 @@
           billable: validation.payload.billable,
           is_utc: inputIsUTC
         };
+        Object.assign(payload, inputExtras);
 
         if (validation.payload.taskID) {
           payload.task_id = validation.payload.taskID;
@@ -1003,6 +1044,7 @@
           payload.project_id = validation.payload.projectID;
         }
 
+        state = "submitting";
         submitButton.disabled = true;
         setStatus("success", "Creating timelog...");
 
@@ -1010,10 +1052,15 @@
           var result = await callTool("twprojects-create_timelog", payload);
           lockForm(resultMessage(result));
         } catch (error) {
+          if (error && error.timedOut) {
+            // The create may still have landed; a resubmit could log it twice.
+            lockForm("No answer from Teamwork.com yet, so the timelog may have been created. " +
+              "Check before logging it again.", "error");
+            return;
+          }
           var baseMessage = error && error.message ? error.message : String(error);
           var authMessage = maybeNotAuthenticatedMessage(baseMessage);
-          setStatus("error", authMessage || baseMessage);
-          submitButton.disabled = false;
+          unlockForm("error", authMessage || baseMessage);
         }
       });
 
