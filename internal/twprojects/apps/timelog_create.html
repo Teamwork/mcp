@@ -405,15 +405,18 @@
         });
 
         if (result && result.isError) {
-          throw new Error(resultMessage(result));
+          throw new Error(resultMessage(result, notCreatedMessage));
         }
 
         return result;
       }
 
-      function resultMessage(result) {
+      var notCreatedMessage = "The timelog was not created.";
+
+      function resultMessage(result, fallback) {
+        fallback = fallback || "Timelog created.";
         if (!result || !Array.isArray(result.content)) {
-          return "Timelog created.";
+          return fallback;
         }
 
         for (var i = 0; i < result.content.length; i += 1) {
@@ -434,7 +437,7 @@
           }
         }
 
-        return "Timelog created.";
+        return fallback;
       }
 
       function maybeNotAuthenticatedMessage(errorMessage) {
@@ -633,13 +636,14 @@
         }
 
         if (method === "ui/notifications/tool-result" || method === "notifications/tool-result") {
-          if (state !== "host-call") {
+          // "idle" too: a host that skips tool-input still ran the model's create.
+          if (state !== "host-call" && state !== "idle") {
             return;
           }
           // Spec params *are* the result (content/structuredContent/_meta).
           var result = (params && params.result) || params || {};
           if (result.isError) {
-            unlockForm("error", resultMessage(result));
+            unlockForm("error", resultMessage(result, notCreatedMessage));
             return;
           }
           lockForm(resultMessage(result));
@@ -651,7 +655,9 @@
             return;
           }
           var reason = params && typeof params.reason === "string" && params.reason !== "" ? " (" + params.reason + ")" : "";
-          unlockForm("error", "The request was cancelled" + reason + ". No timelog was created; submit the form to log it.");
+          // A cancel can follow a create the server already ran.
+          unlockForm("error", "The request was cancelled" + reason + ", so the timelog may or may not have been created. " +
+            "Check before submitting the form.");
         }
       }
 

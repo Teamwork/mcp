@@ -10,7 +10,7 @@ const html = fs.readFileSync(process.argv[2], "utf8");
 const script = html.match(/<script>([\s\S]*)<\/script>/)[1];
 
 const modelInput = {
-  task_id: 36434673,
+  task_id: 777,
   date: "2026-10-23",
   time: "13:00:00",
   hours: 0,
@@ -19,12 +19,12 @@ const modelInput = {
   is_utc: true,
 };
 
-// "```" sorts first, as on the site that reported the bug.
+// "```" sorts first, so a fallback to the first project by name shows up.
 const toolBodies = {
-  "twprojects-list_projects": { projects: [{ id: 2, name: "```" }, { id: 1406292, name: "Real" }] },
+  "twprojects-list_projects": { projects: [{ id: 2, name: "```" }, { id: 12345, name: "Real" }] },
   "twprojects-list_tasks": { tasks: [{ id: 99, name: "Other task" }] },
   "twprojects-get_task": { task: { tasklist: { id: 55, type: "tasklists" } } },
-  "twprojects-get_tasklist": { tasklist: { project: { id: 1406292, type: "projects" } } },
+  "twprojects-get_tasklist": { tasklist: { project: { id: 12345, type: "projects" } } },
 };
 
 function element(tag) {
@@ -114,11 +114,11 @@ function newApp({ createReply }) {
 }
 
 const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-const created = () => ({ content: [{ type: "text", text: "Timelog created successfully with ID 19020699" }] });
+const created = () => ({ content: [{ type: "text", text: "Timelog created successfully with ID 123" }] });
 const failed = () => ({ content: [{ type: "text", text: "failed to create timelog" }], isError: true });
 
 const scenarios = {
-  // The ticket: the model's create succeeds, then the form is submitted.
+  // The model's create succeeds, then the form is submitted.
   "host-success": async (app) => {
     app.host("ui/notifications/tool-input", { arguments: modelInput });
     await wait(40);
@@ -137,7 +137,7 @@ const scenarios = {
     app.submit();
   },
   "host-error-then-retry": async (app) => {
-    app.host("ui/notifications/tool-input", { arguments: { ...modelInput, user_id: 12345, tag_ids: [7] } });
+    app.host("ui/notifications/tool-input", { arguments: { ...modelInput, user_id: 999, tag_ids: [7] } });
     await wait(40);
     app.host("ui/notifications/tool-result", failed());
     app.submit();
@@ -147,11 +147,27 @@ const scenarios = {
     await wait(20);
     app.submit();
   },
+  // A host that skips tool-input still ran the model's create.
+  "host-result-only": async (app) => {
+    await wait(40);
+    app.host("ui/notifications/tool-result", created());
+    app.submit();
+  },
+  "host-error-without-text": async (app) => {
+    app.host("ui/notifications/tool-input", { arguments: modelInput });
+    await wait(40);
+    app.host("ui/notifications/tool-result", { isError: true, structuredContent: {} });
+  },
   "host-cancelled": async (app) => {
     app.host("ui/notifications/tool-input", { arguments: modelInput });
     await wait(40);
     app.host("ui/notifications/tool-cancelled", { reason: "user denied" });
     app.submit();
+  },
+  "host-cancelled-message": async (app) => {
+    app.host("ui/notifications/tool-input", { arguments: modelInput });
+    await wait(40);
+    app.host("ui/notifications/tool-cancelled", {});
   },
   "input-after-lock": async (app) => {
     app.host("ui/notifications/tool-input", { arguments: modelInput });

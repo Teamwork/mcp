@@ -220,14 +220,15 @@ func TestTimelogCreateAppNeverLogsTwice(t *testing.T) {
 	}
 
 	tests := []struct {
-		scenario string
-		creates  int
-		locked   bool
-		check    func(t *testing.T, o observation)
+		scenario    string
+		creates     int
+		locked      bool
+		submittable bool
+		check       func(t *testing.T, o observation)
 	}{
 		{scenario: "host-success", creates: 0, locked: true, check: func(t *testing.T, o observation) {
 			// a task_id alone must not fall back to the first project by name.
-			if o.Project != "1406292" || o.Task != "36434673" {
+			if o.Project != "12345" || o.Task != "777" {
 				t.Errorf("expected the task's own project and the task, got %q and %q", o.Project, o.Task)
 			}
 		}},
@@ -236,7 +237,7 @@ func TestTimelogCreateAppNeverLogsTwice(t *testing.T) {
 		{scenario: "host-error-then-retry", creates: 1, locked: true, check: func(t *testing.T, o observation) {
 			create := o.Creates[0]
 			for key, want := range map[string]any{
-				"is_utc": true, "task_id": 36434673.0, "user_id": 12345.0, "time": "13:00:00",
+				"is_utc": true, "task_id": 777.0, "user_id": 999.0, "time": "13:00:00",
 			} {
 				if create[key] != want {
 					t.Errorf("expected the retry to send %s=%v, got %v", key, want, create[key])
@@ -249,7 +250,19 @@ func TestTimelogCreateAppNeverLogsTwice(t *testing.T) {
 				t.Errorf("expected the retry to keep the model's tag_ids, got %v", create["tag_ids"])
 			}
 		}},
+		{scenario: "host-result-only", creates: 0, locked: true},
+		{scenario: "host-error-without-text", creates: 0, submittable: true, check: func(t *testing.T, o observation) {
+			if o.Status != "The timelog was not created." {
+				t.Errorf("expected an error without text to read as not created, got %q", o.Status)
+			}
+		}},
 		{scenario: "host-cancelled", creates: 1, locked: true},
+		{scenario: "host-cancelled-message", creates: 0, submittable: true, check: func(t *testing.T, o observation) {
+			// a cancel can follow a create the server already ran.
+			if !strings.Contains(o.Status, "may or may not have been created") {
+				t.Errorf("expected a cancel to warn the timelog may exist, got %q", o.Status)
+			}
+		}},
 		{scenario: "input-after-lock", creates: 0, locked: true, check: func(t *testing.T, o observation) {
 			if o.Date != "2026-10-23" {
 				t.Errorf("expected a locked form to keep the created date, got %q", o.Date)
@@ -279,8 +292,8 @@ func TestTimelogCreateAppNeverLogsTwice(t *testing.T) {
 			if o.Locked != tt.locked {
 				t.Errorf("expected locked=%t, got %t (status %q)", tt.locked, o.Locked, o.Status)
 			}
-			if !o.SubmitDisabled {
-				t.Errorf("expected submit to be disabled, status %q", o.Status)
+			if o.SubmitDisabled == tt.submittable {
+				t.Errorf("expected submittable=%t, got submit disabled=%t (status %q)", tt.submittable, o.SubmitDisabled, o.Status)
 			}
 			if tt.check != nil {
 				tt.check(t, o)
