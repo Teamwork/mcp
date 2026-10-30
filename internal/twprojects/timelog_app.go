@@ -13,6 +13,10 @@ const (
 	timelogCreateAppURI           = "ui://teamwork/timelog-create"
 	timelogCreateAppResourceTitle = "Create Timelog App"
 	timelogCreateAppDescription   = "Interactive form for creating Teamwork timelogs."
+
+	// timelogCreateResultMetaKey tags create_timelog results in _meta, so the
+	// app can tell them from the results of its own read calls.
+	timelogCreateResultMetaKey = "com.teamwork/tool"
 )
 
 // Standard _meta.ui.csp surface. Empty: the app is self-contained.

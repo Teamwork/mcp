@@ -116,8 +116,11 @@ function newApp({ createReply, toolReply }) {
 }
 
 const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-const created = () => ({ content: [{ type: "text", text: "Timelog created successfully with ID 123" }] });
-const failed = () => ({ content: [{ type: "text", text: "failed to create timelog" }], isError: true });
+// The server tags every create_timelog result like this.
+const createMeta = { "com.teamwork/tool": "twprojects-create_timelog" };
+const created = () => ({ content: [{ type: "text", text: "Timelog created successfully with ID 123" }], _meta: createMeta });
+const failed = () => ({ content: [{ type: "text", text: "failed to create timelog" }], isError: true, _meta: createMeta });
+const listed = () => ({ content: [{ type: "text", text: JSON.stringify(toolBodies["twprojects-list_projects"]) }] });
 
 const scenarios = {
   // The model's create succeeds, then the form is submitted.
@@ -135,7 +138,7 @@ const scenarios = {
   "host-result-without-content": async (app) => {
     app.host("ui/notifications/tool-input", { arguments: modelInput });
     await wait(40);
-    app.host("ui/notifications/tool-result", { structuredContent: {} });
+    app.host("ui/notifications/tool-result", { structuredContent: {}, _meta: createMeta });
     app.submit();
   },
   "host-error-then-retry": async (app) => {
@@ -158,7 +161,7 @@ const scenarios = {
   "host-error-without-text": async (app) => {
     app.host("ui/notifications/tool-input", { arguments: modelInput });
     await wait(40);
-    app.host("ui/notifications/tool-result", { isError: true, structuredContent: {} });
+    app.host("ui/notifications/tool-result", { isError: true, structuredContent: {}, _meta: createMeta });
   },
   "host-cancelled": async (app) => {
     app.host("ui/notifications/tool-input", { arguments: modelInput });
@@ -211,17 +214,40 @@ const scenarios = {
   "load-error-without-text": async () => {
     await wait(40);
   },
-  "utc-without-time": async (app) => {
+  // The host passes on the form's own list_projects call mid model create.
+  "read-call-echo": async (app) => {
+    app.host("ui/notifications/tool-input", { arguments: modelInput });
+    await wait(40);
+    app.host("ui/notifications/tool-input", { arguments: { page: 1, page_size: 200 } });
+    app.host("ui/notifications/tool-result", listed());
+  },
+  "read-call-echo-while-unknown": async (app) => {
+    app.host("ui/notifications/tool-input", { arguments: modelInput });
+    await wait(40);
+    app.host("ui/notifications/tool-result", failed());
+    app.submit();
+    await wait(60);
+    app.host("ui/notifications/tool-result", listed());
+  },
+  "own-create-late-response": async (app) => {
+    app.host("ui/notifications/tool-input", { arguments: modelInput });
+    await wait(40);
+    app.host("ui/notifications/tool-result", failed());
+    app.submit();
+    await wait(80);
+  },
+  // A create input always carries date and time, so this is a read call's echo.
+  "input-without-time": async (app) => {
     const { time, ...input } = modelInput;
     app.host("ui/notifications/tool-input", { arguments: input });
     await wait(40);
-    app.host("ui/notifications/tool-cancelled", {});
-    app.submit();
   },
 };
 
 const scenarioOptions = {
   "own-create-times-out": { createReply: () => null },
+  "read-call-echo-while-unknown": { createReply: () => null },
+  "own-create-late-response": { createReply: () => ({ delay: 50, result: created() }) },
   "own-create-times-out-then-echo": { createReply: () => null },
   "own-create-host-error": { createReply: () => ({ error: { code: -32001, message: "Request timed out" } }) },
   "late-load-error": {

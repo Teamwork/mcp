@@ -3,6 +3,7 @@ package twprojects_test
 import (
 	"encoding/json"
 	"net/http"
+	"os"
 	"os/exec"
 	"regexp"
 	"strings"
@@ -197,6 +198,10 @@ func TestTimelogCreateAppCallsRegisteredTools(t *testing.T) {
 func TestTimelogCreateAppNeverLogsTwice(t *testing.T) {
 	node, err := exec.LookPath("node")
 	if err != nil {
+		// GitHub's runners ship node, so a skip there would hide this test.
+		if os.Getenv("CI") != "" {
+			t.Fatal("node is required to test the timelog app in CI")
+		}
 		t.Skip("node is not installed")
 	}
 	output, err := exec.CommandContext(t.Context(), node,
@@ -293,10 +298,24 @@ func TestTimelogCreateAppNeverLogsTwice(t *testing.T) {
 				t.Errorf("expected a failed project load not to talk about the timelog, got %q", o.Status)
 			}
 		}},
-		{scenario: "utc-without-time", creates: 1, locked: true, check: func(t *testing.T, o observation) {
-			// the time field kept its local default, so it is not UTC.
-			if o.Creates[0]["is_utc"] != false {
-				t.Errorf("expected is_utc=false without a time, got %v", o.Creates[0]["is_utc"])
+		{scenario: "read-call-echo", creates: 0, check: func(t *testing.T, o observation) {
+			if o.Status != "Creating timelog..." {
+				t.Errorf("expected an echoed read call not to settle the model's create, got %q", o.Status)
+			}
+		}},
+		{scenario: "read-call-echo-while-unknown", creates: 1, locked: true, check: func(t *testing.T, o observation) {
+			if !strings.Contains(o.Status, "may have been created") {
+				t.Errorf("expected an echoed read call not to settle an unknown create, got %q", o.Status)
+			}
+		}},
+		{scenario: "own-create-late-response", creates: 1, locked: true, check: func(t *testing.T, o observation) {
+			if o.Status != "Timelog created successfully with ID 123" {
+				t.Errorf("expected a late response to settle the status, got %q", o.Status)
+			}
+		}},
+		{scenario: "input-without-time", creates: 0, submittable: true, check: func(t *testing.T, o observation) {
+			if o.Date == "2026-10-23" || o.Status != "" {
+				t.Errorf("expected an input without a time to be ignored, got date %q and status %q", o.Date, o.Status)
 			}
 		}},
 	}
@@ -317,6 +336,43 @@ func TestTimelogCreateAppNeverLogsTwice(t *testing.T) {
 			}
 			if tt.check != nil {
 				tt.check(t, o)
+			}
+		})
+	}
+}
+
+// TestTimelogCreateResultsCarryTheAppTag pins the _meta tag the app uses to tell
+// create_timelog results from echoes of its own read calls. Without it the app
+// ignores the model's result and never leaves "Creating timelog...".
+func TestTimelogCreateResultsCarryTheAppTag(t *testing.T) {
+	tests := []struct {
+		name    string
+		status  int
+		isError bool
+	}{
+		{name: "created", status: http.StatusCreated},
+		{name: "rejected", status: http.StatusBadRequest, isError: true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mcpServer := mcpServerMock(t, tt.status, []byte(`{"timelog":{"id":123}}`))
+			clientSession := connectProjectsClientSession(t, mcpServer)
+			defer clientSession.Close() //nolint:errcheck
+
+			result, err := clientSession.CallTool(t.Context(), &mcp.CallToolParams{
+				Name: twprojects.MethodTimelogCreate.String(),
+				Arguments: map[string]any{
+					"date": "2026-10-23", "time": "13:00:00", "hours": 0, "minutes": 15, "task_id": 777,
+				},
+			})
+			if err != nil {
+				t.Fatalf("failed to call tool: %v", err)
+			}
+			if result.IsError != tt.isError {
+				t.Fatalf("expected isError=%t, got %t", tt.isError, result.IsError)
+			}
+			if got := result.Meta["com.teamwork/tool"]; got != twprojects.MethodTimelogCreate.String() {
+				t.Errorf("expected the result to carry the app tag, got _meta %v", result.Meta)
 			}
 		})
 	}

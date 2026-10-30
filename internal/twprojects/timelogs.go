@@ -155,36 +155,49 @@ func TimelogCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 			},
 		},
 		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-			var timelogCreateRequest projects.TimelogCreateRequest
-
-			var arguments map[string]any
-			if err := json.Unmarshal(request.Params.Arguments, &arguments); err != nil {
-				return helpers.NewToolResultTextError("failed to decode request: %s", err.Error()), nil
+			result, err := timelogCreate(ctx, engine, request)
+			if result != nil {
+				// The app sees results without their tool name; this marks the create's.
+				result.Meta = mcp.Meta{timelogCreateResultMetaKey: string(MethodTimelogCreate)}
 			}
-			err := helpers.ParamGroup(arguments,
-				helpers.OptionalNumericParam(&timelogCreateRequest.Path.ProjectID, "project_id"),
-				helpers.OptionalNumericParam(&timelogCreateRequest.Path.TaskID, "task_id"),
-				helpers.OptionalPointerParam(&timelogCreateRequest.Description, "description"),
-				helpers.RequiredDateParam(&timelogCreateRequest.Date, "date"),
-				helpers.RequiredTimeOnlyParam(&timelogCreateRequest.Time, "time"),
-				helpers.OptionalParam(&timelogCreateRequest.IsUTC, "is_utc"),
-				helpers.RequiredNumericParam(&timelogCreateRequest.Hours, "hours"),
-				helpers.RequiredNumericParam(&timelogCreateRequest.Minutes, "minutes"),
-				helpers.OptionalPointerParam(&timelogCreateRequest.Billable, "billable"),
-				helpers.OptionalNumericPointerParam(&timelogCreateRequest.UserID, "user_id"),
-				helpers.OptionalNumericListParam(&timelogCreateRequest.TagIDs, "tag_ids"),
-			)
-			if err != nil {
-				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
-			}
-
-			timelogResponse, err := projects.TimelogCreate(ctx, engine, timelogCreateRequest)
-			if err != nil {
-				return helpers.HandleAPIError(err, "failed to create timelog")
-			}
-			return helpers.NewToolResultText("Timelog created successfully with ID %d", timelogResponse.Timelog.ID), nil
+			return result, err
 		},
 	}
+}
+
+func timelogCreate(
+	ctx context.Context,
+	engine *twapi.Engine,
+	request *mcp.CallToolRequest,
+) (*mcp.CallToolResult, error) {
+	var timelogCreateRequest projects.TimelogCreateRequest
+
+	var arguments map[string]any
+	if err := json.Unmarshal(request.Params.Arguments, &arguments); err != nil {
+		return helpers.NewToolResultTextError("failed to decode request: %s", err.Error()), nil
+	}
+	err := helpers.ParamGroup(arguments,
+		helpers.OptionalNumericParam(&timelogCreateRequest.Path.ProjectID, "project_id"),
+		helpers.OptionalNumericParam(&timelogCreateRequest.Path.TaskID, "task_id"),
+		helpers.OptionalPointerParam(&timelogCreateRequest.Description, "description"),
+		helpers.RequiredDateParam(&timelogCreateRequest.Date, "date"),
+		helpers.RequiredTimeOnlyParam(&timelogCreateRequest.Time, "time"),
+		helpers.OptionalParam(&timelogCreateRequest.IsUTC, "is_utc"),
+		helpers.RequiredNumericParam(&timelogCreateRequest.Hours, "hours"),
+		helpers.RequiredNumericParam(&timelogCreateRequest.Minutes, "minutes"),
+		helpers.OptionalPointerParam(&timelogCreateRequest.Billable, "billable"),
+		helpers.OptionalNumericPointerParam(&timelogCreateRequest.UserID, "user_id"),
+		helpers.OptionalNumericListParam(&timelogCreateRequest.TagIDs, "tag_ids"),
+	)
+	if err != nil {
+		return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
+	}
+
+	timelogResponse, err := projects.TimelogCreate(ctx, engine, timelogCreateRequest)
+	if err != nil {
+		return helpers.HandleAPIError(err, "failed to create timelog")
+	}
+	return helpers.NewToolResultText("Timelog created successfully with ID %d", timelogResponse.Timelog.ID), nil
 }
 
 // TimelogUpdate updates a timelog in Teamwork.com.

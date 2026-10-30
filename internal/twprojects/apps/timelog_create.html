@@ -371,7 +371,10 @@
         return value;
       }
 
-      function request(method, params, timeoutMs) {
+      // Responses that arrive after their request timed out, by id.
+      var lateHandlers = new Map();
+
+      function request(method, params, timeoutMs, onLate) {
         return new Promise(function (resolve, reject) {
           var id = nextID++;
           pending.set(id, { resolve: resolve, reject: reject });
@@ -386,6 +389,9 @@
               return;
             }
             pending.delete(id);
+            if (onLate) {
+              lateHandlers.set(id, onLate);
+            }
             reject(new Error("Timed out calling " + method));
           }, timeoutMs || 30000);
         });
@@ -398,11 +404,11 @@
         );
       }
 
-      async function callTool(name, args) {
+      async function callTool(name, args, onLate) {
         var result = await request("tools/call", {
           name: name,
           arguments: args || {}
-        });
+        }, 0, onLate);
 
         if (result && result.isError) {
           // The server answered, so unlike a transport error the outcome is known.
@@ -627,11 +633,13 @@
         // The host may also echo these for the form's own call (spec,
         // Interactive Phase), which the submit handler already tracks.
         if (method === "ui/notifications/tool-input" || method === "notifications/tool-input") {
-          if (state !== "idle") {
+          // Spec carries the arguments under "arguments"; "input" is pre-SEP.
+          var input = (params && (params.arguments || params.input)) || {};
+          // date and time are required, so an input without them is a read call's echo.
+          if (state !== "idle" || typeof input.date !== "string" || typeof input.time !== "string") {
             return;
           }
-          // Spec carries the arguments under "arguments"; "input" is pre-SEP.
-          applyInput((params && (params.arguments || params.input)) || {});
+          applyInput(input);
           state = "host-call";
           submitButton.disabled = true;
           setStatus("success", "Creating timelog...");
@@ -641,12 +649,12 @@
         if (method === "ui/notifications/tool-result" || method === "notifications/tool-result") {
           // Spec params *are* the result (content/structuredContent/_meta).
           var result = (params && params.result) || params || {};
+          if (!isCreateResult(result)) {
+            return;
+          }
           if (state === "created" && outcomeUnknown) {
             // The host's echo of the form's own call settles what it didn't answer.
-            outcomeUnknown = false;
-            setStatus(result.isError ? "error" : "success", result.isError
-              ? resultMessage(result, notCreatedMessage) + " Ask again to log it."
-              : resultMessage(result));
+            settleOutcome(result);
             return;
           }
           // "idle" too: a host that skips tool-input still ran the model's create.
@@ -670,6 +678,19 @@
           unlockForm("error", "The request was cancelled" + reason + ", so the timelog may or may not have been created. " +
             "Check before submitting the form.");
         }
+      }
+
+      // The server tags create_timelog results; a host may also pass on the
+      // results of this form's own read calls, which carry no tool name.
+      function isCreateResult(result) {
+        return !!(result && result._meta && result._meta["com.teamwork/tool"] === "twprojects-create_timelog");
+      }
+
+      function settleOutcome(result) {
+        outcomeUnknown = false;
+        setStatus(result.isError ? "error" : "success", result.isError
+          ? resultMessage(result, notCreatedMessage) + " Ask again to log it."
+          : resultMessage(result));
       }
 
       function unlockForm(type, message) {
@@ -983,6 +1004,13 @@
           hostOrigin = event.origin;
         }
 
+        if (data.id !== undefined && lateHandlers.has(data.id)) {
+          var onLate = lateHandlers.get(data.id);
+          lateHandlers.delete(data.id);
+          onLate(data);
+          return;
+        }
+
         if (data.id !== undefined && pending.has(data.id)) {
           var deferred = pending.get(data.id);
           pending.delete(data.id);
@@ -1070,7 +1098,12 @@
         setStatus("success", "Creating timelog...");
 
         try {
-          var result = await callTool("twprojects-create_timelog", payload);
+          var result = await callTool("twprojects-create_timelog", payload, function (late) {
+            // An answer after the timeout settles the outcome; a host error does not.
+            if (outcomeUnknown && late.result) {
+              settleOutcome(late.result);
+            }
+          });
           lockForm(resultMessage(result));
         } catch (error) {
           var baseMessage = error && error.message ? error.message : String(error);
