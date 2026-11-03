@@ -30,7 +30,7 @@ func CompanyGet(httpClient *http.Client) toolsets.ToolWrapper {
 		Tool: &mcp.Tool{
 			Name: string(MethodCompanyGet),
 			Annotations: &mcp.ToolAnnotations{
-				Title:           "Get Company",
+				Title:           "Get Desk Company",
 				ReadOnlyHint:    true,
 				DestructiveHint: new(false),
 				OpenWorldHint:   new(false),
@@ -97,7 +97,7 @@ func CompanyList(httpClient *http.Client) toolsets.ToolWrapper {
 		Tool: &mcp.Tool{
 			Name: string(MethodCompanyList),
 			Annotations: &mcp.ToolAnnotations{
-				Title:           "List Companies",
+				Title:           "List Desk Companies",
 				ReadOnlyHint:    true,
 				DestructiveHint: new(false),
 				OpenWorldHint:   new(false),
@@ -154,7 +154,7 @@ func CompanyCreate(httpClient *http.Client) toolsets.ToolWrapper {
 		Tool: &mcp.Tool{
 			Name: string(MethodCompanyCreate),
 			Annotations: &mcp.ToolAnnotations{
-				Title:           "Create Company",
+				Title:           "Create Desk Company",
 				DestructiveHint: new(false),
 				OpenWorldHint:   new(false),
 			},
@@ -276,7 +276,7 @@ func CompanyUpdate(httpClient *http.Client) toolsets.ToolWrapper {
 		Tool: &mcp.Tool{
 			Name: string(MethodCompanyUpdate),
 			Annotations: &mcp.ToolAnnotations{
-				Title:           "Update Company",
+				Title:           "Update Desk Company",
 				DestructiveHint: new(true),
 				OpenWorldHint:   new(false),
 			},

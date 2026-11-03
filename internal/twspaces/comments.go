@@ -28,7 +28,7 @@ func CommentGet(httpClient *http.Client) toolsets.ToolWrapper {
 		Tool: &mcp.Tool{
 			Name: string(MethodCommentGet),
 			Annotations: &mcp.ToolAnnotations{
-				Title:           "Get Comment",
+				Title:           "Get Spaces Comment",
 				ReadOnlyHint:    true,
 				DestructiveHint: new(false),
 				OpenWorldHint:   new(false),
@@ -79,7 +79,7 @@ func CommentList(httpClient *http.Client) toolsets.ToolWrapper {
 		Tool: &mcp.Tool{
 			Name: string(MethodCommentList),
 			Annotations: &mcp.ToolAnnotations{
-				Title:           "List Comments",
+				Title:           "List Spaces Comments",
 				ReadOnlyHint:    true,
 				DestructiveHint: new(false),
 				OpenWorldHint:   new(false),
@@ -128,7 +128,7 @@ func CommentCreate(httpClient *http.Client) toolsets.ToolWrapper {
 		Tool: &mcp.Tool{
 			Name: string(MethodCommentCreate),
 			Annotations: &mcp.ToolAnnotations{
-				Title:           "Create Comment",
+				Title:           "Create Spaces Comment",
 				DestructiveHint: new(false),
 				OpenWorldHint:   new(false),
 			},
@@ -200,7 +200,7 @@ func CommentUpdate(httpClient *http.Client) toolsets.ToolWrapper {
 		Tool: &mcp.Tool{
 			Name: string(MethodCommentUpdate),
 			Annotations: &mcp.ToolAnnotations{
-				Title:           "Update Comment",
+				Title:           "Update Spaces Comment",
 				DestructiveHint: new(true),
 				OpenWorldHint:   new(false),
 			},
@@ -285,7 +285,7 @@ func CommentDelete(httpClient *http.Client) toolsets.ToolWrapper {
 		Tool: &mcp.Tool{
 			Name: string(MethodCommentDelete),
 			Annotations: &mcp.ToolAnnotations{
-				Title:           "Delete Comment",
+				Title:           "Delete Spaces Comment",
 				DestructiveHint: new(true),
 				OpenWorldHint:   new(false),
 			},

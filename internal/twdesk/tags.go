@@ -30,7 +30,7 @@ func TagGet(httpClient *http.Client) toolsets.ToolWrapper {
 		Tool: &mcp.Tool{
 			Name: string(MethodTagGet),
 			Annotations: &mcp.ToolAnnotations{
-				Title:           "Get Tag",
+				Title:           "Get Desk Tag",
 				ReadOnlyHint:    true,
 				DestructiveHint: new(false),
 				OpenWorldHint:   new(false),
@@ -96,7 +96,7 @@ func TagList(httpClient *http.Client) toolsets.ToolWrapper {
 		Tool: &mcp.Tool{
 			Name: string(MethodTagList),
 			Annotations: &mcp.ToolAnnotations{
-				Title:           "List Tags",
+				Title:           "List Desk Tags",
 				ReadOnlyHint:    true,
 				DestructiveHint: new(false),
 				OpenWorldHint:   new(false),
@@ -151,7 +151,7 @@ func TagCreate(httpClient *http.Client) toolsets.ToolWrapper {
 		Tool: &mcp.Tool{
 			Name: string(MethodTagCreate),
 			Annotations: &mcp.ToolAnnotations{
-				Title:           "Create Tag",
+				Title:           "Create Desk Tag",
 				DestructiveHint: new(false),
 				OpenWorldHint:   new(false),
 			},
@@ -203,7 +203,7 @@ func TagUpdate(httpClient *http.Client) toolsets.ToolWrapper {
 		Tool: &mcp.Tool{
 			Name: string(MethodTagUpdate),
 			Annotations: &mcp.ToolAnnotations{
-				Title:           "Update Tag",
+				Title:           "Update Desk Tag",
 				DestructiveHint: new(true),
 				OpenWorldHint:   new(false),
 			},
