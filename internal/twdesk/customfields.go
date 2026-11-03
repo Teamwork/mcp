@@ -45,7 +45,7 @@ func CustomFieldList(httpClient *http.Client) toolsets.ToolWrapper {
 		Tool: &mcp.Tool{
 			Name: string(MethodCustomFieldList),
 			Annotations: &mcp.ToolAnnotations{
-				Title:           "List Custom Fields",
+				Title:           "List Desk Custom Fields",
 				ReadOnlyHint:    true,
 				DestructiveHint: new(false),
 				OpenWorldHint:   new(false),

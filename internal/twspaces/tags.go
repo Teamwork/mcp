@@ -28,7 +28,7 @@ func TagGet(httpClient *http.Client) toolsets.ToolWrapper {
 		Tool: &mcp.Tool{
 			Name: string(MethodTagGet),
 			Annotations: &mcp.ToolAnnotations{
-				Title:           "Get Tag",
+				Title:           "Get Spaces Tag",
 				ReadOnlyHint:    true,
 				DestructiveHint: new(false),
 				OpenWorldHint:   new(false),
@@ -67,7 +67,7 @@ func TagList(httpClient *http.Client) toolsets.ToolWrapper {
 		Tool: &mcp.Tool{
 			Name: string(MethodTagList),
 			Annotations: &mcp.ToolAnnotations{
-				Title:           "List Tags",
+				Title:           "List Spaces Tags",
 				ReadOnlyHint:    true,
 				DestructiveHint: new(false),
 				OpenWorldHint:   new(false),
@@ -181,7 +181,7 @@ func TagUpdate(httpClient *http.Client) toolsets.ToolWrapper {
 		Tool: &mcp.Tool{
 			Name: string(MethodTagUpdate),
 			Annotations: &mcp.ToolAnnotations{
-				Title:           "Update Tag",
+				Title:           "Update Spaces Tag",
 				DestructiveHint: new(true),
 				OpenWorldHint:   new(false),
 			},
@@ -242,7 +242,7 @@ func TagDelete(httpClient *http.Client) toolsets.ToolWrapper {
 		Tool: &mcp.Tool{
 			Name: string(MethodTagDelete),
 			Annotations: &mcp.ToolAnnotations{
-				Title:           "Delete Tag",
+				Title:           "Delete Spaces Tag",
 				DestructiveHint: new(true),
 				OpenWorldHint:   new(false),
 			},

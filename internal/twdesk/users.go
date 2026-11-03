@@ -27,7 +27,7 @@ func UserGet(httpClient *http.Client) toolsets.ToolWrapper {
 		Tool: &mcp.Tool{
 			Name: string(MethodUserGet),
 			Annotations: &mcp.ToolAnnotations{
-				Title:           "Get User",
+				Title:           "Get Desk User",
 				ReadOnlyHint:    true,
 				DestructiveHint: new(false),
 				OpenWorldHint:   new(false),
@@ -107,7 +107,7 @@ func UserList(httpClient *http.Client) toolsets.ToolWrapper {
 		Tool: &mcp.Tool{
 			Name: string(MethodUserList),
 			Annotations: &mcp.ToolAnnotations{
-				Title:           "List Users",
+				Title:           "List Desk Users",
 				ReadOnlyHint:    true,
 				DestructiveHint: new(false),
 				OpenWorldHint:   new(false),

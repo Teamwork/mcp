@@ -26,7 +26,7 @@ func FileCreate(httpClient *http.Client) toolsets.ToolWrapper {
 		Tool: &mcp.Tool{
 			Name: string(MethodFileCreate),
 			Annotations: &mcp.ToolAnnotations{
-				Title:           "Create File",
+				Title:           "Create Desk File",
 				DestructiveHint: new(false),
 				OpenWorldHint:   new(false),
 			},

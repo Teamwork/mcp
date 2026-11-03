@@ -248,6 +248,34 @@ func TestAnnotationHintsAreExplicit(t *testing.T) {
 	}
 }
 
+// TestToolTitlesAreUnique guards the annotation title, which ChatGPT shows as
+// the tool's name: OpenAI's review rejects two tools sharing one, even when
+// their names differ.
+func TestToolTitlesAreUnique(t *testing.T) {
+	all := []product{
+		{"Projects", twprojects.DefaultToolsetGroup(false, true, nil)},
+		{"Desk", twdesk.DefaultToolsetGroup(false, nil)},
+		{"Spaces", twspaces.DefaultToolsetGroup(false, true, nil)},
+		{"Chat", twchat.DefaultToolsetGroup(false, nil)},
+	}
+	seen := make(map[string]string)
+	for _, p := range all {
+		for _, ts := range p.group.Toolsets {
+			for _, tw := range ts.GetAvailableTools() {
+				if tw.Tool.Annotations == nil || tw.Tool.Annotations.Title == "" {
+					t.Errorf("tool %q has no title", tw.Tool.Name)
+					continue
+				}
+				title := strings.ToLower(tw.Tool.Annotations.Title)
+				if other, ok := seen[title]; ok {
+					t.Errorf("tools %q and %q share the title %q", other, tw.Tool.Name, tw.Tool.Annotations.Title)
+				}
+				seen[title] = tw.Tool.Name
+			}
+		}
+	}
+}
+
 // additiveWriteTools are the write tools OpenAI's review reads as
 // non-destructive: they add records, send messages, notifications or emails,
 // or make a clearly reversible change. Every other write tool overwrites,
