@@ -1,7 +1,27 @@
 {
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "com.teamwork/mcp",
+  "title": "Teamwork.com",
   "description": "The Teamwork.com official MCP server helps teams efficiently manage client projects with AI.",
+  "websiteUrl": "https://www.teamwork.com/ai/mcp/",
+  "icons": [
+    {
+      "src": "https://raw.githubusercontent.com/teamwork/mcp/main/plugins/teamwork/assets/teamwork-mark.svg",
+      "mimeType": "image/svg+xml",
+      "sizes": [
+        "any"
+      ],
+      "theme": "light"
+    },
+    {
+      "src": "https://raw.githubusercontent.com/teamwork/mcp/main/plugins/teamwork/assets/teamwork-mark-dark.svg",
+      "mimeType": "image/svg+xml",
+      "sizes": [
+        "any"
+      ],
+      "theme": "dark"
+    }
+  ],
   "repository": {
     "url": "https://github.com/teamwork/mcp",
     "source": "github"
