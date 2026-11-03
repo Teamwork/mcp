@@ -707,10 +707,8 @@ func TicketCreate(httpClient *http.Client) toolsets.ToolWrapper {
 			Name: string(MethodTicketCreate),
 			Annotations: &mcp.ToolAnnotations{
 				Title: "Create Ticket",
-				// A ticket created with notifyCustomer (or cc/bcc) emails the external
-				// customer a copy that cannot be unsent, so it can reach an open world
-				// of external recipients and is irreversible.
-				DestructiveHint: new(true),
+				// Additive, but notifyCustomer (or cc/bcc) emails the external customer.
+				DestructiveHint: new(false),
 				OpenWorldHint:   new(true),
 			},
 			Description: "Create ticket.",
