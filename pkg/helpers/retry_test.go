@@ -49,6 +49,22 @@ func TestRetryRecoversFromTransientStatus(t *testing.T) {
 	}
 }
 
+func TestRetryOnlyThrottledSkipsServerErrors(t *testing.T) {
+	policy := fastRetry
+	policy.OnlyThrottled = true
+
+	fn, calls := sequence(statusErr(http.StatusTooManyRequests, nil))
+	if got, err := helpers.Retry(t.Context(), policy, fn); err != nil || got != "ok" || *calls != 2 {
+		t.Errorf("429: expected success on the 2nd attempt, got %q, %v after %d", got, err, *calls)
+	}
+	for _, status := range []int{http.StatusInternalServerError, http.StatusServiceUnavailable} {
+		fn, calls := sequence(statusErr(status, nil))
+		if _, err := helpers.Retry(t.Context(), policy, fn); err == nil || *calls != 1 {
+			t.Errorf("status %d: expected 1 failed attempt, got %v after %d", status, err, *calls)
+		}
+	}
+}
+
 func TestRetryGivesUpAfterMaxAttempts(t *testing.T) {
 	last := statusErr(http.StatusServiceUnavailable, nil)
 	fn, calls := sequence(statusErr(500, nil), statusErr(500, nil), statusErr(500, nil), last)

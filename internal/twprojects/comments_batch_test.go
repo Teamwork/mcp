@@ -63,3 +63,21 @@ func TestCommentCreateBatchRejectsAnInvalidItemBeforeWriting(t *testing.T) {
 		t.Errorf("expected no requests, got %d", len(*recorded))
 	}
 }
+
+// TestCommentCreateBatchRejectsAttachments keeps the batch from applying
+// parameters its item schema does not advertise.
+func TestCommentCreateBatchRejectsAttachments(t *testing.T) {
+	for _, name := range []string{"attachment_refs", "attachment_file_ids"} {
+		mcpServer, recorded := mcpServerRecordingMock(t, nil, http.StatusCreated, []byte(`{"id":"1"}`))
+		testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodCommentCreateBatch.String(), map[string]any{
+			"comments": []any{
+				map[string]any{"object": map[string]any{"type": "tasks", "id": float64(1)}, "body": "Fine",
+					name: []any{float64(5)}},
+			},
+		}, expectBatchResult(true, "Nothing was written", "item 1: "+name+" is not accepted here"))
+
+		if len(*recorded) != 0 {
+			t.Errorf("%s: expected no requests, got %d", name, len(*recorded))
+		}
+	}
+}

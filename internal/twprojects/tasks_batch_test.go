@@ -327,12 +327,13 @@ func recordedPaths(recorded []testutil.ProjectsRecordedRequest, method string) [
 	return paths
 }
 
-// TestTaskUncompleteBatchReachesTheWire pins one uncomplete per distinct task.
+// TestTaskUncompleteBatchReachesTheWire pins one uncomplete per distinct task,
+// reported in the order listed.
 func TestTaskUncompleteBatchReachesTheWire(t *testing.T) {
 	mcpServer, recorded := mcpServerRecordingMock(t, nil, http.StatusOK, []byte(`{}`))
 	testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodTaskUncompleteBatch.String(), map[string]any{
 		"task_ids": []any{float64(2), float64(1), float64(2)},
-	}, expectBatchResult(false, "Reopened 2 of 2 tasks"))
+	}, expectBatchResult(false, "Reopened 2 of 2 tasks", "Reopened: task 2, task 1."))
 
 	want := []string{"/tasks/1/uncomplete.json", "/tasks/2/uncomplete.json"}
 	if got := recordedPaths(*recorded, http.MethodPut); !slices.Equal(got, want) {
