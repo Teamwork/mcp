@@ -328,6 +328,7 @@ var additiveWriteTools = map[string]bool{
 	"twprojects-create_tasks":               true,
 	"twprojects-create_team":                true,
 	"twprojects-create_timelog":             true,
+	"twprojects-create_timelogs":            true,
 	"twprojects-create_timer":               true,
 	"twprojects-create_upload_url":          true,
 	"twprojects-create_user":                true,

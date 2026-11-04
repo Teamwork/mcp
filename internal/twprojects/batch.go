@@ -11,6 +11,7 @@ import (
 	"github.com/google/jsonschema-go/jsonschema"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/teamwork/mcp/pkg/helpers"
+	"github.com/teamwork/twapi-go-sdk"
 )
 
 const (
@@ -166,4 +167,20 @@ func batchReport(verb, noun, recheck string, labels, details []string, errs []er
 		return helpers.NewToolResultTextError("%s", report.String())
 	}
 	return helpers.NewToolResultText("%s", report.String())
+}
+
+// bulkFailureReasons joins the reasons a bulk endpoint gave for one entry.
+func bulkFailureReasons(errs []twapi.V3Error) string {
+	reasons := make([]string, 0, len(errs))
+	for _, e := range errs {
+		reason := e.Detail
+		if reason == "" {
+			reason = e.Title
+		}
+		reasons = append(reasons, reason)
+	}
+	if len(reasons) == 0 {
+		return "no reason given"
+	}
+	return strings.Join(reasons, "; ")
 }

@@ -1,6 +1,7 @@
 package twprojects_test
 
 import (
+	"context"
 	"encoding/json"
 	"io"
 	"net/http"
@@ -391,5 +392,190 @@ func TestTimelogBillableBulkUpdateRefusesAWideFilter(t *testing.T) {
 		}))
 	if len(*requests) != 0 {
 		t.Errorf("expected no request to be sent, got %d", len(*requests))
+	}
+}
+
+// timelogBatchItem is a valid create_timelogs item against the given target.
+func timelogBatchItem(target string, id float64) map[string]any {
+	return map[string]any{target: id, "date": "2026-10-20", "time": "09:30:00", "hours": float64(1), "minutes": float64(0)}
+}
+
+// singleTimelogBulkCreateEntries asserts that exactly one request reached the
+// bulk route with partial success on, and returns its entries' timelogs.
+func singleTimelogBulkCreateEntries(t *testing.T, requests []bulkTimelogRequest) []map[string]any {
+	t.Helper()
+	if len(requests) != 1 {
+		t.Fatalf("expected exactly 1 request, got %d", len(requests))
+	}
+	request := requests[0]
+	if request.method != http.MethodPost || request.path != "/projects/api/v3/time/bulk.json" {
+		t.Errorf("expected POST /projects/api/v3/time/bulk.json, got %s %s", request.method, request.path)
+	}
+	if options, _ := request.body["timelogOptions"].(map[string]any); options["partialSuccess"] != true {
+		t.Errorf("expected timelogOptions.partialSuccess true, got %v", request.body["timelogOptions"])
+	}
+	raw, _ := request.body["timelogs"].([]any)
+	entries := make([]map[string]any, len(raw))
+	for i, entry := range raw {
+		entries[i], _ = entry.(map[string]any)["timelog"].(map[string]any)
+	}
+	return entries
+}
+
+// TestTimelogCreateBatchSendsOneRequest pins a full success: every item goes in
+// one request with its own fields, and each is reported with its new ID.
+func TestTimelogCreateBatchSendsOneRequest(t *testing.T) {
+	mcpServer, requests := bulkTimelogMock(t, http.StatusCreated, nil, `{"timelogs":[{"id":101},{"id":102}]}`)
+
+	second := timelogBatchItem("task_id", 12345)
+	second["description"] = "Review"
+	second["is_utc"] = true
+	second["billable"] = false
+	second["user_id"] = float64(777)
+	second["tag_ids"] = []any{float64(1), float64(2)}
+	testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodTimelogCreateBatch.String(), map[string]any{
+		"timelogs": []any{timelogBatchItem("project_id", 777), second},
+	}, expectBatchResult(false, "Created 2 of 2 timelogs",
+		"item 1 (project 777, 2026-10-20) → timelog 101", "item 2 (task 12345, 2026-10-20) → timelog 102"))
+
+	entries := singleTimelogBulkCreateEntries(t, *requests)
+	if len(entries) != 2 {
+		t.Fatalf("expected 2 entries, got %d", len(entries))
+	}
+	first := entries[0]
+	if first["projectId"] != float64(777) || first["date"] != "2026-10-20" || first["time"] != "09:30:00" ||
+		first["hours"] != float64(1) {
+		t.Errorf("unexpected first entry: %v", first)
+	}
+	if _, ok := first["taskId"]; ok {
+		t.Errorf("expected no taskId on a project entry: %v", first)
+	}
+	for key, want := range map[string]any{
+		"taskId": float64(12345), "description": "Review", "isUTC": true, "isBillable": false, "userId": float64(777),
+	} {
+		if entries[1][key] != want {
+			t.Errorf("second entry: expected %s=%v, got %v", key, want, entries[1][key])
+		}
+	}
+	if tags, _ := entries[1]["tagIds"].([]any); len(tags) != 2 {
+		t.Errorf("second entry: expected 2 tagIds, got %v", entries[1]["tagIds"])
+	}
+}
+
+// TestTimelogCreateBatchReportsEachFailure maps a partial success back to the
+// items: the created timelogs take the indexes not reported as failed, in order.
+func TestTimelogCreateBatchReportsEachFailure(t *testing.T) {
+	mcpServer, requests := bulkTimelogMock(t, http.StatusCreated, nil, `{
+		"timelogs":[{"id":101},{"id":103}],
+		"failed":[{"index":1,"errors":[{"title":"invalid payload","detail":"a task is required"}]}]
+	}`)
+	testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodTimelogCreateBatch.String(), map[string]any{
+		"timelogs": []any{
+			timelogBatchItem("task_id", 1), timelogBatchItem("project_id", 777), timelogBatchItem("task_id", 3),
+		},
+	}, expectBatchResult(true, "Created 2 of 3 timelogs",
+		"item 1 (task 1, 2026-10-20) → timelog 101",
+		"item 3 (task 3, 2026-10-20) → timelog 103",
+		"Failed: item 2 (project 777, 2026-10-20): a task is required"))
+
+	singleTimelogBulkCreateEntries(t, *requests)
+}
+
+// TestTimelogCreateBatchNothingCreated reports a request rejected as a whole,
+// naming each item it blamed, for both statuses the endpoint uses.
+func TestTimelogCreateBatchNothingCreated(t *testing.T) {
+	for _, status := range []int{http.StatusBadRequest, http.StatusForbidden} {
+		t.Run(http.StatusText(status), func(t *testing.T) {
+			mcpServer, requests := bulkTimelogMock(t, status, nil, `{"errors":[
+				{"title":"invalid payload","detail":"project not found","meta":{"index":0}},
+				{"title":"forbidden action","detail":"cannot log time","meta":{"index":1}}
+			]}`)
+			testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodTimelogCreateBatch.String(), map[string]any{
+				"timelogs": []any{timelogBatchItem("project_id", 1), timelogBatchItem("task_id", 2)},
+			}, expectBatchResult(true, "Created 0 of 2 timelogs. Nothing was created.",
+				"Failed: item 1 (project 1, 2026-10-20): project not found",
+				"Failed: item 2 (task 2, 2026-10-20): cannot log time"))
+
+			singleTimelogBulkCreateEntries(t, *requests)
+		})
+	}
+}
+
+// TestTimelogCreateBatchServerErrorSaysToCheck keeps a 5xx from reading as
+// "nothing was created": entries are committed one by one.
+func TestTimelogCreateBatchServerErrorSaysToCheck(t *testing.T) {
+	mcpServer, _ := bulkTimelogMock(t, http.StatusInternalServerError, nil, `{"errors":[{"title":"internal"}]}`)
+	testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodTimelogCreateBatch.String(), map[string]any{
+		"timelogs": []any{timelogBatchItem("task_id", 1)},
+	}, expectBatchResult(true, "may have been created", twprojects.MethodTimelogList.String()))
+}
+
+// TestTimelogCreateBatchLostAnswerSaysToCheck covers a request whose answer
+// never arrived, such as a timeout: the outcome is unknown, so the result says
+// to check before resending, and it is a tool result rather than a Go error.
+func TestTimelogCreateBatchLostAnswerSaysToCheck(t *testing.T) {
+	engine := twapi.NewEngine(testutil.ProjectsSessionMock{},
+		twapi.WithMiddleware(func(twapi.HTTPClient) twapi.HTTPClient {
+			return twapi.HTTPClientFunc(func(*http.Request) (*http.Response, error) {
+				return nil, context.DeadlineExceeded
+			})
+		}),
+	)
+	arguments, err := json.Marshal(map[string]any{"timelogs": []any{timelogBatchItem("task_id", 1)}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	result, err := twprojects.TimelogCreateBatch(engine).Handler(t.Context(), &mcp.CallToolRequest{
+		Params: &mcp.CallToolParamsRaw{Name: twprojects.MethodTimelogCreateBatch.String(), Arguments: arguments},
+	})
+	if err != nil {
+		t.Fatalf("expected a tool result rather than a Go error: %v", err)
+	}
+	text, isError := bulkResult(t, result)
+	if !isError || !strings.Contains(text, "may have been created") ||
+		!strings.Contains(text, twprojects.MethodTimelogList.String()) {
+		t.Errorf("expected an error result saying to check, got: %s", text)
+	}
+}
+
+// TestTimelogCreateBatchRejectsAnInvalidItemBeforeSending keeps one bad item
+// from sending the rest, including an item naming both or neither target.
+func TestTimelogCreateBatchRejectsAnInvalidItemBeforeSending(t *testing.T) {
+	both := timelogBatchItem("task_id", 1)
+	both["project_id"] = float64(777)
+	neither := timelogBatchItem("task_id", 1)
+	delete(neither, "task_id")
+
+	mcpServer, requests := bulkTimelogMock(t, http.StatusCreated, nil, `{"timelogs":[{"id":1}]}`)
+	testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodTimelogCreateBatch.String(), map[string]any{
+		"timelogs": []any{timelogBatchItem("task_id", 1), both, neither},
+	}, expectBatchResult(true, "Nothing was written",
+		"item 2: provide exactly one of project_id or task_id",
+		"item 3: provide exactly one of project_id or task_id"))
+
+	if len(*requests) != 0 {
+		t.Errorf("expected no requests, got %d", len(*requests))
+	}
+}
+
+// TestTimelogCreateBatchRejectsATooLongList refuses a list over the maximum in
+// the handler too, for clients that skip schema validation.
+func TestTimelogCreateBatchRejectsATooLongList(t *testing.T) {
+	timelogs := make([]any, 101)
+	for i := range timelogs {
+		timelogs[i] = timelogBatchItem("task_id", 1)
+	}
+	arguments, err := json.Marshal(map[string]any{"timelogs": timelogs})
+	if err != nil {
+		t.Fatal(err)
+	}
+	result, err := twprojects.TimelogCreateBatch(nil).Handler(t.Context(), &mcp.CallToolRequest{
+		Params: &mcp.CallToolParamsRaw{Name: twprojects.MethodTimelogCreateBatch.String(), Arguments: arguments},
+	})
+	if err != nil {
+		t.Fatalf("expected a tool result rather than a Go error: %v", err)
+	}
+	if text, isError := bulkResult(t, result); !isError || !strings.Contains(text, "at most 100 items, got 101") {
+		t.Errorf("expected the list to be refused, got: %s", text)
 	}
 }

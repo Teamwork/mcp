@@ -235,6 +235,7 @@ func DefaultToolsetGroup(readOnly, allowDelete bool, engine *twapi.Engine) *tool
 	// --- time sub-toolset ---
 	timeWriteTools := []toolsets.ToolWrapper{
 		TimelogCreate(engine),
+		TimelogCreateBatch(engine),
 		TimelogUpdate(engine),
 		TimelogBulkMove(engine),
 		TimelogBillableBulkUpdate(engine),
