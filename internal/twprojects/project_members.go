@@ -3,7 +3,6 @@ package twprojects
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 
 	"github.com/google/jsonschema-go/jsonschema"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
@@ -52,27 +51,36 @@ func ProjectMemberAdd(engine *twapi.Engine) toolsets.ToolWrapper {
 			},
 		},
 		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-			var projectMemberAddRequest projects.ProjectMemberAddRequest
-
 			var arguments map[string]any
 			if err := json.Unmarshal(request.Params.Arguments, &arguments); err != nil {
 				return helpers.NewToolResultTextError("failed to decode request: %s", err.Error()), nil
 			}
-			err := helpers.ParamGroup(arguments,
-				helpers.RequiredNumericParam(&projectMemberAddRequest.Path.ProjectID, "project_id"),
-				helpers.OptionalNumericListParam(&projectMemberAddRequest.UserIDs, "user_ids"),
-			)
-			if err != nil {
-				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
+			projectMemberAddRequest, toolResult := parseProjectMemberAddArguments(arguments)
+			if toolResult != nil {
+				return toolResult, nil
 			}
 
-			_, err = projects.ProjectMemberAdd(ctx, engine, projectMemberAddRequest)
+			_, err := projects.ProjectMemberAdd(ctx, engine, projectMemberAddRequest)
 			if err != nil {
 				return helpers.HandleAPIError(err, "failed to add project member")
 			}
 			return helpers.NewToolResultText("Project member added successfully"), nil
 		},
 	}
+}
+
+// parseProjectMemberAddArguments binds the add_project_member parameters,
+// shared with add_project_members.
+func parseProjectMemberAddArguments(arguments map[string]any) (projects.ProjectMemberAddRequest, *mcp.CallToolResult) {
+	var req projects.ProjectMemberAddRequest
+	err := helpers.ParamGroup(arguments,
+		helpers.RequiredNumericParam(&req.Path.ProjectID, "project_id"),
+		helpers.OptionalNumericListParam(&req.UserIDs, "user_ids"),
+	)
+	if err != nil {
+		return req, helpers.NewToolResultTextError("invalid parameters: %s", err.Error())
+	}
+	return req, nil
 }
 
 // ProjectMemberAddBatch adds users to many projects in one call, one request
@@ -130,38 +138,22 @@ func ProjectMemberAddBatch(engine *twapi.Engine) toolsets.ToolWrapper {
 				return toolResult, nil
 			}
 
-			requests := make([]projects.ProjectMemberAddRequest, len(items))
-			labels := make([]string, len(items))
-			seen := make(map[int64]bool, len(items))
-			var invalid []string
-			for i, item := range items {
-				var req projects.ProjectMemberAddRequest
-				err := helpers.ParamGroup(item,
-					helpers.RequiredNumericParam(&req.Path.ProjectID, "project_id"),
-					helpers.OptionalNumericListParam(&req.UserIDs, "user_ids"),
-				)
-				switch {
-				case err != nil:
-					invalid = append(invalid, fmt.Sprintf("item %d: invalid parameters: %s", i+1, err.Error()))
-					continue
-				case len(req.UserIDs) == 0:
-					invalid = append(invalid, fmt.Sprintf("item %d: user_ids must name at least one user", i+1))
-					continue
-				case seen[req.Path.ProjectID]:
-					invalid = append(invalid, fmt.Sprintf("item %d: project %d is listed more than once; "+
-						"merge its users into one item", i+1, req.Path.ProjectID))
-					continue
+			parse := func(item map[string]any) (projects.ProjectMemberAddRequest, *mcp.CallToolResult) {
+				req, toolResult := parseProjectMemberAddArguments(item)
+				if toolResult == nil && len(req.UserIDs) == 0 {
+					toolResult = helpers.NewToolResultTextError("user_ids must name at least one user")
 				}
-				seen[req.Path.ProjectID] = true
-				requests[i] = req
-				labels[i] = fmt.Sprintf("project %d", req.Path.ProjectID)
+				return req, toolResult
 			}
-			if len(invalid) > 0 {
-				return batchInvalidItems(invalid), nil
+			requests, labels, toolResult := parseBatchRecords(items, "project", parse,
+				func(req projects.ProjectMemberAddRequest) int64 { return req.Path.ProjectID })
+			if toolResult != nil {
+				return toolResult, nil
 			}
 
 			errs := runBatch(ctx, len(requests), batchConcurrency, func(ctx context.Context, i int) error {
-				return retryIdempotent(ctx, func() error {
+				// Adding a member that a 500 already added may be refused.
+				return retryThrottled(ctx, func() error {
 					_, err := projects.ProjectMemberAdd(ctx, engine, requests[i])
 					return err
 				})

@@ -135,6 +135,11 @@ func parseTasklistCreateArguments(arguments map[string]any) (projects.TasklistCr
 	return tasklistCreateRequest, nil
 }
 
+// tasklistCreateBatchMaxPerProject bounds the tasklists of one project in a
+// create_tasklists call: they are created one after another, so a longer run
+// would outlive the tool call.
+const tasklistCreateBatchMaxPerProject = 25
+
 // TasklistCreateBatch creates many tasklists in one call. The API has no bulk
 // tasklist create, so it fans out one create per tasklist.
 func TasklistCreateBatch(engine *twapi.Engine) toolsets.ToolWrapper {
@@ -142,11 +147,12 @@ func TasklistCreateBatch(engine *twapi.Engine) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
 			Name: string(MethodTasklistCreateBatch),
-			Description: "Create many tasklists in one call, in one project or across several. Use instead of " +
-				"calling twprojects-create_tasklist in a loop. Tasklists of one project are created in the order " +
-				"listed. Items are validated first and nothing is created if one is invalid; after that each item " +
-				"succeeds or fails on its own, and the result lists the new tasklist ID of each item, for " +
-				"twprojects-create_tasks, and the error of each failure.",
+			Description: fmt.Sprintf("Create many tasklists in one call, in one project or across several. "+
+				"Use instead of calling twprojects-create_tasklist in a loop. Tasklists of one project are "+
+				"created in the order listed, at most %d per project per call. Items are validated first and "+
+				"nothing is created if one is invalid; after that each item succeeds or fails on its own, and "+
+				"the result lists the new tasklist ID of each item, for twprojects-create_tasks, and the error "+
+				"of each failure.", tasklistCreateBatchMaxPerProject),
 			Annotations: &mcp.ToolAnnotations{
 				Title:           "Create Tasklists",
 				DestructiveHint: new(false),
@@ -189,6 +195,17 @@ func TasklistCreateBatch(engine *twapi.Engine) toolsets.ToolWrapper {
 				}
 				requests[i] = req
 				projectIDs[i] = req.Path.ProjectID
+			}
+			perProject := make(map[int64]int)
+			for _, projectID := range projectIDs {
+				perProject[projectID]++
+			}
+			for _, projectID := range projectIDs {
+				if count := perProject[projectID]; projectID > 0 && count > tasklistCreateBatchMaxPerProject {
+					invalid = append(invalid, fmt.Sprintf("project %d has %d tasklists, at most %d per call; "+
+						"split them across several calls", projectID, count, tasklistCreateBatchMaxPerProject))
+					perProject[projectID] = 0 // report each project once
+				}
 			}
 			if len(invalid) > 0 {
 				return batchInvalidItems(invalid), nil

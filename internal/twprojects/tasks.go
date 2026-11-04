@@ -1039,34 +1039,19 @@ func TaskUpdateBatch(engine *twapi.Engine) toolsets.ToolWrapper {
 				return toolResult, nil
 			}
 
-			requests := make([]projects.TaskUpdateRequest, len(items))
-			labels := make([]string, len(items))
-			seen := make(map[int64]bool, len(items))
-			var invalid []string
-			for i, item := range items {
+			parse := func(item map[string]any) (projects.TaskUpdateRequest, *mcp.CallToolResult) {
 				if _, ok := item["tasklist_id"]; ok {
-					invalid = append(invalid, fmt.Sprintf("item %d: tasklist_id is not accepted here; "+
-						"use %s to move tasks", i+1, MethodTaskMove))
-					continue
+					return projects.TaskUpdateRequest{}, helpers.NewToolResultTextError(
+						"tasklist_id is not accepted here; use %s to move tasks", MethodTaskMove)
 				}
 				req, toolResult := parseTaskUpdateArguments(item)
-				if toolResult != nil {
-					invalid = append(invalid, fmt.Sprintf("item %d: %s", i+1, toolResultText(toolResult)))
-					continue
-				}
-				// Two concurrent updates of one task would race.
-				if seen[req.Path.ID] {
-					invalid = append(invalid, fmt.Sprintf("item %d: task %d is listed more than once; "+
-						"merge its changes into one item", i+1, req.Path.ID))
-					continue
-				}
-				seen[req.Path.ID] = true
 				req.Options.Notify = notify
-				requests[i] = req
-				labels[i] = fmt.Sprintf("task %d", req.Path.ID)
+				return req, toolResult
 			}
-			if len(invalid) > 0 {
-				return batchInvalidItems(invalid), nil
+			requests, labels, toolResult := parseBatchRecords(items, "task", parse,
+				func(req projects.TaskUpdateRequest) int64 { return req.Path.ID })
+			if toolResult != nil {
+				return toolResult, nil
 			}
 
 			errs := runBatch(ctx, len(requests), batchConcurrency, func(ctx context.Context, i int) error {
@@ -1217,13 +1202,7 @@ func TaskCompleteBatch(engine *twapi.Engine) toolsets.ToolWrapper {
 				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
 			}
 			// A task listed twice would be reported twice; completing it once is enough.
-			uniqueIDs := make([]int64, 0, len(taskIDs))
-			for _, id := range taskIDs {
-				if !slices.Contains(uniqueIDs, id) {
-					uniqueIDs = append(uniqueIDs, id)
-				}
-			}
-			taskIDs = uniqueIDs
+			taskIDs = uniqueIDs(taskIDs)
 			if len(taskIDs) == 0 {
 				return helpers.NewToolResultTextError("task_ids must contain at least one task ID"), nil
 			}
@@ -1352,7 +1331,7 @@ func TaskUncompleteBatch(engine *twapi.Engine) toolsets.ToolWrapper {
 			if err := helpers.ParamGroup(arguments, helpers.OptionalNumericListParam(&taskIDs, "task_ids")); err != nil {
 				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
 			}
-			taskIDs = slices.Compact(slices.Sorted(slices.Values(taskIDs)))
+			taskIDs = uniqueIDs(taskIDs)
 			switch {
 			case len(taskIDs) == 0:
 				return helpers.NewToolResultTextError("task_ids must contain at least one task ID"), nil
@@ -1366,7 +1345,8 @@ func TaskUncompleteBatch(engine *twapi.Engine) toolsets.ToolWrapper {
 				labels[i] = fmt.Sprintf("task %d", id)
 			}
 			errs := runBatch(ctx, len(taskIDs), batchConcurrency, func(ctx context.Context, i int) error {
-				return retryIdempotent(ctx, func() error {
+				// Reopening a task that a 500 already reopened may be refused.
+				return retryThrottled(ctx, func() error {
 					var req projects.TaskUncompleteRequest
 					req.Path.ID = taskIDs[i]
 					_, err := projects.TaskUncomplete(ctx, engine, req)

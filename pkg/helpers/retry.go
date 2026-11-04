@@ -20,6 +20,9 @@ type RetryPolicy struct {
 	MaxDelay    time.Duration
 	// MaxRetryAfter is the longest Retry-After honoured; a longer one ends the retries.
 	MaxRetryAfter time.Duration
+	// OnlyThrottled retries 429 alone, leaving out 500 and 503, after which the
+	// write may have been applied.
+	OnlyThrottled bool
 }
 
 // TransientRetry is the policy for writes that are safe to repeat.
@@ -28,6 +31,16 @@ var TransientRetry = RetryPolicy{
 	BaseDelay:     200 * time.Millisecond,
 	MaxDelay:      2 * time.Second,
 	MaxRetryAfter: 5 * time.Second,
+}
+
+// ThrottledRetry is the policy for writes that are not safe to repeat once
+// applied: it retries only a 429, which the API answers before applying.
+var ThrottledRetry = RetryPolicy{
+	MaxAttempts:   4,
+	BaseDelay:     200 * time.Millisecond,
+	MaxDelay:      2 * time.Second,
+	MaxRetryAfter: 5 * time.Second,
+	OnlyThrottled: true,
 }
 
 // Retry repeats fn on 429, 500 or 503; only use it for calls that are safe to repeat.
@@ -48,21 +61,23 @@ func Retry[T any](ctx context.Context, policy RetryPolicy, fn func() (T, error))
 			case <-timer.C:
 			}
 		}
-		if result, err = fn(); err == nil || !isTransient(err) {
+		if result, err = fn(); err == nil || !isTransient(err, policy.OnlyThrottled) {
 			return result, err
 		}
 	}
 	return result, err
 }
 
-func isTransient(err error) bool {
+func isTransient(err error, onlyThrottled bool) bool {
 	httpErr, ok := errors.AsType[*twapi.HTTPError](err)
 	if !ok {
 		return false
 	}
 	switch httpErr.StatusCode {
-	case http.StatusTooManyRequests, http.StatusInternalServerError, http.StatusServiceUnavailable:
+	case http.StatusTooManyRequests:
 		return true
+	case http.StatusInternalServerError, http.StatusServiceUnavailable:
+		return !onlyThrottled
 	}
 	return false
 }

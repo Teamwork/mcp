@@ -381,27 +381,10 @@ func ProjectUpdateBatch(engine *twapi.Engine) toolsets.ToolWrapper {
 				return toolResult, nil
 			}
 
-			requests := make([]projects.ProjectUpdateRequest, len(items))
-			labels := make([]string, len(items))
-			seen := make(map[int64]bool, len(items))
-			var invalid []string
-			for i, item := range items {
-				req, toolResult := parseProjectUpdateArguments(item)
-				if toolResult != nil {
-					invalid = append(invalid, fmt.Sprintf("item %d: %s", i+1, toolResultText(toolResult)))
-					continue
-				}
-				if seen[req.Path.ID] {
-					invalid = append(invalid, fmt.Sprintf("item %d: project %d is listed more than once; "+
-						"merge its changes into one item", i+1, req.Path.ID))
-					continue
-				}
-				seen[req.Path.ID] = true
-				requests[i] = req
-				labels[i] = fmt.Sprintf("project %d", req.Path.ID)
-			}
-			if len(invalid) > 0 {
-				return batchInvalidItems(invalid), nil
+			requests, labels, toolResult := parseBatchRecords(items, "project", parseProjectUpdateArguments,
+				func(req projects.ProjectUpdateRequest) int64 { return req.Path.ID })
+			if toolResult != nil {
+				return toolResult, nil
 			}
 
 			errs := runBatch(ctx, len(requests), batchConcurrency, func(ctx context.Context, i int) error {

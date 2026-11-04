@@ -194,6 +194,72 @@ func retryIdempotent(ctx context.Context, write func() error) error {
 	return err
 }
 
+// retryThrottled retries a write on 429 only, which the API answers before
+// applying anything. Use it for writes whose repeat after a 500 that did apply
+// may fail or have side effects, such as an email.
+func retryThrottled(ctx context.Context, write func() error) error {
+	_, err := helpers.Retry(ctx, helpers.ThrottledRetry, func() (struct{}, error) {
+		return struct{}{}, write()
+	})
+	return err
+}
+
+// parseBatchRecords binds each item of a batch that writes existing records
+// with the single tool's parser, and rejects a record listed twice, since
+// concurrent writes to it race. It returns the requests and their labels.
+func parseBatchRecords[T any](
+	items []map[string]any, noun string,
+	parse func(map[string]any) (T, *mcp.CallToolResult), id func(T) int64,
+) ([]T, []string, *mcp.CallToolResult) {
+	requests := make([]T, len(items))
+	labels := make([]string, len(items))
+	seen := make(map[int64]bool, len(items))
+	var invalid []string
+	for i, item := range items {
+		req, toolResult := parse(item)
+		if toolResult != nil {
+			invalid = append(invalid, fmt.Sprintf("item %d: %s", i+1, toolResultText(toolResult)))
+			continue
+		}
+		if seen[id(req)] {
+			invalid = append(invalid, fmt.Sprintf("item %d: %s %d is listed more than once; "+
+				"merge it into one item", i+1, noun, id(req)))
+			continue
+		}
+		seen[id(req)] = true
+		requests[i] = req
+		labels[i] = fmt.Sprintf("%s %d", noun, id(req))
+	}
+	if len(invalid) > 0 {
+		return nil, nil, batchInvalidItems(invalid)
+	}
+	return requests, labels, nil
+}
+
+// rejectDroppedParams fails a batch item that sends a parameter the batch
+// item schema left out, since nothing would tell the caller it was ignored.
+func rejectDroppedParams(item map[string]any, dropped ...string) *mcp.CallToolResult {
+	for _, name := range dropped {
+		if _, ok := item[name]; ok {
+			return helpers.NewToolResultTextError("%s is not accepted here", name)
+		}
+	}
+	return nil
+}
+
+// uniqueIDs removes repeated IDs, keeping the caller's order.
+func uniqueIDs(ids []int64) []int64 {
+	seen := make(map[int64]bool, len(ids))
+	unique := make([]int64, 0, len(ids))
+	for _, id := range ids {
+		if !seen[id] {
+			seen[id] = true
+			unique = append(unique, id)
+		}
+	}
+	return unique
+}
+
 // runBatchInOrder is runBatch for items that must be written in the order
 // listed within a group, such as records landing in one project: groups run
 // concurrently, and the items of one group one after another.

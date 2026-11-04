@@ -264,7 +264,8 @@ func commentObjectLabel(path projects.CommentCreateRequestPath) string {
 // comment create, so it fans out one create per comment.
 func CommentCreateBatch(engine *twapi.Engine) toolsets.ToolWrapper {
 	// Attachments are rare in bulk and not worth their schema's tokens.
-	itemSchema := batchItemSchema(CommentCreate(engine).Tool.InputSchema, "attachment_refs", "attachment_file_ids")
+	dropped := []string{"attachment_refs", "attachment_file_ids"}
+	itemSchema := batchItemSchema(CommentCreate(engine).Tool.InputSchema, dropped...)
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
 			Name: string(MethodCommentCreateBatch),
@@ -306,7 +307,11 @@ func CommentCreateBatch(engine *twapi.Engine) toolsets.ToolWrapper {
 			labels := make([]string, len(items))
 			var invalid []string
 			for i, item := range items {
-				req, toolResult := parseCommentCreateArguments(item)
+				toolResult := rejectDroppedParams(item, dropped...)
+				var req projects.CommentCreateRequest
+				if toolResult == nil {
+					req, toolResult = parseCommentCreateArguments(item)
+				}
 				if toolResult != nil {
 					invalid = append(invalid, fmt.Sprintf("item %d: %s", i+1, toolResultText(toolResult)))
 					continue

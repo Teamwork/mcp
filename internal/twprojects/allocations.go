@@ -557,32 +557,16 @@ func AllocationUpdateBatch(engine *twapi.Engine) toolsets.ToolWrapper {
 				return toolResult, nil
 			}
 
-			requests := make([]projects.AllocationUpdateRequest, len(items))
-			labels := make([]string, len(items))
-			seen := make(map[int64]bool, len(items))
-			var invalid []string
-			for i, item := range items {
-				req, toolResult := parseAllocationUpdateArguments(item)
-				if toolResult != nil {
-					invalid = append(invalid, fmt.Sprintf("item %d: %s", i+1, toolResultText(toolResult)))
-					continue
-				}
-				if seen[req.Path.ID] {
-					invalid = append(invalid, fmt.Sprintf("item %d: allocation %d is listed more than once; "+
-						"merge its changes into one item", i+1, req.Path.ID))
-					continue
-				}
-				seen[req.Path.ID] = true
-				requests[i] = req
-				labels[i] = fmt.Sprintf("allocation %d", req.Path.ID)
-			}
-			if len(invalid) > 0 {
-				return batchInvalidItems(invalid), nil
+			requests, labels, toolResult := parseBatchRecords(items, "allocation", parseAllocationUpdateArguments,
+				func(req projects.AllocationUpdateRequest) int64 { return req.Path.ID })
+			if toolResult != nil {
+				return toolResult, nil
 			}
 
 			details := make([]string, len(requests))
 			errs := runBatch(ctx, len(requests), batchConcurrency, func(ctx context.Context, i int) error {
-				return retryIdempotent(ctx, func() error {
+				// A repeat after a 500 that applied would resend the over-allocation notice.
+				return retryThrottled(ctx, func() error {
 					response, err := projects.AllocationUpdate(ctx, engine, requests[i])
 					if err == nil && response.Allocation.OverAllocated {
 						details[i] = "user over capacity"
