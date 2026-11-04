@@ -4,8 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/google/jsonschema-go/jsonschema"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
@@ -17,6 +19,7 @@ import (
 
 // List of methods available in the Teamwork.com MCP service.
 const (
+	MethodTimelogCreateBatch  toolsets.Method = "twprojects-create_timelogs"
 	MethodTimelogBulkMove     toolsets.Method = "twprojects-move_timelogs"
 	MethodTimelogBillableBulk toolsets.Method = "twprojects-set_timelogs_billable"
 )
@@ -30,6 +33,181 @@ const (
 	// timelogBillableMaxUserIDs bounds the user filter of set_timelogs_billable.
 	timelogBillableMaxUserIDs = 50
 )
+
+// TimelogCreateBatch creates many timelogs with a single request to the bulk
+// time endpoint, which counts once against the rate limit.
+func TimelogCreateBatch(engine *twapi.Engine) toolsets.ToolWrapper {
+	itemSchema := batchItemSchema(TimelogCreate(engine).Tool.InputSchema)
+	return toolsets.ToolWrapper{
+		Tool: &mcp.Tool{
+			Name: string(MethodTimelogCreateBatch),
+			Description: fmt.Sprintf("Create many timelogs in one request (at most %d per call). Use instead "+
+				"of calling twprojects-create_timelog in a loop, e.g. to import time entries; split longer "+
+				"lists across calls. Items are validated first and nothing is created if one is invalid; "+
+				"after that each timelog succeeds or fails on its own, and the result lists the new timelog "+
+				"ID of each item and the reason for each failure, by item number counting from 1.",
+				batchMaxItems),
+			Annotations: &mcp.ToolAnnotations{
+				Title:           "Create Timelogs",
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
+			},
+			InputSchema: &jsonschema.Schema{
+				Type: "object",
+				Properties: map[string]*jsonschema.Schema{
+					"timelogs": {
+						Type:     "array",
+						Items:    itemSchema,
+						MinItems: new(1),
+						MaxItems: new(batchMaxItems),
+						Description: fmt.Sprintf("The timelogs to create, at most %d, each with the parameters "+
+							"of twprojects-create_timelog.", batchMaxItems),
+					},
+				},
+				Required: []string{"timelogs"},
+			},
+		},
+		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+			var arguments map[string]any
+			if err := json.Unmarshal(request.Params.Arguments, &arguments); err != nil {
+				return helpers.NewToolResultTextError("failed to decode request: %s", err.Error()), nil
+			}
+			items, toolResult := batchItems(arguments, "timelogs", batchMaxItems)
+			if toolResult != nil {
+				return toolResult, nil
+			}
+
+			timelogs := make([]projects.TimelogBulkCreateRequestTimelog, len(items))
+			labels := make([]string, len(items))
+			var invalid []string
+			for i, item := range items {
+				timelog, err := parseTimelogBulkCreateItem(item)
+				labels[i] = timelogBatchLabel(i, timelog)
+				if err != nil {
+					invalid = append(invalid, fmt.Sprintf("item %d: %s", i+1, err.Error()))
+					continue
+				}
+				timelogs[i] = timelog
+			}
+			if len(invalid) > 0 {
+				return batchInvalidItems(invalid), nil
+			}
+
+			response, err := projects.TimelogBulkCreate(ctx, engine, projects.NewTimelogBulkCreateRequest(timelogs))
+			if err != nil {
+				return timelogBulkCreateError(err, labels)
+			}
+			return timelogBulkCreateReport(labels, response), nil
+		},
+	}
+}
+
+// parseTimelogBulkCreateItem binds one item of create_timelogs with the same
+// parameters as create_timelog.
+func parseTimelogBulkCreateItem(item map[string]any) (projects.TimelogBulkCreateRequestTimelog, error) {
+	var timelog projects.TimelogBulkCreateRequestTimelog
+	err := helpers.ParamGroup(item,
+		helpers.OptionalNumericPointerParam(&timelog.ProjectID, "project_id"),
+		helpers.OptionalNumericPointerParam(&timelog.TaskID, "task_id"),
+		helpers.OptionalPointerParam(&timelog.Description, "description"),
+		helpers.RequiredDateParam(&timelog.Date, "date"),
+		helpers.RequiredTimeOnlyParam(&timelog.Time, "time"),
+		helpers.OptionalParam(&timelog.IsUTC, "is_utc"),
+		helpers.RequiredNumericParam(&timelog.Hours, "hours"),
+		helpers.RequiredNumericParam(&timelog.Minutes, "minutes"),
+		helpers.OptionalPointerParam(&timelog.Billable, "billable"),
+		helpers.OptionalNumericPointerParam(&timelog.UserID, "user_id"),
+		helpers.OptionalNumericListParam(&timelog.TagIDs, "tag_ids"),
+	)
+	if err != nil {
+		return timelog, err
+	}
+	// The endpoint would take a task's project over the project_id given, so
+	// both at once is ambiguous.
+	if (timelog.ProjectID == nil) == (timelog.TaskID == nil) {
+		return timelog, errors.New("provide exactly one of project_id or task_id")
+	}
+	return timelog, nil
+}
+
+// timelogBatchLabel names an item by its position, target and date, so a
+// failure can be traced back to the input row.
+func timelogBatchLabel(i int, timelog projects.TimelogBulkCreateRequestTimelog) string {
+	var target string
+	switch {
+	case timelog.TaskID != nil:
+		target = fmt.Sprintf("task %d, ", *timelog.TaskID)
+	case timelog.ProjectID != nil:
+		target = fmt.Sprintf("project %d, ", *timelog.ProjectID)
+	}
+	return fmt.Sprintf("item %d (%s%s)", i+1, target, time.Time(timelog.Date).Format(time.DateOnly))
+}
+
+// timelogBulkCreateError reports a bulk create that did not answer 201. A
+// rejection naming items means nothing was created; a server error or a lost
+// answer leaves the outcome unknown, because each entry is committed as it is
+// created.
+func timelogBulkCreateError(err error, labels []string) (*mcp.CallToolResult, error) {
+	if failures := projects.TimelogBulkCreateFailures(err); len(failures) > 0 {
+		return timelogBulkCreateNothingCreated(labels, failures), nil
+	}
+	const recheck = "Some timelogs may have been created; call " + string(MethodTimelogList) +
+		" to check before sending the list again."
+	if _, ok := errors.AsType[*twapi.HTTPError](err); !ok {
+		return helpers.NewToolResultTextError("failed to create timelogs: %s. %s", err.Error(), recheck), nil
+	}
+	result, handleErr := helpers.HandleAPIError(err, "failed to create timelogs")
+	if result != nil && isServerError(err) {
+		result.Content = append(result.Content, &mcp.TextContent{Text: recheck})
+	}
+	return result, handleErr
+}
+
+// timelogBulkCreateReport maps the created timelogs back to the items they came
+// from. The endpoint returns them in request order, leaving out the failures.
+func timelogBulkCreateReport(labels []string, response *projects.TimelogBulkCreateResponse) *mcp.CallToolResult {
+	errs := make([]error, len(labels))
+	for _, failure := range response.Failed {
+		if failure.Index >= 0 && failure.Index < len(errs) {
+			errs[failure.Index] = errors.New(bulkFailureReasons(failure.Errors))
+		}
+	}
+
+	details := make([]string, len(labels))
+	next := 0
+	for i := range errs {
+		if errs[i] != nil {
+			continue
+		}
+		if next >= len(response.Timelogs) {
+			errs[i] = errors.New("not reported as created or failed; check with " +
+				string(MethodTimelogList) + " before sending it again")
+			continue
+		}
+		details[i] = fmt.Sprintf("timelog %d", response.Timelogs[next].ID)
+		next++
+	}
+	return batchReport("Created", "timelogs",
+		"check with "+string(MethodTimelogList)+" before sending them again", labels, details, errs)
+}
+
+// timelogBulkCreateNothingCreated reports a request the endpoint rejected as a
+// whole, naming each item that caused it.
+func timelogBulkCreateNothingCreated(
+	labels []string,
+	failures []projects.TimelogBulkCreateFailure,
+) *mcp.CallToolResult {
+	var report strings.Builder
+	fmt.Fprintf(&report, "Created 0 of %d timelogs. Nothing was created.", len(labels))
+	for _, failure := range failures {
+		label := fmt.Sprintf("item %d", failure.Index+1)
+		if failure.Index >= 0 && failure.Index < len(labels) {
+			label = labels[failure.Index]
+		}
+		fmt.Fprintf(&report, "\nFailed: %s: %s.", label, bulkFailureReasons(failure.Errors))
+	}
+	return helpers.NewToolResultTextError("%s", report.String())
+}
 
 // TimelogBulkMove moves several timelogs from one project to another with a
 // single request.

@@ -84,6 +84,7 @@ var forceOther = map[string]bool{
 	"create_companies":           true,
 	"create_custom_item_records": true,
 	"create_users":               true,
+	"create_timelogs":            true,
 	"update_custom_field_values": true,
 }
 

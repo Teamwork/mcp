@@ -275,7 +275,7 @@ func userBulkCreateReport(labels []string, response *projects.UserBulkCreateResp
 	errs := make([]error, len(labels))
 	for _, failure := range response.Failed {
 		if failure.Index >= 0 && failure.Index < len(errs) {
-			errs[failure.Index] = errors.New(userBulkCreateReasons(failure))
+			errs[failure.Index] = errors.New(bulkFailureReasons(failure.Errors))
 		}
 	}
 
@@ -307,25 +307,9 @@ func userBulkCreateNothingCreated(labels []string, failures []projects.UserBulkC
 		if failure.Index >= 0 && failure.Index < len(labels) {
 			label = labels[failure.Index]
 		}
-		fmt.Fprintf(&report, "\nFailed: %s: %s.", label, userBulkCreateReasons(failure))
+		fmt.Fprintf(&report, "\nFailed: %s: %s.", label, bulkFailureReasons(failure.Errors))
 	}
 	return helpers.NewToolResultTextError("%s", report.String())
-}
-
-// userBulkCreateReasons joins the reasons one item was not created.
-func userBulkCreateReasons(failure projects.UserBulkCreateFailure) string {
-	reasons := make([]string, 0, len(failure.Errors))
-	for _, e := range failure.Errors {
-		reason := e.Detail
-		if reason == "" {
-			reason = e.Title
-		}
-		reasons = append(reasons, reason)
-	}
-	if len(reasons) == 0 {
-		return "no reason given"
-	}
-	return strings.Join(reasons, "; ")
 }
 
 // UserUpdate updates a user in Teamwork.com.
