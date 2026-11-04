@@ -4,7 +4,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -128,5 +130,50 @@ func TestBatchReportSeparatesCancelledItems(t *testing.T) {
 	}
 	if strings.Contains(text, "Failed: c") || strings.Contains(text, "Failed: d") {
 		t.Errorf("expected cancelled items not to be listed as failed:\n%s", text)
+	}
+}
+
+// TestRunBatchInOrderKeepsTheOrderWithinAGroup writes a group's items in the
+// order listed, whatever the concurrency across groups.
+func TestRunBatchInOrderKeepsTheOrderWithinAGroup(t *testing.T) {
+	groups := []int64{1, 2, 1, 2, 1, 3}
+	var mu sync.Mutex
+	order := map[int64][]int{}
+	errs := runBatchInOrder(t.Context(), groups, 4, func(_ context.Context, i int) error {
+		time.Sleep(time.Duration(len(groups)-i) * time.Millisecond)
+		mu.Lock()
+		order[groups[i]] = append(order[groups[i]], i)
+		mu.Unlock()
+		return nil
+	})
+	for i, err := range errs {
+		if err != nil {
+			t.Errorf("item %d: unexpected error %v", i, err)
+		}
+	}
+	for group, want := range map[int64][]int{1: {0, 2, 4}, 2: {1, 3}, 3: {5}} {
+		if !slices.Equal(order[group], want) {
+			t.Errorf("group %d: expected order %v, got %v", group, want, order[group])
+		}
+	}
+}
+
+// TestRunBatchInOrderStopsAGroupWhenCancelled marks the rest of a group as not
+// attempted once the context ends.
+func TestRunBatchInOrderStopsAGroupWhenCancelled(t *testing.T) {
+	ctx, cancel := context.WithCancel(t.Context())
+	errs := runBatchInOrder(ctx, []int64{1, 1, 1}, 1, func(_ context.Context, i int) error {
+		if i == 0 {
+			cancel()
+		}
+		return nil
+	})
+	if errs[0] != nil {
+		t.Errorf("item 0: unexpected error %v", errs[0])
+	}
+	for _, i := range []int{1, 2} {
+		if !errors.Is(errs[i], errBatchNotStarted) {
+			t.Errorf("item %d: expected not started, got %v", i, errs[i])
+		}
 	}
 }

@@ -20,11 +20,12 @@ import (
 // The naming convention for methods follows a pattern described here:
 // https://github.com/github/github-mcp-server/issues/333
 const (
-	MethodTasklistCreate toolsets.Method = "twprojects-create_tasklist"
-	MethodTasklistUpdate toolsets.Method = "twprojects-update_tasklist"
-	MethodTasklistDelete toolsets.Method = "twprojects-delete_tasklist"
-	MethodTasklistGet    toolsets.Method = "twprojects-get_tasklist"
-	MethodTasklistList   toolsets.Method = "twprojects-list_tasklists"
+	MethodTasklistCreate      toolsets.Method = "twprojects-create_tasklist"
+	MethodTasklistCreateBatch toolsets.Method = "twprojects-create_tasklists"
+	MethodTasklistUpdate      toolsets.Method = "twprojects-update_tasklist"
+	MethodTasklistDelete      toolsets.Method = "twprojects-delete_tasklist"
+	MethodTasklistGet         toolsets.Method = "twprojects-get_tasklist"
+	MethodTasklistList        toolsets.Method = "twprojects-list_tasklists"
 )
 
 var (
@@ -64,7 +65,7 @@ func TasklistCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
 			Name:        string(MethodTasklistCreate),
-			Description: "Create tasklist in a project.",
+			Description: "Create tasklist in a project. To create several, use twprojects-create_tasklists.",
 			Annotations: &mcp.ToolAnnotations{
 				Title:           "Create Tasklist",
 				DestructiveHint: new(false),
@@ -100,20 +101,13 @@ func TasklistCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 			},
 		},
 		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-			var tasklistCreateRequest projects.TasklistCreateRequest
-
 			var arguments map[string]any
 			if err := json.Unmarshal(request.Params.Arguments, &arguments); err != nil {
 				return helpers.NewToolResultTextError("failed to decode request: %s", err.Error()), nil
 			}
-			err := helpers.ParamGroup(arguments,
-				helpers.RequiredParam(&tasklistCreateRequest.Name, "name"),
-				helpers.RequiredNumericParam(&tasklistCreateRequest.Path.ProjectID, "project_id"),
-				helpers.OptionalPointerParam(&tasklistCreateRequest.Description, "description"),
-				helpers.OptionalNumericPointerParam(&tasklistCreateRequest.MilestoneID, "milestone_id"),
-			)
-			if err != nil {
-				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
+			tasklistCreateRequest, toolResult := parseTasklistCreateArguments(arguments)
+			if toolResult != nil {
+				return toolResult, nil
 			}
 
 			tasklist, err := projects.TasklistCreate(ctx, engine, tasklistCreateRequest)
@@ -121,6 +115,96 @@ func TasklistCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 				return helpers.HandleAPIError(err, "failed to create tasklist")
 			}
 			return helpers.NewToolResultText("Tasklist created successfully with ID %d", tasklist.ID), nil
+		},
+	}
+}
+
+// parseTasklistCreateArguments binds the create_tasklist parameters, shared
+// with create_tasklists.
+func parseTasklistCreateArguments(arguments map[string]any) (projects.TasklistCreateRequest, *mcp.CallToolResult) {
+	var tasklistCreateRequest projects.TasklistCreateRequest
+	err := helpers.ParamGroup(arguments,
+		helpers.RequiredParam(&tasklistCreateRequest.Name, "name"),
+		helpers.RequiredNumericParam(&tasklistCreateRequest.Path.ProjectID, "project_id"),
+		helpers.OptionalPointerParam(&tasklistCreateRequest.Description, "description"),
+		helpers.OptionalNumericPointerParam(&tasklistCreateRequest.MilestoneID, "milestone_id"),
+	)
+	if err != nil {
+		return tasklistCreateRequest, helpers.NewToolResultTextError("invalid parameters: %s", err.Error())
+	}
+	return tasklistCreateRequest, nil
+}
+
+// TasklistCreateBatch creates many tasklists in one call. The API has no bulk
+// tasklist create, so it fans out one create per tasklist.
+func TasklistCreateBatch(engine *twapi.Engine) toolsets.ToolWrapper {
+	itemSchema := batchItemSchema(TasklistCreate(engine).Tool.InputSchema)
+	return toolsets.ToolWrapper{
+		Tool: &mcp.Tool{
+			Name: string(MethodTasklistCreateBatch),
+			Description: "Create many tasklists in one call, in one project or across several. Use instead of " +
+				"calling twprojects-create_tasklist in a loop. Tasklists of one project are created in the order " +
+				"listed. Items are validated first and nothing is created if one is invalid; after that each item " +
+				"succeeds or fails on its own, and the result lists the new tasklist ID of each item, for " +
+				"twprojects-create_tasks, and the error of each failure.",
+			Annotations: &mcp.ToolAnnotations{
+				Title:           "Create Tasklists",
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
+			},
+			InputSchema: &jsonschema.Schema{
+				Type: "object",
+				Properties: map[string]*jsonschema.Schema{
+					"tasklists": {
+						Type:        "array",
+						Items:       itemSchema,
+						MinItems:    new(1),
+						MaxItems:    new(batchMaxItems),
+						Description: "The tasklists to create, each with the parameters of twprojects-create_tasklist.",
+					},
+				},
+				Required: []string{"tasklists"},
+			},
+		},
+		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+			var arguments map[string]any
+			if err := json.Unmarshal(request.Params.Arguments, &arguments); err != nil {
+				return helpers.NewToolResultTextError("failed to decode request: %s", err.Error()), nil
+			}
+			items, toolResult := batchItems(arguments, "tasklists", batchMaxItems)
+			if toolResult != nil {
+				return toolResult, nil
+			}
+
+			requests := make([]projects.TasklistCreateRequest, len(items))
+			projectIDs := make([]int64, len(items))
+			labels := make([]string, len(items))
+			var invalid []string
+			for i, item := range items {
+				req, toolResult := parseTasklistCreateArguments(item)
+				labels[i] = fmt.Sprintf("item %d %q", i+1, req.Name)
+				if toolResult != nil {
+					invalid = append(invalid, fmt.Sprintf("item %d: %s", i+1, toolResultText(toolResult)))
+					continue
+				}
+				requests[i] = req
+				projectIDs[i] = req.Path.ProjectID
+			}
+			if len(invalid) > 0 {
+				return batchInvalidItems(invalid), nil
+			}
+
+			ids := make([]string, len(requests))
+			errs := runBatchInOrder(ctx, projectIDs, batchConcurrency, func(ctx context.Context, i int) error {
+				response, err := projects.TasklistCreate(ctx, engine, requests[i])
+				if err != nil {
+					return err
+				}
+				ids[i] = fmt.Sprintf("tasklist %d", response.ID)
+				return nil
+			})
+			return batchReport("Created", "tasklists",
+				"check with "+string(MethodTasklistList)+" before sending them again", labels, ids, errs), nil
 		},
 	}
 }

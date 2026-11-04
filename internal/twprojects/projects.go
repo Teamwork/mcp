@@ -20,12 +20,13 @@ import (
 // The naming convention for methods follows a pattern described here:
 // https://github.com/github/github-mcp-server/issues/333
 const (
-	MethodProjectCreate toolsets.Method = "twprojects-create_project"
-	MethodProjectUpdate toolsets.Method = "twprojects-update_project"
-	MethodProjectDelete toolsets.Method = "twprojects-delete_project"
-	MethodProjectClone  toolsets.Method = "twprojects-clone_project"
-	MethodProjectGet    toolsets.Method = "twprojects-get_project"
-	MethodProjectList   toolsets.Method = "twprojects-list_projects"
+	MethodProjectCreate      toolsets.Method = "twprojects-create_project"
+	MethodProjectUpdate      toolsets.Method = "twprojects-update_project"
+	MethodProjectUpdateBatch toolsets.Method = "twprojects-update_projects"
+	MethodProjectDelete      toolsets.Method = "twprojects-delete_project"
+	MethodProjectClone       toolsets.Method = "twprojects-clone_project"
+	MethodProjectGet         toolsets.Method = "twprojects-get_project"
+	MethodProjectList        toolsets.Method = "twprojects-list_projects"
 )
 
 var (
@@ -210,7 +211,7 @@ func ProjectUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
 			Name:        string(MethodProjectUpdate),
-			Description: "Update project.",
+			Description: "Update project. To update several, use twprojects-update_projects.",
 			Annotations: &mcp.ToolAnnotations{
 				Title:           "Update Project",
 				DestructiveHint: new(true),
@@ -292,39 +293,125 @@ func ProjectUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 			},
 		},
 		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-			var projectUpdateRequest projects.ProjectUpdateRequest
-
 			var arguments map[string]any
 			if err := json.Unmarshal(request.Params.Arguments, &arguments); err != nil {
 				return helpers.NewToolResultTextError("failed to decode request: %s", err.Error()), nil
 			}
-			err := helpers.ParamGroup(arguments,
-				helpers.RequiredNumericParam(&projectUpdateRequest.Path.ID, "id"),
-				helpers.OptionalPointerParam(&projectUpdateRequest.Name, "name"),
-				helpers.OptionalPointerParam(&projectUpdateRequest.Description, "description"),
-				helpers.OptionalLegacyDatePointerParam(&projectUpdateRequest.StartAt, "start_at"),
-				helpers.OptionalLegacyDatePointerParam(&projectUpdateRequest.EndAt, "end_at"),
-				helpers.OptionalNumericPointerParam(&projectUpdateRequest.CategoryID, "category_id"),
-				helpers.OptionalNumericPointerParam(&projectUpdateRequest.CompanyID, "company_id"),
-				helpers.OptionalNumericPointerParam(&projectUpdateRequest.OwnerID, "owned_id"),
-				helpers.OptionalPointerParam(&projectUpdateRequest.TimelogRequiresTask, "timelog_requires_task"),
-				helpers.OptionalNumericListParam(&projectUpdateRequest.TagIDs, "tag_ids"),
-				helpers.OptionalPointerParam(&projectUpdateRequest.Status, "status",
-					helpers.RestrictValues(
-						projects.ProjectStatusActive,
-						projects.ProjectStatusArchived,
-					),
-				),
-			)
-			if err != nil {
-				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
+			projectUpdateRequest, toolResult := parseProjectUpdateArguments(arguments)
+			if toolResult != nil {
+				return toolResult, nil
 			}
 
-			_, err = projects.ProjectUpdate(ctx, engine, projectUpdateRequest)
+			_, err := projects.ProjectUpdate(ctx, engine, projectUpdateRequest)
 			if err != nil {
 				return helpers.HandleAPIError(err, "failed to update project")
 			}
 			return helpers.NewToolResultText("Project updated successfully"), nil
+		},
+	}
+}
+
+// parseProjectUpdateArguments binds the update_project parameters, shared with
+// update_projects.
+func parseProjectUpdateArguments(arguments map[string]any) (projects.ProjectUpdateRequest, *mcp.CallToolResult) {
+	var projectUpdateRequest projects.ProjectUpdateRequest
+	err := helpers.ParamGroup(arguments,
+		helpers.RequiredNumericParam(&projectUpdateRequest.Path.ID, "id"),
+		helpers.OptionalPointerParam(&projectUpdateRequest.Name, "name"),
+		helpers.OptionalPointerParam(&projectUpdateRequest.Description, "description"),
+		helpers.OptionalLegacyDatePointerParam(&projectUpdateRequest.StartAt, "start_at"),
+		helpers.OptionalLegacyDatePointerParam(&projectUpdateRequest.EndAt, "end_at"),
+		helpers.OptionalNumericPointerParam(&projectUpdateRequest.CategoryID, "category_id"),
+		helpers.OptionalNumericPointerParam(&projectUpdateRequest.CompanyID, "company_id"),
+		helpers.OptionalNumericPointerParam(&projectUpdateRequest.OwnerID, "owned_id"),
+		helpers.OptionalPointerParam(&projectUpdateRequest.TimelogRequiresTask, "timelog_requires_task"),
+		helpers.OptionalNumericListParam(&projectUpdateRequest.TagIDs, "tag_ids"),
+		helpers.OptionalPointerParam(&projectUpdateRequest.Status, "status",
+			helpers.RestrictValues(
+				projects.ProjectStatusActive,
+				projects.ProjectStatusArchived,
+			),
+		),
+	)
+	if err != nil {
+		return projectUpdateRequest, helpers.NewToolResultTextError("invalid parameters: %s", err.Error())
+	}
+	return projectUpdateRequest, nil
+}
+
+// ProjectUpdateBatch updates many projects in one call. The API has no bulk
+// project update, so it fans out one update per project.
+func ProjectUpdateBatch(engine *twapi.Engine) toolsets.ToolWrapper {
+	itemSchema := batchItemSchema(ProjectUpdate(engine).Tool.InputSchema)
+	return toolsets.ToolWrapper{
+		Tool: &mcp.Tool{
+			Name: string(MethodProjectUpdateBatch),
+			Description: "Update many projects in one call, each with its own changes, such as archiving or " +
+				"tagging them. Use instead of calling twprojects-update_project in a loop. Archiving hides a " +
+				"project from everyone on it. Items are validated first and nothing is updated if one is " +
+				"invalid; after that each project succeeds or fails on its own, and the result lists the " +
+				"error of each failure.",
+			Annotations: &mcp.ToolAnnotations{
+				Title:           "Update Projects",
+				DestructiveHint: new(true),
+				OpenWorldHint:   new(false),
+			},
+			InputSchema: &jsonschema.Schema{
+				Type: "object",
+				Properties: map[string]*jsonschema.Schema{
+					"projects": {
+						Type:     "array",
+						Items:    itemSchema,
+						MinItems: new(1),
+						MaxItems: new(batchMaxItems),
+						Description: "The updates, one per project, each with the parameters of " +
+							"twprojects-update_project. A project may appear only once.",
+					},
+				},
+				Required: []string{"projects"},
+			},
+		},
+		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+			var arguments map[string]any
+			if err := json.Unmarshal(request.Params.Arguments, &arguments); err != nil {
+				return helpers.NewToolResultTextError("failed to decode request: %s", err.Error()), nil
+			}
+			items, toolResult := batchItems(arguments, "projects", batchMaxItems)
+			if toolResult != nil {
+				return toolResult, nil
+			}
+
+			requests := make([]projects.ProjectUpdateRequest, len(items))
+			labels := make([]string, len(items))
+			seen := make(map[int64]bool, len(items))
+			var invalid []string
+			for i, item := range items {
+				req, toolResult := parseProjectUpdateArguments(item)
+				if toolResult != nil {
+					invalid = append(invalid, fmt.Sprintf("item %d: %s", i+1, toolResultText(toolResult)))
+					continue
+				}
+				if seen[req.Path.ID] {
+					invalid = append(invalid, fmt.Sprintf("item %d: project %d is listed more than once; "+
+						"merge its changes into one item", i+1, req.Path.ID))
+					continue
+				}
+				seen[req.Path.ID] = true
+				requests[i] = req
+				labels[i] = fmt.Sprintf("project %d", req.Path.ID)
+			}
+			if len(invalid) > 0 {
+				return batchInvalidItems(invalid), nil
+			}
+
+			errs := runBatch(ctx, len(requests), batchConcurrency, func(ctx context.Context, i int) error {
+				return retryIdempotent(ctx, func() error {
+					_, err := projects.ProjectUpdate(ctx, engine, requests[i])
+					return err
+				})
+			})
+			return batchReport("Updated", "projects",
+				"sending the same update again is safe", labels, nil, errs), nil
 		},
 	}
 }

@@ -20,6 +20,7 @@ import (
 // List of methods available in the Teamwork.com MCP service.
 const (
 	MethodTimelogCreateBatch  toolsets.Method = "twprojects-create_timelogs"
+	MethodTimelogUpdateBatch  toolsets.Method = "twprojects-update_timelogs"
 	MethodTimelogBulkMove     toolsets.Method = "twprojects-move_timelogs"
 	MethodTimelogBillableBulk toolsets.Method = "twprojects-set_timelogs_billable"
 )
@@ -463,6 +464,82 @@ func TimelogBillableBulkUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 			}
 			return helpers.NewToolResultText("Changed %d timelogs in project %d to %s.",
 				*response.Count, projectID, status), nil
+		},
+	}
+}
+
+// TimelogUpdateBatch updates many timelogs in one call. The API has no bulk
+// update, so it fans out one update per timelog.
+func TimelogUpdateBatch(engine *twapi.Engine) toolsets.ToolWrapper {
+	itemSchema := batchItemSchema(TimelogUpdate(engine).Tool.InputSchema)
+	return toolsets.ToolWrapper{
+		Tool: &mcp.Tool{
+			Name: string(MethodTimelogUpdateBatch),
+			Description: "Update many timelogs in one call, each with its own changes. Use instead of calling " +
+				"twprojects-update_timelog in a loop. Items are validated first and nothing is updated if one " +
+				"is invalid; after that each timelog succeeds or fails on its own, and the result lists the " +
+				"error of each failure.",
+			Annotations: &mcp.ToolAnnotations{
+				Title:           "Update Timelogs",
+				DestructiveHint: new(true),
+				OpenWorldHint:   new(false),
+			},
+			InputSchema: &jsonschema.Schema{
+				Type: "object",
+				Properties: map[string]*jsonschema.Schema{
+					"timelogs": {
+						Type:     "array",
+						Items:    itemSchema,
+						MinItems: new(1),
+						MaxItems: new(batchMaxItems),
+						Description: "The updates, one per timelog, each with the parameters of " +
+							"twprojects-update_timelog. A timelog may appear only once.",
+					},
+				},
+				Required: []string{"timelogs"},
+			},
+		},
+		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+			var arguments map[string]any
+			if err := json.Unmarshal(request.Params.Arguments, &arguments); err != nil {
+				return helpers.NewToolResultTextError("failed to decode request: %s", err.Error()), nil
+			}
+			items, toolResult := batchItems(arguments, "timelogs", batchMaxItems)
+			if toolResult != nil {
+				return toolResult, nil
+			}
+
+			requests := make([]projects.TimelogUpdateRequest, len(items))
+			labels := make([]string, len(items))
+			seen := make(map[int64]bool, len(items))
+			var invalid []string
+			for i, item := range items {
+				req, toolResult := parseTimelogUpdateArguments(item)
+				if toolResult != nil {
+					invalid = append(invalid, fmt.Sprintf("item %d: %s", i+1, toolResultText(toolResult)))
+					continue
+				}
+				if seen[req.Path.ID] {
+					invalid = append(invalid, fmt.Sprintf("item %d: timelog %d is listed more than once; "+
+						"merge its changes into one item", i+1, req.Path.ID))
+					continue
+				}
+				seen[req.Path.ID] = true
+				requests[i] = req
+				labels[i] = fmt.Sprintf("timelog %d", req.Path.ID)
+			}
+			if len(invalid) > 0 {
+				return batchInvalidItems(invalid), nil
+			}
+
+			errs := runBatch(ctx, len(requests), batchConcurrency, func(ctx context.Context, i int) error {
+				return retryIdempotent(ctx, func() error {
+					_, err := projects.TimelogUpdate(ctx, engine, requests[i])
+					return err
+				})
+			})
+			return batchReport("Updated", "timelogs",
+				"sending the same update again is safe", labels, nil, errs), nil
 		},
 	}
 }

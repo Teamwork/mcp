@@ -26,11 +26,12 @@ import (
 // The naming convention for methods follows a pattern described here:
 // https://github.com/github/github-mcp-server/issues/333
 const (
-	MethodCommentCreate toolsets.Method = "twprojects-create_comment"
-	MethodCommentUpdate toolsets.Method = "twprojects-update_comment"
-	MethodCommentDelete toolsets.Method = "twprojects-delete_comment"
-	MethodCommentGet    toolsets.Method = "twprojects-get_comment"
-	MethodCommentList   toolsets.Method = "twprojects-list_comments"
+	MethodCommentCreate      toolsets.Method = "twprojects-create_comment"
+	MethodCommentCreateBatch toolsets.Method = "twprojects-create_comments"
+	MethodCommentUpdate      toolsets.Method = "twprojects-update_comment"
+	MethodCommentDelete      toolsets.Method = "twprojects-delete_comment"
+	MethodCommentGet         toolsets.Method = "twprojects-get_comment"
+	MethodCommentList        toolsets.Method = "twprojects-list_comments"
 )
 
 var (
@@ -88,8 +89,9 @@ func init() {
 func CommentCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
-			Name:        string(MethodCommentCreate),
-			Description: "Create comment on a task, milestone, notebook, file, or link.",
+			Name: string(MethodCommentCreate),
+			Description: "Create comment on a task, milestone, notebook, file, or link. To create several, use " +
+				"twprojects-create_comments.",
 			Annotations: &mcp.ToolAnnotations{
 				Title:           "Create Comment",
 				DestructiveHint: new(false),
@@ -146,81 +148,13 @@ func CommentCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 			},
 		},
 		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-			var commentCreateRequest projects.CommentCreateRequest
-
 			var arguments map[string]any
 			if err := json.Unmarshal(request.Params.Arguments, &arguments); err != nil {
 				return helpers.NewToolResultTextError("failed to decode request: %s", err.Error()), nil
 			}
-			err := helpers.ParamGroup(arguments,
-				helpers.RequiredParam(&commentCreateRequest.Body, "body"),
-				helpers.OptionalPointerParam(&commentCreateRequest.ContentType, "content_type"),
-				helpers.OptionalPointerParam(&commentCreateRequest.NotifyCurrentUser, "notify_current_user"),
-			)
-			if err != nil {
-				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
-			}
-
-			refs, toolResult := parseAttachmentRefs(arguments)
+			commentCreateRequest, toolResult := parseCommentCreateArguments(arguments)
 			if toolResult != nil {
 				return toolResult, nil
-			}
-			commentCreateRequest.PendingFileAttachments = refs
-
-			fileIDs, toolResult := parseAttachmentFileIDs(arguments)
-			if toolResult != nil {
-				return toolResult, nil
-			}
-			commentCreateRequest.FileIDs = fileIDs
-
-			notifyChosen, notifiers, toolResult := parseNotify(arguments, true)
-			if toolResult != nil {
-				return toolResult, nil
-			}
-			switch notifyChosen {
-			case notifyChoiceAll:
-				commentCreateRequest.Notify = projects.NewCommentNotifyAll()
-			case notifyChoiceGroup:
-				commentCreateRequest.Notify = projects.NewCommentNotifyGroup(*notifiers)
-			case notifyChoiceNone:
-				// leave Notify unset: the API sends no notifications
-			default:
-				commentCreateRequest.Notify = projects.NewCommentNotifyFollowers()
-			}
-
-			var objectType string
-			var objectID int64
-			object, ok := arguments["object"]
-			if !ok {
-				return helpers.NewToolResultTextError("missing required parameter: object"), nil
-			}
-			objectMap, ok := object.(map[string]any)
-			if !ok {
-				return helpers.NewToolResultTextError("invalid object: expected an object, got %T", object), nil
-			} else if objectMap == nil {
-				return helpers.NewToolResultTextError("object cannot be nil"), nil
-			}
-			err = helpers.ParamGroup(objectMap,
-				helpers.RequiredParam(&objectType, "type"),
-				helpers.RequiredNumericParam(&objectID, "id"),
-			)
-			if err != nil {
-				return helpers.NewToolResultTextError("invalid object: %s", err.Error()), nil
-			}
-
-			switch strings.ToLower(objectType) {
-			case "tasks":
-				commentCreateRequest.Path.TaskID = objectID
-			case "milestones":
-				commentCreateRequest.Path.MilestoneID = objectID
-			case "files":
-				commentCreateRequest.Path.FileVersionID = objectID
-			case "notebooks":
-				commentCreateRequest.Path.NotebookID = objectID
-			case "links":
-				commentCreateRequest.Path.LinkID = objectID
-			default:
-				return helpers.NewToolResultTextError("invalid object type: %s", objectType), nil
 			}
 
 			comment, err := projects.CommentCreate(ctx, engine, commentCreateRequest)
@@ -228,6 +162,173 @@ func CommentCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 				return helpers.HandleAPIError(err, "failed to create comment")
 			}
 			return helpers.NewToolResultText("Comment created successfully with ID %d", comment.ID), nil
+		},
+	}
+}
+
+// parseCommentCreateArguments binds the create_comment parameters, shared with
+// create_comments.
+func parseCommentCreateArguments(arguments map[string]any) (projects.CommentCreateRequest, *mcp.CallToolResult) {
+	var commentCreateRequest projects.CommentCreateRequest
+
+	err := helpers.ParamGroup(arguments,
+		helpers.RequiredParam(&commentCreateRequest.Body, "body"),
+		helpers.OptionalPointerParam(&commentCreateRequest.ContentType, "content_type"),
+		helpers.OptionalPointerParam(&commentCreateRequest.NotifyCurrentUser, "notify_current_user"),
+	)
+	if err != nil {
+		return commentCreateRequest, helpers.NewToolResultTextError("invalid parameters: %s", err.Error())
+	}
+
+	refs, toolResult := parseAttachmentRefs(arguments)
+	if toolResult != nil {
+		return commentCreateRequest, toolResult
+	}
+	commentCreateRequest.PendingFileAttachments = refs
+
+	fileIDs, toolResult := parseAttachmentFileIDs(arguments)
+	if toolResult != nil {
+		return commentCreateRequest, toolResult
+	}
+	commentCreateRequest.FileIDs = fileIDs
+
+	notifyChosen, notifiers, toolResult := parseNotify(arguments, true)
+	if toolResult != nil {
+		return commentCreateRequest, toolResult
+	}
+	switch notifyChosen {
+	case notifyChoiceAll:
+		commentCreateRequest.Notify = projects.NewCommentNotifyAll()
+	case notifyChoiceGroup:
+		commentCreateRequest.Notify = projects.NewCommentNotifyGroup(*notifiers)
+	case notifyChoiceNone:
+		// leave Notify unset: the API sends no notifications
+	default:
+		commentCreateRequest.Notify = projects.NewCommentNotifyFollowers()
+	}
+
+	var objectType string
+	var objectID int64
+	object, ok := arguments["object"]
+	if !ok {
+		return commentCreateRequest, helpers.NewToolResultTextError("missing required parameter: object")
+	}
+	objectMap, ok := object.(map[string]any)
+	if !ok {
+		return commentCreateRequest, helpers.NewToolResultTextError("invalid object: expected an object, got %T", object)
+	} else if objectMap == nil {
+		return commentCreateRequest, helpers.NewToolResultTextError("object cannot be nil")
+	}
+	err = helpers.ParamGroup(objectMap,
+		helpers.RequiredParam(&objectType, "type"),
+		helpers.RequiredNumericParam(&objectID, "id"),
+	)
+	if err != nil {
+		return commentCreateRequest, helpers.NewToolResultTextError("invalid object: %s", err.Error())
+	}
+
+	switch strings.ToLower(objectType) {
+	case "tasks":
+		commentCreateRequest.Path.TaskID = objectID
+	case "milestones":
+		commentCreateRequest.Path.MilestoneID = objectID
+	case "files":
+		commentCreateRequest.Path.FileVersionID = objectID
+	case "notebooks":
+		commentCreateRequest.Path.NotebookID = objectID
+	case "links":
+		commentCreateRequest.Path.LinkID = objectID
+	default:
+		return commentCreateRequest, helpers.NewToolResultTextError("invalid object type: %s", objectType)
+	}
+	return commentCreateRequest, nil
+}
+
+// commentObjectLabel names the record a comment is created on.
+func commentObjectLabel(path projects.CommentCreateRequestPath) string {
+	switch {
+	case path.TaskID > 0:
+		return fmt.Sprintf("task %d", path.TaskID)
+	case path.MilestoneID > 0:
+		return fmt.Sprintf("milestone %d", path.MilestoneID)
+	case path.FileVersionID > 0:
+		return fmt.Sprintf("file %d", path.FileVersionID)
+	case path.NotebookID > 0:
+		return fmt.Sprintf("notebook %d", path.NotebookID)
+	default:
+		return fmt.Sprintf("link %d", path.LinkID)
+	}
+}
+
+// CommentCreateBatch creates many comments in one call. The API has no bulk
+// comment create, so it fans out one create per comment.
+func CommentCreateBatch(engine *twapi.Engine) toolsets.ToolWrapper {
+	// Attachments are rare in bulk and not worth their schema's tokens.
+	itemSchema := batchItemSchema(CommentCreate(engine).Tool.InputSchema, "attachment_refs", "attachment_file_ids")
+	return toolsets.ToolWrapper{
+		Tool: &mcp.Tool{
+			Name: string(MethodCommentCreateBatch),
+			Description: "Create many comments in one call, each on its own task, milestone, notebook, file or " +
+				"link. Use instead of calling twprojects-create_comment in a loop. Each comment emails every " +
+				"follower of its record unless its item sets notify to false. Items are validated first and " +
+				"nothing is created if one is invalid; after that each item succeeds or fails on its own, and the " +
+				"result lists the new comment ID of each item and the error of each failure.",
+			Annotations: &mcp.ToolAnnotations{
+				Title:           "Create Comments",
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
+			},
+			InputSchema: &jsonschema.Schema{
+				Type: "object",
+				Properties: map[string]*jsonschema.Schema{
+					"comments": {
+						Type:        "array",
+						Items:       itemSchema,
+						MinItems:    new(1),
+						MaxItems:    new(batchMaxItems),
+						Description: "The comments to create, each with the parameters of twprojects-create_comment.",
+					},
+				},
+				Required: []string{"comments"},
+			},
+		},
+		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+			var arguments map[string]any
+			if err := json.Unmarshal(request.Params.Arguments, &arguments); err != nil {
+				return helpers.NewToolResultTextError("failed to decode request: %s", err.Error()), nil
+			}
+			items, toolResult := batchItems(arguments, "comments", batchMaxItems)
+			if toolResult != nil {
+				return toolResult, nil
+			}
+
+			requests := make([]projects.CommentCreateRequest, len(items))
+			labels := make([]string, len(items))
+			var invalid []string
+			for i, item := range items {
+				req, toolResult := parseCommentCreateArguments(item)
+				if toolResult != nil {
+					invalid = append(invalid, fmt.Sprintf("item %d: %s", i+1, toolResultText(toolResult)))
+					continue
+				}
+				requests[i] = req
+				labels[i] = fmt.Sprintf("item %d on %s", i+1, commentObjectLabel(req.Path))
+			}
+			if len(invalid) > 0 {
+				return batchInvalidItems(invalid), nil
+			}
+
+			ids := make([]string, len(requests))
+			errs := runBatch(ctx, len(requests), batchConcurrency, func(ctx context.Context, i int) error {
+				response, err := projects.CommentCreate(ctx, engine, requests[i])
+				if err != nil {
+					return err
+				}
+				ids[i] = fmt.Sprintf("comment %d", response.ID)
+				return nil
+			})
+			return batchReport("Created", "comments",
+				"check with "+string(MethodCommentList)+" before sending them again", labels, ids, errs), nil
 		},
 	}
 }

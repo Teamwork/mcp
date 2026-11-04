@@ -184,3 +184,52 @@ func bulkFailureReasons(errs []twapi.V3Error) string {
 	}
 	return strings.Join(reasons, "; ")
 }
+
+// retryIdempotent runs a write that is safe to repeat, retrying it on 429, 500
+// and 503. Never use it for a create: a retry can add a duplicate.
+func retryIdempotent(ctx context.Context, write func() error) error {
+	_, err := helpers.Retry(ctx, helpers.TransientRetry, func() (struct{}, error) {
+		return struct{}{}, write()
+	})
+	return err
+}
+
+// runBatchInOrder is runBatch for items that must be written in the order
+// listed within a group, such as records landing in one project: groups run
+// concurrently, and the items of one group one after another.
+func runBatchInOrder(
+	ctx context.Context, groups []int64, concurrency int, do func(ctx context.Context, i int) error,
+) []error {
+	var keys []int64
+	members := make(map[int64][]int)
+	for i, group := range groups {
+		if _, ok := members[group]; !ok {
+			keys = append(keys, group)
+		}
+		members[group] = append(members[group], i)
+	}
+
+	errs := make([]error, len(groups))
+	groupErrs := runBatch(ctx, len(keys), concurrency, func(ctx context.Context, g int) error {
+		for _, i := range members[keys[g]] {
+			if err := ctx.Err(); err != nil {
+				errs[i] = fmt.Errorf("%w: %w", errBatchNotStarted, err)
+				continue
+			}
+			err := do(ctx, i)
+			if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+				err = fmt.Errorf("%w: %w", errBatchInterrupted, err)
+			}
+			errs[i] = err
+		}
+		return nil
+	})
+	for g, err := range groupErrs {
+		if errors.Is(err, errBatchNotStarted) {
+			for _, i := range members[keys[g]] {
+				errs[i] = err
+			}
+		}
+	}
+	return errs
+}
