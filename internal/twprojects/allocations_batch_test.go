@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"slices"
 	"testing"
 
 	"github.com/teamwork/mcp/internal/testutil"
@@ -174,6 +175,42 @@ func TestAllocationCreateBatchRejectsAnInvalidItemBeforeSending(t *testing.T) {
 	testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodAllocationCreateBatch.String(), map[string]any{
 		"allocations": []any{allocationBatchItem("Design", 777), badDate},
 	}, expectBatchResult(true, "Nothing was written", "item 2: "))
+
+	if len(*recorded) != 0 {
+		t.Errorf("expected no requests, got %d", len(*recorded))
+	}
+}
+
+// TestAllocationUpdateBatchReachesTheWire pins one PATCH per allocation and
+// names those that put their user over capacity.
+func TestAllocationUpdateBatchReachesTheWire(t *testing.T) {
+	mcpServer, recorded := mcpServerRecordingMock(t, []testutil.ProjectsMockRoute{
+		{Method: http.MethodPatch, Match: "/allocations/2.json", Status: http.StatusOK,
+			Body: []byte(`{"allocation":{"id":2,"overAllocated":true}}`)},
+	}, http.StatusOK, []byte(`{"allocation":{"id":1}}`))
+	testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodAllocationUpdateBatch.String(), map[string]any{
+		"allocations": []any{
+			map[string]any{"id": float64(1), "is_billable": true},
+			map[string]any{"id": float64(2), "seconds_per_day": float64(14400)},
+		},
+	}, expectBatchResult(false, "Updated 2 of 2 allocations", "allocation 2 → user over capacity"))
+
+	want := []string{"/projects/api/v3/allocations/1.json", "/projects/api/v3/allocations/2.json"}
+	if got := recordedPaths(*recorded, http.MethodPatch); !slices.Equal(got, want) {
+		t.Errorf("expected %v, got %v", want, got)
+	}
+}
+
+// TestAllocationUpdateBatchRejectsARepeatedAllocation keeps two concurrent
+// updates of one allocation from racing.
+func TestAllocationUpdateBatchRejectsARepeatedAllocation(t *testing.T) {
+	mcpServer, recorded := mcpServerRecordingMock(t, nil, http.StatusOK, []byte(`{"allocation":{}}`))
+	testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodAllocationUpdateBatch.String(), map[string]any{
+		"allocations": []any{
+			map[string]any{"id": float64(1), "title": "A"},
+			map[string]any{"id": float64(1), "is_billable": true},
+		},
+	}, expectBatchResult(true, "Nothing was written", "allocation 1 is listed more than once"))
 
 	if len(*recorded) != 0 {
 		t.Errorf("expected no requests, got %d", len(*recorded))

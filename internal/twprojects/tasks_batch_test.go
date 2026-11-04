@@ -315,3 +315,37 @@ func TestTaskCompleteBatchRejectsATooLongList(t *testing.T) {
 		t.Errorf("expected no requests, got %d", len(*recorded))
 	}
 }
+
+// recordedPaths returns the paths of the recorded requests of one method,
+// sorted, since a concurrent batch sends them in no fixed order.
+func recordedPaths(recorded []testutil.ProjectsRecordedRequest, method string) []string {
+	var paths []string
+	for _, entry := range requestsOfMethod(recorded, method) {
+		paths = append(paths, entry.URL.Path)
+	}
+	slices.Sort(paths)
+	return paths
+}
+
+// TestTaskUncompleteBatchReachesTheWire pins one uncomplete per distinct task.
+func TestTaskUncompleteBatchReachesTheWire(t *testing.T) {
+	mcpServer, recorded := mcpServerRecordingMock(t, nil, http.StatusOK, []byte(`{}`))
+	testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodTaskUncompleteBatch.String(), map[string]any{
+		"task_ids": []any{float64(2), float64(1), float64(2)},
+	}, expectBatchResult(false, "Reopened 2 of 2 tasks"))
+
+	want := []string{"/tasks/1/uncomplete.json", "/tasks/2/uncomplete.json"}
+	if got := recordedPaths(*recorded, http.MethodPut); !slices.Equal(got, want) {
+		t.Errorf("expected %v, got %v", want, got)
+	}
+}
+
+// TestTaskUncompleteBatchReportsEachFailure keeps going past a failed task.
+func TestTaskUncompleteBatchReportsEachFailure(t *testing.T) {
+	mcpServer, _ := mcpServerRecordingMock(t, []testutil.ProjectsMockRoute{
+		{Method: http.MethodPut, Match: "/tasks/2/", Status: http.StatusForbidden, Body: []byte(`{}`)},
+	}, http.StatusOK, []byte(`{}`))
+	testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodTaskUncompleteBatch.String(), map[string]any{
+		"task_ids": []any{float64(1), float64(2)},
+	}, expectBatchResult(true, "Reopened 1 of 2 tasks", "Failed: task 2"))
+}

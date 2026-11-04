@@ -579,3 +579,63 @@ func TestTimelogCreateBatchRejectsATooLongList(t *testing.T) {
 		t.Errorf("expected the list to be refused, got: %s", text)
 	}
 }
+
+// TestTimelogUpdateBatchReachesTheWire pins one PATCH per timelog, each
+// carrying only its own changes.
+func TestTimelogUpdateBatchReachesTheWire(t *testing.T) {
+	mcpServer, recorded := mcpServerRecordingMock(t, nil, http.StatusOK, []byte(`{}`))
+	testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodTimelogUpdateBatch.String(), map[string]any{
+		"timelogs": []any{
+			map[string]any{"id": float64(1), "billable": false},
+			map[string]any{"id": float64(2), "task_id": float64(77)},
+		},
+	}, expectBatchResult(false, "Updated 2 of 2 timelogs"))
+
+	writes := requestsOfMethod(*recorded, http.MethodPatch)
+	if len(writes) != 2 {
+		t.Fatalf("expected 2 writes, got %d", len(writes))
+	}
+	bodies := map[string]string{}
+	for _, entry := range writes {
+		bodies[entry.URL.Path] = string(entry.Body)
+	}
+	if body := bodies["/projects/api/v3/time/1.json"]; !strings.Contains(body, `"isBillable":false`) ||
+		strings.Contains(body, "taskId") {
+		t.Errorf("timelog 1: unexpected body %s", body)
+	}
+	if body := bodies["/projects/api/v3/time/2.json"]; !strings.Contains(body, `"taskId":77`) ||
+		strings.Contains(body, "isBillable") {
+		t.Errorf("timelog 2: unexpected body %s", body)
+	}
+}
+
+// TestTimelogUpdateBatchRejectsAnInvalidItemBeforeWriting covers a conflicting
+// item and a repeated timelog.
+func TestTimelogUpdateBatchRejectsAnInvalidItemBeforeWriting(t *testing.T) {
+	mcpServer, recorded := mcpServerRecordingMock(t, nil, http.StatusOK, []byte(`{}`))
+	testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodTimelogUpdateBatch.String(), map[string]any{
+		"timelogs": []any{
+			map[string]any{"id": float64(1), "task_id": float64(7), "clear_task": true},
+			map[string]any{"id": float64(2), "hours": float64(1)},
+			map[string]any{"id": float64(2), "minutes": float64(5)},
+		},
+	}, expectBatchResult(true, "Nothing was written", "item 1: clear_task cannot be combined",
+		"item 3: timelog 2 is listed more than once"))
+
+	if len(*recorded) != 0 {
+		t.Errorf("expected no requests, got %d", len(*recorded))
+	}
+}
+
+// TestTimelogUpdateBatchReportsEachFailure keeps going past a failed timelog.
+func TestTimelogUpdateBatchReportsEachFailure(t *testing.T) {
+	mcpServer, _ := mcpServerRecordingMock(t, []testutil.ProjectsMockRoute{
+		{Method: http.MethodPatch, Match: "/time/2.json", Status: http.StatusForbidden, Body: []byte(`{}`)},
+	}, http.StatusOK, []byte(`{}`))
+	testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodTimelogUpdateBatch.String(), map[string]any{
+		"timelogs": []any{
+			map[string]any{"id": float64(1), "billable": true},
+			map[string]any{"id": float64(2), "billable": true},
+		},
+	}, expectBatchResult(true, "Updated 1 of 2 timelogs", "Failed: timelog 2"))
+}

@@ -26,6 +26,7 @@ const (
 	MethodAllocationCreate      toolsets.Method = "twprojects-create_allocation"
 	MethodAllocationCreateBatch toolsets.Method = "twprojects-create_allocations"
 	MethodAllocationUpdate      toolsets.Method = "twprojects-update_allocation"
+	MethodAllocationUpdateBatch toolsets.Method = "twprojects-update_allocations"
 	MethodAllocationDelete      toolsets.Method = "twprojects-delete_allocation"
 	MethodAllocationRestore     toolsets.Method = "twprojects-restore_allocation"
 	MethodAllocationTaskLink    toolsets.Method = "twprojects-link_task_to_allocation"
@@ -460,7 +461,8 @@ func AllocationUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 		Tool: &mcp.Tool{
 			Name: string(MethodAllocationUpdate),
 			Description: "Update an allocation. Changing end_date ADDS or REMOVES committed time rather than " +
-				"redistributing it, because the per-day rate is what is held constant.",
+				"redistributing it, because the per-day rate is what is held constant. To update several, use " +
+				"twprojects-update_allocations.",
 			Annotations: &mcp.ToolAnnotations{
 				Title:           "Update Allocation",
 				DestructiveHint: new(true),
@@ -473,22 +475,13 @@ func AllocationUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 			},
 		},
 		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-			var allocationUpdateRequest projects.AllocationUpdateRequest
-
 			var arguments map[string]any
 			if err := json.Unmarshal(request.Params.Arguments, &arguments); err != nil {
 				return helpers.NewToolResultTextError("failed to decode request: %s", err.Error()), nil
 			}
-			params := append(
-				[]helpers.ParamFunc{helpers.RequiredNumericParam(&allocationUpdateRequest.Path.ID, "id")},
-				allocationUpsertParams(&allocationUpdateRequest.Allocation)...,
-			)
-			if err := helpers.ParamGroup(arguments, params...); err != nil {
-				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
-			}
-
-			if allocationUpdateRequest.Allocation.InformOfOverAllocation == nil {
-				allocationUpdateRequest.Allocation.InformOfOverAllocation = new(true)
+			allocationUpdateRequest, toolResult := parseAllocationUpdateArguments(arguments)
+			if toolResult != nil {
+				return toolResult, nil
 			}
 
 			allocation, err := projects.AllocationUpdate(ctx, engine, allocationUpdateRequest)
@@ -500,6 +493,105 @@ func AllocationUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 					"user over their capacity for this period."), nil
 			}
 			return helpers.NewToolResultText("Allocation updated successfully"), nil
+		},
+	}
+}
+
+// parseAllocationUpdateArguments binds the update_allocation parameters,
+// shared with update_allocations.
+func parseAllocationUpdateArguments(arguments map[string]any) (projects.AllocationUpdateRequest, *mcp.CallToolResult) {
+	var allocationUpdateRequest projects.AllocationUpdateRequest
+	params := append(
+		[]helpers.ParamFunc{helpers.RequiredNumericParam(&allocationUpdateRequest.Path.ID, "id")},
+		allocationUpsertParams(&allocationUpdateRequest.Allocation)...,
+	)
+	if err := helpers.ParamGroup(arguments, params...); err != nil {
+		return allocationUpdateRequest, helpers.NewToolResultTextError("invalid parameters: %s", err.Error())
+	}
+	if allocationUpdateRequest.Allocation.InformOfOverAllocation == nil {
+		allocationUpdateRequest.Allocation.InformOfOverAllocation = new(true)
+	}
+	return allocationUpdateRequest, nil
+}
+
+// AllocationUpdateBatch updates many allocations in one call. The API has no
+// bulk allocation update, so it fans out one update per allocation.
+func AllocationUpdateBatch(engine *twapi.Engine) toolsets.ToolWrapper {
+	itemSchema := batchItemSchema(AllocationUpdate(engine).Tool.InputSchema)
+	return toolsets.ToolWrapper{
+		Tool: &mcp.Tool{
+			Name: string(MethodAllocationUpdateBatch),
+			Description: "Update many allocations in one call, each with its own changes. Use instead of calling " +
+				"twprojects-update_allocation in a loop. Changing end_date ADDS or REMOVES committed time rather " +
+				"than redistributing it, because the per-day rate is what is held constant. Items are validated " +
+				"first and nothing is updated if one is invalid; after that each allocation succeeds or fails on " +
+				"its own, and the result lists the error of each failure and which allocations put their user " +
+				"over capacity.",
+			Annotations: &mcp.ToolAnnotations{
+				Title:           "Update Allocations",
+				DestructiveHint: new(true),
+				OpenWorldHint:   new(false),
+			},
+			InputSchema: &jsonschema.Schema{
+				Type: "object",
+				Properties: map[string]*jsonschema.Schema{
+					"allocations": {
+						Type:     "array",
+						Items:    itemSchema,
+						MinItems: new(1),
+						MaxItems: new(batchMaxItems),
+						Description: "The updates, one per allocation, each with the parameters of " +
+							"twprojects-update_allocation. An allocation may appear only once.",
+					},
+				},
+				Required: []string{"allocations"},
+			},
+		},
+		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+			var arguments map[string]any
+			if err := json.Unmarshal(request.Params.Arguments, &arguments); err != nil {
+				return helpers.NewToolResultTextError("failed to decode request: %s", err.Error()), nil
+			}
+			items, toolResult := batchItems(arguments, "allocations", batchMaxItems)
+			if toolResult != nil {
+				return toolResult, nil
+			}
+
+			requests := make([]projects.AllocationUpdateRequest, len(items))
+			labels := make([]string, len(items))
+			seen := make(map[int64]bool, len(items))
+			var invalid []string
+			for i, item := range items {
+				req, toolResult := parseAllocationUpdateArguments(item)
+				if toolResult != nil {
+					invalid = append(invalid, fmt.Sprintf("item %d: %s", i+1, toolResultText(toolResult)))
+					continue
+				}
+				if seen[req.Path.ID] {
+					invalid = append(invalid, fmt.Sprintf("item %d: allocation %d is listed more than once; "+
+						"merge its changes into one item", i+1, req.Path.ID))
+					continue
+				}
+				seen[req.Path.ID] = true
+				requests[i] = req
+				labels[i] = fmt.Sprintf("allocation %d", req.Path.ID)
+			}
+			if len(invalid) > 0 {
+				return batchInvalidItems(invalid), nil
+			}
+
+			details := make([]string, len(requests))
+			errs := runBatch(ctx, len(requests), batchConcurrency, func(ctx context.Context, i int) error {
+				return retryIdempotent(ctx, func() error {
+					response, err := projects.AllocationUpdate(ctx, engine, requests[i])
+					if err == nil && response.Allocation.OverAllocated {
+						details[i] = "user over capacity"
+					}
+					return err
+				})
+			})
+			return batchReport("Updated", "allocations",
+				"sending the same update again is safe", labels, details, errs), nil
 		},
 	}
 }

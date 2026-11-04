@@ -86,6 +86,13 @@ var forceOther = map[string]bool{
 	"create_users":               true,
 	"create_timelogs":            true,
 	"update_custom_field_values": true,
+	"update_timelogs":            true,
+	"update_projects":            true,
+	"add_project_members":        true,
+	"create_tasklists":           true,
+	"update_allocations":         true,
+	"create_comments":            true,
+	"uncomplete_tasks":           true,
 }
 
 // displayOverrides maps resource/toolset slugs whose default title-casing reads

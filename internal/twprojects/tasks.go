@@ -35,7 +35,8 @@ const (
 	MethodTaskCreateBatch toolsets.Method = "twprojects-create_tasks"
 	MethodTaskUpdateBatch toolsets.Method = "twprojects-update_tasks"
 
-	MethodTaskCompleteBatch toolsets.Method = "twprojects-complete_tasks"
+	MethodTaskCompleteBatch   toolsets.Method = "twprojects-complete_tasks"
+	MethodTaskUncompleteBatch toolsets.Method = "twprojects-uncomplete_tasks"
 )
 
 var (
@@ -1273,7 +1274,7 @@ func TaskUncomplete(engine *twapi.Engine) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
 			Name:        string(MethodTaskUncomplete),
-			Description: "Reopen a completed task.",
+			Description: "Reopen a completed task. To reopen several, use twprojects-uncomplete_tasks.",
 			Annotations: &mcp.ToolAnnotations{
 				Title:           "Uncomplete Task",
 				DestructiveHint: new(false),
@@ -1309,6 +1310,71 @@ func TaskUncomplete(engine *twapi.Engine) toolsets.ToolWrapper {
 				return helpers.HandleAPIError(err, "failed to uncomplete task")
 			}
 			return helpers.NewToolResultText("Task reopened successfully"), nil
+		},
+	}
+}
+
+// TaskUncompleteBatch reopens many completed tasks in one call. There is no bulk
+// uncomplete route, so it fans out one request per task.
+func TaskUncompleteBatch(engine *twapi.Engine) toolsets.ToolWrapper {
+	return toolsets.ToolWrapper{
+		Tool: &mcp.Tool{
+			Name: string(MethodTaskUncompleteBatch),
+			Description: fmt.Sprintf("Reopen many completed tasks in one call, at most %d task IDs per call. "+
+				"Use instead of calling twprojects-uncomplete_task in a loop, for example to undo "+
+				"twprojects-complete_tasks. Each task succeeds or fails on its own, and the result lists the "+
+				"error of each failure.", batchMaxItems),
+			Annotations: &mcp.ToolAnnotations{
+				Title:           "Uncomplete Tasks",
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
+			},
+			InputSchema: &jsonschema.Schema{
+				Type: "object",
+				Properties: map[string]*jsonschema.Schema{
+					"task_ids": {
+						Type:        "array",
+						Items:       &jsonschema.Schema{Type: "integer"},
+						MinItems:    new(1),
+						MaxItems:    new(batchMaxItems),
+						Description: fmt.Sprintf("The IDs of the tasks to reopen, at most %d.", batchMaxItems),
+					},
+				},
+				Required: []string{"task_ids"},
+			},
+		},
+		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+			var arguments map[string]any
+			if err := json.Unmarshal(request.Params.Arguments, &arguments); err != nil {
+				return helpers.NewToolResultTextError("failed to decode request: %s", err.Error()), nil
+			}
+			var taskIDs []int64
+			if err := helpers.ParamGroup(arguments, helpers.OptionalNumericListParam(&taskIDs, "task_ids")); err != nil {
+				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
+			}
+			taskIDs = slices.Compact(slices.Sorted(slices.Values(taskIDs)))
+			switch {
+			case len(taskIDs) == 0:
+				return helpers.NewToolResultTextError("task_ids must contain at least one task ID"), nil
+			case len(taskIDs) > batchMaxItems:
+				return helpers.NewToolResultTextError("task_ids accepts at most %d IDs, got %d; "+
+					"split the list across several calls", batchMaxItems, len(taskIDs)), nil
+			}
+
+			labels := make([]string, len(taskIDs))
+			for i, id := range taskIDs {
+				labels[i] = fmt.Sprintf("task %d", id)
+			}
+			errs := runBatch(ctx, len(taskIDs), batchConcurrency, func(ctx context.Context, i int) error {
+				return retryIdempotent(ctx, func() error {
+					var req projects.TaskUncompleteRequest
+					req.Path.ID = taskIDs[i]
+					_, err := projects.TaskUncomplete(ctx, engine, req)
+					return err
+				})
+			})
+			return batchReport("Reopened", "tasks",
+				"sending the same IDs again is safe", labels, nil, errs), nil
 		},
 	}
 }
