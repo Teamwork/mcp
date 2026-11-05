@@ -43,12 +43,10 @@ func init() {
 	if err != nil {
 		panic(fmt.Sprintf("failed to generate JSON schema for TimerGetResponse: %v", err))
 	}
-	helpers.WithMetaWebLinkSchema(timerGetOutputSchema)
 	timerListOutputSchema, err = jsonschema.For[projects.TimerListResponse](&jsonschema.ForOptions{})
 	if err != nil {
 		panic(fmt.Sprintf("failed to generate JSON schema for TimerListResponse: %v", err))
 	}
-	helpers.WithMetaWebLinkSchema(timerListOutputSchema)
 }
 
 // TimerCreate creates a timer in Teamwork.com.
@@ -452,9 +450,7 @@ func TimerGet(engine *twapi.Engine) toolsets.ToolWrapper {
 			}
 
 			if len(timerGetRequest.Fields.Timer) > 0 {
-				return helpers.NewRawToolResult(ctx, engine, timerGetRequest, "failed to get timer",
-					helpers.WebLinkerWithIDPathBuilder("/app/timers"),
-				)
+				return helpers.NewRawToolResult(ctx, engine, timerGetRequest, "failed to get timer", nil)
 			}
 
 			timer, err := projects.TimerGet(ctx, engine, timerGetRequest)
@@ -468,15 +464,9 @@ func TimerGet(engine *twapi.Engine) toolsets.ToolWrapper {
 			}
 			return &mcp.CallToolResult{
 				Content: []mcp.Content{
-					&mcp.TextContent{
-						Text: string(helpers.WebLinker(ctx, encoded,
-							helpers.WebLinkerWithIDPathBuilder("/app/timers"),
-						)),
-					},
+					&mcp.TextContent{Text: string(encoded)},
 				},
-				StructuredContent: helpers.StructuredWebLinker(ctx, timer,
-					helpers.WebLinkerWithIDPathBuilder("/app/timers"),
-				),
+				StructuredContent: timer,
 			}, nil
 		},
 	}
@@ -589,14 +579,13 @@ func TimerList(engine *twapi.Engine) toolsets.ToolWrapper {
 				return nil, fmt.Errorf("failed to read response body: %w", err)
 			}
 
-			linked := helpers.WebLinker(ctx, body, helpers.WebLinkerWithIDPathBuilder("/app/me/timers"))
 			result := &mcp.CallToolResult{
 				Content: []mcp.Content{
-					&mcp.TextContent{Text: string(linked)},
+					&mcp.TextContent{Text: string(body)},
 				},
 			}
 			var structured any
-			if err := json.Unmarshal(linked, &structured); err != nil {
+			if err := json.Unmarshal(body, &structured); err != nil {
 				return nil, fmt.Errorf("failed to decode response: %w", err)
 			}
 			result.StructuredContent = structured
