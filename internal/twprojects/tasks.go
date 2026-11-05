@@ -1159,16 +1159,15 @@ func TaskComplete(engine *twapi.Engine) toolsets.ToolWrapper {
 const taskCompleteBatchMaxTasks = 50
 
 // TaskCompleteBatch marks many tasks as complete in Teamwork.com with a single
-// request to the bulk complete route, rather than one request per task.
+// request to the v1 bulk complete route, rather than one request per task.
 func TaskCompleteBatch(engine *twapi.Engine) toolsets.ToolWrapper {
 	return toolsets.ToolWrapper{
 		Tool: &mcp.Tool{
 			Name: string(MethodTaskCompleteBatch),
 			Description: fmt.Sprintf("Mark many tasks complete in one request, at most %d task IDs per call. "+
-				"Use instead of calling twprojects-complete_task in a loop. Each task succeeds or fails on its "+
-				"own: the result lists the tasks completed and, for each one that was not, the reason (not "+
-				"found, no permission, or an incomplete predecessor). A task that was already complete counts "+
-				"as completed.", taskCompleteBatchMaxTasks),
+				"Use instead of calling twprojects-complete_task in a loop. A failing task does not stop the "+
+				"others, but the API then reports a single error without naming the task, so check the tasks "+
+				"with twprojects-get_task to learn which ones were completed.", taskCompleteBatchMaxTasks),
 			Annotations: &mcp.ToolAnnotations{
 				Title: "Complete Tasks",
 				// Reversible, like complete_task: uncomplete_task undoes it.
@@ -1212,38 +1211,27 @@ func TaskCompleteBatch(engine *twapi.Engine) toolsets.ToolWrapper {
 					taskCompleteBatchMaxTasks, len(taskIDs)), nil
 			}
 
-			response, err := projects.TaskBulkComplete(ctx, engine, projects.NewTaskBulkCompleteRequest(taskIDs))
+			_, err := projects.TaskBulkComplete(ctx, engine, projects.NewTaskBulkCompleteRequest(taskIDs))
 			if err != nil {
 				if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
 					return helpers.NewToolResultTextError(
 						"The request was interrupted and its outcome is unknown: some tasks may have been "+
 							"completed. Check them with %s before sending them again.", MethodTaskGet), nil
 				}
+				// The endpoint keeps going past a failed task and reports only the last failure.
+				if _, ok := errors.AsType[*twapi.HTTPError](err); ok {
+					return helpers.NewToolResultTextError(
+						"At least one task could not be completed (%s), and the API does not say which. "+
+							"The other tasks may have been completed: check them with %s.", err, MethodTaskGet), nil
+				}
 				return helpers.HandleAPIError(err, "failed to complete tasks")
 			}
 
 			labels := make([]string, len(taskIDs))
-			errs := make([]error, len(taskIDs))
 			for i, id := range taskIDs {
 				labels[i] = fmt.Sprintf("task %d", id)
-				if !slices.Contains(response.CompletedTaskIDs, id) {
-					errs[i] = errors.New("not reported as completed")
-				}
 			}
-			for _, failure := range response.Failed {
-				if failure.Index < 0 || failure.Index >= len(taskIDs) {
-					continue
-				}
-				reasons := make([]string, len(failure.Errors))
-				for j, e := range failure.Errors {
-					reasons[j] = e.Title
-					if e.Detail != "" {
-						reasons[j] += " (" + e.Detail + ")"
-					}
-				}
-				errs[failure.Index] = errors.New(strings.Join(reasons, "; "))
-			}
-			return batchReport("Completed", "tasks", "", labels, nil, errs), nil
+			return batchReport("Completed", "tasks", "", labels, nil, make([]error, len(taskIDs))), nil
 		},
 	}
 }
