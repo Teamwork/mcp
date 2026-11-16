@@ -170,6 +170,43 @@ func TestProtectedResourceRFC9728Path(t *testing.T) {
 	}
 }
 
+// TestProtectedResourceServesRegisteredProfiles pins that a root server answers
+// the metadata path of a profile it does not enable. A profile deployed apart
+// under the same host advertises that path, and it routes to the root server.
+func TestProtectedResourceServesRegisteredProfiles(t *testing.T) {
+	toolsets.RegisterProfile("metadata-test-profile", nil)
+
+	var resources config.Resources
+	resources.Info.MCPURL = "https://mcp.example.com"
+	resources.Info.APIURL = "https://example.com"
+
+	mux := http.NewServeMux()
+	mcphttp.ProtectedResource(mux, resources, nil)
+
+	server := httptest.NewServer(mux)
+	defer server.Close()
+
+	response, err := server.Client().Get(server.URL + "/.well-known/oauth-protected-resource/metadata-test-profile")
+	if err != nil {
+		t.Fatalf("failed to request metadata: %v", err)
+	}
+	defer response.Body.Close() //nolint:errcheck
+
+	if response.StatusCode != http.StatusOK {
+		t.Fatalf("status = %d, want %d", response.StatusCode, http.StatusOK)
+	}
+
+	var metadata struct {
+		Resource string `json:"resource"`
+	}
+	if err := json.NewDecoder(response.Body).Decode(&metadata); err != nil {
+		t.Fatalf("metadata is not valid JSON: %v", err)
+	}
+	if want := "https://mcp.example.com/metadata-test-profile"; metadata.Resource != want {
+		t.Errorf("resource = %q, want %q", metadata.Resource, want)
+	}
+}
+
 // TestProtectedResourceKeepsLegacyPath pins that the path shape this server
 // advertised before still answers, so clients that cached it keep working.
 func TestProtectedResourceKeepsLegacyPath(t *testing.T) {

@@ -146,8 +146,11 @@ func ProtectedResource(mux *http.ServeMux, resources config.Resources, groups []
 		mux.HandleFunc(protectedResourcePath+path, serve(resources.Info.MCPURL))
 		return
 	}
-	// This server answers for every profile it exposes as a path prefix.
-	for _, profile := range slices.Compact(slices.Sorted(slices.Values(resources.Info.MCPProfiles))) {
+	// This server answers for every registered profile, not only the enabled
+	// ones: a profile served from its own deployment under this host advertises
+	// this path, and the path does not start with the profile, so it lands here.
+	profiles := slices.Concat(resources.Info.MCPProfiles, toolsets.ListProfiles())
+	for _, profile := range slices.Compact(slices.Sorted(slices.Values(profiles))) {
 		mux.HandleFunc(protectedResourcePath+"/"+profile, serve(resources.Info.MCPURL+"/"+profile))
 	}
 }
