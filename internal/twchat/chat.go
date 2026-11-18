@@ -558,9 +558,7 @@ func MessageUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
 				DestructiveHint: new(true),
 				OpenWorldHint:   new(false),
 			},
-			Description: "Edit a message already sent in Teamwork Chat, replacing its whole body. Requires " +
-				"message_id and body. Use this to correct or reword a message instead of sending a second " +
-				"one. message_id is the id returned by send_message or send_dm, or listed by list_messages.",
+			Description: "Edit a message already sent in Teamwork Chat, replacing its whole body. message_id is the id returned by send_message or send_dm, or listed by list_messages.",
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
 				Properties: map[string]*jsonschema.Schema{
