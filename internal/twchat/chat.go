@@ -1,6 +1,7 @@
 package twchat
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -542,6 +543,66 @@ func MessageSend(engine *twapi.Engine) toolsets.ToolWrapper {
 				Body:           body,
 			}
 			return execute(ctx, engine, req, "failed to send chat message")
+		},
+	}
+}
+
+// MessageUpdate replaces the body of a message already sent to a Teamwork Chat
+// conversation.
+func MessageUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
+	return toolsets.ToolWrapper{
+		Tool: &mcp.Tool{
+			Name: string(MethodMessageUpdate),
+			Annotations: &mcp.ToolAnnotations{
+				Title:           "Update Chat Message",
+				DestructiveHint: new(true),
+				OpenWorldHint:   new(false),
+			},
+			Description: "Edit a message already sent in Teamwork Chat, replacing its whole body. Requires " +
+				"message_id and body. Use this to correct or reword a message instead of sending a second " +
+				"one. message_id is the id returned by send_message or send_dm, or listed by list_messages.",
+			InputSchema: &jsonschema.Schema{
+				Type: "object",
+				Properties: map[string]*jsonschema.Schema{
+					"message_id": {
+						Type:        "integer",
+						Description: "The ID of the message to edit.",
+					},
+					"body": {
+						Type: "string",
+						Description: "The new message text, replacing the current one in full. Supports " +
+							"Markdown.",
+					},
+				},
+				Required: []string{"message_id", "body"},
+			},
+		},
+		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+			arguments, err := helpers.NewToolArguments(request)
+			if err != nil {
+				return helpers.NewToolResultTextError("%v", err), nil
+			}
+			messageID := int64(arguments.GetInt("message_id", 0))
+			if messageID <= 0 {
+				return helpers.NewToolResultTextError("message_id is required"), nil
+			}
+			body := arguments.GetString("body", "")
+			if body == "" {
+				return helpers.NewToolResultTextError("body is required"), nil
+			}
+
+			restricted := twctx.IsRestrictedData(ctx)
+			req := messageUpdateRequest{MessageID: messageID, Body: body}
+			return executeWithTransform(ctx, engine, req, "failed to update chat message",
+				func(response []byte) ([]byte, error) {
+					// The route answers 200 with an empty body, which minimizeChatBody
+					// would refuse to decode. Name the message instead, so the caller
+					// has something to confirm the edit against.
+					if len(bytes.TrimSpace(response)) == 0 {
+						return json.Marshal(map[string]any{"message": map[string]any{"id": messageID}})
+					}
+					return minimizeChatBody(response, restricted)
+				})
 		},
 	}
 }
