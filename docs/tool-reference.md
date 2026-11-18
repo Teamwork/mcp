@@ -187,13 +187,13 @@ Space CRUD and collaborators in Teamwork Spaces.
 
 ### Chat — `twchat-chat`
 
-Read conversations, messages, and people, and send messages in Teamwork Chat.
+Read conversations, messages, and people, and send or edit messages in Teamwork Chat.
 
 | Resource | Create | Get | List | Update |
 |---|---|---|---|---|
 | Current User | — | ✓ | — | — |
 | Conversation | — | ✓ | ✓ | — |
-| Message | — | — | ✓ | — |
+| Message | — | — | ✓ | ✓ |
 | People | — | — | ✓ | — |
 
 **Other actions:** `get_or_create_dm`, `send_dm`, `send_message`

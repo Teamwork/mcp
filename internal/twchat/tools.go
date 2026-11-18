@@ -9,12 +9,13 @@ import (
 	twapi "github.com/teamwork/twapi-go-sdk"
 )
 
-const chatDescription = "Read conversations, messages, and people, and send messages in Teamwork Chat."
+const chatDescription = "Read conversations, messages, and people, and send or edit messages in Teamwork Chat."
 
 // Sub-toolset key for twchat. This is the valid value for the -toolsets flag
 // when selecting Teamwork Chat functionality.
 const (
-	// ToolsetChat covers reading conversations/messages/people and sending messages.
+	// ToolsetChat covers reading conversations/messages/people and sending or
+	// editing messages.
 	ToolsetChat toolsets.Method = "twchat-chat"
 )
 
@@ -32,6 +33,8 @@ const (
 	MethodPeopleList toolsets.Method = "twchat-list_people"
 	// MethodMessageSend posts a message to a conversation.
 	MethodMessageSend toolsets.Method = "twchat-send_message"
+	// MethodMessageUpdate replaces the body of an existing message.
+	MethodMessageUpdate toolsets.Method = "twchat-update_message"
 	// MethodDMGetOrCreate resolves (or creates) the 1:1 conversation with a person.
 	MethodDMGetOrCreate toolsets.Method = "twchat-get_or_create_dm"
 	// MethodSendDM sends a direct message to a person.
@@ -43,7 +46,7 @@ func init() {
 }
 
 // DefaultToolsetGroup creates a default ToolsetGroup for Teamwork Chat. Write
-// tools (send_message, send_dm, get_or_create_dm) are skipped automatically when
+// tools (send_message, update_message, send_dm, get_or_create_dm) are skipped automatically when
 // readOnly is true. get_or_create_dm is a write tool because it creates the 1:1
 // conversation when one does not already exist.
 func DefaultToolsetGroup(readOnly bool, engine *twapi.Engine) *toolsets.ToolsetGroup {
@@ -52,6 +55,7 @@ func DefaultToolsetGroup(readOnly bool, engine *twapi.Engine) *toolsets.ToolsetG
 	group.AddToolset(toolsets.NewToolset(ToolsetChat, chatDescription).
 		AddWriteTools(
 			MessageSend(engine),
+			MessageUpdate(engine),
 			SendDM(engine),
 			DMGetOrCreate(engine),
 		).

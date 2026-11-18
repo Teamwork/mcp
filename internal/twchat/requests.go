@@ -193,3 +193,34 @@ func (m messageSendRequest) HTTPRequest(ctx context.Context, server string) (*ht
 	req.Header.Set("Content-Type", "application/json")
 	return req, nil
 }
+
+// messageUpdateRequest replaces the body of an existing message.
+type messageUpdateRequest struct {
+	MessageID int64
+	Body      string
+}
+
+// HTTPRequest builds the PUT /chat/v7/messages/{id}.json request. The message
+// is addressed by its own ID alone; the route takes no conversation.
+func (m messageUpdateRequest) HTTPRequest(ctx context.Context, server string) (*http.Request, error) {
+	uri := server + chatBasePath + "/messages/" + strconv.FormatInt(m.MessageID, 10) + ".json"
+
+	var payload struct {
+		Message struct {
+			Body string `json:"body"`
+		} `json:"message"`
+	}
+	payload.Message.Body = m.Body
+
+	var body bytes.Buffer
+	if err := json.NewEncoder(&body).Encode(payload); err != nil {
+		return nil, fmt.Errorf("failed to encode update message request: %w", err)
+	}
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPut, uri, &body)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	return req, nil
+}

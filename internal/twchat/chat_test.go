@@ -1,6 +1,7 @@
 package twchat_test
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"strings"
@@ -98,6 +99,98 @@ func TestMessageSend(t *testing.T) {
 		"conversation_id": float64(123),
 		"body":            "Hello from MCP!",
 	})
+}
+
+// TestMessageUpdate pins the request the edit sends and the answer it gives.
+// The route replies 200 with no body at all, which the other tools' response
+// handling cannot decode, so the tool has to answer with the message it edited
+// rather than fail a call that succeeded.
+func TestMessageUpdate(t *testing.T) {
+	mcpServer, recorded := testutil.ChatMCPServerRecordingMock(t, nil, http.StatusOK, nil)
+
+	testutil.ExecuteToolRequest(t, mcpServer, twchat.MethodMessageUpdate.String(), map[string]any{
+		"message_id": float64(789),
+		"body":       "Hello again from MCP!",
+	}, testutil.ExecuteToolRequestWithCheckMessage(func(t *testing.T, result mcp.Result) {
+		t.Helper()
+		toolResult, ok := result.(*mcp.CallToolResult)
+		if !ok || toolResult.IsError {
+			t.Fatalf("unexpected result: %#v", result)
+		}
+		if text := toolResult.Content[0].(*mcp.TextContent).Text; text != `{"message":{"id":789}}` {
+			t.Errorf("unexpected confirmation: %s", text)
+		}
+	}))
+
+	if len(*recorded) != 1 {
+		t.Fatalf("expected 1 request, got %d", len(*recorded))
+	}
+	request := (*recorded)[0]
+	if request.Method != http.MethodPut || request.URL.Path != "/chat/v7/messages/789.json" {
+		t.Errorf("unexpected request: %s %s", request.Method, request.URL.Path)
+	}
+	var sent struct {
+		Message struct {
+			Body string `json:"body"`
+		} `json:"message"`
+	}
+	if err := json.Unmarshal(request.Body, &sent); err != nil {
+		t.Fatalf("failed to decode request body %s: %v", request.Body, err)
+	}
+	if sent.Message.Body != "Hello again from MCP!" {
+		t.Errorf("unexpected request body: %s", request.Body)
+	}
+}
+
+// TestMessageUpdateMinimizesAReturnedBody covers a reply that does carry a
+// payload: it goes through the same minimization as every other Chat response.
+func TestMessageUpdateMinimizesAReturnedBody(t *testing.T) {
+	mcpServer := mcpServerMock(t, http.StatusOK,
+		[]byte(`{"message":{"id":789,"body":"Hello again from MCP!"},"STATUS":"ok"}`))
+
+	testutil.ExecuteToolRequest(t, mcpServer, twchat.MethodMessageUpdate.String(), map[string]any{
+		"message_id": float64(789),
+		"body":       "Hello again from MCP!",
+	}, testutil.ExecuteToolRequestWithCheckMessage(func(t *testing.T, result mcp.Result) {
+		t.Helper()
+		toolResult, ok := result.(*mcp.CallToolResult)
+		if !ok || toolResult.IsError {
+			t.Fatalf("unexpected result: %#v", result)
+		}
+		text := toolResult.Content[0].(*mcp.TextContent).Text
+		if !strings.Contains(text, `"id":789`) || strings.Contains(text, "STATUS") {
+			t.Errorf("unexpected response: %s", text)
+		}
+	}))
+}
+
+// TestMessageUpdateRequiresItsArguments pins that an edit naming no message, or
+// carrying no text, never reaches the API.
+func TestMessageUpdateRequiresItsArguments(t *testing.T) {
+	for _, tt := range []struct {
+		name string
+		args map[string]any
+		want string
+	}{{
+		name: "no message",
+		args: map[string]any{"message_id": float64(0), "body": "Hello again from MCP!"},
+		want: "message_id is required",
+	}, {
+		name: "no body",
+		args: map[string]any{"message_id": float64(789), "body": ""},
+		want: "body is required",
+	}} {
+		t.Run(tt.name, func(t *testing.T) {
+			mcpServer, recorded := testutil.ChatMCPServerRecordingMock(t, nil, http.StatusOK, nil)
+
+			testutil.ExecuteToolRequest(t, mcpServer, twchat.MethodMessageUpdate.String(), tt.args,
+				testutil.ExecuteToolRequestWithCheckMessage(checkToolError(t, tt.want)))
+
+			if len(*recorded) != 0 {
+				t.Errorf("rejected call still sent %d requests", len(*recorded))
+			}
+		})
+	}
 }
 
 func TestConversationListByType(t *testing.T) {
