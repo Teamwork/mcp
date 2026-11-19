@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	desksdk "github.com/teamwork/desksdkgo/client"
+	"github.com/teamwork/mcp/pkg/helpers"
 	twapi "github.com/teamwork/twapi-go-sdk"
 )
 
@@ -73,6 +74,11 @@ type Resources struct {
 		// carry no personal or otherwise sensitive data (RESTRICTED_INSTALLATION_IDS,
 		// comma-separated). See IsRestrictedInstallation.
 		RestrictedInstallationIDs []int64
+		// ListFormat is the shape of list tool results when the request does not
+		// choose one (LIST_FORMAT): helpers.ListFormatObjects, the default, or
+		// helpers.ListFormatColumns. An HTTP client chooses for each request with
+		// the TW-MCP-List-Format header. See wantsColumnLists.
+		ListFormat string
 		// Log contains the logging configuration.
 		Log struct {
 			// Format is the format of the logs. It can be "json" or "text".
@@ -187,6 +193,7 @@ func newResources(opts options) Resources {
 	resources.Info.BearerToken = env("BEARER_TOKEN", "")
 	resources.Info.RestrictedInstallationIDs, resources.invalidRestrictedInstallationIDs =
 		parseInstallationIDs(env("RESTRICTED_INSTALLATION_IDS", ""))
+	resources.Info.ListFormat = strings.ToLower(strings.TrimSpace(env("LIST_FORMAT", helpers.ListFormatObjects)))
 	resources.Info.Log.Format = strings.ToLower(env("LOG_FORMAT", "text"))
 	resources.Info.Log.Level = strings.ToLower(env("LOG_LEVEL", "info"))
 	resources.Info.Log.SentryDSN = env("SENTRY_DSN", "")
