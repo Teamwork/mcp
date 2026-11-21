@@ -60,6 +60,14 @@ const (
 	// wantsVertexSchemas.
 	vertexSchemaHeader = "X-Integration-Connectors-Dapper-Trace-Id"
 
+	// listFormatHeader lets an HTTP client choose the shape of list tool results
+	// for one request. See wantsColumnLists.
+	listFormatHeader = "TW-MCP-List-Format"
+
+	// listActionPrefix starts the action part of a list tool's name, as in
+	// "twprojects-list_tasks". See newColumnSpecs.
+	listActionPrefix = "list_"
+
 	// namespaceSeparator divides a tool's namespace from its action, as in
 	// "twprojects-get_task". See namespaceTable.allows.
 	namespaceSeparator = "-"
@@ -262,9 +270,14 @@ func NewMCPServer(resources Resources, groups ...*toolsets.ToolsetGroup) *mcp.Se
 		Version: strings.TrimPrefix(resources.Info.Version, "v"),
 	}, serverOptions)
 	namespaces := newNamespaceTable(groups)
+	columnSpecs := newColumnSpecs(groups)
 
 	mcpServer.AddReceivingMiddleware(mcpLoggingMiddleware(resources))
 	mcpServer.AddReceivingMiddleware(restrictedDataMiddleware)
+	// Added after restrictedDataMiddleware so that it runs on the result after
+	// the restricted keys are removed: in the columns format a key is a column
+	// name, and the redaction would no longer find it.
+	mcpServer.AddReceivingMiddleware(columnListsMiddleware(resources, columnSpecs))
 	mcpServer.AddReceivingMiddleware(func(next mcp.MethodHandler) mcp.MethodHandler {
 		return func(ctx context.Context, method string, req mcp.Request) (result mcp.Result, err error) {
 			result, err = next(ctx, method, req)
@@ -319,14 +332,7 @@ func NewMCPServer(resources Resources, groups ...*toolsets.ToolsetGroup) *mcp.Se
 			// useful tools. Tools not in the preferred list follow alphabetically.
 			orderTools(listToolsResult.Tools)
 
-			// The published shape stays the default; the two variants below are
-			// mutually exclusive, and each is a copy.
-			switch {
-			case wantsStrictSchemas(ctx):
-				listToolsResult.Tools = helpers.StrictTools(listToolsResult.Tools)
-			case wantsVertexSchemas(ctx):
-				listToolsResult.Tools = helpers.VertexTools(listToolsResult.Tools)
-			}
+			listToolsResult.Tools = schemaVariant(ctx, resources, columnSpecs, listToolsResult.Tools)
 			return listToolsResult, nil
 		}
 	})
@@ -339,6 +345,29 @@ func NewMCPServer(resources Resources, groups ...*toolsets.ToolsetGroup) *mcp.Se
 	}
 
 	return mcpServer
+}
+
+// schemaVariant returns the tools with the schemas the request asks for. The
+// published shape stays the default, and each variant is a copy. The columns
+// format changes output schemas only, so it combines with the strict and
+// Vertex variants, which change input schemas; those two are mutually
+// exclusive.
+func schemaVariant(
+	ctx context.Context,
+	resources Resources,
+	columnSpecs map[string]helpers.ColumnSpec,
+	tools []*mcp.Tool,
+) []*mcp.Tool {
+	if wantsColumnLists(ctx, resources) {
+		tools = helpers.ColumnsTools(tools, columnSpecs)
+	}
+	switch {
+	case wantsStrictSchemas(ctx):
+		return helpers.StrictTools(tools)
+	case wantsVertexSchemas(ctx):
+		return helpers.VertexTools(tools)
+	}
+	return tools
 }
 
 // wantsStrictSchemas reports whether to answer with OpenAI strict-mode schemas.
@@ -373,6 +402,78 @@ func wantsVertexSchemas(ctx context.Context) bool {
 		return false
 	}
 	return info.RemoteHeader(vertexSchemaHeader) != ""
+}
+
+// wantsColumnLists reports whether list tool results use the columns format
+// (helpers.ToColumns). The listFormatHeader of an HTTP request decides when it
+// is set; otherwise the server's ListFormat setting decides, which is the only
+// choice over STDIO. Only "columns" turns the format on, so an unknown value
+// gets the default shape.
+func wantsColumnLists(ctx context.Context, resources Resources) bool {
+	format := resources.Info.ListFormat
+	if info, ok := request.InfoFromContext(ctx); ok {
+		if header := strings.TrimSpace(info.RemoteHeader(listFormatHeader)); header != "" {
+			format = header
+		}
+	}
+	return strings.EqualFold(format, helpers.ListFormatColumns)
+}
+
+// newColumnSpecs reads the columns format spec of each list tool from its
+// output schema. A list tool with no output schema, or with no list of records
+// in it, is left out, so its result never changes.
+func newColumnSpecs(groups []*toolsets.ToolsetGroup) map[string]helpers.ColumnSpec {
+	specs := map[string]helpers.ColumnSpec{}
+	for _, group := range groups {
+		for _, toolset := range group.Toolsets {
+			for _, tool := range toolset.GetAvailableTools() {
+				if !isListTool(tool.Tool.Name) {
+					continue
+				}
+				if spec := helpers.NewColumnSpec(tool.Tool.OutputSchema); !spec.IsZero() {
+					specs[tool.Tool.Name] = spec
+				}
+			}
+		}
+	}
+	return specs
+}
+
+// isListTool reports whether a tool name has a list action, as in
+// "twprojects-list_tasks".
+func isListTool(name string) bool {
+	_, action, found := strings.Cut(name, namespaceSeparator)
+	return found && strings.HasPrefix(action, listActionPrefix)
+}
+
+// columnListsMiddleware changes list tool results into the columns format when
+// the request asks for it (wantsColumnLists). The tools/list answer publishes
+// the matching output schemas, so the structured content stays valid.
+func columnListsMiddleware(resources Resources, specs map[string]helpers.ColumnSpec) mcp.Middleware {
+	return func(next mcp.MethodHandler) mcp.MethodHandler {
+		return func(ctx context.Context, method string, req mcp.Request) (mcp.Result, error) {
+			result, err := next(ctx, method, req)
+			if err != nil || !wantsColumnLists(ctx, resources) {
+				return result, err
+			}
+			callToolResult, ok := result.(*mcp.CallToolResult)
+			if !ok {
+				return result, nil
+			}
+			params, ok := req.GetParams().(*mcp.CallToolParamsRaw)
+			if !ok {
+				return result, nil
+			}
+			spec, ok := specs[params.Name]
+			if !ok {
+				return result, nil
+			}
+			if err := helpers.ColumnsToolResult(callToolResult, spec); err != nil {
+				return nil, fmt.Errorf("failed to change the list result into columns: %w", err)
+			}
+			return callToolResult, nil
+		}
+	}
 }
 
 // namespaceTable maps a tool-name prefix to the OAuth scope that grants access

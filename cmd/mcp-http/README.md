@@ -107,6 +107,7 @@ The server can be configured using the following environment variables:
 | `TW_MCP_URL` | The base URL for the MCP server | `https://mcp.ai.teamwork.com` |
 | `TW_MCP_API_URL` | The Teamwork API base URL | `https://teamwork.com` |
 | `TW_MCP_RESTRICTED_INSTALLATION_IDS` | Installations whose tool results carry no personal data (contact details, avatars, timezones, cost rates, recipients); comma-separated | _(empty)_ | `777,12345` |
+| `TW_MCP_LIST_FORMAT` | Shape of `twprojects-list_*` results when the request sends no `TW-MCP-List-Format` header: `objects`, or `columns` for column names once and each record as an array | `objects` | `columns` |
 
 ### Logging Configuration
 | Variable | Description | Default | Example |
@@ -157,6 +158,27 @@ comma-separated list, and the full set of parameters for the pinned SDK version
 is documented at
 <https://go.sdk.modelcontextprotocol.io/mcpgodebug/> (also in-tree at
 `docs/mcpgodebug.md` of the `modelcontextprotocol/go-sdk` module).
+
+### List results in columns
+
+A client can ask for list results in a smaller shape with the
+`TW-MCP-List-Format: columns` header, on `tools/list` and on every `tools/call`.
+Each list of records, and each sideload under `included`, then sends the
+attribute names once and each record as an array of values:
+
+```json
+{"tasks": {"columns": ["id", "name", "tasklist"],
+           "rows": [[1, "Draft", 7]],
+           "relationships": {"tasklist": "tasklists"}}}
+```
+
+A null cell means the attribute is not set. A column named in `relationships`
+holds IDs in place of `{"id", "type"}` objects; a column whose relationships
+have more than one type keeps the objects. `tools/list` publishes the matching
+output schemas, so the structured content stays valid. It applies to the list
+tools that publish an output schema (the `twprojects-list_*` tools), and the
+server default is set with `TW_MCP_LIST_FORMAT`. Without the header or the
+setting, results do not change.
 
 Two further notes for clients:
 
