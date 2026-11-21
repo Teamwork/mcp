@@ -193,7 +193,7 @@ func newResources(opts options) Resources {
 	resources.Info.BearerToken = env("BEARER_TOKEN", "")
 	resources.Info.RestrictedInstallationIDs, resources.invalidRestrictedInstallationIDs =
 		parseInstallationIDs(env("RESTRICTED_INSTALLATION_IDS", ""))
-	resources.Info.ListFormat = strings.ToLower(strings.TrimSpace(env("LIST_FORMAT", helpers.ListFormatObjects)))
+	resources.Info.ListFormat = strings.ToLower(strings.TrimSpace(env("LIST_FORMAT", helpers.ListFormatColumns)))
 	resources.Info.Log.Format = strings.ToLower(env("LOG_FORMAT", "text"))
 	resources.Info.Log.Level = strings.ToLower(env("LOG_LEVEL", "info"))
 	resources.Info.Log.SentryDSN = env("SENTRY_DSN", "")
