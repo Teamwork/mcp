@@ -118,6 +118,8 @@ func Log(logger *slog.Logger, skipPaths map[string]struct{}, next http.Handler) 
 			slog.Int64("installation.id", info.InstallationID()),
 			slog.String("installation.url", info.InstallationURL()),
 			slog.Int64("user.id", info.UserID()),
+			slog.String("oauth.client_id", info.ClientID()),
+			slog.String("mcp.client.vendor", info.ClientVendor()),
 		)
 	})
 }
@@ -189,6 +191,8 @@ func SSELog(logger *slog.Logger, next http.Handler) http.Handler {
 			slog.Int64("installation.id", info.InstallationID()),
 			slog.String("installation.url", info.InstallationURL()),
 			slog.Int64("user.id", info.UserID()),
+			slog.String("oauth.client_id", info.ClientID()),
+			slog.String("mcp.client.vendor", info.ClientVendor()),
 		)
 	})
 }

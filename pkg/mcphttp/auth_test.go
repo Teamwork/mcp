@@ -7,6 +7,7 @@ import (
 
 	"github.com/teamwork/mcp/pkg/auth"
 	"github.com/teamwork/mcp/pkg/config"
+	"github.com/teamwork/mcp/pkg/request"
 	"github.com/teamwork/mcp/pkg/twctx"
 )
 
@@ -49,5 +50,31 @@ func TestAuthMarksRestrictedInstallations(t *testing.T) {
 				t.Errorf("IsRestrictedData = %v, want %v", got, tt.want)
 			}
 		})
+	}
+}
+
+// TestAuthRecordsTheOAuthClient pins that the app the userinfo endpoint
+// reports is decoded and reaches the request info the log lines read.
+func TestAuthRecordsTheOAuthClient(t *testing.T) {
+	userInfo := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		_, _ = w.Write([]byte(`{"user_id":12345,"installation_id":777,"url":"https://test.teamwork.com",` +
+			`"meta":{"app":{"id":42,"clientId":"client-42","name":"Claude 1",` +
+			`"dcr":true,"redirectHosts":["claude.ai"]}}}`))
+	}))
+	defer userInfo.Close()
+
+	var resources config.Resources
+	validator := auth.NewValidator(userInfo.Client(), userInfo.URL, resources.Logger())
+
+	info := request.NewInfo(httptest.NewRequest(http.MethodPost, "/", nil))
+	r := httptest.NewRequest(http.MethodPost, "/", nil)
+	r.Header.Set("Authorization", "Bearer token")
+	r = r.WithContext(request.WithInfo(r.Context(), info))
+
+	Auth(resources, validator, http.HandlerFunc(func(http.ResponseWriter, *http.Request) {})).
+		ServeHTTP(httptest.NewRecorder(), r)
+
+	if info.ClientID() != "client-42" || info.ClientVendor() != "anthropic" {
+		t.Errorf("request info = (%q, %q), want (client-42, anthropic)", info.ClientID(), info.ClientVendor())
 	}
 }

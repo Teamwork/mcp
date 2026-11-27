@@ -134,13 +134,20 @@ func Auth(resources config.Resources, validator *auth.Validator, next http.Handl
 			return
 		}
 
+		vendor, vendorSource := clientVendor(info.Meta.App, r.Header)
 		if span, ok := tracer.SpanFromContext(r.Context()); ok {
 			span.SetTag("user.id", info.UserID)
 			span.SetTag("installation.id", info.InstallationID)
 			span.SetTag("installation.url", info.URL)
+			tagClient(span, info.Meta.App, vendor, vendorSource)
 		}
 		if requestInfo, ok := request.InfoFromContext(r.Context()); ok {
 			requestInfo.SetAuth(info.InstallationID, info.URL, info.UserID)
+			var clientID string
+			if info.Meta.App != nil {
+				clientID = info.Meta.App.ClientID
+			}
+			requestInfo.SetClient(clientID, vendor)
 		}
 
 		ctx := r.Context()
