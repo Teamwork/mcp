@@ -36,7 +36,22 @@ type BearerInfo struct {
 	URL            string `json:"url"`
 	Meta           struct {
 		Scopes []string `json:"scopes"`
+		// App is nil when the token was not issued through an OAuth app.
+		App *BearerApp `json:"app"`
 	} `json:"meta"`
+}
+
+// BearerApp is the OAuth app a token was issued to, as the userinfo endpoint
+// reports it. It is for telemetry only: Dynamic Client Registration lets any
+// client choose any name, so never base an access decision on it.
+type BearerApp struct {
+	ID       int64  `json:"id"`
+	ClientID string `json:"clientId"`
+	Name     string `json:"name"`
+	// DCR is set for apps created through Dynamic Client Registration.
+	DCR bool `json:"dcr"`
+	// RedirectHosts are the hosts of the app's redirect URIs.
+	RedirectHosts []string `json:"redirectHosts"`
 }
 
 // Validator resolves a bearer token into the installation and user it belongs

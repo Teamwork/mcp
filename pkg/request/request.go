@@ -36,6 +36,33 @@ type Info struct {
 	installationID  int64
 	installationURL string
 	userID          int64
+	clientID        string
+	clientVendor    string
+}
+
+// SetClient sets the OAuth client ID and vendor of the authenticated request.
+func (i *Info) SetClient(clientID, vendor string) {
+	if i == nil {
+		return
+	}
+	i.clientID = clientID
+	i.clientVendor = vendor
+}
+
+// ClientID returns the OAuth client ID the token was issued to, or "".
+func (i *Info) ClientID() string {
+	if i == nil {
+		return ""
+	}
+	return i.clientID
+}
+
+// ClientVendor returns the vendor of the client behind the request, or "".
+func (i *Info) ClientVendor() string {
+	if i == nil {
+		return ""
+	}
+	return i.clientVendor
 }
 
 // TraceID returns the request trace ID.
