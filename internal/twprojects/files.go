@@ -318,8 +318,9 @@ func UploadURLCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 // projectFileAddResult is what the tool hands back. ID is the durable handle: a
 // reference is spent once, this can be attached as often as it is needed.
 type projectFileAddResult struct {
-	ID    int64  `json:"id"`
-	Usage string `json:"usage"`
+	ID        int64  `json:"id"`
+	VersionID int64  `json:"versionId,omitempty"`
+	Usage     string `json:"usage"`
 }
 
 // ProjectFileAdd stores an uploaded file in a project's files area, which is
@@ -428,15 +429,28 @@ func ProjectFileAdd(engine *twapi.Engine) toolsets.ToolWrapper {
 			}
 
 			file, err := projects.FileCreate(ctx, engine, fileCreateRequest)
-			if err != nil {
+			switch {
+			case err != nil && file != nil:
+				// The upload is stored; only telling a file from a version failed.
+				// An error that reads as a failed upload would invite a duplicate.
+				return helpers.NewToolResultTextError("the file was added, but its ID could not be "+
+					"confirmed: %d is either the file or a new version of an existing one. Do not add it "+
+					"again; find it with %s. Cause: %s", file.ID, MethodFileList, err.Error()), nil
+			case err != nil:
 				return helpers.HandleAPIError(err, "failed to add the file to the project")
 			}
 
+			usage := fmt.Sprintf("Pass %d in attachment_file_ids on %s, %s, %s, %s or %s. Unlike a "+
+				"reference, it can be used more than once.", file.ID, MethodTaskCreate, MethodTaskUpdate,
+				MethodCommentCreate, MethodMessageCreate, MethodMessageReplyCreate)
+			if file.VersionID != 0 {
+				usage = fmt.Sprintf("Stored as a new version of file %d. ", file.ID) + usage
+			}
+
 			return helpers.NewToolResultJSON(projectFileAddResult{
-				ID: int64(file.ID),
-				Usage: fmt.Sprintf("Pass %d in attachment_file_ids on %s, %s, %s, %s or %s. Unlike a "+
-					"reference, it can be used more than once.", file.ID, MethodTaskCreate, MethodTaskUpdate,
-					MethodCommentCreate, MethodMessageCreate, MethodMessageReplyCreate),
+				ID:        int64(file.ID),
+				VersionID: file.VersionID,
+				Usage:     usage,
 			})
 		},
 	}

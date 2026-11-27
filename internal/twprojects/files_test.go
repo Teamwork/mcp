@@ -756,6 +756,77 @@ func TestProjectFileAdd(t *testing.T) {
 	if got := result["id"]; got != float64(4242) {
 		t.Errorf("expected the created file ID, got %v", got)
 	}
+	if _, ok := result["versionId"]; ok {
+		t.Errorf("expected no versionId for a new file, got %v", result["versionId"])
+	}
+}
+
+// TestProjectFileAddReportsTheNewVersion covers auto_new_version adding a
+// version: the endpoint answers with the version ID (8), and the tool must hand
+// back the file (7), or a model attaches an ID that is not a file.
+func TestProjectFileAddReportsTheNewVersion(t *testing.T) {
+	mcpServer, recorded := mcpServerRecordingMock(t, []testutil.ProjectsMockRoute{{
+		Match:  "/projects/777/files",
+		Method: http.MethodPost,
+		Status: http.StatusCreated,
+		Body:   []byte(`{"id":"8"}`),
+	}, {
+		Match:  "/fileversions/8",
+		Method: http.MethodGet,
+		Status: http.StatusOK,
+		Body: []byte(`{"fileversion":{"fileVersionId":8,"file":{"id":7,"type":"files"},` +
+			`"versionNo":2,"project":{"id":777,"type":"projects"}}}`),
+	}}, http.StatusNotFound, nil)
+
+	var result map[string]any
+	testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodProjectFileAdd.String(), map[string]any{
+		"project_id":       777,
+		"reference":        "tf_1a2b",
+		"auto_new_version": true,
+	},
+		testutil.ExecuteToolRequestWithCheckMessage(func(t *testing.T, message mcp.Result) {
+			t.Helper()
+			result = decodeToolJSON(t, message)
+		}),
+	)
+
+	if len(*recorded) != 3 {
+		t.Errorf("expected the create plus two lookups, got %d requests", len(*recorded))
+	}
+	if got := result["id"]; got != float64(7) {
+		t.Errorf("expected the file ID 7, got %v", got)
+	}
+	if got := result["versionId"]; got != float64(8) {
+		t.Errorf("expected the version ID 8, got %v", got)
+	}
+	if usage, _ := result["usage"].(string); !strings.Contains(usage, "new version of file 7") ||
+		!strings.Contains(usage, "Pass 7 in attachment_file_ids") {
+		t.Errorf("expected the usage to name file 7, got %q", usage)
+	}
+}
+
+// TestProjectFileAddLookupFailureIsNotAFailedUpload covers the create
+// succeeding and the follow-up lookup failing. The upload is stored, so the
+// result must say so rather than read as a failure the model would retry.
+func TestProjectFileAddLookupFailureIsNotAFailedUpload(t *testing.T) {
+	mcpServer, _ := mcpServerRecordingMock(t, []testutil.ProjectsMockRoute{{
+		Match:  "/projects/777/files",
+		Method: http.MethodPost,
+		Status: http.StatusCreated,
+		Body:   []byte(`{"id":"8"}`),
+	}}, http.StatusInternalServerError, nil)
+
+	testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodProjectFileAdd.String(), map[string]any{
+		"project_id":       777,
+		"reference":        "tf_1a2b",
+		"auto_new_version": true,
+	},
+		testutil.ExecuteToolRequestWithCheckMessage(func(t *testing.T, result mcp.Result) {
+			t.Helper()
+			assertErrorResultContains(t, result, "the file was added")
+			assertErrorResultContains(t, result, "do not add it again")
+		}),
+	)
 }
 
 func TestProjectFileAddRejectsBlankReference(t *testing.T) {
