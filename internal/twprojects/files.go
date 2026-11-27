@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"mime"
@@ -31,6 +32,8 @@ const (
 	MethodFileCreate      toolsets.Method = "twprojects-create_file"
 	MethodUploadURLCreate toolsets.Method = "twprojects-create_upload_url"
 	MethodProjectFileAdd  toolsets.Method = "twprojects-add_project_file"
+	MethodFileVersionAdd  toolsets.Method = "twprojects-add_file_version"
+	MethodFileUpdate      toolsets.Method = "twprojects-update_file"
 	MethodFileGet         toolsets.Method = "twprojects-get_file"
 	MethodFileList        toolsets.Method = "twprojects-list_files"
 	MethodFileDownload    toolsets.Method = "twprojects-download_file"
@@ -318,8 +321,9 @@ func UploadURLCreate(engine *twapi.Engine) toolsets.ToolWrapper {
 // projectFileAddResult is what the tool hands back. ID is the durable handle: a
 // reference is spent once, this can be attached as often as it is needed.
 type projectFileAddResult struct {
-	ID    int64  `json:"id"`
-	Usage string `json:"usage"`
+	ID        int64  `json:"id"`
+	VersionID int64  `json:"versionId,omitempty"`
+	Usage     string `json:"usage"`
 }
 
 // ProjectFileAdd stores an uploaded file in a project's files area, which is
@@ -381,8 +385,9 @@ func ProjectFileAdd(engine *twapi.Engine) toolsets.ToolWrapper {
 						AnyOf:       []*jsonschema.Schema{{Type: "boolean"}, {Type: "null"}},
 					},
 					"auto_new_version": {
-						Description: "Store it as a new version of an existing file with the same name in " +
-							"the project, rather than as a separate file.",
+						Description: fmt.Sprintf("Store it as a new version of an existing file with the "+
+							"same name in the project, rather than as a separate file. When the file is "+
+							"known, use %s instead.", MethodFileVersionAdd),
 						AnyOf: []*jsonschema.Schema{{Type: "boolean"}, {Type: "null"}},
 					},
 					"notify_current_user": {
@@ -428,18 +433,309 @@ func ProjectFileAdd(engine *twapi.Engine) toolsets.ToolWrapper {
 			}
 
 			file, err := projects.FileCreate(ctx, engine, fileCreateRequest)
-			if err != nil {
+			switch {
+			case err != nil && file != nil:
+				// The upload is stored; only telling a file from a version failed.
+				// An error that reads as a failed upload would invite a duplicate.
+				return helpers.NewToolResultTextError("the file was added, but its ID could not be "+
+					"confirmed: %d is either the file or a new version of an existing one. Do not add it "+
+					"again; find it with %s. Cause: %s", file.ID, MethodFileList, err.Error()), nil
+			case err != nil:
 				return helpers.HandleAPIError(err, "failed to add the file to the project")
 			}
 
+			usage := fmt.Sprintf("Pass %d in attachment_file_ids on %s, %s, %s, %s or %s. Unlike a "+
+				"reference, it can be used more than once.", file.ID, MethodTaskCreate, MethodTaskUpdate,
+				MethodCommentCreate, MethodMessageCreate, MethodMessageReplyCreate)
+			if file.VersionID != 0 {
+				usage = fmt.Sprintf("Stored as a new version of file %d. ", file.ID) + usage
+			}
+
 			return helpers.NewToolResultJSON(projectFileAddResult{
-				ID: int64(file.ID),
-				Usage: fmt.Sprintf("Pass %d in attachment_file_ids on %s, %s, %s, %s or %s. Unlike a "+
-					"reference, it can be used more than once.", file.ID, MethodTaskCreate, MethodTaskUpdate,
-					MethodCommentCreate, MethodMessageCreate, MethodMessageReplyCreate),
+				ID:        int64(file.ID),
+				VersionID: file.VersionID,
+				Usage:     usage,
 			})
 		},
 	}
+}
+
+// fileVersionAddResult is what the version tool hands back. ID stays the file's,
+// so it reads the same as add_project_file's result.
+type fileVersionAddResult struct {
+	ID        int64  `json:"id"`
+	VersionID int64  `json:"versionId"`
+	VersionNo int64  `json:"versionNo"`
+	Usage     string `json:"usage"`
+}
+
+// FileVersionAdd adds an upload as the newest version of a file the caller
+// names, through the same route the web app's "upload new version" uses.
+func FileVersionAdd(engine *twapi.Engine) toolsets.ToolWrapper {
+	return toolsets.ToolWrapper{
+		Tool: &mcp.Tool{
+			Name: string(MethodFileVersionAdd),
+			Description: fmt.Sprintf("Add an uploaded file as the newest version of an existing file. "+
+				"Upload it first with %s or %s, then pass the reference and the file ID. Earlier "+
+				"versions are kept. The upload can have another name or type than the file, and the "+
+				"file then shows the new name. Prefer this over auto_new_version on %s whenever the "+
+				"file is known, since that matches by name.",
+				MethodUploadURLCreate, MethodFileCreate, MethodProjectFileAdd),
+			Annotations: &mcp.ToolAnnotations{
+				Title:           "Add File Version",
+				DestructiveHint: new(false),
+				OpenWorldHint:   new(false),
+			},
+			InputSchema: &jsonschema.Schema{
+				Type: "object",
+				Properties: map[string]*jsonschema.Schema{
+					"file_id": {
+						Type: "integer",
+						Description: fmt.Sprintf("The ID of the file that gets the new version, as "+
+							"returned by %s or %s.", MethodFileList, MethodProjectFileAdd),
+					},
+					"reference": {
+						Type:      "string",
+						MinLength: new(1),
+						Description: fmt.Sprintf("The reference of an uploaded file, as returned by %s or "+
+							"%s. It can only be used once.", MethodUploadURLCreate, MethodFileCreate),
+					},
+					"description": {
+						Description: "A description of the version.",
+						AnyOf:       []*jsonschema.Schema{{Type: "string"}, {Type: "null"}},
+					},
+					"notify_current_user": {
+						Description: "Notify the user adding the version. Defaults to false.",
+						AnyOf:       []*jsonschema.Schema{{Type: "boolean"}, {Type: "null"}},
+					},
+				},
+				Required: []string{"file_id", "reference"},
+			},
+		},
+		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+			var arguments map[string]any
+			if err := json.Unmarshal(request.Params.Arguments, &arguments); err != nil {
+				return helpers.NewToolResultTextError("failed to decode request: %s", err.Error()), nil
+			}
+
+			var versionCreateRequest projects.FileVersionCreateRequest
+			var reference string
+			if err := helpers.ParamGroup(arguments,
+				helpers.RequiredNumericParam(&versionCreateRequest.Path.FileID, "file_id"),
+				helpers.RequiredParam(&reference, "reference"),
+				helpers.OptionalPointerParam(&versionCreateRequest.Description, "description"),
+				helpers.OptionalPointerParam(&versionCreateRequest.NotifyCurrentUser, "notify_current_user"),
+			); err != nil {
+				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
+			}
+
+			versionCreateRequest.PendingFileRef = projects.PendingFileRef(strings.TrimSpace(reference))
+			if versionCreateRequest.PendingFileRef == "" {
+				return helpers.NewToolResultTextError("reference must not be empty"), nil
+			}
+
+			response, err := projects.FileVersionCreate(ctx, engine, versionCreateRequest)
+			if httpErr, _ := errors.AsType[*twapi.HTTPError](err); httpErr.NotFound() {
+				// The endpoint gives the same 404 for both inputs.
+				return helpers.NewToolResultTextError("file %d was not found, or the reference is unknown "+
+					"or already used. Check the file with %s; a used reference needs a new upload.",
+					versionCreateRequest.Path.FileID, MethodFileGet), nil
+			} else if err != nil {
+				return helpers.HandleAPIError(err, "failed to add the file version")
+			}
+
+			version := response.FileVersion
+			return helpers.NewToolResultJSON(fileVersionAddResult{
+				ID:        version.File.ID,
+				VersionID: version.ID,
+				VersionNo: version.VersionNo,
+				Usage: fmt.Sprintf("File %d now has version %d; the file ID is unchanged.",
+					version.File.ID, version.VersionNo),
+			})
+		},
+	}
+}
+
+// fileUpdateResult is the file after an update, cut to what the tool can change.
+type fileUpdateResult struct {
+	ID          int64               `json:"id"`
+	Name        string              `json:"name"`
+	Description string              `json:"description"`
+	VersionID   int64               `json:"versionId"`
+	CategoryID  int64               `json:"categoryId,omitempty"`
+	TagIDs      []int64             `json:"tagIds"`
+	Private     bool                `json:"private"`
+	Status      projects.FileStatus `json:"status"`
+}
+
+// FileUpdate changes a file's name, description, category, tags or privacy.
+func FileUpdate(engine *twapi.Engine) toolsets.ToolWrapper {
+	return toolsets.ToolWrapper{
+		Tool: &mcp.Tool{
+			Name: string(MethodFileUpdate),
+			Description: fmt.Sprintf("Change a file's name, description, category, tags or privacy. Name "+
+				"and description belong to a version: the latest one, whose name is the file's, unless "+
+				"version_id names another. Omitted values are left as they are. To replace the "+
+				"content, use %s.", MethodFileVersionAdd),
+			Annotations: &mcp.ToolAnnotations{
+				Title:           "Update File",
+				DestructiveHint: new(true),
+				OpenWorldHint:   new(false),
+			},
+			InputSchema: &jsonschema.Schema{
+				Type: "object",
+				Properties: map[string]*jsonschema.Schema{
+					"file_id": {
+						Type:        "integer",
+						Description: "The ID of the file to update.",
+					},
+					"version_id": {
+						Description: fmt.Sprintf("The ID of the version whose name and description change, "+
+							"as listed by %s with include_versions. Omit for the latest version.", MethodFileGet),
+						AnyOf: []*jsonschema.Schema{{Type: "integer"}, {Type: "null"}},
+					},
+					"name": {
+						Description: "The new name, including its extension.",
+						AnyOf:       []*jsonschema.Schema{{Type: "string"}, {Type: "null"}},
+					},
+					"description": {
+						Description: "The new description. An empty string removes it.",
+						AnyOf:       []*jsonschema.Schema{{Type: "string"}, {Type: "null"}},
+					},
+					"category_id": {
+						Description: "Move the file to another file category of its project. A category " +
+							"cannot be removed, only changed.",
+						AnyOf: []*jsonschema.Schema{{Type: "integer"}, {Type: "null"}},
+					},
+					"tag_ids": {
+						Description: "Replace the file's tags with these tag IDs. To remove every tag, use " +
+							"clear_tags instead.",
+						AnyOf: []*jsonschema.Schema{
+							{Type: "array", Items: &jsonschema.Schema{Type: "integer"}},
+							{Type: "null"},
+						},
+					},
+					"clear_tags": {
+						Description: "If true, removes every tag from the file. Cannot be combined with a " +
+							"non-empty tag_ids.",
+						AnyOf: []*jsonschema.Schema{{Type: "boolean"}, {Type: "null"}},
+					},
+					"private": {
+						Description: "Hide the file from client users, or show it again with false.",
+						AnyOf:       []*jsonschema.Schema{{Type: "boolean"}, {Type: "null"}},
+					},
+				},
+				Required: []string{"file_id"},
+			},
+		},
+		Handler: func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+			var arguments map[string]any
+			if err := json.Unmarshal(request.Params.Arguments, &arguments); err != nil {
+				return helpers.NewToolResultTextError("failed to decode request: %s", err.Error()), nil
+			}
+
+			fileUpdateRequest := projects.NewFileUpdateRequest(0)
+			var tagIDs []int64
+			var clearTags bool
+			if err := helpers.ParamGroup(arguments,
+				helpers.RequiredNumericParam(&fileUpdateRequest.Path.ID, "file_id"),
+				helpers.OptionalNumericPointerParam(&fileUpdateRequest.VersionID, "version_id"),
+				helpers.OptionalPointerParam(&fileUpdateRequest.Name, "name"),
+				helpers.OptionalPointerParam(&fileUpdateRequest.Description, "description"),
+				helpers.OptionalNumericPointerParam(&fileUpdateRequest.CategoryID, "category_id"),
+				helpers.OptionalNumericListParam(&tagIDs, "tag_ids"),
+				helpers.OptionalParam(&clearTags, "clear_tags"),
+				helpers.OptionalPointerParam(&fileUpdateRequest.Private, "private"),
+			); err != nil {
+				return helpers.NewToolResultTextError("invalid parameters: %s", err.Error()), nil
+			}
+
+			// An empty tag_ids is read as unset: some clients send [] for "no
+			// value", and passing it on would remove every tag.
+			switch {
+			case clearTags && len(tagIDs) > 0:
+				return helpers.NewToolResultTextError("clear_tags cannot be combined with a non-empty tag_ids"), nil
+			case clearTags:
+				fileUpdateRequest.TagIDs = &[]int64{}
+			case len(tagIDs) > 0:
+				fileUpdateRequest.TagIDs = &tagIDs
+			}
+
+			if fileUpdateRequest.Name != nil && strings.TrimSpace(*fileUpdateRequest.Name) == "" {
+				return helpers.NewToolResultTextError("name must not be empty"), nil
+			}
+			if fileUpdateRequest.CategoryID != nil && *fileUpdateRequest.CategoryID <= 0 {
+				return helpers.NewToolResultTextError("category_id must be positive; a category cannot be " +
+					"removed"), nil
+			}
+			if fileUpdateRequest.Name == nil && fileUpdateRequest.Description == nil &&
+				fileUpdateRequest.CategoryID == nil &&
+				fileUpdateRequest.TagIDs == nil && fileUpdateRequest.Private == nil {
+				return helpers.NewToolResultTextError("nothing to update: set at least one value"), nil
+			}
+
+			// A description sent without a name resets the version's name to the
+			// one it was uploaded with, so send the current name along.
+			if fileUpdateRequest.Description != nil && fileUpdateRequest.Name == nil {
+				name, toolResult := currentFileVersionName(ctx, engine, fileUpdateRequest)
+				if toolResult != nil {
+					return toolResult, nil
+				}
+				fileUpdateRequest.Name = &name
+			}
+
+			response, err := projects.FileUpdate(ctx, engine, fileUpdateRequest)
+			if err != nil {
+				return helpers.HandleAPIError(err, "failed to update the file")
+			}
+
+			file := response.File
+			result := fileUpdateResult{
+				ID:          file.ID,
+				Name:        file.DisplayName,
+				Description: file.Description,
+				VersionID:   file.Version.ID,
+				TagIDs:      []int64{},
+				Private:     file.IsPrivate != 0,
+				Status:      file.Status,
+			}
+			if file.Category != nil {
+				result.CategoryID = file.Category.ID
+			}
+			for _, tag := range file.Tags {
+				result.TagIDs = append(result.TagIDs, tag.ID)
+			}
+			return helpers.NewToolResultJSON(result)
+		},
+	}
+}
+
+// currentFileVersionName reads the name of the version an update targets: the
+// one named by VersionID, or the file's latest.
+func currentFileVersionName(
+	ctx context.Context,
+	engine *twapi.Engine,
+	req projects.FileUpdateRequest,
+) (string, *mcp.CallToolResult) {
+	if req.VersionID != nil && *req.VersionID > 0 {
+		version, err := projects.FileVersionGet(ctx, engine, projects.NewFileVersionGetRequest(*req.VersionID))
+		if err != nil {
+			result, _ := helpers.HandleAPIError(err, "failed to read the version's current name")
+			return "", result
+		}
+		if version.FileVersion.File.ID != req.Path.ID {
+			return "", helpers.NewToolResultTextError("version %d does not belong to file %d",
+				*req.VersionID, req.Path.ID)
+		}
+		return version.FileVersion.DisplayName, nil
+	}
+
+	file, err := projects.FileGet(ctx, engine, projects.NewFileGetRequest(req.Path.ID))
+	if err != nil {
+		result, _ := helpers.HandleAPIError(err, "failed to read the file's current name")
+		return "", result
+	}
+	return file.File.DisplayName, nil
 }
 
 // parseAttachmentRefs reads the attachment references shared by the tools that

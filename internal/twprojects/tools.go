@@ -54,6 +54,8 @@ func DefaultToolsetGroup(readOnly, allowDelete bool, engine *twapi.Engine) *tool
 		FileCreate(engine),
 		UploadURLCreate(engine),
 		ProjectFileAdd(engine),
+		FileVersionAdd(engine),
+		FileUpdate(engine),
 		ProjectCategoryCreate(engine),
 		ProjectCategoryUpdate(engine),
 		ProjectClone(engine),
