@@ -295,6 +295,7 @@ var additiveWriteTools = map[string]bool{
 	"twdesk-create_ticket_type":             true,
 	"twdesk-link_task_to_ticket":            true,
 	"twdesk-reply_ticket":                   true,
+	"twprojects-add_file_version":           true,
 	"twprojects-add_project_file":           true,
 	"twprojects-add_project_member":         true,
 	"twprojects-add_project_members":        true,

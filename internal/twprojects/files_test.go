@@ -1183,3 +1183,222 @@ func TestFileDownloadAPIFailureIsAToolResult(t *testing.T) {
 		}),
 	)
 }
+
+// TestFileVersionAddReachesTheWire pins the verb, path and body, since the mock
+// answers the same either way.
+func TestFileVersionAddReachesTheWire(t *testing.T) {
+	mcpServer, recorded := mcpServerRecordingMock(t, nil, http.StatusCreated,
+		[]byte(`{"fileversion":{"fileVersionId":15,"file":{"id":10,"type":"files"},"versionNo":3,`+
+			`"uploadedBy":{"id":1,"type":"users"}},"included":{}}`))
+
+	var result map[string]any
+	testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodFileVersionAdd.String(), map[string]any{
+		"file_id":             10,
+		"reference":           "  tf_1a2b.md  ",
+		"description":         "Second draft",
+		"notify_current_user": true,
+	},
+		testutil.ExecuteToolRequestWithCheckMessage(func(t *testing.T, message mcp.Result) {
+			t.Helper()
+			result = decodeToolJSON(t, message)
+		}),
+	)
+
+	if len(*recorded) != 1 {
+		t.Fatalf("expected one request, got %d", len(*recorded))
+	}
+	request := (*recorded)[0]
+	if request.Method != http.MethodPost || request.URL.Path != "/projects/api/v3/files/10.json" {
+		t.Errorf("expected POST /projects/api/v3/files/10.json, got %s %s", request.Method, request.URL.Path)
+	}
+	var body struct {
+		FileVersion struct {
+			PendingFileRef    string `json:"pendingFileRef"`
+			Description       string `json:"description"`
+			NotifyCurrentUser bool   `json:"notifyCurrentUser"`
+		} `json:"fileversion"`
+	}
+	if err := json.Unmarshal(request.Body, &body); err != nil {
+		t.Fatalf("failed to decode the request body: %s", err)
+	}
+	if v := body.FileVersion; v.PendingFileRef != "tf_1a2b.md" || v.Description != "Second draft" ||
+		!v.NotifyCurrentUser {
+		t.Errorf("unexpected body %+v", v)
+	}
+
+	if result["id"] != float64(10) || result["versionId"] != float64(15) || result["versionNo"] != float64(3) {
+		t.Errorf("expected file 10, version 15, number 3, got %v", result)
+	}
+}
+
+// TestFileVersionAddNotFoundNamesBothCauses covers the endpoint's one 404 for
+// an unknown file and for an unknown or used reference.
+func TestFileVersionAddNotFoundNamesBothCauses(t *testing.T) {
+	mcpServer, _ := mcpServerRecordingMock(t, nil, http.StatusNotFound,
+		[]byte(`{"errors":[{"title":"not found","detail":"entity not found"}]}`))
+
+	testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodFileVersionAdd.String(), map[string]any{
+		"file_id":   10,
+		"reference": "tf_1a2b.md",
+	},
+		testutil.ExecuteToolRequestWithCheckMessage(func(t *testing.T, result mcp.Result) {
+			t.Helper()
+			assertErrorResultContains(t, result, "file 10 was not found")
+			assertErrorResultContains(t, result, "already used")
+		}),
+	)
+}
+
+func TestFileVersionAddRejectsBlankReference(t *testing.T) {
+	mcpServer, recorded := mcpServerRecordingMock(t, nil, http.StatusCreated, nil)
+
+	testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodFileVersionAdd.String(), map[string]any{
+		"file_id":   10,
+		"reference": "   ",
+	},
+		testutil.ExecuteToolRequestWithCheckMessage(func(t *testing.T, result mcp.Result) {
+			t.Helper()
+			assertErrorResultContains(t, result, "must not be empty")
+		}),
+	)
+
+	if len(*recorded) != 0 {
+		t.Errorf("expected no request to be sent, got %d", len(*recorded))
+	}
+}
+
+// fileUpdateMock answers the reads that recover a version's name and the
+// update itself, which share a path and differ by verb.
+func fileUpdateMock(t *testing.T) (*mcp.Server, *[]testutil.ProjectsRecordedRequest) {
+	t.Helper()
+
+	return mcpServerRecordingMock(t, []testutil.ProjectsMockRoute{{
+		Match:  "/projects/api/v3/files/10.json",
+		Method: http.MethodGet,
+		Status: http.StatusOK,
+		Body:   []byte(`{"file":{"id":10,"displayName":"renamed.md","uploadedBy":1}}`),
+	}, {
+		Match:  "/projects/api/v3/fileversions/17.json",
+		Method: http.MethodGet,
+		Status: http.StatusOK,
+		Body:   []byte(`{"fileversion":{"fileVersionId":17,"file":{"id":10,"type":"files"},"displayName":"old.md"}}`),
+	}, {
+		Match:  "/projects/api/v3/fileversions/99.json",
+		Method: http.MethodGet,
+		Status: http.StatusOK,
+		Body:   []byte(`{"fileversion":{"fileVersionId":99,"file":{"id":55,"type":"files"},"displayName":"x.md"}}`),
+	}, {
+		Match:  "/projects/api/v3/files/10.json",
+		Method: http.MethodPatch,
+		Status: http.StatusOK,
+		Body: []byte(`{"file":{"id":10,"displayName":"renamed.md","description":"note","status":"active",` +
+			`"version":{"id":18,"type":"fileVersions"},"category":{"id":3,"type":"fileCategories"},` +
+			`"tags":[{"id":1,"type":"tags"}],"isPrivate":1,"uploadedBy":1}}`),
+	}}, http.StatusNotFound, nil)
+}
+
+// TestFileUpdateReachesTheWire pins the body of each change, since the mock
+// answers the same either way. A description without a name is sent with the
+// version's current name, or the endpoint resets it to the uploaded one.
+func TestFileUpdateReachesTheWire(t *testing.T) {
+	tests := []struct {
+		name      string
+		arguments map[string]any
+		wantReads []string
+		wantBody  string
+	}{{
+		name: "name, category, tags and privacy",
+		arguments: map[string]any{"file_id": 10, "name": "spec.md", "category_id": 3,
+			"tag_ids": []any{1, 2}, "private": true},
+		wantBody: `{"file":{"name":"spec.md","categoryId":3,"tagIds":[1,2],"private":true}}`,
+	}, {
+		name:      "description keeps the latest version's name",
+		arguments: map[string]any{"file_id": 10, "description": "note"},
+		wantReads: []string{"/projects/api/v3/files/10.json"},
+		wantBody:  `{"file":{"name":"renamed.md","description":"note"}}`,
+	}, {
+		name:      "description keeps the named version's name",
+		arguments: map[string]any{"file_id": 10, "version_id": 17, "description": "note"},
+		wantReads: []string{"/projects/api/v3/fileversions/17.json"},
+		wantBody:  `{"file":{"versionId":17,"name":"old.md","description":"note"}}`,
+	}, {
+		name:      "description with a name reads nothing",
+		arguments: map[string]any{"file_id": 10, "name": "spec.md", "description": ""},
+		wantBody:  `{"file":{"name":"spec.md","description":""}}`,
+	}, {
+		name:      "clear tags",
+		arguments: map[string]any{"file_id": 10, "clear_tags": true},
+		wantBody:  `{"file":{"tagIds":[]}}`,
+	}}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mcpServer, recorded := fileUpdateMock(t)
+
+			var result map[string]any
+			testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodFileUpdate.String(), tt.arguments,
+				testutil.ExecuteToolRequestWithCheckMessage(func(t *testing.T, message mcp.Result) {
+					t.Helper()
+					result = decodeToolJSON(t, message)
+				}),
+			)
+
+			if len(*recorded) != len(tt.wantReads)+1 {
+				t.Fatalf("expected %d requests, got %d", len(tt.wantReads)+1, len(*recorded))
+			}
+			for i, path := range tt.wantReads {
+				if r := (*recorded)[i]; r.Method != http.MethodGet || r.URL.Path != path {
+					t.Errorf("expected GET %s, got %s %s", path, r.Method, r.URL.Path)
+				}
+			}
+			update := (*recorded)[len(tt.wantReads)]
+			if update.Method != http.MethodPatch || update.URL.Path != "/projects/api/v3/files/10.json" {
+				t.Errorf("expected PATCH /projects/api/v3/files/10.json, got %s %s", update.Method, update.URL.Path)
+			}
+			if got := strings.TrimSpace(string(update.Body)); got != tt.wantBody {
+				t.Errorf("expected body %s, got %s", tt.wantBody, got)
+			}
+
+			if result["id"] != float64(10) || result["versionId"] != float64(18) || result["private"] != true ||
+				result["categoryId"] != float64(3) {
+				t.Errorf("unexpected result %v", result)
+			}
+		})
+	}
+}
+
+func TestFileUpdateRejectsBadInput(t *testing.T) {
+	tests := []struct {
+		name      string
+		arguments map[string]any
+		want      string
+		wantReads int
+	}{
+		{"nothing to change", map[string]any{"file_id": 10}, "nothing to update", 0},
+		{"only a version", map[string]any{"file_id": 10, "version_id": 17}, "nothing to update", 0},
+		{"empty tag_ids is unset", map[string]any{"file_id": 10, "tag_ids": []any{}}, "nothing to update", 0},
+		{"clear and set tags", map[string]any{"file_id": 10, "clear_tags": true, "tag_ids": []any{1}},
+			"clear_tags cannot be combined", 0},
+		{"remove the category", map[string]any{"file_id": 10, "category_id": 0}, "cannot be removed", 0},
+		{"blank name", map[string]any{"file_id": 10, "name": "  "}, "name must not be empty", 0},
+		{"version of another file", map[string]any{"file_id": 10, "version_id": 99, "description": "x"},
+			"does not belong to file 10", 1},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mcpServer, recorded := fileUpdateMock(t)
+
+			testutil.ExecuteToolRequest(t, mcpServer, twprojects.MethodFileUpdate.String(), tt.arguments,
+				testutil.ExecuteToolRequestWithCheckMessage(func(t *testing.T, result mcp.Result) {
+					t.Helper()
+					assertErrorResultContains(t, result, tt.want)
+				}),
+			)
+
+			if len(*recorded) != tt.wantReads {
+				t.Errorf("expected %d requests, got %d", tt.wantReads, len(*recorded))
+			}
+		})
+	}
+}

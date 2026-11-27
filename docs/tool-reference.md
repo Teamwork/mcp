@@ -66,10 +66,10 @@ Project, category, template, member, custom field, and custom item (user-defined
 | Custom Item | ✓ | ✓ | ✓ | ✓ |
 | Custom Item Field | ✓ | ✓ | ✓ | ✓ |
 | Custom Item Record | ✓ | ✓ | ✓ | ✓ |
-| File | ✓ | — | — | — |
+| File | ✓ | — | — | ✓ |
 | Upload Url | ✓ | — | — | — |
 
-**Other actions:** `add_project_file`, `add_project_member`, `add_project_members`, `clone_project`, `count_projects`, `create_custom_field_values`, `create_custom_item_records`, `update_custom_field_values`, `update_projects`
+**Other actions:** `add_file_version`, `add_project_file`, `add_project_member`, `add_project_members`, `clone_project`, `count_projects`, `create_custom_field_values`, `create_custom_item_records`, `update_custom_field_values`, `update_projects`
 
 ### Tasks — `twprojects-tasks`
 
